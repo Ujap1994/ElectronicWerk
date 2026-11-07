@@ -10,6 +10,7 @@ import { devServerUrl, paths, testHooksEnabled } from './paths';
 import { handleAppScheme, registerAppScheme } from './protocol';
 import { createSenderCheck, hardenApp } from './security';
 import { SettingsStore } from './settings-store';
+import { runSmokeTest, SMOKE_TEST_FLAG } from './smoke-test';
 import { createMainWindow } from './window';
 
 // Tests and screenshot automation run with an isolated profile. This must
@@ -149,6 +150,9 @@ function main(): void {
 
     engine.start();
     mainWindow = openMainWindow();
+    if (process.argv.includes(SMOKE_TEST_FLAG)) {
+      runSmokeTest(mainWindow);
+    }
 
     if (testHooksEnabled()) {
       // Exposed for end-to-end tests only (see e2e/).

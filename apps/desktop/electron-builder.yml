@@ -1,0 +1,42 @@
+# Packaging configuration (electron-builder).
+appId: io.github.ujap1994.electronicwerk
+productName: ElectronicWerk
+copyright: Copyright © 2026 ElectronicWerk contributors
+artifactName: ElectronicWerk-${version}-${os}-${arch}.${ext}
+
+directories:
+  output: release
+  buildResources: build
+
+files:
+  - out/**
+  - package.json
+  - '!**/*.map'
+
+# The native engine lives outside the asar archive so it can be loaded.
+extraResources:
+  - from: native
+    to: native
+    filter: ['*.node']
+
+asar: true
+npmRebuild: false
+
+electronFuses:
+  runAsNode: false
+  enableCookieEncryption: true
+  enableNodeOptionsEnvironmentVariable: false
+  enableNodeCliInspectArguments: false
+  enableEmbeddedAsarIntegrityValidation: true
+  onlyLoadAppFromAsar: true
+  grantFileProtocolExtraPrivileges: false
+
+mac:
+  category: public.app-category.developer-tools
+  # Open-source builds are not notarized; "-" applies an ad-hoc signature,
+  # which Apple Silicon requires to run the app at all.
+  identity: '-'
+  hardenedRuntime: false
+  target:
+    - target: dmg
+    - target: zip
