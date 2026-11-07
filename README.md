@@ -1,4 +1,4 @@
-# EletronicWerk
+# ElectronicWerk
 
 An open-source ECAD suite for beginners and advanced hobbyists. It covers
 schematic, symbol, footprint and layout editing, a live 3D view, ERC/DRC,

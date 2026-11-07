@@ -1,6 +1,6 @@
-# EletronicWerk Roadmap
+# ElectronicWerk Roadmap
 
-> **Status:** Draft v0.1 (2026-11-07), waiting for maintainer review.
+> **Status:** v0.2 (2026-11-07), approved by the maintainer. M0 is in progress.
 > This roadmap is a living document. It **must** be updated with every feature
 > (requirement D5). Every change to it is listed in the
 > [roadmap changelog](#13-roadmap-changelog).
@@ -27,7 +27,7 @@
 
 ## 1. Vision
 
-EletronicWerk is an open-source ECAD suite (MIT license) for beginners and
+ElectronicWerk is an open-source ECAD suite (MIT license) for beginners and
 advanced hobbyists. It takes inspiration from the workflow and feature set of
 Altium Designer, KiCad, DipTrace and Eagle, but everything is written from
 scratch: no copied code, assets or file formats.
@@ -234,7 +234,7 @@ own work only. Maintainer test cycles and feedback come on top. Status values:
 
 | ID | Milestone | Release | Requirements | Effort | Status |
 |---|---|---|---|---|---|
-| M0 | Foundation and delivery pipeline | v0.1.0 | T1, T2, T7, D1–D5 | 6–8 S | ⬜ |
+| M0 | Foundation and delivery pipeline | v0.1.0 | T1, T2, T7, D1–D5 | 6–8 S | 🟦 |
 | M1 | Project system, data model, native file format | v0.2.0 | F3, T3, T6 | 6–8 S | ⬜ |
 | M2 | 2D rendering engine and read-only viewer | v0.3.0 | T3, T4, T5 | 7–10 S | ⬜ |
 | M3 | KiCad import (projects and libraries), netlist import | v0.4.0 | F3 | 6–9 S | ⬜ |
@@ -344,7 +344,7 @@ CI.
   (`.kicad_mod`, `.pretty`), schematics (hierarchical, multi-sheet), PCB
   (`.kicad_pcb`, inner layers, zones, vias, rules), project files
   (`.kicad_pro`, `.kicad_dru`, library tables) and 3D model references.
-- **Import as a new project:** a KiCad project becomes a native EletronicWerk
+- **Import as a new project:** a KiCad project becomes a native ElectronicWerk
   project with a detailed import report (warnings and anything that could not
   be mapped).
 - Netlist import: KiCad netlist (`.net`), generic CSV/XML netlists. Other open
@@ -470,7 +470,7 @@ dedup report is reproducible.
   personal access token as an alternative. The token is stored in the OS
   keychain.
 - New-project wizard: **Local** or **GitHub**. With GitHub, the user picks an
-  existing repository or EletronicWerk creates a new one (public or private,
+  existing repository or ElectronicWerk creates a new one (public or private,
   with `.gitignore`, README and project structure).
 - Clone/open from GitHub, commit and push from the project tree, pull, branch
   switch, history view, and a visual diff of schematic and PCB revisions
@@ -485,7 +485,7 @@ The CLI grows with every milestone. This milestone completes it.
   outputs.
 - JSON input and output for scripting, batch scripts, and exit codes for CI.
 - JSON-RPC server mode and an **MCP server**, so AI agents can use
-  EletronicWerk directly.
+  ElectronicWerk directly.
 - A documented scripting cookbook with examples.
 
 ### M13 — Assembly assistant and extras (v0.14.0, 4–6 S)
@@ -504,8 +504,9 @@ The CLI grows with every milestone. This milestone completes it.
 - Specctra DSN export and SES import (external autorouters such as
   Freerouting).
 - Gerber/Excellon import as a reference layer.
-- Candidate: Eagle XML import (`.sch`/`.brd`/`.lbr`, publicly documented DTD),
-  to be confirmed by the maintainer.
+- Eagle XML import (`.sch`/`.brd`/`.lbr`, publicly documented DTD) as a new
+  native project, with an import report, and Eagle libraries routed into the
+  deduplication engine (M4).
 
 ### M15 — Advanced layout (v0.16.0, 12–20 S)
 
@@ -529,7 +530,7 @@ The CLI grows with every milestone. This milestone completes it.
 
 | Format | Import | Export | Milestone |
 |---|---|---|---|
-| EletronicWerk native (`.ewproj`, `.ewsch`, `.ewpcb`, `.ewrules`, `.ewout`, …) | ✔ | ✔ | M1 |
+| ElectronicWerk native (`.ewproj`, `.ewsch`, `.ewpcb`, `.ewrules`, `.ewout`, …) | ✔ | ✔ | M1 |
 | KiCad project, schematic, PCB, rules, library tables | ✔ | (M14) | M3 / M14 |
 | KiCad symbols and footprints | ✔ | ✔ | M3 / M6 |
 | KiCad netlist (`.net`), generic CSV/XML netlist | ✔ | ✔ | M3 / M5 |
@@ -541,7 +542,7 @@ The CLI grows with every milestone. This milestone completes it.
 | IPC-D-356, IPC-2581 | — | ✔ | M8 |
 | ODB++ | — | ✔ (if justified) | M8 |
 | Specctra DSN / SES | SES | DSN | M14 |
-| Eagle XML (candidate) | ✔ | — | M14 |
+| Eagle XML (`.sch`, `.brd`, `.lbr`) | ✔ | — | M14 |
 | DipTrace (undocumented binary format) | ⏸ deferred | — | see section 12 |
 
 ## 11. Requirements traceability
@@ -552,7 +553,7 @@ The CLI grows with every milestone. This milestone completes it.
 | P2 | Target audience: beginners and advanced hobbyists | M5–M7, M16 (UX) |
 | F1 | Online part search (SnapEDA, Ultra Librarian, …) with accounts in Settings | M10 |
 | F2 | Deduplicate and merge base libraries | M4 (KiCad; other sources pluggable) |
-| F3 | Import projects cleanly, edit them, save them as own projects | M1, M3, M14 |
+| F3 | Import projects cleanly, edit them, save them as own projects | M1, M3 (KiCad), M14 (Eagle and others) |
 | F4 | Schematic editor | M5 |
 | F5 | Symbol/component editor | M6 |
 | F6 | Footprint editor | M6 |
@@ -590,7 +591,6 @@ The CLI grows with every milestone. This milestone completes it.
 
 ### Open decisions
 
-- **Eagle XML import** (M14): include it or not?
 - **Merged base library:** published as a separate repository/pack under
   CC-BY-SA 4.0, decided in M4.
 
@@ -609,3 +609,4 @@ The CLI grows with every milestone. This milestone completes it.
 | Date | Version | Change |
 |---|---|---|
 | 2026-11-07 | Draft v0.1 | Initial roadmap. DipTrace import deferred; import limited to KiCad and open standard formats; Altium/KiCad-style project concept added. |
+| 2026-11-07 | v0.2 | Approved by the maintainer: milestone order (import and viewer before the editors) confirmed, Eagle XML import added to M14, project renamed to ElectronicWerk. M0 started. |
