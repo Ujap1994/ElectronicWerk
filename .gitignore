@@ -1,0 +1,26 @@
+# --- Local data: never committed -------------------------------------------
+# Third-party library data (several GB) and private sample projects stay local.
+/KiCAD-Files/
+/DipTrace-Files/
+/Muster-Projekte/
+/ORIGINAL_REQUEST.md
+
+# --- OS / editor -------------------------------------------------------------
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/*
+!.vscode/extensions.json
+
+# --- Build output ------------------------------------------------------------
+node_modules/
+target/
+dist/
+out/
+release/
+coverage/
+*.log
+
+# --- Secrets -----------------------------------------------------------------
+.env
+.env.*
