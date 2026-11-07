@@ -4,5 +4,5 @@
     "lib": ["ES2023", "DOM"],
     "types": ["node"]
   },
-  "include": [".vitepress/**/*.mts"]
+  "include": [".vitepress/**/*.mts", ".vitepress/**/*.ts"]
 }

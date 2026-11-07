@@ -1,0 +1,24 @@
+/* ElectronicWerk brand colours (solder-mask green, copper accents). */
+:root {
+  --vp-c-brand-1: #13795b;
+  --vp-c-brand-2: #17845f;
+  --vp-c-brand-3: #13795b;
+  --vp-c-brand-soft: rgb(19 121 91 / 14%);
+  --vp-home-hero-name-color: transparent;
+  --vp-home-hero-name-background: linear-gradient(120deg, #13795b 30%, #d4823f);
+  --vp-home-hero-image-background-image: linear-gradient(-45deg, #17845f 50%, #d4823f 50%);
+  --vp-home-hero-image-filter: blur(56px);
+}
+
+.dark {
+  --vp-c-brand-1: #3fbf93;
+  --vp-c-brand-2: #35a982;
+  --vp-c-brand-3: #2a8f6d;
+  --vp-c-brand-soft: rgb(63 191 147 / 16%);
+}
+
+/* Screenshots: subtle frame so light images stand out on light pages. */
+.vp-doc img {
+  border: 1px solid var(--vp-c-divider);
+  border-radius: 8px;
+}

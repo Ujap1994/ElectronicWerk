@@ -23,7 +23,7 @@
     "lint": "npm run lint:ts && npm run lint:types && npm run lint:css && npm run lint:md && npm run lint:format && npm run lint:rust",
     "lint:ts": "eslint . --max-warnings 0",
     "lint:types": "npm run typecheck -w @electronicwerk/desktop",
-    "lint:css": "stylelint \"apps/*/src/**/*.css\" --max-warnings 0",
+    "lint:css": "stylelint \"apps/*/src/**/*.css\" \"docs/.vitepress/theme/**/*.css\" --max-warnings 0",
     "lint:md": "markdownlint-cli2",
     "lint:format": "prettier --check .",
     "lint:rust": "cargo fmt --all --check && cargo clippy --workspace --all-targets -- -D warnings",
