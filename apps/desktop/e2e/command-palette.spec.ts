@@ -28,6 +28,8 @@ test('opens from the status bar and runs a command with the keyboard', async () 
 
 test('opens with Ctrl/Cmd+Shift+P, navigates with arrow keys and closes with Escape', async () => {
   const { page } = launched;
+  // Give the window keyboard focus first (headless Linux displays start unfocused).
+  await page.getByRole('heading', { level: 1 }).click();
   await page.keyboard.press('ControlOrMeta+Shift+P');
   const palette = page.getByTestId('command-palette');
   await expect(palette).toBeVisible();
