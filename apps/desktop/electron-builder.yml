@@ -11,6 +11,8 @@ publish: null
 # Linux package names must not contain the npm scope.
 extraMetadata:
   name: electronicwerk
+  # Linux desktops match running windows to the .desktop entry by this name.
+  desktopName: electronicwerk.desktop
 
 directories:
   output: release
@@ -79,6 +81,7 @@ portable:
 # ---------------------------------------------------------------- Linux ----
 linux:
   executableName: electronicwerk
+  syncDesktopName: true
   icon: build/icons
   category: Development
   synopsis: Open-source ECAD suite for makers and hobbyists
@@ -110,11 +113,15 @@ rpm:
 pacman:
   artifactName: ElectronicWerk-${version}-linux-${arch}.${ext}
 
-snap:
-  grade: stable
-  confinement: strict
-  summary: Open-source ECAD suite for makers and hobbyists
+# Snap: core24 base, built directly on the Ubuntu 24.04 CI runner.
+snapcraft:
+  base: core24
   artifactName: ElectronicWerk-${version}-linux-${arch}.${ext}
+  core24:
+    useDestructiveMode: true
+    grade: stable
+    confinement: strict
+    summary: Open-source ECAD suite for makers and hobbyists
 
 flatpak:
   runtime: org.freedesktop.Platform

@@ -171,7 +171,9 @@ jobs:
           mkdir -p ../dist
           shopt -s nullglob
           for file in *.exe *.dmg *.zip *.AppImage *.deb *.rpm *.pacman *.tar.gz *.snap *.flatpak; do
-            cp "$file" ../dist/
+            # Uniform architecture names (deb says amd64, rpm/AppImage x86_64/aarch64).
+            name="$(echo "$file" | sed -E 's/-linux-(amd64|x86_64)\./-linux-x64./; s/-linux-aarch64\./-linux-arm64./')"
+            cp "$file" "../dist/$name"
           done
           ls -la ../dist
 
