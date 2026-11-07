@@ -6,6 +6,11 @@ project uses [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.1.0] - 2026-11-07
+
+The foundation release: the secure application shell, the Rust engine, the
+quality gates and the delivery pipeline that every later feature builds on.
+
 ### Added
 
 - Desktop app shell (Electron) with secure defaults: sandboxed renderer,
@@ -27,7 +32,7 @@ project uses [Semantic Versioning](https://semver.org/).
   Playwright end-to-end tests for Electron.
 - CI on Windows, macOS and Linux.
 - Project icon (SVG master) with generated raster files for the window, Dock,
-  taskbar, installers, favicon, README and documentation.
+  taskbar, installers, favicon, README, documentation and release pages.
 - Update notice: compares the installed version with the newest GitHub release,
   shows the release notes, offers "Skip this version" and opens the download
   page. Nothing is ever installed automatically. Can be turned off in the
@@ -35,3 +40,15 @@ project uses [Semantic Versioning](https://semver.org/).
 - Command palette (Cmd/Ctrl+K or Cmd/Ctrl+Shift+P) with commands for settings,
   language, appearance, updates and help.
 - Packaged-app smoke test (`--smoke-test`) for the release pipeline.
+- Release packages for Windows (installer and portable, x64 and arm64), macOS
+  (dmg and zip for universal, Apple Silicon and Intel) and Linux (AppImage,
+  deb, rpm, pacman, tar.gz, Snap and Flatpak, x64 and arm64), plus `ewerk`
+  command-line archives and `SHA256SUMS.txt`.
+- Documentation site with guides for installation, first start, settings,
+  command palette, updates, keyboard shortcuts and troubleshooting, and
+  references for the CLI, the engine API, the architecture and the release
+  process ([ujap1994.github.io/ElectronicWerk](https://ujap1994.github.io/ElectronicWerk/)).
+  **Help → Documentation** opens it.
+
+[Unreleased]: https://github.com/Ujap1994/ElectronicWerk/compare/v0.1.0...HEAD
+[0.1.0]: https://github.com/Ujap1994/ElectronicWerk/releases/tag/v0.1.0

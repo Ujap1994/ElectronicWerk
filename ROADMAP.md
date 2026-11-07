@@ -1,6 +1,6 @@
 # ElectronicWerk Roadmap
 
-> **Status:** v0.2 (2026-11-07), approved by the maintainer. M0 is in progress.
+> **Status:** v0.3 (2026-11-07). M0 is complete (release v0.1.0); M1 is next.
 > This roadmap is a living document. It **must** be updated with every feature
 > (requirement D5). Every change to it is listed in the
 > [roadmap changelog](#13-roadmap-changelog).
@@ -234,7 +234,7 @@ own work only. Maintainer test cycles and feedback come on top. Status values:
 
 | ID  | Milestone                                             | Release | Requirements      | Effort          | Status |
 | --- | ----------------------------------------------------- | ------- | ----------------- | --------------- | ------ |
-| M0  | Foundation and delivery pipeline                      | v0.1.0  | T1, T2, T7, D1–D5 | 6–8 S           | 🟦     |
+| M0  | Foundation and delivery pipeline                      | v0.1.0  | T1, T2, T7, D1–D5 | 6–8 S           | ✅     |
 | M1  | Project system, data model, native file format        | v0.2.0  | F3, T3, T6        | 6–8 S           | ⬜     |
 | M2  | 2D rendering engine and read-only viewer              | v0.3.0  | T3, T4, T5        | 7–10 S          | ⬜     |
 | M3  | KiCad import (projects and libraries), netlist import | v0.4.0  | F3                | 6–9 S           | ⬜     |
@@ -299,7 +299,7 @@ released automatically for every platform.
 - Repository files: README, CHANGELOG, CONTRIBUTING, LICENSE, ADR-0001
   (architecture), issue and PR templates.
 
-**Progress (updated 2026-11-07):**
+**Progress (completed 2026-11-07):**
 
 - [x] Monorepo with Rust workspace (`ew-core`, `ew-cli`, `ew-node`) and the
       Electron app (`apps/desktop`)
@@ -317,9 +317,11 @@ released automatically for every platform.
       Windows/macOS/Linux
 - [x] Project icon (SVG master and generated formats)
 - [x] Update check with release notes and "skip this version"
-- [ ] Release workflow for every package
-- [ ] Documentation site with automated screenshots
-- [ ] Release v0.1.0
+- [x] Release workflow for every package (native runners for Windows x64/arm64,
+      macOS and Linux x64/arm64; smoke test of every packaged app)
+- [x] Documentation site with automated screenshots
+      (<https://ujap1994.github.io/ElectronicWerk/>)
+- [x] Release v0.1.0
 
 **Acceptance:** v0.1.0 is published with every package. The app starts, the
 language switches, the update notice works, E2E tests are green on all three
@@ -632,3 +634,4 @@ The CLI grows with every milestone. This milestone completes it.
 | ---------- | ---------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | 2026-11-07 | Draft v0.1 | Initial roadmap. DipTrace import deferred; import limited to KiCad and open standard formats; Altium/KiCad-style project concept added.                                     |
 | 2026-11-07 | v0.2       | Approved by the maintainer: milestone order (import and viewer before the editors) confirmed, Eagle XML import added to M14, project renamed to ElectronicWerk. M0 started. |
+| 2026-11-07 | v0.3       | M0 complete: v0.1.0 released with every package and the documentation site. The command palette and the update notice were delivered as part of M0.                         |
