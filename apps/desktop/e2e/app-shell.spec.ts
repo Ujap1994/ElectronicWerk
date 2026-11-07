@@ -80,7 +80,10 @@ test('restarts the engine after a crash without closing the window', async () =>
 
 test('allows only one running instance', async () => {
   const electronBinary = launched.app.process().spawnfile;
-  const second = spawn(electronBinary, [APP_DIR], {
+  // Mirror the first instance: Playwright runs Electron without the OS
+  // sandbox on Linux CI runners (see fixtures.ts).
+  const args = process.platform === 'linux' ? [APP_DIR, '--no-sandbox'] : [APP_DIR];
+  const second = spawn(electronBinary, args, {
     cwd: APP_DIR,
     env: { ...process.env, EW_USER_DATA_DIR: launched.userDataDir },
     stdio: 'ignore',
