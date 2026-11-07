@@ -47,16 +47,16 @@ It covers the whole path from idea to manufactured board:
 
 ## 2. Guiding principles
 
-| # | Principle | What it means in practice |
-|---|---|---|
-| 1 | **Performance is a feature** | Measurable budgets (section 6) checked by benchmarks in CI. A regression fails the build. |
-| 2 | **Never lose work** | Crash-isolated engine, autosave journal, crash recovery, atomic saves. |
-| 3 | **Usability is mandatory** | Beginner-friendly defaults, guided workflows, command palette, consistent shortcuts, undo for everything, contextual help. |
-| 4 | **One engine, many front-ends** | Every action is an engine command. GUI, CLI, AI/MCP and tests all use the same API, so CLI parity comes for free. |
-| 5 | **Open, git-friendly formats** | Text-based, deterministic and diff-friendly files with a schema version and automatic migrations. |
-| 6 | **Quality from day one** | 100 % lint-clean, tests on Windows/macOS/Linux, and documentation with screenshots for every feature. |
-| 7 | **Privacy** | Anonymized docs and examples, credentials in the OS keychain, no telemetry. |
-| 8 | **Extensible** | Modular Rust crates and a versioned command API, ready for plugins after 1.0. |
+| #   | Principle                       | What it means in practice                                                                                                  |
+| --- | ------------------------------- | -------------------------------------------------------------------------------------------------------------------------- |
+| 1   | **Performance is a feature**    | Measurable budgets (section 6) checked by benchmarks in CI. A regression fails the build.                                  |
+| 2   | **Never lose work**             | Crash-isolated engine, autosave journal, crash recovery, atomic saves.                                                     |
+| 3   | **Usability is mandatory**      | Beginner-friendly defaults, guided workflows, command palette, consistent shortcuts, undo for everything, contextual help. |
+| 4   | **One engine, many front-ends** | Every action is an engine command. GUI, CLI, AI/MCP and tests all use the same API, so CLI parity comes for free.          |
+| 5   | **Open, git-friendly formats**  | Text-based, deterministic and diff-friendly files with a schema version and automatic migrations.                          |
+| 6   | **Quality from day one**        | 100 % lint-clean, tests on Windows/macOS/Linux, and documentation with screenshots for every feature.                      |
+| 7   | **Privacy**                     | Anonymized docs and examples, credentials in the OS keychain, no telemetry.                                                |
+| 8   | **Extensible**                  | Modular Rust crates and a versioned command API, ready for plugins after 1.0.                                              |
 
 ## 3. Project concept
 
@@ -80,20 +80,20 @@ MyBoard/
 └── .ewerk/                   # Local state: autosave journal, caches (never committed)
 ```
 
-- **Project tree panel** (like Altium's *Projects* panel): schematics, PCB,
+- **Project tree panel** (like Altium's _Projects_ panel): schematics, PCB,
   libraries, rules, output jobs, generated files and git status in one tree.
 - **Project-wide data:** net classes, parameters and text variables (for
   example `${PROJECT_NAME}` and `${REVISION}` in title blocks), annotation,
   cross-probing, and engineering change orders (schematic ↔ PCB sync).
 - **New-project wizard:** name, location (**local** or **GitHub**, see M11),
-  template (for example *Empty*, *2-layer 100×100 mm*, *Arduino-style shield*)
+  template (for example _Empty_, _2-layer 100×100 mm_, _Arduino-style shield_)
   and board defaults.
 - **Imported projects** (KiCad, netlists) always become a new native project.
   The original files are never changed.
 - **Future-proof:** the manifest holds a list of documents, so later releases
   can add several boards per project, variants and harness documents without a
   format break.
-- **Archive and copy:** *Save as*, *Save copy* and *Archive project (.zip)*.
+- **Archive and copy:** _Save as_, _Save copy_ and _Archive project (.zip)_.
 
 ## 4. Architecture
 
@@ -120,18 +120,18 @@ flowchart LR
   Core --- FS
 ```
 
-| Layer | Technology | Responsibility |
-|---|---|---|
-| Desktop shell | Electron, TypeScript | Windows (including a detachable 3D window), menus, single-instance lock, secure storage (`safeStorage`), update check. Closing the window quits the app cleanly. |
-| UI | React, TypeScript, Vite | Panels, dialogs, property inspectors, command palette, i18n (German/English). Runs in a sandboxed renderer with `contextIsolation` and without `nodeIntegration`. |
-| 2D rendering | Custom WebGL2 engine (TypeScript) | Instanced rendering, layer compositing, level of detail, viewport culling, SDF text. Shared by all 2D editors. |
-| 3D rendering | three.js (WebGL2) | Board and component meshes, live updates from the engine change stream. |
-| Engine | Rust workspace | Data model, commands, undo/redo, geometry, import/export, ERC/DRC, CAM, library, router. Multi-threaded (rayon). Runs in a crash-isolated `utilityProcess`. |
-| CLI | Rust binary `ewerk` | Same engine crates. Batch commands, JSON-RPC server and MCP server for AI agents. |
-| C++ (only where needed) | OpenCASCADE | STEP tessellation (first through the `occt-import-js` WASM build, later natively) and STEP assembly export. |
-| Storage | JSON, SQLite FTS5, GLB | Deterministic project files, a fast library search index, a cached 3D mesh per model. |
+| Layer                   | Technology                        | Responsibility                                                                                                                                                    |
+| ----------------------- | --------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Desktop shell           | Electron, TypeScript              | Windows (including a detachable 3D window), menus, single-instance lock, secure storage (`safeStorage`), update check. Closing the window quits the app cleanly.  |
+| UI                      | React, TypeScript, Vite           | Panels, dialogs, property inspectors, command palette, i18n (German/English). Runs in a sandboxed renderer with `contextIsolation` and without `nodeIntegration`. |
+| 2D rendering            | Custom WebGL2 engine (TypeScript) | Instanced rendering, layer compositing, level of detail, viewport culling, SDF text. Shared by all 2D editors.                                                    |
+| 3D rendering            | three.js (WebGL2)                 | Board and component meshes, live updates from the engine change stream.                                                                                           |
+| Engine                  | Rust workspace                    | Data model, commands, undo/redo, geometry, import/export, ERC/DRC, CAM, library, router. Multi-threaded (rayon). Runs in a crash-isolated `utilityProcess`.       |
+| CLI                     | Rust binary `ewerk`               | Same engine crates. Batch commands, JSON-RPC server and MCP server for AI agents.                                                                                 |
+| C++ (only where needed) | OpenCASCADE                       | STEP tessellation (first through the `occt-import-js` WASM build, later natively) and STEP assembly export.                                                       |
+| Storage                 | JSON, SQLite FTS5, GLB            | Deterministic project files, a fast library search index, a cached 3D mesh per model.                                                                             |
 
-**Core data model decisions**
+### Core data model decisions
 
 - Coordinates are integer **nanometres** (`i64`). There are no rounding errors
   and no size limits that matter.
@@ -147,27 +147,27 @@ flowchart LR
 
 ### Lint: 100 %, zero warnings (T2)
 
-| Area | Tools and settings |
-|---|---|
-| TypeScript | `tsc` in strict mode with all strict flags; ESLint (`typescript-eslint` *strict-type-checked* + *stylistic*) with `--max-warnings 0`; Prettier |
-| Suppressions | `eslint-comments/require-description`: no unexplained `eslint-disable` |
-| i18n | A check for hard-coded UI strings, plus a key-parity test between German and English |
-| CSS | Stylelint |
-| Rust | `rustfmt`; `clippy` with `-D warnings` and `clippy::pedantic`; `cargo-deny` (licenses, advisories, duplicate dependencies) |
-| Docs | markdownlint, link checker |
-| CI | actionlint for workflows |
-| Commits | commitlint (Conventional Commits). The changelog and release notes are generated from these. |
-| Local | lefthook pre-commit hooks run the same checks |
+| Area         | Tools and settings                                                                                                                             |
+| ------------ | ---------------------------------------------------------------------------------------------------------------------------------------------- |
+| TypeScript   | `tsc` in strict mode with all strict flags; ESLint (`typescript-eslint` _strict-type-checked_ + _stylistic_) with `--max-warnings 0`; Prettier |
+| Suppressions | `eslint-comments/require-description`: no unexplained `eslint-disable`                                                                         |
+| i18n         | A check for hard-coded UI strings, plus a key-parity test between German and English                                                           |
+| CSS          | Stylelint                                                                                                                                      |
+| Rust         | `rustfmt`; `clippy` with `-D warnings` and `clippy::pedantic`; `cargo-deny` (licenses, advisories, duplicate dependencies)                     |
+| Docs         | markdownlint, link checker                                                                                                                     |
+| CI           | actionlint for workflows                                                                                                                       |
+| Commits      | commitlint (Conventional Commits). The changelog and release notes are generated from these.                                                   |
+| Local        | lefthook pre-commit hooks run the same checks                                                                                                  |
 
 ### Tests
 
-| Level | Tools | Scope |
-|---|---|---|
-| Unit | `cargo test`, proptest, Vitest | Engine crates, UI logic, i18n, update checker |
-| Integration | Vitest + engine | IPC bridge, commands, importer → model → exporter |
-| Golden files | `cargo test` + snapshots | Importers and exporters (Gerber, Excellon, BOM …) compared against reference output |
-| End-to-end | Playwright for Electron | Real UI workflows on Windows, macOS and Linux |
-| Performance | criterion, Playwright traces | The budgets in section 6. A regression of more than 10 % fails CI. |
+| Level        | Tools                          | Scope                                                                               |
+| ------------ | ------------------------------ | ----------------------------------------------------------------------------------- |
+| Unit         | `cargo test`, proptest, Vitest | Engine crates, UI logic, i18n, update checker                                       |
+| Integration  | Vitest + engine                | IPC bridge, commands, importer → model → exporter                                   |
+| Golden files | `cargo test` + snapshots       | Importers and exporters (Gerber, Excellon, BOM …) compared against reference output |
+| End-to-end   | Playwright for Electron        | Real UI workflows on Windows, macOS and Linux                                       |
+| Performance  | criterion, Playwright traces   | The budgets in section 6. A regression of more than 10 % fails CI.                  |
 
 Coverage targets: engine ≥ 90 % lines, UI logic ≥ 80 % lines.
 
@@ -188,24 +188,24 @@ Coverage targets: engine ≥ 90 % lines, UI logic ≥ 80 % lines.
 Reference designs are generated synthetically, so they are reproducible and
 anonymous:
 
-| Name | Size |
-|---|---|
-| **S** | 50 parts, 2 layers |
-| **M** | 500 parts, 4 layers |
-| **L** | 5,000 parts, 10,000 nets, 200,000 track segments, 8 layers |
-| **XL** | 20,000 parts (stress test) |
+| Name   | Size                                                       |
+| ------ | ---------------------------------------------------------- |
+| **S**  | 50 parts, 2 layers                                         |
+| **M**  | 500 parts, 4 layers                                        |
+| **L**  | 5,000 parts, 10,000 nets, 200,000 track segments, 8 layers |
+| **XL** | 20,000 parts (stress test)                                 |
 
-| Metric | Budget |
-|---|---|
-| Pan/zoom frame rate (L, mid-range integrated GPU) | ≥ 60 fps |
-| Input to visual feedback (hover, drag, route) | < 16 ms |
-| App start until the start screen | < 2 s |
-| Open project (L) / save project (L) | < 3 s / < 1 s |
-| Incremental DRC after an edit (L) | < 100 ms |
-| Full DRC (L) | < 10 s |
-| 3D update after a layout edit | < 250 ms |
-| 3D frame rate with all component models (L) | ≥ 30 fps |
-| Memory (L) | < 1.5 GB |
+| Metric                                            | Budget        |
+| ------------------------------------------------- | ------------- |
+| Pan/zoom frame rate (L, mid-range integrated GPU) | ≥ 60 fps      |
+| Input to visual feedback (hover, drag, route)     | < 16 ms       |
+| App start until the start screen                  | < 2 s         |
+| Open project (L) / save project (L)               | < 3 s / < 1 s |
+| Incremental DRC after an edit (L)                 | < 100 ms      |
+| Full DRC (L)                                      | < 10 s        |
+| 3D update after a layout edit                     | < 250 ms      |
+| 3D frame rate with all component models (L)       | ≥ 30 fps      |
+| Memory (L)                                        | < 1.5 GB      |
 
 ## 7. Releases and packaging
 
@@ -216,14 +216,14 @@ anonymous:
 - **Unsigned builds** (open source): the docs explain how to open the app
   despite macOS Gatekeeper and Windows SmartScreen.
 - **In-app update notice** (T7): the app compares its version against GitHub
-  Releases and shows the release notes. Users can *skip this version* or open
+  Releases and shows the release notes. Users can _skip this version_ or open
   the download page. It never installs anything on its own.
 
-| Platform | Packages | Architectures |
-|---|---|---|
-| Windows | NSIS installer, portable `.exe` | x64, arm64 |
-| macOS | `.dmg`, `.zip` | Universal, Apple Silicon (arm64), Intel (x64) |
-| Linux | AppImage, `.deb` (Ubuntu, Mint), `.rpm` (Fedora), `.pacman` (Arch, CachyOS), Snap, Flatpak, `.tar.gz` | x64, arm64 |
+| Platform | Packages                                                                                              | Architectures                                 |
+| -------- | ----------------------------------------------------------------------------------------------------- | --------------------------------------------- |
+| Windows  | NSIS installer, portable `.exe`                                                                       | x64, arm64                                    |
+| macOS    | `.dmg`, `.zip`                                                                                        | Universal, Apple Silicon (arm64), Intel (x64) |
+| Linux    | AppImage, `.deb` (Ubuntu, Mint), `.rpm` (Fedora), `.pacman` (Arch, CachyOS), Snap, Flatpak, `.tar.gz` | x64, arm64                                    |
 
 ## 8. Milestone overview
 
@@ -232,26 +232,26 @@ implementation, tests, documentation and CI. These estimates cover the agent's
 own work only. Maintainer test cycles and feedback come on top. Status values:
 ⬜ planned · 🟦 in progress · ✅ done.
 
-| ID | Milestone | Release | Requirements | Effort | Status |
-|---|---|---|---|---|---|
-| M0 | Foundation and delivery pipeline | v0.1.0 | T1, T2, T7, D1–D5 | 6–8 S | 🟦 |
-| M1 | Project system, data model, native file format | v0.2.0 | F3, T3, T6 | 6–8 S | ⬜ |
-| M2 | 2D rendering engine and read-only viewer | v0.3.0 | T3, T4, T5 | 7–10 S | ⬜ |
-| M3 | KiCad import (projects and libraries), netlist import | v0.4.0 | F3 | 6–9 S | ⬜ |
-| M4 | Unified base library and library manager | v0.5.0 | F2 | 5–8 S | ⬜ |
-| M5 | Schematic editor and ERC | v0.6.0 | F4, F10 | 12–18 S | ⬜ |
-| M6 | Symbol editor and footprint editor | v0.7.0 | F5, F6 | 8–12 S | ⬜ |
-| M7 | Layout editor, DRC, rules, schematic ↔ PCB sync | v0.8.0 | F7, F10 | 16–24 S | ⬜ |
-| M8 | Manufacturing outputs and output jobs | v0.9.0 | F10 | 7–10 S | ⬜ |
-| M9 | Live 3D view and STEP export | v0.10.0 | F8 | 7–10 S | ⬜ |
-| M10 | Online component search and provider accounts | v0.11.0 | F1 | 6–9 S | ⬜ |
-| M11 | GitHub integration | v0.12.0 | F9 | 4–6 S | ⬜ |
-| M12 | CLI and AI automation (complete) | v0.13.0 | F12 | 4–6 S | ⬜ |
-| M13 | Assembly assistant and extras | v0.14.0 | F11 | 4–6 S | ⬜ |
-| M14 | Interoperability: further open formats | v0.15.0 | F3 | 5–8 S | ⬜ |
-| M15 | Advanced layout | v0.16.0 | F7 | 12–20 S | ⬜ |
-| M16 | Hardening, UX audit, final docs and videos | v1.0.0 | T3–T5, D1 | 6–10 S | ⬜ |
-| | **Total to v1.0** | | | **≈ 120–180 S** | |
+| ID  | Milestone                                             | Release | Requirements      | Effort          | Status |
+| --- | ----------------------------------------------------- | ------- | ----------------- | --------------- | ------ |
+| M0  | Foundation and delivery pipeline                      | v0.1.0  | T1, T2, T7, D1–D5 | 6–8 S           | 🟦     |
+| M1  | Project system, data model, native file format        | v0.2.0  | F3, T3, T6        | 6–8 S           | ⬜     |
+| M2  | 2D rendering engine and read-only viewer              | v0.3.0  | T3, T4, T5        | 7–10 S          | ⬜     |
+| M3  | KiCad import (projects and libraries), netlist import | v0.4.0  | F3                | 6–9 S           | ⬜     |
+| M4  | Unified base library and library manager              | v0.5.0  | F2                | 5–8 S           | ⬜     |
+| M5  | Schematic editor and ERC                              | v0.6.0  | F4, F10           | 12–18 S         | ⬜     |
+| M6  | Symbol editor and footprint editor                    | v0.7.0  | F5, F6            | 8–12 S          | ⬜     |
+| M7  | Layout editor, DRC, rules, schematic ↔ PCB sync       | v0.8.0  | F7, F10           | 16–24 S         | ⬜     |
+| M8  | Manufacturing outputs and output jobs                 | v0.9.0  | F10               | 7–10 S          | ⬜     |
+| M9  | Live 3D view and STEP export                          | v0.10.0 | F8                | 7–10 S          | ⬜     |
+| M10 | Online component search and provider accounts         | v0.11.0 | F1                | 6–9 S           | ⬜     |
+| M11 | GitHub integration                                    | v0.12.0 | F9                | 4–6 S           | ⬜     |
+| M12 | CLI and AI automation (complete)                      | v0.13.0 | F12               | 4–6 S           | ⬜     |
+| M13 | Assembly assistant and extras                         | v0.14.0 | F11               | 4–6 S           | ⬜     |
+| M14 | Interoperability: further open formats                | v0.15.0 | F3                | 5–8 S           | ⬜     |
+| M15 | Advanced layout                                       | v0.16.0 | F7                | 12–20 S         | ⬜     |
+| M16 | Hardening, UX audit, final docs and videos            | v1.0.0  | T3–T5, D1         | 6–10 S          | ⬜     |
+|     | **Total to v1.0**                                     |         |                   | **≈ 120–180 S** |        |
 
 **Stages:**
 
@@ -287,8 +287,8 @@ released automatically for every platform.
   icon is used for the window, Dock/taskbar, installer, favicon, README, docs
   and release page.
 - Update check (T7): GitHub Releases API, version comparison, release notes in
-  a dialog, a *Skip this version* checkbox, *Remind me later*, *Open download
-  page*. Works offline without errors.
+  a dialog, a _Skip this version_ checkbox, _Remind me later_, _Open download
+  page_. Works offline without errors.
 - All lint gates (section 5) and the test stack (Vitest, `cargo test`,
   Playwright for Electron) on a CI matrix for Windows, macOS and Linux.
 - Release workflow for every package in section 7, with a smoke test of the
@@ -298,6 +298,27 @@ released automatically for every platform.
   unsigned-app notes), Getting started, Settings, Language, Updates.
 - Repository files: README, CHANGELOG, CONTRIBUTING, LICENSE, ADR-0001
   (architecture), issue and PR templates.
+
+**Progress (updated 2026-11-07):**
+
+- [x] Monorepo with Rust workspace (`ew-core`, `ew-cli`, `ew-node`) and the
+      Electron app (`apps/desktop`)
+- [x] Secure Electron shell: sandbox, context isolation, CSP, `app://`
+      scheme, IPC sender checks, single instance, window close quits the app
+- [x] Rust engine in a crash-isolated `utilityProcess` with automatic restart
+      and a direct MessagePort channel (ADR-0001)
+- [x] `ewerk` CLI (`info`, `methods`, `call`)
+- [x] Start screen, status bar, settings dialog (language, appearance)
+- [x] German and English UI with a type-checked key parity and a lint rule
+      against hard-coded UI text
+- [x] Lint gates with zero warnings, plus cargo-deny and actionlint in CI
+- [x] Test stack: Rust, Vitest, Playwright for Electron; CI on
+      Windows/macOS/Linux
+- [ ] Project icon (SVG master and generated formats)
+- [ ] Update check with release notes and "skip this version"
+- [ ] Release workflow for every package
+- [ ] Documentation site with automated screenshots
+- [ ] Release v0.1.0
 
 **Acceptance:** v0.1.0 is published with every package. The app starts, the
 language switches, the update notice works, E2E tests are green on all three
@@ -528,66 +549,66 @@ The CLI grows with every milestone. This milestone completes it.
 
 ## 10. File format matrix
 
-| Format | Import | Export | Milestone |
-|---|---|---|---|
-| ElectronicWerk native (`.ewproj`, `.ewsch`, `.ewpcb`, `.ewrules`, `.ewout`, …) | ✔ | ✔ | M1 |
-| KiCad project, schematic, PCB, rules, library tables | ✔ | (M14) | M3 / M14 |
-| KiCad symbols and footprints | ✔ | ✔ | M3 / M6 |
-| KiCad netlist (`.net`), generic CSV/XML netlist | ✔ | ✔ | M3 / M5 |
-| STEP / WRL 3D models | ✔ | ✔ (board assembly) | M4 / M9 |
-| DXF (outline, mechanical layers) | ✔ | ✔ | M7 / M8 |
-| Gerber X2, Excellon | ✔ (reference/viewer) | ✔ | M8 / M14 |
-| BOM (CSV/XLSX/HTML), pick-and-place | — | ✔ | M8 |
-| PDF / SVG | — | ✔ | M5 / M8 |
-| IPC-D-356, IPC-2581 | — | ✔ | M8 |
-| ODB++ | — | ✔ (if justified) | M8 |
-| Specctra DSN / SES | SES | DSN | M14 |
-| Eagle XML (`.sch`, `.brd`, `.lbr`) | ✔ | — | M14 |
-| DipTrace (undocumented binary format) | ⏸ deferred | — | see section 12 |
+| Format                                                                         | Import               | Export             | Milestone      |
+| ------------------------------------------------------------------------------ | -------------------- | ------------------ | -------------- |
+| ElectronicWerk native (`.ewproj`, `.ewsch`, `.ewpcb`, `.ewrules`, `.ewout`, …) | ✔                    | ✔                  | M1             |
+| KiCad project, schematic, PCB, rules, library tables                           | ✔                    | (M14)              | M3 / M14       |
+| KiCad symbols and footprints                                                   | ✔                    | ✔                  | M3 / M6        |
+| KiCad netlist (`.net`), generic CSV/XML netlist                                | ✔                    | ✔                  | M3 / M5        |
+| STEP / WRL 3D models                                                           | ✔                    | ✔ (board assembly) | M4 / M9        |
+| DXF (outline, mechanical layers)                                               | ✔                    | ✔                  | M7 / M8        |
+| Gerber X2, Excellon                                                            | ✔ (reference/viewer) | ✔                  | M8 / M14       |
+| BOM (CSV/XLSX/HTML), pick-and-place                                            | —                    | ✔                  | M8             |
+| PDF / SVG                                                                      | —                    | ✔                  | M5 / M8        |
+| IPC-D-356, IPC-2581                                                            | —                    | ✔                  | M8             |
+| ODB++                                                                          | —                    | ✔ (if justified)   | M8             |
+| Specctra DSN / SES                                                             | SES                  | DSN                | M14            |
+| Eagle XML (`.sch`, `.brd`, `.lbr`)                                             | ✔                    | —                  | M14            |
+| DipTrace (undocumented binary format)                                          | ⏸ deferred           | —                  | see section 12 |
 
 ## 11. Requirements traceability
 
-| Req. | Summary | Milestone(s) |
-|---|---|---|
-| P1 | Open-source alternative (MIT) modelled on Altium/KiCad/DipTrace/Eagle, everything self-developed | whole project |
-| P2 | Target audience: beginners and advanced hobbyists | M5–M7, M16 (UX) |
-| F1 | Online part search (SnapEDA, Ultra Librarian, …) with accounts in Settings | M10 |
-| F2 | Deduplicate and merge base libraries | M4 (KiCad; other sources pluggable) |
-| F3 | Import projects cleanly, edit them, save them as own projects | M1, M3 (KiCad), M14 (Eagle and others) |
-| F4 | Schematic editor | M5 |
-| F5 | Symbol/component editor | M6 |
-| F6 | Footprint editor | M6 |
-| F7 | Layout editor | M7, M15 |
-| F8 | Live 3D view, optionally in its own window | M9 |
-| F9 | GitHub integration (local or GitHub when creating a project) | M1 (wizard), M11 |
-| F10 | ERC, DRC, rules and standard features | M5, M7, M8 |
-| F11 | Assembly assistant and extras | M13 |
-| F12 | CLI for scripts and AI agents | M0–M12 (grows), M12 (complete) |
-| T1 | Electron + Rust/TypeScript/C++ | M0 (ADR-0001) |
-| T2 | 100 % lint from the start | M0 onwards |
-| T3/T4 | Efficiency and performance at any design size | section 6, every milestone |
-| T5 | Absolute usability | every milestone, M16 audit |
-| T6 | Future-proof and extensible | sections 2–4 |
-| T7 | Update notice with release notes and "skip version" | M0 |
-| D1 | Detailed docs with screenshots for every feature; videos at the end | every milestone, M16 |
-| D2 | Everything anonymized | every milestone (synthetic demo projects only) |
-| D3 | Commit, CI and release after every tested feature | every milestone |
-| D4 | Packages for Windows, macOS and Linux | M0 (section 7) |
-| D5 | Detailed roadmap, updated with every feature | this document |
+| Req.  | Summary                                                                                          | Milestone(s)                                   |
+| ----- | ------------------------------------------------------------------------------------------------ | ---------------------------------------------- |
+| P1    | Open-source alternative (MIT) modelled on Altium/KiCad/DipTrace/Eagle, everything self-developed | whole project                                  |
+| P2    | Target audience: beginners and advanced hobbyists                                                | M5–M7, M16 (UX)                                |
+| F1    | Online part search (SnapEDA, Ultra Librarian, …) with accounts in Settings                       | M10                                            |
+| F2    | Deduplicate and merge base libraries                                                             | M4 (KiCad; other sources pluggable)            |
+| F3    | Import projects cleanly, edit them, save them as own projects                                    | M1, M3 (KiCad), M14 (Eagle and others)         |
+| F4    | Schematic editor                                                                                 | M5                                             |
+| F5    | Symbol/component editor                                                                          | M6                                             |
+| F6    | Footprint editor                                                                                 | M6                                             |
+| F7    | Layout editor                                                                                    | M7, M15                                        |
+| F8    | Live 3D view, optionally in its own window                                                       | M9                                             |
+| F9    | GitHub integration (local or GitHub when creating a project)                                     | M1 (wizard), M11                               |
+| F10   | ERC, DRC, rules and standard features                                                            | M5, M7, M8                                     |
+| F11   | Assembly assistant and extras                                                                    | M13                                            |
+| F12   | CLI for scripts and AI agents                                                                    | M0–M12 (grows), M12 (complete)                 |
+| T1    | Electron + Rust/TypeScript/C++                                                                   | M0 (ADR-0001)                                  |
+| T2    | 100 % lint from the start                                                                        | M0 onwards                                     |
+| T3/T4 | Efficiency and performance at any design size                                                    | section 6, every milestone                     |
+| T5    | Absolute usability                                                                               | every milestone, M16 audit                     |
+| T6    | Future-proof and extensible                                                                      | sections 2–4                                   |
+| T7    | Update notice with release notes and "skip version"                                              | M0                                             |
+| D1    | Detailed docs with screenshots for every feature; videos at the end                              | every milestone, M16                           |
+| D2    | Everything anonymized                                                                            | every milestone (synthetic demo projects only) |
+| D3    | Commit, CI and release after every tested feature                                                | every milestone                                |
+| D4    | Packages for Windows, macOS and Linux                                                            | M0 (section 7)                                 |
+| D5    | Detailed roadmap, updated with every feature                                                     | this document                                  |
 
 ## 12. Risks, open decisions and deferred items
 
 ### Risks
 
-| Risk | Impact | Mitigation |
-|---|---|---|
-| Size of the overall scope (Altium/KiCad class) | Schedule | Strict milestone order and a usable release at every stage |
-| Rendering performance on large designs | T3/T4 | Custom WebGL2 engine, benchmarks in CI from M2 |
-| STEP tessellation (OpenCASCADE is a large C++ dependency) | Build complexity | WASM build first, native later; a GLB cache |
-| 3D model volume (more than 3 GB) | Installer size | Library packs downloaded on demand |
-| Online provider APIs and terms of use | F1 scope | Official APIs plus an embedded login window; review the terms first |
-| Unsigned builds | Install friction | Clear installation docs for every OS |
-| Interactive router quality (push-and-shove) | F7 | Walkaround router in M7; push-and-shove in M15; external autorouter through Specctra (M14) |
+| Risk                                                      | Impact           | Mitigation                                                                                 |
+| --------------------------------------------------------- | ---------------- | ------------------------------------------------------------------------------------------ |
+| Size of the overall scope (Altium/KiCad class)            | Schedule         | Strict milestone order and a usable release at every stage                                 |
+| Rendering performance on large designs                    | T3/T4            | Custom WebGL2 engine, benchmarks in CI from M2                                             |
+| STEP tessellation (OpenCASCADE is a large C++ dependency) | Build complexity | WASM build first, native later; a GLB cache                                                |
+| 3D model volume (more than 3 GB)                          | Installer size   | Library packs downloaded on demand                                                         |
+| Online provider APIs and terms of use                     | F1 scope         | Official APIs plus an embedded login window; review the terms first                        |
+| Unsigned builds                                           | Install friction | Clear installation docs for every OS                                                       |
+| Interactive router quality (push-and-shove)               | F7               | Walkaround router in M7; push-and-shove in M15; external autorouter through Specctra (M14) |
 
 ### Open decisions
 
@@ -606,7 +627,7 @@ The CLI grows with every milestone. This milestone completes it.
 
 ## 13. Roadmap changelog
 
-| Date | Version | Change |
-|---|---|---|
-| 2026-11-07 | Draft v0.1 | Initial roadmap. DipTrace import deferred; import limited to KiCad and open standard formats; Altium/KiCad-style project concept added. |
-| 2026-11-07 | v0.2 | Approved by the maintainer: milestone order (import and viewer before the editors) confirmed, Eagle XML import added to M14, project renamed to ElectronicWerk. M0 started. |
+| Date       | Version    | Change                                                                                                                                                                      |
+| ---------- | ---------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 2026-11-07 | Draft v0.1 | Initial roadmap. DipTrace import deferred; import limited to KiCad and open standard formats; Altium/KiCad-style project concept added.                                     |
+| 2026-11-07 | v0.2       | Approved by the maintainer: milestone order (import and viewer before the editors) confirmed, Eagle XML import added to M14, project renamed to ElectronicWerk. M0 started. |

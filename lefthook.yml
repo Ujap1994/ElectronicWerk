@@ -1,0 +1,24 @@
+# Git hooks: the same checks as CI, run locally before code leaves the machine.
+pre-commit:
+  parallel: true
+  commands:
+    eslint:
+      glob: '*.{ts,tsx,js,mjs}'
+      run: npx eslint --max-warnings 0 {staged_files}
+    prettier:
+      glob: '*.{ts,tsx,js,mjs,json,css,md,yml,yaml,html}'
+      run: npx prettier --check {staged_files}
+    stylelint:
+      glob: '*.css'
+      run: npx stylelint --max-warnings 0 {staged_files}
+    markdownlint:
+      glob: '*.md'
+      run: npx markdownlint-cli2 {staged_files}
+    rustfmt:
+      glob: '*.rs'
+      run: cargo fmt --all --check
+
+commit-msg:
+  commands:
+    commitlint:
+      run: npx commitlint --edit {1}

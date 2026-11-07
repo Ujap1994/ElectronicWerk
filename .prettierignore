@@ -1,0 +1,17 @@
+# Local data and generated output
+KiCAD-Files/
+DipTrace-Files/
+Muster-Projekte/
+ORIGINAL_REQUEST.md
+node_modules/
+target/
+out/
+dist/
+release/
+coverage/
+test-results/
+playwright-report/
+apps/desktop/native/
+docs/.vitepress/cache/
+docs/.vitepress/dist/
+package-lock.json

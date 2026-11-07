@@ -1,0 +1,82 @@
+/**
+ * English UI strings. English is the source language: every other language
+ * must provide exactly the same keys (enforced by the type system).
+ *
+ * Placeholders use `{name}` syntax and must be identical in every language.
+ */
+export const en = {
+  app: {
+    name: 'ElectronicWerk',
+    tagline: 'Open-source ECAD for makers and hobbyists',
+  },
+  start: {
+    title: 'Welcome to ElectronicWerk',
+    subtitle: 'Design schematics and circuit boards, from idea to manufacturing.',
+    newProject: 'New project',
+    newProjectHint: 'Create a project with schematic and PCB.',
+    openProject: 'Open project',
+    openProjectHint: 'Open an existing ElectronicWerk project.',
+    importKicad: 'Import KiCad project',
+    importKicadHint: 'Convert a KiCad project into an ElectronicWerk project.',
+    comingIn: 'Coming in {version}',
+    recentTitle: 'Recent projects',
+    recentEmpty: 'No recent projects yet. Projects you open appear here.',
+  },
+  engine: {
+    starting: 'Engine starting…',
+    running: 'Engine {version} · {threads} threads',
+    restarting: 'Engine restarting…',
+    failed: 'Engine stopped: {error}',
+    stopped: 'Engine stopped',
+    restartedNotice: 'The engine stopped unexpectedly and was restarted. No data was lost.',
+  },
+  settings: {
+    title: 'Settings',
+    open: 'Open settings',
+    close: 'Close',
+    language: 'Language',
+    languageSystem: 'System default',
+    theme: 'Appearance',
+    themeSystem: 'System default',
+    themeLight: 'Light',
+    themeDark: 'Dark',
+  },
+  languages: {
+    de: 'Deutsch',
+    en: 'English',
+  },
+  menu: {
+    file: 'File',
+    edit: 'Edit',
+    view: 'View',
+    window: 'Window',
+    help: 'Help',
+    newProject: 'New Project…',
+    openProject: 'Open Project…',
+    settings: 'Settings…',
+    quit: 'Quit ElectronicWerk',
+    about: 'About ElectronicWerk',
+    documentation: 'Documentation',
+    reportIssue: 'Report an Issue',
+    reload: 'Reload',
+    toggleDevTools: 'Toggle Developer Tools',
+    actualSize: 'Actual Size',
+    zoomIn: 'Zoom In',
+    zoomOut: 'Zoom Out',
+    toggleFullScreen: 'Toggle Full Screen',
+    undo: 'Undo',
+    redo: 'Redo',
+    cut: 'Cut',
+    copy: 'Copy',
+    paste: 'Paste',
+    selectAll: 'Select All',
+    minimize: 'Minimize',
+    zoom: 'Zoom',
+    hide: 'Hide ElectronicWerk',
+    hideOthers: 'Hide Others',
+    showAll: 'Show All',
+  },
+  status: {
+    appVersion: 'Version {version}',
+  },
+} as const;

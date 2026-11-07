@@ -24,3 +24,10 @@ coverage/
 # --- Secrets -----------------------------------------------------------------
 .env
 .env.*
+
+# Native engine build output
+/apps/desktop/native/
+
+# Test artifacts
+test-results/
+playwright-report/

@@ -1,0 +1,22 @@
+[package]
+name = "ew-cli"
+description = "ElectronicWerk command-line interface (ewerk)"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+publish = false
+
+[[bin]]
+name = "ewerk"
+path = "src/main.rs"
+
+[dependencies]
+clap.workspace = true
+ew-core.workspace = true
+serde_json.workspace = true
+
+[lints]
+workspace = true

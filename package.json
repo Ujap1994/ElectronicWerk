@@ -1,0 +1,60 @@
+{
+  "name": "electronicwerk",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Open-source ECAD suite for beginners and advanced hobbyists",
+  "license": "MIT",
+  "type": "module",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Ujap1994/ElectronicWerk.git"
+  },
+  "engines": {
+    "node": ">=22.12.0"
+  },
+  "workspaces": [
+    "apps/*"
+  ],
+  "scripts": {
+    "dev": "npm run build:native && npm run dev -w @electronicwerk/desktop",
+    "build": "npm run build:native -- --release && npm run build -w @electronicwerk/desktop",
+    "build:native": "node scripts/build-native.mjs",
+    "lint": "npm run lint:ts && npm run lint:types && npm run lint:css && npm run lint:md && npm run lint:format && npm run lint:rust",
+    "lint:ts": "eslint . --max-warnings 0",
+    "lint:types": "npm run typecheck -w @electronicwerk/desktop",
+    "lint:css": "stylelint \"apps/*/src/**/*.css\" --max-warnings 0",
+    "lint:md": "markdownlint-cli2",
+    "lint:format": "prettier --check .",
+    "lint:rust": "cargo fmt --all --check && cargo clippy --workspace --all-targets -- -D warnings",
+    "format": "prettier --write . && cargo fmt --all",
+    "test": "npm run test:rust && npm run test:tools && npm run test:unit",
+    "test:rust": "cargo test --workspace",
+    "test:unit": "npm run test -w @electronicwerk/desktop",
+    "test:e2e": "npm run test:e2e -w @electronicwerk/desktop",
+    "prepare": "lefthook install || true",
+    "test:tools": "node --test \"tools/**/*.test.js\""
+  },
+  "devDependencies": {
+    "@commitlint/cli": "^21.2.4",
+    "@commitlint/config-conventional": "^21.2.4",
+    "@eslint-community/eslint-plugin-eslint-comments": "^4.8.1",
+    "@eslint-react/eslint-plugin": "^5.28.8",
+    "@eslint/js": "^10.0.1",
+    "@types/node": "^24.19.2",
+    "eslint": "^10.14.0",
+    "eslint-config-prettier": "^10.1.8",
+    "eslint-plugin-react-hooks": "^7.1.1",
+    "globals": "^17.14.0",
+    "lefthook": "^2.2.2",
+    "markdownlint-cli2": "^0.24.0",
+    "prettier": "^3.9.10",
+    "stylelint": "^18.0.0",
+    "stylelint-config-standard": "^41.0.0",
+    "typescript": "^6.0.3",
+    "typescript-eslint": "^8.72.1"
+  },
+  "allowScripts": {
+    "fsevents@2.3.3": true,
+    "lefthook@2.2.2": true
+  }
+}

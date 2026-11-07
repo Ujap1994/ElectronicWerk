@@ -1,0 +1,24 @@
+[package]
+name = "ew-node"
+description = "Node-API bridge that loads the ElectronicWerk engine into the desktop app"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+publish = false
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+ew-core.workspace = true
+napi.workspace = true
+napi-derive.workspace = true
+
+[build-dependencies]
+napi-build.workspace = true
+
+[lints]
+workspace = true

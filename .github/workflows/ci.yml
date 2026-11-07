@@ -1,0 +1,90 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  CARGO_TERM_COLOR: always
+  LEFTHOOK: '0'
+
+jobs:
+  lint:
+    name: Lint (100 %)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy, rustfmt
+      - uses: Swatinem/rust-cache@v2
+      - run: npm ci
+      - name: ESLint, TypeScript, Stylelint, markdownlint, Prettier, rustfmt, Clippy
+        run: npm run lint
+      - name: Commit messages (Conventional Commits)
+        if: github.event_name == 'pull_request'
+        run: npx commitlint --from "${{ github.event.pull_request.base.sha }}" --to "${{ github.event.pull_request.head.sha }}"
+      - name: actionlint
+        run: |
+          bash <(curl -sSfL https://raw.githubusercontent.com/rhysd/actionlint/v1.7.12/scripts/download-actionlint.bash) 1.7.12
+          ./actionlint -color
+      - name: cargo-deny (licenses, advisories, sources)
+        uses: EmbarkStudios/cargo-deny-action@v2
+
+  test:
+    name: Test (${{ matrix.os }})
+    needs: lint
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - run: npm ci
+      - name: Download Electron
+        run: node node_modules/electron/install.js
+      - name: Build native engine
+        run: npm run build:native
+      - name: Rust tests
+        run: npm run test:rust
+      - name: Tooling tests
+        run: npm run test:tools
+      - name: Unit and integration tests
+        run: npm run test:unit
+      - name: Build app
+        run: npm run build -w @electronicwerk/desktop
+      - name: End-to-end tests (Linux, virtual display)
+        if: runner.os == 'Linux'
+        run: xvfb-run --auto-servernum npm run test:e2e
+      - name: End-to-end tests
+        if: runner.os != 'Linux'
+        run: npm run test:e2e
+      - name: Upload test report
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: e2e-report-${{ matrix.os }}
+          path: |
+            apps/desktop/test-results/
+            apps/desktop/playwright-report/
+          retention-days: 7
