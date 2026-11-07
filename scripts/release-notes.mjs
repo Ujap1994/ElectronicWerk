@@ -69,7 +69,10 @@ if (isMain) {
     console.error(`CHANGELOG.md has no section for ${version}`);
     process.exit(1);
   }
-  const notes = `${section}\n\n${downloadGuide(version)}\n`;
+  const icon =
+    `<p align="center"><img src="https://raw.githubusercontent.com/Ujap1994/ElectronicWerk/` +
+    `v${version}/docs/public/icon-256.png" width="96" height="96" alt="ElectronicWerk"></p>`;
+  const notes = `${icon}\n\n${section}\n\n${downloadGuide(version)}\n`;
   if (values.out === undefined) {
     process.stdout.write(notes);
   } else {

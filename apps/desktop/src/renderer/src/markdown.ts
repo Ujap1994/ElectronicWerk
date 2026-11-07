@@ -80,6 +80,8 @@ const BULLET = /^\s*[-*+]\s+(.*)$/u;
 const NUMBERED = /^\s*\d+[.)]\s+(.*)$/u;
 const CONTINUATION = /^\s{2,}\S/u;
 const TABLE_LINE = /^\s*\|/u;
+/** A line that only contains HTML tags (for example an image on the release page). */
+const HTML_ONLY_LINE = /^\s*(?:<\/?[a-zA-Z][^>]*>\s*)+$/u;
 const TABLE_SEPARATOR = /^\s*\|?\s*:?-{3,}:?\s*(?:\|\s*:?-{3,}:?\s*)*\|?\s*$/u;
 
 function splitCells(line: string): string[] {
@@ -217,6 +219,10 @@ export function parseMarkdown(source: string): Block[] {
     const bullet = BULLET.exec(line);
     const numbered = NUMBERED.exec(line);
 
+    if (HTML_ONLY_LINE.test(line)) {
+      // HTML is never rendered; decorative lines are skipped entirely.
+      continue;
+    }
     if (!TABLE_LINE.test(line)) {
       builder.flushTable();
     }

@@ -139,4 +139,11 @@ describe('parseMarkdown', () => {
     const blocks = parseMarkdown('| a | b |\n| --- | --- |\n| 1 | 2 |\nAfter the table.');
     expect(blocks.map((block) => block.type)).toEqual(['table', 'paragraph']);
   });
+
+  it('skips lines that only contain HTML tags', () => {
+    const source = '<p align="center"><img src="icon.png" width="96" alt="Logo"></p>\n\n## Added';
+    expect(parseMarkdown(source)).toEqual([
+      { id: 'b0', type: 'heading', level: 2, content: [{ type: 'text', text: 'Added' }] },
+    ]);
+  });
 });
