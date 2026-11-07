@@ -1,8 +1,16 @@
 # Packaging configuration (electron-builder).
+# Release builds run in .github/workflows/release.yml on Windows, macOS and
+# Linux (x64 and arm64 each). Nothing is published from here: the workflow
+# collects the files and creates the GitHub release.
 appId: io.github.ujap1994.electronicwerk
 productName: ElectronicWerk
 copyright: Copyright © 2026 ElectronicWerk contributors
 artifactName: ElectronicWerk-${version}-${os}-${arch}.${ext}
+publish: null
+
+# Linux package names must not contain the npm scope.
+extraMetadata:
+  name: electronicwerk
 
 directories:
   output: release
@@ -31,6 +39,7 @@ electronFuses:
   onlyLoadAppFromAsar: true
   grantFileProtocolExtraPrivileges: false
 
+# ---------------------------------------------------------------- macOS ----
 mac:
   category: public.app-category.developer-tools
   icon: build/icon-macos.png
@@ -38,6 +47,86 @@ mac:
   # which Apple Silicon requires to run the app at all.
   identity: '-'
   hardenedRuntime: false
+  # The engine is shipped as one universal (lipo) binary in every macOS build.
+  x64ArchFiles: Contents/Resources/native/*.node
   target:
     - target: dmg
+      arch: [universal, arm64, x64]
     - target: zip
+      arch: [universal, arm64, x64]
+
+dmg:
+  artifactName: ElectronicWerk-${version}-mac-${arch}.${ext}
+
+# -------------------------------------------------------------- Windows ----
+win:
+  target:
+    - target: nsis
+    - target: portable
+
+nsis:
+  oneClick: false
+  perMachine: false
+  allowToChangeInstallationDirectory: true
+  createDesktopShortcut: true
+  createStartMenuShortcut: true
+  shortcutName: ElectronicWerk
+  artifactName: ElectronicWerk-${version}-win-${arch}-setup.${ext}
+
+portable:
+  artifactName: ElectronicWerk-${version}-win-${arch}-portable.${ext}
+
+# ---------------------------------------------------------------- Linux ----
+linux:
+  executableName: electronicwerk
+  icon: build/icons
+  category: Development
+  synopsis: Open-source ECAD suite for makers and hobbyists
+  description: >-
+    ElectronicWerk is an open-source ECAD suite for beginners and advanced
+    hobbyists: schematic, symbol, footprint and layout editors, a live 3D
+    view, ERC/DRC and manufacturing outputs.
+  maintainer: ElectronicWerk contributors <ujap1994@users.noreply.github.com>
+  vendor: ElectronicWerk contributors
+  desktop:
+    entry:
+      StartupWMClass: ElectronicWerk
+      Keywords: ECAD;PCB;schematic;electronics;KiCad;layout;
+  target:
+    - AppImage
+    - deb
+    - rpm
+    - pacman
+    - tar.gz
+    - snap
+    - flatpak
+
+deb:
+  artifactName: ElectronicWerk-${version}-linux-${arch}.${ext}
+
+rpm:
+  artifactName: ElectronicWerk-${version}-linux-${arch}.${ext}
+
+pacman:
+  artifactName: ElectronicWerk-${version}-linux-${arch}.${ext}
+
+snap:
+  grade: stable
+  confinement: strict
+  summary: Open-source ECAD suite for makers and hobbyists
+  artifactName: ElectronicWerk-${version}-linux-${arch}.${ext}
+
+flatpak:
+  runtime: org.freedesktop.Platform
+  runtimeVersion: '25.08'
+  sdk: org.freedesktop.Sdk
+  base: org.electronjs.Electron2.BaseApp
+  baseVersion: '25.08'
+  finishArgs:
+    - --share=ipc
+    - --share=network
+    - --socket=x11
+    - --socket=wayland
+    - --device=dri
+    - --filesystem=home
+  artifactName: ElectronicWerk-${version}-linux-${arch}.${ext}
