@@ -1,9 +1,9 @@
-import { existsSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import { join, resolve } from 'node:path';
 
 import { describe, expect, it } from 'vitest';
 
+import { addonCandidates, findAddon } from './addon';
 import { handleRequest, type NativeEngine } from './dispatch';
 
 const fakeEngine = (reply: string | Error): NativeEngine => ({
@@ -52,15 +52,25 @@ describe('handleRequest (unit)', () => {
 });
 
 const nativeDir = resolve(import.meta.dirname, '../../native');
-const addon = join(nativeDir, `ew_node.${process.platform}-${process.arch}.node`);
+
+describe('addonCandidates', () => {
+  it('prefers the exact build, then a universal build', () => {
+    expect(addonCandidates('/n', 'darwin', 'arm64')).toEqual([
+      join('/n', 'ew_node.darwin-arm64.node'),
+      join('/n', 'ew_node.darwin-universal.node'),
+    ]);
+  });
+});
 
 describe('handleRequest (native engine)', () => {
+  const addon = findAddon(nativeDir);
+
   it('has a built native engine (run `npm run build:native`)', () => {
-    expect(existsSync(addon), addon).toBe(true);
+    expect(addon, nativeDir).toBeDefined();
   });
 
   it('round-trips through the real Rust engine', () => {
-    const engine = createRequire(import.meta.url)(addon) as NativeEngine;
+    const engine = createRequire(import.meta.url)(addon ?? '') as NativeEngine;
     const info = handleRequest(engine, { id: 1, method: 'engine.info' });
     expect(info).toMatchObject({ id: 1, result: { name: 'ElectronicWerk Engine' } });
 

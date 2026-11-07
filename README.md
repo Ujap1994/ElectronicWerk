@@ -8,8 +8,13 @@ An open-source ECAD suite for beginners and advanced hobbyists. It covers
 schematic, symbol, footprint and layout editing, a live 3D view, ERC/DRC,
 manufacturing outputs, online part search, GitHub integration and a full CLI.
 
-> **Status:** planning. Nothing has been released yet. See the
+> **Status:** early development. Version 0.1 provides the application
+> foundation; the editors follow milestone by milestone. See the
 > [roadmap](ROADMAP.md) for milestones and progress.
+
+**[Documentation](https://ujap1994.github.io/ElectronicWerk/)** ·
+**[Download](https://github.com/Ujap1994/ElectronicWerk/releases/latest)** ·
+**[Changelog](CHANGELOG.md)** · **[Contributing](CONTRIBUTING.md)**
 
 ## Planned highlights
 

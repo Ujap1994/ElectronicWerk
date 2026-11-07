@@ -1,8 +1,9 @@
 /**
  * Minimal Markdown parser for release notes. It understands the subset our
- * changelog uses (headings, paragraphs, bullet and numbered lists, bold,
- * inline code, links) and produces a data structure that React renders as
- * plain elements, so no HTML from the network ever reaches the DOM.
+ * changelog and release notes use (headings, paragraphs, bullet and numbered
+ * lists, tables, bold, inline code, links) and produces a data structure that
+ * React renders as plain elements, so no HTML from the network ever reaches
+ * the DOM.
  */
 
 export type Inline =
@@ -15,6 +16,16 @@ export interface ListItem {
   /** Stable id for React keys. */
   readonly id: string;
   readonly content: readonly Inline[];
+}
+
+export interface TableCell {
+  readonly id: string;
+  readonly content: readonly Inline[];
+}
+
+export interface TableRow {
+  readonly id: string;
+  readonly cells: readonly TableCell[];
 }
 
 export type Block =
@@ -30,6 +41,12 @@ export type Block =
       readonly type: 'list';
       readonly ordered: boolean;
       readonly items: readonly ListItem[];
+    }
+  | {
+      readonly id: string;
+      readonly type: 'table';
+      readonly header: TableRow;
+      readonly rows: readonly TableRow[];
     };
 
 const INLINE_PATTERN = /\*\*([^*]+)\*\*|__([^_]+)__|`([^`]+)`|\[([^\]]+)\]\(([^)\s]+)\)/gu;
@@ -62,6 +79,17 @@ const HEADING = /^(#{1,6})\s+(.*?)\s*#*\s*$/u;
 const BULLET = /^\s*[-*+]\s+(.*)$/u;
 const NUMBERED = /^\s*\d+[.)]\s+(.*)$/u;
 const CONTINUATION = /^\s{2,}\S/u;
+const TABLE_LINE = /^\s*\|/u;
+const TABLE_SEPARATOR = /^\s*\|?\s*:?-{3,}:?\s*(?:\|\s*:?-{3,}:?\s*)*\|?\s*$/u;
+
+function splitCells(line: string): string[] {
+  return line
+    .trim()
+    .replace(/^\|/u, '')
+    .replace(/\|$/u, '')
+    .split('|')
+    .map((cell) => cell.trim());
+}
 
 interface PendingList {
   readonly ordered: boolean;
@@ -73,6 +101,7 @@ class BlockBuilder {
   readonly blocks: Block[] = [];
   private paragraph: string[] = [];
   private list: PendingList | null = null;
+  private table: string[] = [];
 
   private nextId(): string {
     return `b${String(this.blocks.length)}`;
@@ -105,9 +134,48 @@ class BlockBuilder {
     }
   }
 
+  flushTable(): void {
+    if (this.table.length === 0) {
+      return;
+    }
+    const [head, separator, ...body] = this.table;
+    this.table = [];
+    if (head === undefined || separator === undefined || !TABLE_SEPARATOR.test(separator)) {
+      // Not a real table: keep the text.
+      for (const line of [head, separator, ...body]) {
+        if (line !== undefined) {
+          this.paragraph.push(line.trim());
+        }
+      }
+      this.flushParagraph();
+      return;
+    }
+    const id = this.nextId();
+    const row = (line: string, rowId: string): TableRow => ({
+      id: rowId,
+      cells: splitCells(line).map((text, index) => ({
+        id: `${rowId}-${String(index)}`,
+        content: parseInline(text),
+      })),
+    });
+    this.blocks.push({
+      id,
+      type: 'table',
+      header: row(head, `${id}-h`),
+      rows: body.map((line, index) => row(line, `${id}-${String(index)}`)),
+    });
+  }
+
+  tableLine(line: string): void {
+    this.flushParagraph();
+    this.flushList();
+    this.table.push(line);
+  }
+
   flush(): void {
     this.flushParagraph();
     this.flushList();
+    this.flushTable();
   }
 
   heading(level: number, text: string): void {
@@ -149,8 +217,13 @@ export function parseMarkdown(source: string): Block[] {
     const bullet = BULLET.exec(line);
     const numbered = NUMBERED.exec(line);
 
+    if (!TABLE_LINE.test(line)) {
+      builder.flushTable();
+    }
     if (line.trim() === '') {
       builder.flush();
+    } else if (TABLE_LINE.test(line)) {
+      builder.tableLine(line);
     } else if (heading !== null) {
       builder.heading(heading[1]?.length ?? 1, heading[2] ?? '');
     } else if (numbered !== null) {

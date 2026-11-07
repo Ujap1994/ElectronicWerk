@@ -88,4 +88,55 @@ describe('parseMarkdown', () => {
     const blocks = parseMarkdown('- a\n1. b');
     expect(blocks.map((block) => block.type)).toEqual(['list', 'list']);
   });
+
+  it('parses tables with inline formatting', () => {
+    const blocks = parseMarkdown(
+      [
+        '| System | File |',
+        '| --- | :---: |',
+        '| macOS | `app.dmg` |',
+        '| **Linux** | a · b |',
+      ].join('\n'),
+    );
+    expect(blocks).toEqual([
+      {
+        id: 'b0',
+        type: 'table',
+        header: {
+          id: 'b0-h',
+          cells: [
+            { id: 'b0-h-0', content: [{ type: 'text', text: 'System' }] },
+            { id: 'b0-h-1', content: [{ type: 'text', text: 'File' }] },
+          ],
+        },
+        rows: [
+          {
+            id: 'b0-0',
+            cells: [
+              { id: 'b0-0-0', content: [{ type: 'text', text: 'macOS' }] },
+              { id: 'b0-0-1', content: [{ type: 'code', text: 'app.dmg' }] },
+            ],
+          },
+          {
+            id: 'b0-1',
+            cells: [
+              { id: 'b0-1-0', content: [{ type: 'strong', text: 'Linux' }] },
+              { id: 'b0-1-1', content: [{ type: 'text', text: 'a · b' }] },
+            ],
+          },
+        ],
+      },
+    ]);
+  });
+
+  it('keeps pipe lines without a separator row as text', () => {
+    expect(parseMarkdown('| not | a table |')).toEqual([
+      { id: 'b0', type: 'paragraph', content: [{ type: 'text', text: '| not | a table |' }] },
+    ]);
+  });
+
+  it('ends a table at the next non-table line', () => {
+    const blocks = parseMarkdown('| a | b |\n| --- | --- |\n| 1 | 2 |\nAfter the table.');
+    expect(blocks.map((block) => block.type)).toEqual(['table', 'paragraph']);
+  });
 });

@@ -50,6 +50,27 @@ function renderBlock(block: Block): ReactNode {
       const items = block.items.map((item) => <li key={item.id}>{renderInline(item.content)}</li>);
       return block.ordered ? <ol key={key}>{items}</ol> : <ul key={key}>{items}</ul>;
     }
+    case 'table':
+      return (
+        <table key={key}>
+          <thead>
+            <tr>
+              {block.header.cells.map((cell) => (
+                <th key={cell.id}>{renderInline(cell.content)}</th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {block.rows.map((row) => (
+              <tr key={row.id}>
+                {row.cells.map((cell) => (
+                  <td key={cell.id}>{renderInline(cell.content)}</td>
+                ))}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      );
   }
 }
 

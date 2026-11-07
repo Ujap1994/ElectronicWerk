@@ -49,9 +49,13 @@ mkdirSync(staging, { recursive: true });
 copyFileSync(join(root, 'target', values.target, 'release', binary), join(staging, binary));
 copyFileSync(join(root, 'LICENSE'), join(staging, 'LICENSE'));
 
-const archive = join(releaseDir, windows ? `${name}.zip` : `${name}.tar.gz`);
-// bsdtar (Windows 10+) writes zip archives with -a; GNU/BSD tar writes tar.gz.
-const args = windows ? ['-a', '-cf', archive, name] : ['-czf', archive, name];
-execFileSync('tar', args, { cwd: releaseDir, stdio: 'inherit' });
+const archiveName = windows ? `${name}.zip` : `${name}.tar.gz`;
+// Relative names only: GNU tar would read "C:\\…" as a remote host. On
+// Windows, use the system bsdtar (it writes zip files with -a); Git Bash
+// would otherwise pick GNU tar, which cannot.
+const tar = windows ? join(process.env.SystemRoot ?? 'C:\\Windows', 'System32', 'tar.exe') : 'tar';
+const args = windows ? ['-a', '-cf', archiveName, name] : ['-czf', archiveName, name];
+execFileSync(tar, args, { cwd: releaseDir, stdio: 'inherit' });
+const archive = join(releaseDir, archiveName);
 rmSync(staging, { recursive: true, force: true });
 console.log(`✓ ${archive}`);

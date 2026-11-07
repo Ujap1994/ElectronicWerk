@@ -2,9 +2,7 @@
  * Engine host: runs inside an Electron `utilityProcess`, loads the native
  * Rust engine and serves requests that arrive over MessagePorts.
  */
-import { existsSync } from 'node:fs';
 import { createRequire } from 'node:module';
-import { join } from 'node:path';
 
 import {
   HOST_EXIT_FATAL,
@@ -14,6 +12,7 @@ import {
   type MainToHostMessage,
 } from '@shared/engine';
 
+import { findAddon } from './addon';
 import { handleRequest, type NativeEngine } from './dispatch';
 
 const parentPort = process.parentPort;
@@ -22,16 +21,9 @@ function send(message: HostToMainMessage): void {
   parentPort.postMessage(message);
 }
 
-function addonCandidates(directory: string): string[] {
-  return [
-    join(directory, `ew_node.${process.platform}-${process.arch}.node`),
-    join(directory, `ew_node.${process.platform}-universal.node`),
-  ];
-}
-
 function loadEngine(): NativeEngine {
   const directory = process.env['EW_NATIVE_DIR'] ?? '';
-  const file = addonCandidates(directory).find((candidate) => existsSync(candidate));
+  const file = findAddon(directory);
   if (file === undefined) {
     throw new Error(`native engine not found in "${directory}"`);
   }

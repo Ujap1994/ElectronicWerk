@@ -9,6 +9,7 @@
     "electron.vite.config.ts",
     "vitest.config.ts",
     "playwright.config.ts",
+    "playwright.docs.config.ts",
     "src/main/**/*.ts",
     "src/preload/**/*.ts",
     "src/engine-host/**/*.ts",

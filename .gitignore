@@ -31,3 +31,7 @@ coverage/
 # Test artifacts
 test-results/
 playwright-report/
+
+# Documentation build output
+docs/.vitepress/cache/
+docs/.vitepress/dist/
