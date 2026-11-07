@@ -308,14 +308,15 @@ released automatically for every platform.
 - [x] Rust engine in a crash-isolated `utilityProcess` with automatic restart
       and a direct MessagePort channel (ADR-0001)
 - [x] `ewerk` CLI (`info`, `methods`, `call`)
-- [x] Start screen, status bar, settings dialog (language, appearance)
+- [x] Start screen, status bar, settings dialog (language, appearance,
+      updates), command palette
 - [x] German and English UI with a type-checked key parity and a lint rule
       against hard-coded UI text
 - [x] Lint gates with zero warnings, plus cargo-deny and actionlint in CI
 - [x] Test stack: Rust, Vitest, Playwright for Electron; CI on
       Windows/macOS/Linux
-- [ ] Project icon (SVG master and generated formats)
-- [ ] Update check with release notes and "skip this version"
+- [x] Project icon (SVG master and generated formats)
+- [x] Update check with release notes and "skip this version"
 - [ ] Release workflow for every package
 - [ ] Documentation site with automated screenshots
 - [ ] Release v0.1.0

@@ -26,6 +26,14 @@ const api: EwApi = {
   app: {
     info: () => ipcRenderer.invoke(IPC.appInfo),
     onMenuAction: (listener) => subscribe(IPC.menuAction, listener),
+    openExternal: (url) => {
+      ipcRenderer.send(IPC.openExternal, url);
+    },
+  },
+  updates: {
+    check: (manual) => ipcRenderer.invoke(IPC.updatesCheck, manual),
+    pending: () => ipcRenderer.invoke(IPC.updatesPending),
+    onAvailable: (listener) => subscribe(IPC.updatesAvailable, listener),
   },
   settings: {
     get: () => ipcRenderer.invoke(IPC.settingsGet),

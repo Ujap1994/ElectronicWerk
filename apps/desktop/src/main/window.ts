@@ -14,6 +14,8 @@ export function createMainWindow(devUrl: string | undefined, isPackaged: boolean
     minHeight: 600,
     show: false,
     title: 'ElectronicWerk',
+    // macOS takes the icon from the app bundle; Windows and Linux need it here.
+    ...(process.platform === 'darwin' ? {} : { icon: paths.windowIcon }),
     backgroundColor: nativeTheme.shouldUseDarkColors ? BACKGROUND.dark : BACKGROUND.light,
     webPreferences: {
       preload: paths.preload,

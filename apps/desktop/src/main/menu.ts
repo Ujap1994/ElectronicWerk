@@ -1,11 +1,10 @@
 import { Menu, type MenuItemConstructorOptions } from 'electron';
 
 import type { MenuAction } from '@shared/api';
+import { PROJECT_URL } from '@shared/links';
 import type { Translate } from '@shared/i18n';
 
 import { openExternalSafely } from './security';
-
-const REPO_URL = 'https://github.com/Ujap1994/ElectronicWerk';
 
 export interface MenuOptions {
   readonly t: Translate;
@@ -17,6 +16,13 @@ export interface MenuOptions {
 
 /** Builds the translated application menu. */
 export function buildMenu({ t, isMac, isPackaged, onAction, onAbout }: MenuOptions): Menu {
+  const updatesItem: MenuItemConstructorOptions = {
+    label: t('menu.checkForUpdates'),
+    click: () => {
+      onAction('check-updates');
+    },
+  };
+
   const settingsItem: MenuItemConstructorOptions = {
     label: t('menu.settings'),
     accelerator: 'CmdOrCtrl+,',
@@ -31,6 +37,7 @@ export function buildMenu({ t, isMac, isPackaged, onAction, onAbout }: MenuOptio
           label: t('app.name'),
           submenu: [
             { label: t('menu.about'), role: 'about' },
+            updatesItem,
             { type: 'separator' },
             settingsItem,
             { type: 'separator' },
@@ -83,6 +90,14 @@ export function buildMenu({ t, isMac, isPackaged, onAction, onAbout }: MenuOptio
             { label: t('menu.toggleDevTools'), role: 'toggleDevTools' },
             { type: 'separator' },
           ] satisfies MenuItemConstructorOptions[])),
+      {
+        label: t('menu.commandPalette'),
+        accelerator: 'CmdOrCtrl+K',
+        click: () => {
+          onAction('command-palette');
+        },
+      },
+      { type: 'separator' },
       { label: t('menu.actualSize'), role: 'resetZoom' },
       { label: t('menu.zoomIn'), role: 'zoomIn' },
       { label: t('menu.zoomOut'), role: 'zoomOut' },
@@ -111,19 +126,20 @@ export function buildMenu({ t, isMac, isPackaged, onAction, onAbout }: MenuOptio
       {
         label: t('menu.documentation'),
         click: () => {
-          openExternalSafely(`${REPO_URL}#readme`);
+          openExternalSafely(`${PROJECT_URL}#readme`);
         },
       },
       {
         label: t('menu.reportIssue'),
         click: () => {
-          openExternalSafely(`${REPO_URL}/issues`);
+          openExternalSafely(`${PROJECT_URL}/issues`);
         },
       },
       ...(isMac
         ? []
         : ([
             { type: 'separator' },
+            updatesItem,
             { label: t('menu.about'), click: onAbout },
           ] satisfies MenuItemConstructorOptions[])),
     ],

@@ -1,6 +1,7 @@
 import type { EngineStatus } from './engine';
 import type { Language } from './i18n';
 import type { Settings, SettingsPatch } from './settings';
+import type { UpdateCheckResult } from './update';
 
 /** IPC channel names (renderer ↔ main). */
 export const IPC = {
@@ -13,6 +14,10 @@ export const IPC = {
   engineRequestPort: 'engine:request-port',
   enginePort: 'engine:port',
   menuAction: 'menu:action',
+  openExternal: 'app:open-external',
+  updatesCheck: 'updates:check',
+  updatesPending: 'updates:pending',
+  updatesAvailable: 'updates:available',
 } as const;
 
 /** `window.postMessage` tag used by the preload to hand over the engine port. */
@@ -40,7 +45,8 @@ export interface SettingsSnapshot {
 }
 
 /** Menu commands forwarded to the renderer. */
-export type MenuAction = 'settings' | 'new-project' | 'open-project';
+export type MenuAction =
+  'settings' | 'new-project' | 'open-project' | 'check-updates' | 'command-palette';
 
 export type Unsubscribe = () => void;
 
@@ -49,6 +55,15 @@ export interface EwApi {
   readonly app: {
     info: () => Promise<AppInfo>;
     onMenuAction: (listener: (action: MenuAction) => void) => Unsubscribe;
+    /** Opens an allow-listed link (this project on GitHub) in the browser. */
+    openExternal: (url: string) => void;
+  };
+  readonly updates: {
+    /** Checks GitHub for a newer release. `manual` also reports skipped versions. */
+    check: (manual: boolean) => Promise<UpdateCheckResult>;
+    /** Result of the automatic startup check, if it found an update. */
+    pending: () => Promise<UpdateCheckResult | null>;
+    onAvailable: (listener: (result: UpdateCheckResult) => void) => Unsubscribe;
   };
   readonly settings: {
     get: () => Promise<SettingsSnapshot>;

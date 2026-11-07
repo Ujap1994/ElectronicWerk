@@ -33,6 +33,7 @@ electronFuses:
 
 mac:
   category: public.app-category.developer-tools
+  icon: build/icon-macos.png
   # Open-source builds are not notarized; "-" applies an ad-hoc signature,
   # which Apple Silicon requires to run the app at all.
   identity: '-'

@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="assets/icon/icon.svg" width="128" height="128" alt="ElectronicWerk icon">
+</p>
+
 # ElectronicWerk
 
 An open-source ECAD suite for beginners and advanced hobbyists. It covers

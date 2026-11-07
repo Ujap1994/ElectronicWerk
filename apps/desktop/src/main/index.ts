@@ -1,4 +1,4 @@
-import { app, BrowserWindow, dialog, ipcMain, Menu, nativeTheme } from 'electron';
+import { app, BrowserWindow, dialog, ipcMain, Menu, nativeImage, nativeTheme } from 'electron';
 
 import { IPC, type AppInfo, type MenuAction, type SettingsSnapshot } from '@shared/api';
 import { createTranslator, resolveLanguage } from '@shared/i18n';
@@ -6,11 +6,12 @@ import type { Settings } from '@shared/settings';
 
 import { EngineManager } from './engine';
 import { buildMenu } from './menu';
-import { devServerUrl, paths, testHooksEnabled } from './paths';
+import { devServerUrl, paths, testHooksEnabled, testUpdateFeed, updateCheckDelayMs } from './paths';
 import { handleAppScheme, registerAppScheme } from './protocol';
-import { createSenderCheck, hardenApp } from './security';
+import { createSenderCheck, hardenApp, openExternalSafely } from './security';
 import { SettingsStore } from './settings-store';
 import { runSmokeTest, SMOKE_TEST_FLAG } from './smoke-test';
+import { UpdateService } from './updates';
 import { createMainWindow } from './window';
 
 // Tests and screenshot automation run with an isolated profile. This must
@@ -66,6 +67,7 @@ function main(): void {
         onAbout: () => {
           void dialog.showMessageBox({
             type: 'info',
+            icon: nativeImage.createFromPath(paths.windowIcon),
             title: t('menu.about'),
             message: `${t('app.name')} ${app.getVersion()}`,
             detail: t('app.tagline'),
@@ -100,6 +102,9 @@ function main(): void {
 
   void app.whenReady().then(() => {
     handleAppScheme(paths.renderer);
+    if (isMac && !app.isPackaged) {
+      app.dock?.setIcon(paths.devDockIcon);
+    }
     const store = new SettingsStore(app.getPath('userData'));
     settingsStore = store;
     applySettings(store.get());
@@ -147,6 +152,36 @@ function main(): void {
         engine.connect(event.sender);
       }
     });
+
+    ipcMain.on(IPC.openExternal, (event, url: unknown) => {
+      if (isTrustedSender(event.senderFrame) && typeof url === 'string') {
+        openExternalSafely(url);
+      }
+    });
+
+    const updates = new UpdateService({
+      currentVersion: app.getVersion(),
+      getSkippedVersion: () => store.get().updates.skippedVersion,
+      feedFile: testUpdateFeed(),
+    });
+
+    ipcMain.handle(IPC.updatesCheck, (event, manual: unknown) =>
+      isTrustedSender(event.senderFrame) ? updates.check(manual === true) : null,
+    );
+
+    ipcMain.handle(IPC.updatesPending, (event) =>
+      isTrustedSender(event.senderFrame) ? updates.getPending() : null,
+    );
+
+    if (store.get().updates.checkOnStartup && !process.argv.includes(SMOKE_TEST_FLAG)) {
+      setTimeout(() => {
+        void updates.check(false).then((result) => {
+          if (result.status === 'available') {
+            sendToWindows(IPC.updatesAvailable, result);
+          }
+        });
+      }, updateCheckDelayMs());
+    }
 
     engine.start();
     mainWindow = openMainWindow();

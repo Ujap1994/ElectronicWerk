@@ -26,3 +26,12 @@ project uses [Semantic Versioning](https://semver.org/).
 - Test stack: Rust unit tests, Vitest unit and integration tests, and
   Playwright end-to-end tests for Electron.
 - CI on Windows, macOS and Linux.
+- Project icon (SVG master) with generated raster files for the window, Dock,
+  taskbar, installers, favicon, README and documentation.
+- Update notice: compares the installed version with the newest GitHub release,
+  shows the release notes, offers "Skip this version" and opens the download
+  page. Nothing is ever installed automatically. Can be turned off in the
+  settings or run manually from the menu.
+- Command palette (Cmd/Ctrl+K or Cmd/Ctrl+Shift+P) with commands for settings,
+  language, appearance, updates and help.
+- Packaged-app smoke test (`--smoke-test`) for the release pipeline.

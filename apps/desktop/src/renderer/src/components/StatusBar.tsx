@@ -5,9 +5,10 @@ import { useEngineInfo } from '../use-engine-info';
 
 interface StatusBarProps {
   readonly onOpenSettings: () => void;
+  readonly onOpenPalette: () => void;
 }
 
-export function StatusBar({ onOpenSettings }: StatusBarProps): ReactNode {
+export function StatusBar({ onOpenSettings, onOpenPalette }: StatusBarProps): ReactNode {
   const { t, engineStatus, appInfo } = useAppState();
   const info = useEngineInfo();
 
@@ -33,6 +34,7 @@ export function StatusBar({ onOpenSettings }: StatusBarProps): ReactNode {
       break;
   }
   const ready = engineStatus.state === 'running' && info !== null;
+  const paletteShortcut = appInfo.platform === 'darwin' ? '⌘K' : 'Ctrl+K';
 
   return (
     <footer className="status-bar">
@@ -48,6 +50,16 @@ export function StatusBar({ onOpenSettings }: StatusBarProps): ReactNode {
       <span className="status-bar__version">
         {t('status.appVersion', { version: appInfo.version })}
       </span>
+      <button
+        type="button"
+        className="status-bar__button status-bar__shortcut"
+        onClick={onOpenPalette}
+        aria-label={t('commands.open')}
+        title={t('commands.open')}
+        data-testid="open-palette"
+      >
+        <kbd>{paletteShortcut}</kbd>
+      </button>
       <button
         type="button"
         className="status-bar__button"

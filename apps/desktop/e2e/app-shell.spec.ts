@@ -30,7 +30,7 @@ test('shows the start screen with a secure, sandboxed renderer', async () => {
   expect(exposure).toEqual({
     hasRequire: false,
     hasProcess: false,
-    api: ['app', 'engine', 'settings'],
+    api: ['app', 'engine', 'settings', 'updates'],
   });
   expect(page.url()).toBe('app://bundle/index.html');
 });
@@ -96,7 +96,7 @@ test('allows only one running instance', async () => {
   await expect(launched.page.getByRole('heading', { level: 1 })).toBeVisible();
 });
 
-test('closing the page quits the application', async () => {
+test('closing the window quits the application', async () => {
   const { app, page } = launched;
   const closed = new Promise<void>((resolve) => {
     app.process().on('exit', () => {

@@ -65,10 +65,13 @@ export function StartScreen(): ReactNode {
     <section className="start" aria-labelledby="start-title">
       <RestartNotice />
       <header className="start__header">
-        <h1 id="start-title" className="start__title">
-          {t('start.title')}
-        </h1>
-        <p className="start__subtitle">{t('start.subtitle')}</p>
+        <img className="start__logo" src="./favicon.svg" alt="" width={64} height={64} />
+        <div>
+          <h1 id="start-title" className="start__title">
+            {t('start.title')}
+          </h1>
+          <p className="start__subtitle">{t('start.subtitle')}</p>
+        </div>
       </header>
 
       <ul className="start__actions">

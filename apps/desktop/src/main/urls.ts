@@ -1,5 +1,7 @@
 import { isAbsolute, relative, resolve } from 'node:path';
 
+import { isProjectUrl } from '@shared/links';
+
 /** Custom scheme the production UI is served from (instead of `file://`). */
 export const APP_SCHEME = 'app';
 export const APP_HOST = 'bundle';
@@ -18,11 +20,9 @@ export function originOf(url: string): string | null {
   }
 }
 
-/** Links that may be opened in the user's browser. */
-const EXTERNAL_ALLOWLIST = [/^https:\/\/github\.com\/Ujap1994\/ElectronicWerk(?:[/?#]|$)/u];
-
+/** Links that may be opened in the user's browser: this project on GitHub only. */
 export function isAllowedExternalUrl(url: string): boolean {
-  return EXTERNAL_ALLOWLIST.some((pattern) => pattern.test(url));
+  return isProjectUrl(url);
 }
 
 /**

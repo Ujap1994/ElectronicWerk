@@ -19,6 +19,7 @@
     "dev": "npm run build:native && npm run dev -w @electronicwerk/desktop",
     "build": "npm run build:native -- --release && npm run build -w @electronicwerk/desktop",
     "build:native": "node scripts/build-native.mjs",
+    "icons": "node scripts/generate-icons.mjs",
     "lint": "npm run lint:ts && npm run lint:types && npm run lint:css && npm run lint:md && npm run lint:format && npm run lint:rust",
     "lint:ts": "eslint . --max-warnings 0",
     "lint:types": "npm run typecheck -w @electronicwerk/desktop",
