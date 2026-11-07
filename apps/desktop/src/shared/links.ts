@@ -1,9 +1,15 @@
-/** Links to this project that the app may open in the user's browser. */
+/** This project on GitHub. */
 export const PROJECT_URL = 'https://github.com/Ujap1994/ElectronicWerk';
 
-const PROJECT_URL_PATTERN = /^https:\/\/github\.com\/Ujap1994\/ElectronicWerk(?:[/?#]|$)/u;
+/** The documentation site (GitHub Pages). */
+export const DOCS_URL = 'https://ujap1994.github.io/ElectronicWerk/';
 
-/** `true` for https links into this project's GitHub repository. */
+const PROJECT_URL_PATTERNS = [
+  /^https:\/\/github\.com\/Ujap1994\/ElectronicWerk(?:[/?#]|$)/u,
+  /^https:\/\/ujap1994\.github\.io\/ElectronicWerk(?:[/?#]|$)/u,
+];
+
+/** `true` for https links into this project's repository or documentation. */
 export function isProjectUrl(url: string): boolean {
-  return PROJECT_URL_PATTERN.test(url);
+  return PROJECT_URL_PATTERNS.some((pattern) => pattern.test(url));
 }

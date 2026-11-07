@@ -1,7 +1,7 @@
 import { Menu, type MenuItemConstructorOptions } from 'electron';
 
 import type { MenuAction } from '@shared/api';
-import { PROJECT_URL } from '@shared/links';
+import { DOCS_URL, PROJECT_URL } from '@shared/links';
 import type { Translate } from '@shared/i18n';
 
 import { openExternalSafely } from './security';
@@ -126,7 +126,7 @@ export function buildMenu({ t, isMac, isPackaged, onAction, onAbout }: MenuOptio
       {
         label: t('menu.documentation'),
         click: () => {
-          openExternalSafely(`${PROJECT_URL}#readme`);
+          openExternalSafely(DOCS_URL);
         },
       },
       {

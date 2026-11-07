@@ -43,7 +43,11 @@ describe('resolveAppPath', () => {
 });
 
 describe('isAllowedExternalUrl', () => {
-  it('allows the project repository', () => {
+  it('allows the project repository and documentation', () => {
+    expect(isAllowedExternalUrl('https://ujap1994.github.io/ElectronicWerk/')).toBe(true);
+    expect(isAllowedExternalUrl('https://ujap1994.github.io/ElectronicWerk/guide/updates')).toBe(
+      true,
+    );
     expect(isAllowedExternalUrl('https://github.com/Ujap1994/ElectronicWerk')).toBe(true);
     expect(isAllowedExternalUrl('https://github.com/Ujap1994/ElectronicWerk/issues')).toBe(true);
   });
@@ -52,6 +56,8 @@ describe('isAllowedExternalUrl', () => {
     expect(isAllowedExternalUrl('https://github.com/Ujap1994/ElectronicWerkEvil')).toBe(false);
     expect(isAllowedExternalUrl('http://github.com/Ujap1994/ElectronicWerk')).toBe(false);
     expect(isAllowedExternalUrl('https://example.com')).toBe(false);
+    expect(isAllowedExternalUrl('https://ujap1994.github.io/Other')).toBe(false);
+    expect(isAllowedExternalUrl('https://evil.github.io/ElectronicWerk/')).toBe(false);
     expect(isAllowedExternalUrl('file:///etc/passwd')).toBe(false);
   });
 });

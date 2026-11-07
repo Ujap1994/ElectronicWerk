@@ -20,7 +20,7 @@ export function originOf(url: string): string | null {
   }
 }
 
-/** Links that may be opened in the user's browser: this project on GitHub only. */
+/** Links that may be opened in the user's browser: this project's repository and docs only. */
 export function isAllowedExternalUrl(url: string): boolean {
   return isProjectUrl(url);
 }

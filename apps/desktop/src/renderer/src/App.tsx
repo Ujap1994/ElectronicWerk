@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
 
-import { PROJECT_URL } from '@shared/links';
+import { DOCS_URL, PROJECT_URL } from '@shared/links';
 
 import type { Command } from './commands';
 import { CommandPalette } from './components/CommandPalette';
@@ -122,7 +122,7 @@ export function App(): ReactNode {
         id: 'documentation',
         label: 'commands.documentation',
         run: () => {
-          window.ew.app.openExternal(`${PROJECT_URL}#readme`);
+          window.ew.app.openExternal(DOCS_URL);
         },
       },
       {
