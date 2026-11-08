@@ -216,6 +216,27 @@ fn symbol_pins_meet_their_wires() {
                     pin.number
                 );
                 checked += 1;
+
+                // The wire from the pin reaches the label of the pin's net
+                // (this catches pins on the wrong side of turned parts).
+                if symbol.designator == "R3" && pin.number == "1" {
+                    let wire = sheet
+                        .wires
+                        .iter()
+                        .find(|w| w.start == end || w.end == end)
+                        .unwrap();
+                    let other = if wire.start == end {
+                        wire.end
+                    } else {
+                        wire.start
+                    };
+                    let label = sheet.labels.iter().find(|l| l.at == other).unwrap();
+                    assert_eq!(label.text, "OUT", "R3 pin 1 (turned by 90°)");
+                    assert!(
+                        end.x < symbol.at.x,
+                        "pin 1 of a turned resistor is on the left"
+                    );
+                }
             }
         }
     }

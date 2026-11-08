@@ -48,11 +48,12 @@ SYMBOLS = {}
 PINS = {}
 
 
-def define(lib_id, ref, value, body, pins, footprint="", power=False, extra=""):
+def define(lib_id, ref, value, body, pins, footprint="", power=False, extra="",
+           pin_names="(pin_names (offset 0.254))"):
     name = lib_id.split(":")[1]
     pin_text = "\n".join(lib_pin(*p) for p in pins)
     flags = "(power) " if power else ""
-    SYMBOLS[lib_id] = f'''(symbol "{lib_id}" {flags}(pin_names (offset 0.254)) (exclude_from_sim no) (in_bom yes) (on_board yes)
+    SYMBOLS[lib_id] = f'''(symbol "{lib_id}" {flags}{pin_names} (exclude_from_sim no) (in_bom yes) (on_board yes)
       {prop("Reference", ref, 2.54, 0, 0, hide=power)}
       {prop("Value", value, 2.54, -2.54)}
       {prop("Footprint", footprint, 0, 0, hide=True)}
@@ -66,15 +67,18 @@ def define(lib_id, ref, value, body, pins, footprint="", power=False, extra=""):
 
 RECT = '(rectangle (start {}) (end {}) (stroke (width 0.254) (type default)) (fill (type background)))'
 define("Device:R", "R", "R", RECT.format("-1.016 -2.54", "1.016 2.54"),
-       [("passive", "1", "~", 0, 3.81, 270, 1.27), ("passive", "2", "~", 0, -3.81, 90, 1.27)])
+       [("passive", "1", "~", 0, 3.81, 270, 1.27), ("passive", "2", "~", 0, -3.81, 90, 1.27)],
+       pin_names="(pin_numbers (hide yes)) (pin_names (offset 0))")
 define("Device:C", "C", "C",
        '(polyline (pts (xy -2.032 -0.762) (xy 2.032 -0.762)) (stroke (width 0.508) (type default)) (fill (type none))) '
        '(polyline (pts (xy -2.032 0.762) (xy 2.032 0.762)) (stroke (width 0.508) (type default)) (fill (type none)))',
-       [("passive", "1", "~", 0, 3.81, 270, 3.048), ("passive", "2", "~", 0, -3.81, 90, 3.048)])
+       [("passive", "1", "~", 0, 3.81, 270, 3.048), ("passive", "2", "~", 0, -3.81, 90, 3.048)],
+       pin_names="(pin_numbers (hide yes)) (pin_names (offset 0.254))")
 define("Device:LED", "D", "LED",
        '(polyline (pts (xy -1.27 -1.27) (xy -1.27 1.27)) (stroke (width 0.254) (type default)) (fill (type none))) '
        '(polyline (pts (xy 1.27 -1.27) (xy 1.27 1.27) (xy -1.27 0) (xy 1.27 -1.27)) (stroke (width 0.254) (type default)) (fill (type none)))',
-       [("passive", "1", "K", -3.81, 0, 0, 2.54), ("passive", "2", "A", 3.81, 0, 180, 2.54)])
+       [("passive", "1", "K", -3.81, 0, 0, 2.54), ("passive", "2", "A", 3.81, 0, 180, 2.54)],
+       pin_names="(pin_numbers (hide yes)) (pin_names (offset 1.016) (hide yes))")
 define("Timer:NE555P", "U", "NE555", RECT.format("-7.62 -10.16", "7.62 10.16"),
        [("power_in", "8", "VCC", 0, 15.24, 270, 5.08), ("power_in", "1", "GND", 0, -15.24, 90, 5.08),
         ("input", "4", "R", -12.7, 7.62, 0, 5.08), ("input", "2", "TR", -12.7, 2.54, 0, 5.08),
@@ -92,7 +96,8 @@ define("power:GND", "#PWR", "GND",
        [("power_in", "1", "GND", 0, 0, 270, 0, True)], power=True)
 
 # KiCad's symbol transform for a rotation (library y up → sheet y down).
-TRANSFORMS = {0: (1, 0, 0, -1), 90: (0, 1, -1, 0), 180: (-1, 0, 0, 1), 270: (0, -1, 1, 0)}
+# A file angle of 90 is one counterclockwise turn: library "up" ends up on the left.
+TRANSFORMS = {0: (1, 0, 0, -1), 90: (0, -1, -1, 0), 180: (-1, 0, 0, 1), 270: (0, 1, 1, 0)}
 
 
 def pin_at(at, rotation, lib_xy):
@@ -125,11 +130,16 @@ class Sheet:
         s_uuid = uid("symbol", self.name, ref)
         hide_ref = ref.startswith("#")
         fx, fy = fields or (at[0] + 3.81, at[1] - 1.27)
+        # KiCad stores field angles relative to the symbol: on a symbol turned by
+        # 90° or 270°, a field with angle 90 reads horizontally.
+        turned = rotation in (90, 270)
+        field_angle = 90 if turned else 0
+        justify = "" if turned or lib_id.startswith("power:") else " (justify left)"
         self.items.append(f'''(symbol (lib_id "{lib_id}") (at {fmt(at[0])} {fmt(at[1])} {rotation}) (unit 1)
       (exclude_from_sim no) (in_bom {"no" if hide_ref else "yes"}) (on_board {"no" if hide_ref else "yes"}) (dnp no)
       (uuid "{s_uuid}")
-      (property "Reference" "{ref}" (at {fmt(fx)} {fmt(fy)} 0) (effects (font (size 1.27 1.27)) (justify left){" (hide yes)" if hide_ref else ""}))
-      (property "Value" "{value}" (at {fmt(fx)} {fmt(fy + 2.54)} 0) (effects (font (size 1.27 1.27)) (justify left)))
+      (property "Reference" "{ref}" (at {fmt(fx)} {fmt(fy)} {field_angle}) (effects (font (size 1.27 1.27)){justify}{" (hide yes)" if hide_ref else ""}))
+      (property "Value" "{value}" (at {fmt(fx)} {fmt(fy + 2.54)} {field_angle}) (effects (font (size 1.27 1.27)){justify}))
       (property "Footprint" "{footprint}" (at {fmt(at[0])} {fmt(at[1])} 0) {HIDDEN})
       (property "Datasheet" "~" (at {fmt(at[0])} {fmt(at[1])} 0) {HIDDEN})
       (instances (project "blinky" (path "{self.path}" (reference "{ref}") (unit 1)))))''')
@@ -146,12 +156,15 @@ class Sheet:
             self.pwr += 1
             power_rotation = 0
             self.symbol(f"power:{net}", f"#PWR0{self.pwr}{self.name[0]}", net, end, power_rotation,
-                        fields=(end[0] + 1.27, end[1] + (2.54 if net == "GND" else -2.54)))
+                        fields=(end[0], end[1] + (1.27 if net == "GND" else -6.35)))
         else:
             label_angle = {(1, 0): 0, (-1, 0): 180, (0, -1): 90, (0, 1): 270}[(round(dx / 2.54), round(dy / 2.54))]
-            justify = "left" if label_angle in (0, 90) else "right"
-            self.items.append(f'''(label "{net}" (at {fmt(end[0])} {fmt(end[1])} {label_angle}) (fields_autoplaced yes)
-      (effects (font (size 1.27 1.27)) (justify {justify} bottom)) (uuid "{uid('label', self.name, net, fmt(end[0]), fmt(end[1]))}"))''')
+            self.label(net, end, label_angle)
+
+    def label(self, net, at, angle):
+        justify = "left" if angle in (0, 90) else "right"
+        self.items.append(f'''(label "{net}" (at {fmt(at[0])} {fmt(at[1])} {angle}) (fields_autoplaced yes)
+      (effects (font (size 1.27 1.27)) (justify {justify} bottom)) (uuid "{uid('label', self.name, net, fmt(at[0]), fmt(at[1]))}"))''')
 
     def wire(self, a, b):
         self.items.append(f'(wire (pts (xy {fmt(a[0])} {fmt(a[1])}) (xy {fmt(b[0])} {fmt(b[1])})) '
@@ -183,31 +196,40 @@ class Sheet:
 
 
 root = Sheet("root", ROOT_UUID, f"/{ROOT_UUID}")
-U1, R1, R2, C1, C2, R3, D1 = (127, 88.9), (96.52, 76.2), (96.52, 91.44), (96.52, 106.68), (154.94, 104.14), (165.1, 86.36), (182.88, 86.36)
-root.symbol("Timer:NE555P", "U1", "NE555", U1, footprint="Package_SO:SOIC-8_3.9x4.9mm_P1.27mm", fields=(130.81, 72.39))
+U1, R1, R2, C1, C2, R3, D1 = (127, 88.9), (96.52, 76.2), (96.52, 91.44), (96.52, 106.68), (154.94, 104.14), (165.1, 86.36), (185.42, 86.36)
+root.symbol("Timer:NE555P", "U1", "NE555", U1, footprint="Package_SO:SOIC-8_3.9x4.9mm_P1.27mm", fields=(129.54, 74.93))
 for pin, net in [("8", "VCC"), ("1", "GND"), ("4", "VCC"), ("2", "TRIG"), ("6", "TRIG"), ("7", "DIS"), ("3", "OUT"), ("5", "CV")]:
     root.connect("Timer:NE555P", U1, 0, pin, net)
-for ref, value, at, nets, lib, fp in [
-    ("R1", "1k", R1, ("VCC", "DIS"), "Device:R", "Resistor_SMD:R_0805_2012Metric"),
-    ("R2", "10k", R2, ("DIS", "TRIG"), "Device:R", "Resistor_SMD:R_0805_2012Metric"),
-    ("C1", "10u", C1, ("TRIG", "GND"), "Device:C", "Capacitor_SMD:C_0805_2012Metric"),
-    ("C2", "10n", C2, ("CV", "GND"), "Device:C", "Capacitor_SMD:C_0805_2012Metric"),
-]:
-    root.symbol(lib, ref, value, at, footprint=fp)
-    root.connect(lib, at, 0, "1", nets[0])
-    root.connect(lib, at, 0, "2", nets[1])
-root.symbol("Device:R", "R3", "330", R3, 90, footprint="Resistor_SMD:R_0805_2012Metric", fields=(163.83, 81.28))
+R_FP, C_FP = "Resistor_SMD:R_0805_2012Metric", "Capacitor_SMD:C_0805_2012Metric"
+root.symbol("Device:R", "R1", "1k", R1, footprint=R_FP)
+root.symbol("Device:R", "R2", "10k", R2, footprint=R_FP)
+root.symbol("Device:C", "C1", "10u", C1, footprint=C_FP)
+root.connect("Device:R", R1, 0, "1", "VCC")
+# The timing chain R1 – R2 – C1: one wire and one label between neighbours.
+for (upper_lib, upper), (lower_lib, lower), net in [(("Device:R", R1), ("Device:R", R2), "DIS"),
+                                                     (("Device:R", R2), ("Device:C", C1), "TRIG")]:
+    a = pin_at(upper, 0, PINS[upper_lib]["2"][:2])
+    b = pin_at(lower, 0, PINS[lower_lib]["1"][:2])
+    root.wire(a, b)
+    root.label(net, (a[0], (a[1] + b[1]) / 2), 180)
+root.connect("Device:C", C1, 0, "2", "GND")
+root.symbol("Device:C", "C2", "10n", C2, footprint=C_FP)
+root.connect("Device:C", C2, 0, "1", "CV")
+root.connect("Device:C", C2, 0, "2", "GND")
+root.symbol("Device:R", "R3", "330", R3, 90, footprint="Resistor_SMD:R_0805_2012Metric", fields=(165.1, 81.28))
 root.connect("Device:R", R3, 90, "1", "OUT")
-root.connect("Device:R", R3, 90, "2", "LED_A")
-root.symbol("Device:LED", "D1", "red", D1, 180, footprint="LED_SMD:LED_0805_2012Metric", fields=(180.34, 81.28))
-root.connect("Device:LED", D1, 180, "2", "LED_A")
+root.symbol("Device:LED", "D1", "red", D1, 180, footprint="LED_SMD:LED_0805_2012Metric", fields=(182.88, 81.28))
+r3_out = pin_at(R3, 90, PINS["Device:R"]["2"][:2])
+d1_anode = pin_at(D1, 180, PINS["Device:LED"]["2"][:2])
+root.wire(r3_out, d1_anode)
+root.label("LED_A", (r3_out[0] + 2.54, r3_out[1]), 0)
 root.connect("Device:LED", D1, 180, "1", "GND")
 root.text("555 astable LED blinker, about 1 Hz", (76.2, 50.8), 2.0, True)
 root.text("f = 1.44 / ((R1 + 2·R2) · C1)", (76.2, 58.42))
-SHEET = f'''(sheet (at 210.82 116.84) (size 30.48 15.24) (exclude_from_sim no) (in_bom yes) (on_board yes) (dnp no)
+SHEET = f'''(sheet (at 172.72 99.06) (size 25.4 12.7) (exclude_from_sim no) (in_bom yes) (on_board yes) (dnp no)
     (stroke (width 0.15) (type solid)) (fill (color 0 0 0 0)) (uuid "{POWER_SHEET_UUID}")
-    (property "Sheetname" "Power" (at 210.82 116.14 0) (effects (font (size 1.27 1.27)) (justify left bottom)))
-    (property "Sheetfile" "power.kicad_sch" (at 210.82 132.68 0) (effects (font (size 1.27 1.27)) (justify left top)))
+    (property "Sheetname" "Power" (at 172.72 98.36 0) (effects (font (size 1.27 1.27)) (justify left bottom)))
+    (property "Sheetfile" "power.kicad_sch" (at 172.72 112.35 0) (effects (font (size 1.27 1.27)) (justify left top)))
     (instances (project "blinky" (path "/{ROOT_UUID}" (page "2")))))'''
 
 power = Sheet("power", POWER_FILE_UUID, f"/{ROOT_UUID}/{POWER_SHEET_UUID}")
@@ -367,7 +389,7 @@ BOARD = f'''(kicad_pcb
   {chr(10).join("  " + v for v in VIAS)}
   {ZONE}
   (gr_rect (start 100 100) (end 140 130) (stroke (width 0.1) (type solid)) (fill no) (layer "Edge.Cuts") (uuid "{uid("outline")}"))
-  (gr_text "BLINKY rev A" (at 130 127.5 0) (layer "F.SilkS") (uuid "{uid("silk-text")}")
+  (gr_text "BLINKY rev A" (at 121 128 0) (layer "F.SilkS") (uuid "{uid("silk-text")}")
     (effects (font (size 1.5 1.5) (thickness 0.25) bold) (justify left bottom)))
   (gr_circle (center 137 103) (end 138.2 103) (stroke (width 0.1) (type solid)) (fill no) (layer "Dwgs.User") (uuid "{uid("mark")}"))
   (dimension (type aligned) (layer "Dwgs.User") (uuid "{uid("dim")}") (pts (xy 100 132) (xy 140 132)) (height 2))

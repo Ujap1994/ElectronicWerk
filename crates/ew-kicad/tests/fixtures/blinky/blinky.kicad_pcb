@@ -146,7 +146,7 @@
     (polygon (pts (xy 100.5 100.5) (xy 139.5 100.5) (xy 139.5 129.5) (xy 100.5 129.5)))
     (filled_polygon (layer "In1.Cu") (pts (xy 100.625 100.625) (xy 139.375 100.625) (xy 139.375 129.375) (xy 100.625 129.375))))
   (gr_rect (start 100 100) (end 140 130) (stroke (width 0.1) (type solid)) (fill no) (layer "Edge.Cuts") (uuid "bad2f4d8-e00f-5d25-8a2c-086c8935f0cc"))
-  (gr_text "BLINKY rev A" (at 130 127.5 0) (layer "F.SilkS") (uuid "7a576e43-ba7d-565c-b82c-343611064bb8")
+  (gr_text "BLINKY rev A" (at 121 128 0) (layer "F.SilkS") (uuid "7a576e43-ba7d-565c-b82c-343611064bb8")
     (effects (font (size 1.5 1.5) (thickness 0.25) bold) (justify left bottom)))
   (gr_circle (center 137 103) (end 138.2 103) (stroke (width 0.1) (type solid)) (fill no) (layer "Dwgs.User") (uuid "262cd24b-bafc-54c1-af03-8b9fa8a49dec"))
   (dimension (type aligned) (layer "Dwgs.User") (uuid "5aebedc2-1de1-5098-9391-4354cbc4f109") (pts (xy 100 132) (xy 140 132)) (height 2))
