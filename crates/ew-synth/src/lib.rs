@@ -364,7 +364,7 @@ impl<'a> Generator<'a> {
             let position = i64::try_from(index).unwrap_or(0);
             let at = Point::new(
                 mm(30) + (position % columns) * um(38_100),
-                mm(270) - (position / columns) * um(25_400),
+                mm(255) - (position / columns) * um(25_400),
             );
             let symbol = PlacedSymbol {
                 id: self.id(),
@@ -391,12 +391,20 @@ impl<'a> Generator<'a> {
                     start,
                     end,
                 });
+                // The label points away from the symbol.
+                let out = pin.outward(1);
+                let rotation = match (out.x, out.y) {
+                    (-1, _) => Angle::DEG_180,
+                    (_, 1) => Angle::DEG_90,
+                    (_, -1) => Angle::DEG_270,
+                    _ => Angle::ZERO,
+                };
                 sheet.labels.insert(Label {
                     id: self.id(),
                     kind: LabelKind::Global,
                     text: Self::net_name(*net),
                     at: end,
-                    rotation: Angle::ZERO,
+                    rotation,
                     shape: ew_model::schematic::PortShape::Passive,
                     style: ew_model::text::TextStyle::default(),
                 });
