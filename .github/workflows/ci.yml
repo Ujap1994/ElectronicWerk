@@ -44,6 +44,17 @@ jobs:
       - name: cargo-deny (licenses, advisories, sources)
         uses: EmbarkStudios/cargo-deny-action@v2
 
+  budgets:
+    name: Performance budgets
+    needs: lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - name: Open and save the synthetic L design (release build)
+        run: cargo test --release -p ew-format --test budgets -- --ignored --nocapture
+
   test:
     name: Test (${{ matrix.os }})
     needs: lint

@@ -1,0 +1,32 @@
+[package]
+name = "ew-format"
+description = "ElectronicWerk native file format: deterministic JSON, migrations, atomic saves, validation and archives"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+publish = false
+
+[dependencies]
+ew-model.workspace = true
+# Selects the pure-Rust deflate backend for `zip`.
+flate2.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+thiserror.workspace = true
+zip.workspace = true
+
+[dev-dependencies]
+criterion.workspace = true
+ew-synth.workspace = true
+proptest.workspace = true
+tempfile.workspace = true
+
+[[bench]]
+name = "project_io"
+harness = false
+
+[lints]
+workspace = true

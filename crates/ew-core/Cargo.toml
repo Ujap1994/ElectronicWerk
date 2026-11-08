@@ -1,6 +1,6 @@
 [package]
 name = "ew-core"
-description = "ElectronicWerk engine core: data model, commands and RPC dispatch"
+description = "ElectronicWerk engine core: sessions, transactions, undo/redo, journal and RPC dispatch"
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
@@ -10,8 +10,16 @@ authors.workspace = true
 publish = false
 
 [dependencies]
+ew-format.workspace = true
+ew-model.workspace = true
+ew-synth.workspace = true
 serde.workspace = true
 serde_json.workspace = true
+thiserror.workspace = true
+
+[dev-dependencies]
+proptest.workspace = true
+tempfile.workspace = true
 
 [lints]
 workspace = true

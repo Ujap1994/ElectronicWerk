@@ -1,0 +1,16 @@
+[package]
+name = "ew-synth"
+description = "Synthetic, reproducible reference designs (S/M/L/XL) for tests and benchmarks"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+publish = false
+
+[dependencies]
+ew-model.workspace = true
+
+[lints]
+workspace = true
