@@ -179,21 +179,21 @@ impl Emitter<'_> {
     /// Copies `start..=end` and adds a space after `:` and `,`.
     fn inline(&mut self, start: usize, end: usize) {
         let src = self.src;
+        let mut segment = start;
         let mut index = start;
         while index <= end {
-            let byte = src[index];
-            if byte == b'"' {
-                let string_stop = string_end(src, index);
-                self.out.extend_from_slice(&src[index..string_stop]);
-                index = string_stop;
-                continue;
+            match src[index] {
+                b'"' => index = string_end(src, index),
+                b':' | b',' => {
+                    self.out.extend_from_slice(&src[segment..=index]);
+                    self.out.push(b' ');
+                    index += 1;
+                    segment = index;
+                }
+                _ => index += 1,
             }
-            self.out.push(byte);
-            if byte == b':' || byte == b',' {
-                self.out.push(b' ');
-            }
-            index += 1;
         }
+        self.out.extend_from_slice(&src[segment..=end]);
     }
 }
 

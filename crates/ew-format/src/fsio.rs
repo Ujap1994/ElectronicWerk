@@ -131,7 +131,8 @@ pub fn stage_file(target: &Path, bytes: &[u8]) -> Result<StagedFile, FormatError
     let result = (|| {
         let mut file = File::create(&temp)?;
         file.write_all(bytes)?;
-        file.sync_all()
+        // The data must be on disk before the rename makes it visible.
+        file.sync_data()
     })();
     if let Err(error) = result {
         let _ = fs::remove_file(&temp);

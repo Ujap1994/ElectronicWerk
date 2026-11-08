@@ -26,6 +26,8 @@ pub const GITIGNORE: &str =
 ///
 /// Fails if the path does not exist, or a folder has no or several manifests.
 pub fn find_manifest(path: &Path) -> Result<PathBuf, FormatError> {
+    let absolute = std::path::absolute(path).map_err(|error| FormatError::io(path, error))?;
+    let path = absolute.as_path();
     let metadata = fs::metadata(path).map_err(|error| FormatError::io(path, error))?;
     if metadata.is_file() {
         return if has_manifest_extension(path) {
@@ -500,6 +502,8 @@ pub fn save_project(
 ///
 /// Fails if the folder is not empty or a file cannot be written.
 pub fn create_project(root: &Path, project: &Project) -> Result<LoadedProject, FormatError> {
+    let absolute = std::path::absolute(root).map_err(|error| FormatError::io(root, error))?;
+    let root = absolute.as_path();
     if root.exists() {
         let mut entries = fs::read_dir(root).map_err(|error| FormatError::io(root, error))?;
         if entries.next().is_some() {
@@ -730,6 +734,19 @@ mod tests {
         assert_eq!(report.deleted, vec![entry.path.clone()]);
         assert!(!resolve(dir.path(), &entry.path).exists());
         assert_eq!(load_project(dir.path()).unwrap().project, project);
+    }
+
+    #[test]
+    fn roots_are_absolute() {
+        let dir = tempfile::tempdir().unwrap();
+        let previous = std::env::current_dir().unwrap();
+        // Relative paths resolve against the working directory.
+        let relative = Path::new("relative-project");
+        let absolute = std::path::absolute(dir.path().join(relative)).unwrap();
+        let created = create_project(&absolute, &demo_project()).unwrap();
+        assert!(created.root.is_absolute());
+        assert!(load_project(&absolute).unwrap().root.is_absolute());
+        assert_eq!(std::env::current_dir().unwrap(), previous);
     }
 
     #[test]
