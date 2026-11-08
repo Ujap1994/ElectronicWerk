@@ -4,6 +4,7 @@
 //! agents can drive ElectronicWerk without the desktop app.
 
 mod commands;
+mod library;
 
 use std::io::Write as _;
 use std::path::PathBuf;
@@ -53,6 +54,9 @@ enum Command {
     /// Import KiCad projects, libraries and netlists.
     #[command(subcommand)]
     Import(ImportCommand),
+    /// Build, search and distribute the base library.
+    #[command(subcommand)]
+    Library(LibraryCommand),
     /// Generate a synthetic reference design (for tests and benchmarks).
     Synth {
         /// Size class: S, M, L or XL.
@@ -157,6 +161,100 @@ enum ImportCommand {
         #[arg(long)]
         json: bool,
     },
+}
+
+#[derive(Debug, Subcommand)]
+enum LibraryCommand {
+    /// Build the library from KiCad libraries (replaces the current index).
+    Build {
+        /// A KiCad installation or a folder with the library repositories
+        /// (`kicad-symbols`, `kicad-footprints`, `kicad-packages3D`).
+        #[arg(long)]
+        kicad: Option<PathBuf>,
+        /// Folder with `.kicad_sym` files.
+        #[arg(long)]
+        symbols: Option<PathBuf>,
+        /// Folder with `.pretty` footprint libraries.
+        #[arg(long)]
+        footprints: Option<PathBuf>,
+        /// Folder with `.3dshapes` model libraries.
+        #[arg(long)]
+        models: Option<PathBuf>,
+        /// Folder with tessellated meshes (`<Library>.3dshapes/<name>.glb`).
+        #[arg(long)]
+        meshes: Option<PathBuf>,
+        /// Version of the libraries (for example `10.0.0`).
+        #[arg(long, default_value = "")]
+        version: String,
+        /// License text of the library data, written as `LICENSE.md`.
+        #[arg(long)]
+        license_file: Option<PathBuf>,
+        #[command(flatten)]
+        target: LibraryDir,
+    },
+    /// Show what the library contains.
+    Info {
+        #[command(flatten)]
+        target: LibraryDir,
+    },
+    /// Search the library.
+    Search {
+        /// Search text.
+        text: String,
+        /// Only `symbol`, `footprint` or `model`.
+        #[arg(long)]
+        kind: Option<String>,
+        /// Only this library.
+        #[arg(long)]
+        library: Option<String>,
+        /// Number of results.
+        #[arg(long, default_value_t = 20)]
+        limit: u32,
+        #[command(flatten)]
+        target: LibraryDir,
+    },
+    /// Print the deduplication report.
+    Duplicates {
+        /// Markdown instead of JSON.
+        #[arg(long)]
+        markdown: bool,
+        #[command(flatten)]
+        target: LibraryDir,
+    },
+    /// Write the library packs and their manifest (for a library release).
+    Pack {
+        /// Output folder.
+        out: PathBuf,
+        /// Start of every file name.
+        #[arg(long, default_value = "ewerk-library")]
+        prefix: String,
+        /// Name of the release.
+        #[arg(long, default_value = "KiCad")]
+        name: String,
+        /// Version of the release.
+        #[arg(long, default_value = "")]
+        version: String,
+        #[command(flatten)]
+        target: LibraryDir,
+    },
+    /// Install a library pack (index or meshes).
+    Install {
+        /// The pack (`.zip`).
+        pack: PathBuf,
+        #[command(flatten)]
+        target: LibraryDir,
+    },
+}
+
+/// Common options of the library commands.
+#[derive(Debug, Args)]
+struct LibraryDir {
+    /// Library folder (default: the app's library folder or `EW_LIBRARY_DIR`).
+    #[arg(long)]
+    dir: Option<PathBuf>,
+    /// Print machine-readable JSON.
+    #[arg(long)]
+    json: bool,
 }
 
 #[derive(Debug, Args)]

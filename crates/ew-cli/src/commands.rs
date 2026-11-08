@@ -14,7 +14,7 @@ use crate::{Command, ImportCommand, NewArgs, ProjectCommand};
 
 /// A command failure with a message for standard error.
 #[derive(Debug)]
-pub struct Failure(String);
+pub struct Failure(pub(crate) String);
 
 impl std::fmt::Display for Failure {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -34,10 +34,10 @@ impl From<serde_json::Error> for Failure {
     }
 }
 
-type Outcome = Result<ExitCode, Failure>;
+pub(crate) type Outcome = Result<ExitCode, Failure>;
 
 /// Calls one engine method and turns an error reply into a failure.
-fn call(engine: &mut Engine, method: &str, params: Value) -> Result<Value, Failure> {
+pub(crate) fn call(engine: &mut Engine, method: &str, params: Value) -> Result<Value, Failure> {
     let mut request = serde_json::Map::new();
     request.insert("method".to_owned(), Value::String(method.to_owned()));
     request.insert("params".to_owned(), params);
@@ -54,7 +54,7 @@ fn call(engine: &mut Engine, method: &str, params: Value) -> Result<Value, Failu
     }
 }
 
-fn print_json(out: &mut impl Write, value: &Value) -> io::Result<()> {
+pub(crate) fn print_json(out: &mut impl Write, value: &Value) -> io::Result<()> {
     writeln!(
         out,
         "{}",
@@ -89,6 +89,7 @@ pub fn run(command: Command, out: &mut impl Write) -> Outcome {
         }
         Command::Project(command) => project(command, out),
         Command::Import(command) => import(command, out),
+        Command::Library(command) => crate::library::run(command, out),
         Command::Synth {
             size,
             dir,

@@ -225,6 +225,49 @@ pub fn build(project: &Project, sheet: &Schematic, grid: i64, options: &Options<
     })
 }
 
+/// Builds the scene of one library symbol (one unit), without a page:
+/// the preview of the library manager.
+pub fn preview(def: &SymbolDef, unit: u16, options: &Options<'_>) -> Scene {
+    let mut project = Project::new(def.id, "preview");
+    let mut library = ew_model::library::Library::new(def.id, "preview");
+    library.symbols.insert(def.clone());
+    project.documents.insert(def.id, Document::Library(library));
+    let origin = P::new(0.0, 0.0);
+    let mut b = SceneBuilder::new(origin);
+    let layers = Layers::new(&mut b);
+    let ctx = Ctx {
+        project: &project,
+        options,
+        origin,
+        layers,
+    };
+    let symbol = PlacedSymbol {
+        id: def.id,
+        symbol: def.name.clone(),
+        unit: unit.max(1),
+        at: Point::ORIGIN,
+        rotation: ew_model::units::Angle::ZERO,
+        mirror: false,
+        designator: format!("{}?", def.prefix),
+        value: def.value.clone(),
+        footprint: def.footprint.clone(),
+        component: None,
+        properties: std::collections::BTreeMap::new(),
+        fields: Vec::new(),
+        flags: ew_model::schematic::ComponentFlags::default(),
+        instances: std::collections::BTreeMap::new(),
+    };
+    placed_symbol(&mut b, &ctx, &symbol);
+    b.finish(Header {
+        doc: def.id,
+        kind: "schematic",
+        name: def.name.clone(),
+        page: None,
+        home: None,
+        grid: 1_270_000,
+    })
+}
+
 /// Wires, buses, bus entries, junctions and no-connect flags.
 fn connections(b: &mut SceneBuilder, ctx: &Ctx<'_>, sheet: &Schematic) {
     for wire in &sheet.wires {

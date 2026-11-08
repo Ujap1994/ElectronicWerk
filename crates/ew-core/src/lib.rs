@@ -20,6 +20,7 @@ pub mod history;
 pub mod import;
 pub mod info;
 pub mod journal;
+pub mod library;
 pub mod rpc;
 pub mod session;
 pub mod summary;

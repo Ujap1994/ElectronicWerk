@@ -108,6 +108,44 @@ pub fn build(project: &Project, doc: Id, options: &Options<'_>) -> Result<Scene,
     }
 }
 
+/// Builds the scene of one library symbol (one unit, 1-based), without a
+/// page: the preview of the library manager.
+#[must_use]
+pub fn symbol_preview(
+    def: &ew_model::library::SymbolDef,
+    unit: u16,
+    options: &Options<'_>,
+) -> Scene {
+    schematic::preview(def, unit, options)
+}
+
+/// Builds the scene of one library footprint on an empty two-layer board:
+/// the preview of the library manager.
+#[must_use]
+pub fn footprint_preview(def: &ew_model::library::FootprintDef, options: &Options<'_>) -> Scene {
+    use ew_model::pcb::{FootprintInstance, Pcb, Stackup};
+    let mut pcb = Pcb::new(def.id, def.name.clone(), Stackup::standard(2, 1_600_000));
+    let name = def.name.rsplit(':').next().unwrap_or(&def.name).to_owned();
+    pcb.footprints.insert(FootprintInstance {
+        id: def.id,
+        component: None,
+        footprint: def.name.clone(),
+        designator: "REF**".to_owned(),
+        value: name,
+        at: ew_model::units::Point::ORIGIN,
+        rotation: ew_model::units::Angle::ZERO,
+        side: ew_model::layer::Side::Top,
+        locked: false,
+        pads: def.pads.clone(),
+        graphics: def.graphics.clone(),
+        texts: def.texts.clone(),
+        models: def.models.clone(),
+        properties: std::collections::BTreeMap::new(),
+        attributes: def.attributes,
+    });
+    pcb::build(&pcb, 250_000, options)
+}
+
 /// Encodes bytes as standard base64 (with padding), for JSON clients.
 #[must_use]
 pub fn base64(data: &[u8]) -> String {

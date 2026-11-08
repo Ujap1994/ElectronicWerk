@@ -26,6 +26,7 @@ use crate::change::Request;
 use crate::error::{EngineError, ErrorCode};
 use crate::import;
 use crate::info::EngineInfo;
+use crate::library::{LibraryState, PreviewParams};
 use crate::session::{ChangeSet, Session};
 use crate::summary;
 use crate::templates::{self, BoardOptions, DocumentNames, NewProject};
@@ -88,6 +89,20 @@ pub const METHODS: &[&str] = &[
     "import.kicadProbe",
     "import.library",
     "import.netlist",
+    "library.add",
+    "library.build",
+    "library.decide",
+    "library.detect",
+    "library.facets",
+    "library.get",
+    "library.groups",
+    "library.install",
+    "library.mesh",
+    "library.open",
+    "library.preview",
+    "library.report",
+    "library.search",
+    "library.status",
     "project.archive",
     "project.close",
     "project.create",
@@ -127,6 +142,8 @@ pub mod labels {
     pub const IMPORT_LIBRARY: &str = "import-library";
     /// `import.netlist` with `apply`.
     pub const IMPORT_NETLIST: &str = "import-netlist";
+    /// `library.add`.
+    pub const ADD_FROM_LIBRARY: &str = "add-from-library";
     /// `edit.apply` without a label.
     pub const APPLY: &str = "apply";
 }
@@ -137,6 +154,7 @@ pub struct Engine {
     session: Option<Session>,
     events: Vec<Value>,
     journaling: bool,
+    library: LibraryState,
 }
 
 impl Default for Engine {
@@ -266,6 +284,21 @@ struct ImportLibraryParams {
 
 #[derive(Deserialize)]
 #[serde(deny_unknown_fields)]
+struct AddParams {
+    ids: Vec<i64>,
+    #[serde(default)]
+    doc: Option<Id>,
+    /// Also add the default footprints of symbols.
+    #[serde(default = "yes")]
+    footprints: bool,
+}
+
+const fn yes() -> bool {
+    true
+}
+
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
 struct ImportNetlistParams {
     source: PathBuf,
     #[serde(default)]
@@ -305,21 +338,23 @@ struct ResolveParams {
 impl Engine {
     /// An engine with the autosave journal enabled.
     #[must_use]
-    pub const fn new() -> Self {
+    pub fn new() -> Self {
         Self {
             session: None,
             events: Vec::new(),
             journaling: true,
+            library: LibraryState::default(),
         }
     }
 
     /// An engine without autosave journal (one-shot command-line calls).
     #[must_use]
-    pub const fn without_journal() -> Self {
+    pub fn without_journal() -> Self {
         Self {
             session: None,
             events: Vec::new(),
             journaling: false,
+            library: LibraryState::default(),
         }
     }
 
@@ -336,6 +371,7 @@ impl Engine {
 
     /// Takes the events produced since the last call.
     pub fn take_events(&mut self) -> Vec<Value> {
+        self.library.poll(&mut self.events);
         std::mem::take(&mut self.events)
     }
 
@@ -359,10 +395,14 @@ impl Engine {
         let Ok(request) = serde_json::from_str::<RpcRequest>(request_json) else {
             return (self.dispatch(request_json), None);
         };
-        if request.method != "view.scene" {
-            return (encode(&self.handle(&request)), None);
-        }
-        let result = parse::<SceneParams>(&request.params).and_then(|params| self.scene(&params));
+        let result = match request.method.as_str() {
+            "view.scene" => {
+                parse::<SceneParams>(&request.params).and_then(|params| self.scene(&params))
+            }
+            "library.preview" => parse::<PreviewParams>(&request.params)
+                .and_then(|params| self.library_preview(&params)),
+            _ => return (encode(&self.handle(&request)), None),
+        };
         match result {
             Ok((meta, data)) => (encode(&Response::Result(meta)), Some(data)),
             Err(error) => (encode(&Response::Error(error.into())), None),
@@ -446,6 +486,21 @@ impl Engine {
             _ if method.starts_with("document.") => self.call_document(method, params),
             _ if method.starts_with("edit.") => self.call_edit(method, params),
             _ if method.starts_with("import.") => self.call_import(method, params),
+            "library.preview" => {
+                let params: PreviewParams = parse(params)?;
+                let (mut meta, data) = self.library_preview(&params)?;
+                if let Some(object) = meta.as_object_mut() {
+                    let encoded = if params.encoding.as_deref() == Some("none") {
+                        Value::Null
+                    } else {
+                        Value::String(ew_scene::base64(&data))
+                    };
+                    object.insert("data".to_owned(), encoded);
+                }
+                Ok(meta)
+            }
+            "library.add" => self.library_add(&parse(params)?),
+            _ if method.starts_with("library.") => self.library.call(method, params),
             "view.scene" => {
                 let params: SceneParams = parse(params)?;
                 let (mut meta, data) = self.scene(&params)?;
@@ -741,6 +796,102 @@ impl Engine {
             requests.push(Request::SetProject { props });
         }
         Ok((requests, id, label))
+    }
+
+    /// Builds the preview scene of a library symbol or footprint.
+    fn library_preview(&mut self, params: &PreviewParams) -> Result<(Value, Vec<u8>), EngineError> {
+        let (kind, definition, _) = self.library.definition(params.id)?;
+        let resolve = |text: &str| text.to_owned();
+        let options = ew_scene::Options {
+            resolve: &resolve,
+            labels: params.labels.clone().unwrap_or_default(),
+        };
+        let invalid = |error: serde_json::Error| EngineError::internal(error);
+        let scene = match kind {
+            ew_library::Kind::Symbol => {
+                let def: ew_model::library::SymbolDef =
+                    serde_json::from_value(definition).map_err(invalid)?;
+                ew_scene::symbol_preview(&def, params.unit.unwrap_or(1), &options)
+            }
+            ew_library::Kind::Footprint => {
+                let def: ew_model::library::FootprintDef =
+                    serde_json::from_value(definition).map_err(invalid)?;
+                ew_scene::footprint_preview(&def, &options)
+            }
+            ew_library::Kind::Model => {
+                return Err(EngineError::invalid_params("3D models have no 2D preview"));
+            }
+        };
+        Ok((to_value(&scene.meta)?, scene.data))
+    }
+
+    /// Copies library symbols and footprints into a project library.
+    fn library_add(&mut self, params: &AddParams) -> Result<Value, EngineError> {
+        let mut imported = ew_kicad::library::Library::default();
+        let mut footprints = Vec::new();
+        for id in &params.ids {
+            let (kind, definition, _) = self.library.definition(*id)?;
+            let invalid = |error: serde_json::Error| EngineError::internal(error);
+            match kind {
+                ew_library::Kind::Symbol => {
+                    let def: ew_model::library::SymbolDef =
+                        serde_json::from_value(definition).map_err(invalid)?;
+                    if params.footprints {
+                        footprints.extend(def.footprint.clone());
+                    }
+                    imported.symbols.push(def);
+                }
+                ew_library::Kind::Footprint => imported
+                    .footprints
+                    .push(serde_json::from_value(definition).map_err(invalid)?),
+                ew_library::Kind::Model => {}
+            }
+        }
+        // The default footprints of the symbols, if the library has them.
+        for name in footprints {
+            if imported.footprints.iter().any(|fp| fp.name == name) {
+                continue;
+            }
+            if let Some(id) = self.library.find(ew_library::Kind::Footprint, &name)? {
+                let (_, definition, _) = self.library.definition(id)?;
+                if let Ok(def) = serde_json::from_value(definition) {
+                    imported.footprints.push(def);
+                }
+            }
+        }
+        let session = self.open()?;
+        let project = session.project();
+        let doc = match params.doc {
+            Some(doc) => doc,
+            None => project
+                .documents_of(DocumentKind::Library)
+                .next()
+                .map(|entry| entry.id)
+                .ok_or_else(|| EngineError::not_found("the project has no library"))?,
+        };
+        if !matches!(project.document(doc), Some(Document::Library(_))) {
+            return Err(EngineError::invalid_params("the target must be a library"));
+        }
+        let mut report = ew_kicad::ImportReport::new("library");
+        let (symbols, footprints, requests) =
+            import::library_changes(project, doc, imported, &mut report);
+        let skipped: usize = report
+            .findings
+            .iter()
+            .filter(|f| f.code == "already-in-library")
+            .map(|f| f.count)
+            .sum();
+        let history = if requests.is_empty() {
+            self.open()?.history_state()
+        } else {
+            self.commit(labels::ADD_FROM_LIBRARY, requests)?.history
+        };
+        Ok(json!({
+            "symbols": symbols,
+            "footprints": footprints,
+            "skipped": skipped,
+            "history": to_value(&history)?,
+        }))
     }
 
     fn call_import(&mut self, method: &str, params: &Value) -> Result<Value, EngineError> {

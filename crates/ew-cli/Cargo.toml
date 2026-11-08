@@ -17,6 +17,7 @@ path = "src/main.rs"
 clap.workspace = true
 ew-core.workspace = true
 ew-format.workspace = true
+ew-library.workspace = true
 ew-model.workspace = true
 ew-scene.workspace = true
 ew-synth.workspace = true
