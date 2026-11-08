@@ -6,6 +6,58 @@ project uses [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.5.0] - 2026-11-08
+
+The library release: the symbols, footprints and 3D models of the KiCad
+libraries in one searchable base library, with 2D and 3D previews and a
+deduplication engine that works for any source.
+
+### Added
+
+- **Library manager** (start screen, project toolbar, **View → Library…**,
+  <kbd>Ctrl</kbd>/<kbd>⌘</kbd>+<kbd>Shift</kbd>+<kbd>L</kbd>, command
+  palette): full-text search over symbols, footprints and 3D models with
+  filters (kind, library, mounting, with 3D model, duplicates, merged
+  entries), a virtualized result list for tens of thousands of entries, and
+  the details of every entry.
+- **Previews:** symbols (with unit selection) and footprints in 2D with the
+  sheet and board engine; 3D models and footprints with their model on a
+  board in 3D (three.js), placed with the footprint's offset, rotation and
+  scale.
+- **Add to project library:** copies symbols (with their default footprint)
+  and footprints into the project library as one undoable step.
+- **Deduplication engine** (`ew-library`), independent of the source:
+  canonical fingerprints of footprints (pads and graphics, centred and
+  turned, 1 µm), symbols (pins and body) and 3D meshes; exact duplicates
+  (merged), near duplicates (pads within 0.05 mm, same pads with other
+  graphics, same name with another drawing, same mesh in other colours) and
+  aliases; a **Duplicates** tab to review groups side by side; decisions
+  kept in `decisions.json` across rebuilds; a reproducible report
+  (`dedup-report.json`, `dedup-report.md`).
+- **Library setup:** download the KiCad library from a GitHub library
+  release (index first, 3D models per 3D library on demand, every file
+  checked against its SHA-256 checksum) or build it from a local KiCad
+  installation or library checkouts in a few seconds.
+- **3D models:** STEP models are tessellated to GLB with OpenCASCADE
+  (WebAssembly) — in bulk for library releases, on demand in a worker thread
+  for local libraries — and cached.
+- Commands `ewerk library build`, `info`, `search`, `duplicates`, `pack` and
+  `install`; engine methods `library.*`.
+- **Library** workflow: builds the library from the official KiCad
+  libraries (GitLab) and publishes it as a separate release
+  (`library-kicad-<version>-r<run>`, CC-BY-SA 4.0 with the KiCad libraries
+  exception).
+- Documentation: The base library, Duplicates, Building the base library,
+  the `ewerk library` commands and `library.*` methods, ADR-0005.
+
+### Performance
+
+- Every search over the KiCad 10 libraries (45,643 entries) answers in
+  0.1–15 ms (Apple M3); the CI budget checks 50,000 synthetic entries.
+- The index builds in 6.6 s; all 7,257 STEP models tessellate in 7.4 minutes
+  on eight cores. The packs are 42 MB (index) and 220 MB (3D models, 105
+  packs).
+
 ## [0.4.0] - 2026-11-08
 
 The KiCad release: KiCad projects become ElectronicWerk projects in one step,
@@ -205,7 +257,8 @@ quality gates and the delivery pipeline that every later feature builds on.
   process ([ujap1994.github.io/ElectronicWerk](https://ujap1994.github.io/ElectronicWerk/)).
   **Help → Documentation** opens it.
 
-[Unreleased]: https://github.com/Ujap1994/ElectronicWerk/compare/v0.4.0...HEAD
+[Unreleased]: https://github.com/Ujap1994/ElectronicWerk/compare/v0.5.0...HEAD
+[0.5.0]: https://github.com/Ujap1994/ElectronicWerk/compare/v0.4.0...v0.5.0
 [0.4.0]: https://github.com/Ujap1994/ElectronicWerk/compare/v0.3.0...v0.4.0
 [0.3.0]: https://github.com/Ujap1994/ElectronicWerk/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/Ujap1994/ElectronicWerk/compare/v0.1.0...v0.2.0

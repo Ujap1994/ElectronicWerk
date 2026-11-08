@@ -1,7 +1,7 @@
 # ElectronicWerk Roadmap
 
-> **Status:** v0.7 (2026-11-08). M0 to M3 are complete (releases v0.1.0 to
-> v0.4.0; M0 and M1 accepted by the maintainer); M4 is next.
+> **Status:** v0.8 (2026-11-08). M0 to M4 are complete (releases v0.1.0 to
+> v0.5.0; M0 and M1 accepted by the maintainer); M5 is next.
 > This roadmap is a living document. It **must** be updated with every feature
 > (requirement D5). Every change to it is listed in the
 > [roadmap changelog](#13-roadmap-changelog).
@@ -239,7 +239,7 @@ own work only. Maintainer test cycles and feedback come on top. Status values:
 | M1  | Project system, data model, native file format        | v0.2.0  | F3, T3, T6        | 6–8 S           | ✅     |
 | M2  | 2D rendering engine and read-only viewer              | v0.3.0  | T3, T4, T5        | 7–10 S          | ✅     |
 | M3  | KiCad import (projects and libraries), netlist import | v0.4.0  | F3                | 6–9 S           | ✅     |
-| M4  | Unified base library and library manager              | v0.5.0  | F2                | 5–8 S           | ⬜     |
+| M4  | Unified base library and library manager              | v0.5.0  | F2                | 5–8 S           | ✅     |
 | M5  | Schematic editor and ERC                              | v0.6.0  | F4, F10           | 12–18 S         | ⬜     |
 | M6  | Symbol editor and footprint editor                    | v0.7.0  | F5, F6            | 8–12 S          | ⬜     |
 | M7  | Layout editor, DRC, rules, schematic ↔ PCB sync       | v0.8.0  | F7, F10           | 16–24 S         | ⬜     |
@@ -508,6 +508,51 @@ and matches the original visually and electrically (net comparison).
 **Acceptance:** a search over the whole base library answers in < 50 ms. The
 dedup report is reproducible.
 
+**Progress (completed 2026-11-08):**
+
+- [x] Crate `ew-library` (ADR-0005): SQLite index with FTS5 (name, library,
+      description, keywords, value, package, part number, manufacturer,
+      parameters), BM25 ranking with field weights, prefix phrases, filters
+      and facets; definitions stored compressed without ids
+- [x] Ingest of the KiCad libraries (symbols, footprints, 3D models), in
+      parallel and in a stable order; local KiCad installations are detected
+      on Windows, macOS and Linux
+- [x] Deduplication engine, independent of the source: canonical
+      fingerprints (footprints: pads and graphics, centred and turned, 1 µm;
+      symbols: pins and body; meshes: sorted triangles with and without
+      colours); exact duplicates, near duplicates (pads within 0.05 mm, same
+      pads with other graphics, same name with another drawing, same mesh in
+      other colours, same size and triangle count) and aliases; decisions in
+      `decisions.json`; reproducible JSON and Markdown report
+- [x] 3D mesh cache: STEP → GLB with OpenCASCADE (`occt-import-js`,
+      WebAssembly) — in bulk with `scripts/tessellate.ts` (7,257 models in
+      7.4 min on eight cores, no failures) and on demand in a worker thread of
+      the engine host; GLB files named by content hash
+- [x] Library manager: search, filters, virtualized list, 2D previews
+      (symbols, footprints), 3D previews (models, footprints with their model,
+      three.js), details, duplicates review side by side, adding parts to the
+      project library, setup (download or local build) with progress
+- [x] License handling: the library is published separately as a release
+      `library-kicad-<version>-r<run>` with `LICENSE.md` (CC-BY-SA 4.0 with the
+      KiCad libraries exception, source and changes); the app stays MIT
+- [x] Distribution: packs (index ~42 MB, 105 mesh packs ~220 MB) with a
+      manifest and SHA-256 checksums; the index is downloaded at setup, mesh
+      packs when a model is first shown; **Library** workflow builds the
+      packs from the official KiCad libraries on GitLab
+- [x] CLI `ewerk library build|info|search|duplicates|pack|install`; engine
+      methods `library.*`
+- [x] Acceptance: every search over the KiCad 10 libraries (45,643 entries)
+      answers in 0.1–15 ms; two builds give byte-identical reports (local
+      test against the real libraries, CI test with the synthetic library);
+      CI search budget on 50,000 entries
+- [x] Tests: Rust unit and integration tests (synthetic library with every
+      duplicate class), engine tests, Vitest (manifests, GLB writer), two
+      end-to-end tests (local build with on-demand tessellation, download of
+      packs), screenshots
+- [x] Documentation: The base library, Duplicates, Building the base library,
+      CLI and Engine API references, benchmarks, architecture, ADR-0005
+- [x] Release v0.5.0
+
 ### M5 — Schematic editor and ERC (v0.6.0, 12–18 S)
 
 - Place, move, rotate and mirror components; wires, buses, junctions, net
@@ -735,12 +780,13 @@ The CLI grows with every milestone. This milestone completes it.
 
 ## 13. Roadmap changelog
 
-| Date       | Version    | Change                                                                                                                                                                                                      |
-| ---------- | ---------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 2026-11-07 | Draft v0.1 | Initial roadmap. DipTrace import deferred; import limited to KiCad and open standard formats; Altium/KiCad-style project concept added.                                                                     |
-| 2026-11-07 | v0.2       | Approved by the maintainer: milestone order (import and viewer before the editors) confirmed, Eagle XML import added to M14, project renamed to ElectronicWerk. M0 started.                                 |
-| 2026-11-07 | v0.3       | M0 complete: v0.1.0 released with every package and the documentation site. The command palette and the update notice were delivered as part of M0.                                                         |
-| 2026-11-08 | v0.4       | M1 complete: v0.2.0 with projects, the native file format, undo, autosave journal and crash recovery. The line-based `ewerk rpc` session (planned for M12) was added early for scripting and the kill test. |
-| 2026-11-08 | v0.5       | M2 complete: v0.3.0 with the WebGL2 2D engine, the read-only viewer for sheets and boards, layer panel and inspector. Zooming out is limited to a tenth of the fitted view (fill-rate guard).               |
-| 2026-11-08 | v0.6       | M1 tested and accepted by the maintainer. M3 started.                                                                                                                                                       |
-| 2026-11-08 | v0.7       | M3 complete: v0.4.0 with the KiCad project and library import, the import report and netlist comparison. Custom `.kicad_dru` rules are reported and follow with the rule editor (M7).                       |
+| Date       | Version    | Change                                                                                                                                                                                                                                                                                                                                                                                                                            |
+| ---------- | ---------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 2026-11-07 | Draft v0.1 | Initial roadmap. DipTrace import deferred; import limited to KiCad and open standard formats; Altium/KiCad-style project concept added.                                                                                                                                                                                                                                                                                           |
+| 2026-11-07 | v0.2       | Approved by the maintainer: milestone order (import and viewer before the editors) confirmed, Eagle XML import added to M14, project renamed to ElectronicWerk. M0 started.                                                                                                                                                                                                                                                       |
+| 2026-11-07 | v0.3       | M0 complete: v0.1.0 released with every package and the documentation site. The command palette and the update notice were delivered as part of M0.                                                                                                                                                                                                                                                                               |
+| 2026-11-08 | v0.4       | M1 complete: v0.2.0 with projects, the native file format, undo, autosave journal and crash recovery. The line-based `ewerk rpc` session (planned for M12) was added early for scripting and the kill test.                                                                                                                                                                                                                       |
+| 2026-11-08 | v0.5       | M2 complete: v0.3.0 with the WebGL2 2D engine, the read-only viewer for sheets and boards, layer panel and inspector. Zooming out is limited to a tenth of the fitted view (fill-rate guard).                                                                                                                                                                                                                                     |
+| 2026-11-08 | v0.6       | M1 tested and accepted by the maintainer. M3 started.                                                                                                                                                                                                                                                                                                                                                                             |
+| 2026-11-08 | v0.7       | M3 complete: v0.4.0 with the KiCad project and library import, the import report and netlist comparison. Custom `.kicad_dru` rules are reported and follow with the rule editor (M7).                                                                                                                                                                                                                                             |
+| 2026-11-08 | v0.8       | M4 complete: v0.5.0 with the base library, deduplication engine, 3D mesh cache and library manager. KiCad 10 ships STEP models only, so STEP is tessellated with OpenCASCADE (WebAssembly) as planned in ADR-0001; the library is built from the official KiCad repositories on GitLab (the GitHub mirrors stopped in 2020). Symbols with the same pins but another body are not near duplicates (they are different part types). |

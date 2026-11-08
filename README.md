@@ -8,11 +8,11 @@ An open-source ECAD suite for beginners and advanced hobbyists. It covers
 schematic, symbol, footprint and layout editing, a live 3D view, ERC/DRC,
 manufacturing outputs, online part search, GitHub integration and a full CLI.
 
-> **Status:** early development. Version 0.4 imports KiCad projects,
-> libraries and netlists. It builds on the fast 2D view (0.3) and on projects
-> (0.2: wizard, project tree, native file format, undo, autosave and crash
-> recovery). The editors follow milestone by milestone. See the
-> [roadmap](ROADMAP.md) for milestones and progress.
+> **Status:** early development. Version 0.5 adds the base library: the
+> KiCad symbols, footprints and 3D models in one searchable place, with 2D and
+> 3D previews and duplicate detection. It builds on the KiCad import (0.4), the
+> fast 2D view (0.3) and projects (0.2). The editors follow milestone by
+> milestone. See the [roadmap](ROADMAP.md) for milestones and progress.
 
 <p align="center">
   <img src="docs/public/screenshots/viewer-pad-selected.png" width="800" alt="A board in the ElectronicWerk 2D view with a selected pad and its properties">
@@ -39,11 +39,18 @@ manufacturing outputs, online part search, GitHub integration and a full CLI.
   libraries can be added to a project at any time
 - **Netlists** from KiCad (`.net`, XML) and CSV: compare them with a board by
   connectivity and apply them
+- A **base library** with the KiCad symbols, footprints and 3D models (about
+  45,000 entries): full-text search in milliseconds, filters, 2D and 3D
+  previews, adding parts to a project; downloaded on demand or built from a
+  local KiCad installation
+- **Duplicate detection** independent of the source: exact duplicates are
+  merged, near duplicates (pads within 0.05 mm, same mesh in other colours, …)
+  are reviewed side by side, with a reproducible report
 - An open, **git-friendly file format**: readable JSON, one object per line,
   with schema versions and migrations
 - A **CLI** (`ewerk`) to create, inspect, check and archive projects, import
-  KiCad projects, libraries and netlists, and a JSON-RPC session for scripts
-  and AI agents
+  KiCad projects, libraries and netlists, build, search and distribute the
+  base library, and a JSON-RPC session for scripts and AI agents
 - A German and English UI, light and dark appearance, a command palette and
   an update notice
 - Builds for Windows, macOS and Linux
@@ -51,7 +58,8 @@ manufacturing outputs, online part search, GitHub integration and a full CLI.
 ## Planned highlights
 
 - Open standard formats (DXF, Gerber, STEP, …)
-- A **unified base library** with deduplication, and **online part search**
+- **Online part search** that plugs into the base library and its
+  deduplication
 - A **live 3D view**, optionally in its own window
 - **ERC, DRC** and a rule system
 - Manufacturing outputs: Gerber X2, Excellon, BOM, pick-and-place, PDF, STEP
