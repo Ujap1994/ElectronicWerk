@@ -16,6 +16,7 @@ import {
 import { useProject } from '../project/ProjectProvider';
 import type { GroupId, TreeTarget } from '../project/tree';
 import { useAppState } from '../state';
+import { isViewable, useOpenDocument } from '../viewer/open-context';
 import { Icon } from './Icon';
 
 // --- Small building blocks --------------------------------------------------
@@ -172,8 +173,22 @@ function useUnits(): { readonly units: Units; readonly language: string } {
 function DocumentHeader({ document }: { readonly document: DocumentSummary }): ReactNode {
   const { t } = useAppState();
   const { renameDocument, showInFolder } = useProject();
+  const open = useOpenDocument();
   return (
     <>
+      {open !== null && isViewable(document) && (
+        <button
+          type="button"
+          className="button button--primary details__open"
+          data-testid="details-open"
+          onClick={() => {
+            open(document);
+          }}
+        >
+          <Icon name="eye" />
+          <span>{t('viewer.open')}</span>
+        </button>
+      )}
       <CommitField
         key={document.name}
         label={t('details.name')}

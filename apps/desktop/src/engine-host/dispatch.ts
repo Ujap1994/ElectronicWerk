@@ -3,6 +3,8 @@ import type { EngineApiErrorCode, EngineReply } from '@shared/engine';
 /** Functions exported by the native addon (`crates/ew-node`). */
 export interface NativeEngine {
   dispatch: (request: string) => string;
+  /** Like `dispatch`, but `view.scene` returns its buffer separately. */
+  dispatchBinary: (request: string) => { reply: string; data?: Uint8Array | null };
   /** Events produced since the last call, as a JSON array. */
   takeEvents: () => string;
   engineVersion: () => string;
@@ -36,8 +38,19 @@ export function handleRequest(engine: NativeEngine, data: unknown): EngineReply 
     return { id, error: { code: 'invalidRequest', message: 'invalid method name' } };
   }
   try {
-    const request = params === undefined ? { method } : { method, params };
-    const reply = JSON.parse(engine.dispatch(JSON.stringify(request))) as
+    const request = JSON.stringify(params === undefined ? { method } : { method, params });
+    if (method === 'view.scene') {
+      // The scene's primitives travel as a binary buffer next to the JSON
+      // metadata; the renderer hands them to the GPU without parsing.
+      const { reply: json, data } = engine.dispatchBinary(request);
+      const reply = JSON.parse(json) as
+        | { result: Record<string, unknown> }
+        | { error: { code: EngineApiErrorCode; message: string } };
+      return 'result' in reply
+        ? { id, result: { ...reply.result, data: data ?? null } }
+        : { id, error: reply.error };
+    }
+    const reply = JSON.parse(engine.dispatch(request)) as
       { result: unknown } | { error: { code: EngineApiErrorCode; message: string } };
     return 'result' in reply ? { id, result: reply.result } : { id, error: reply.error };
   } catch (error) {

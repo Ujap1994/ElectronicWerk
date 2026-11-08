@@ -22,6 +22,7 @@ import {
   type TreeTarget,
 } from '../project/tree';
 import { useAppState } from '../state';
+import { isViewable, useOpenDocument } from '../viewer/open-context';
 import { Icon, type IconName } from './Icon';
 
 const GROUP_LABEL: Readonly<Record<GroupId, MessageKey>> = {
@@ -85,6 +86,7 @@ interface ProjectTreeProps {
 export function ProjectTree({ selected, onSelect }: ProjectTreeProps): ReactNode {
   const { t } = useAppState();
   const { project, files, addDocument, renameDocument, requestRemove, showInFolder } = useProject();
+  const open = useOpenDocument();
   const [collapsed, setCollapsed] = useState<ReadonlySet<string>>(() => new Set());
   const [renaming, setRenaming] = useState<string | null>(null);
   const [menu, setMenu] = useState<{
@@ -217,6 +219,18 @@ export function ProjectTree({ selected, onSelect }: ProjectTreeProps): ReactNode
       case 'document': {
         const { document } = target;
         return [
+          ...(open !== null && isViewable(document)
+            ? [
+                {
+                  id: 'open',
+                  label: t('viewer.open'),
+                  icon: 'eye' as const,
+                  run: () => {
+                    open(document);
+                  },
+                },
+              ]
+            : []),
           ...(document.kind === 'schematic'
             ? [
                 {
@@ -315,6 +329,13 @@ export function ProjectTree({ selected, onSelect }: ProjectTreeProps): ReactNode
           focusRow(rows.findIndex((entry) => entry.node === parent));
         }
         break;
+      case 'Enter':
+        if (node.target.type === 'document' && open !== null && isViewable(node.target.document)) {
+          open(node.target.document);
+        } else if (hasChildren) {
+          toggle(node.key);
+        }
+        break;
       case 'F2':
         if (node.target.type === 'document') {
           setRenaming(node.target.document.id);
@@ -377,7 +398,13 @@ export function ProjectTree({ selected, onSelect }: ProjectTreeProps): ReactNode
                 onSelect(node.target);
               }}
               onDoubleClick={() => {
-                if (hasChildren) {
+                if (
+                  node.target.type === 'document' &&
+                  open !== null &&
+                  isViewable(node.target.document)
+                ) {
+                  open(node.target.document);
+                } else if (hasChildren) {
                   toggle(node.key);
                 }
               }}

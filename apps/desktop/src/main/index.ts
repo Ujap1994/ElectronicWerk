@@ -74,6 +74,10 @@ function main(): void {
   const isMac = process.platform === 'darwin';
   hardenApp(devUrl);
   registerAppScheme();
+  // The 2D views need WebGL 2. Without a usable GPU (virtual machines, remote
+  // desktops, blocklisted drivers) Chromium only offers its software
+  // renderer when this switch is set. The app shows only its own content.
+  app.commandLine.appendSwitch('enable-unsafe-swiftshader');
 
   let mainWindow: BrowserWindow | null = null;
   let settingsStore: SettingsStore | null = null;

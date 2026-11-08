@@ -1,10 +1,14 @@
-import { useState, type ReactNode } from 'react';
+import { useCallback, useEffect, useState, type ReactNode } from 'react';
+
+import type { DocumentSummary } from '@shared/project';
 
 import { historyLabel } from '../project/labels';
 import { useProject } from '../project/ProjectProvider';
 import { selectionKey, type TreeTarget } from '../project/tree';
 import { useAppState } from '../state';
+import { OpenDocumentContext } from '../viewer/open-context';
 import { DocumentDetails } from './DocumentDetails';
+import { DocumentViewer, forgetViewMemories } from './DocumentViewer';
 import { Icon, type IconName } from './Icon';
 import { ProjectTree } from './ProjectTree';
 
@@ -47,13 +51,35 @@ export function ProjectWorkspace({ projectView }: { readonly projectView: number
   const { project, save, undo, redo, validate, archive, closeProject } = useProject();
   const [target, setTarget] = useState<TreeTarget>({ type: 'project' });
   const [shownView, setShownView] = useState(projectView);
+  const [tabs, setTabs] = useState<readonly string[]>([]);
+  const [activeTab, setActiveTab] = useState<string | null>(null);
   if (shownView !== projectView) {
     setShownView(projectView);
     setTarget({ type: 'project' });
+    setActiveTab(null);
   }
+  const projectId = project?.id ?? null;
+  useEffect(() => forgetViewMemories, [projectId]);
+  const openDocument = useCallback((document: DocumentSummary) => {
+    setTabs((current) => (current.includes(document.id) ? current : [...current, document.id]));
+    setActiveTab(document.id);
+  }, []);
   if (project === null) {
     return null;
   }
+  // Tabs of removed documents disappear.
+  const openTabs = tabs
+    .map((id) => project.documents.find((document) => document.id === id))
+    .filter((document) => document !== undefined);
+  const active = openTabs.find((document) => document.id === activeTab) ?? null;
+  const closeTab = (id: string): void => {
+    const index = openTabs.findIndex((document) => document.id === id);
+    setTabs((current) => current.filter((entry) => entry !== id));
+    if (activeTab === id) {
+      const next = openTabs[index + 1] ?? openTabs[index - 1];
+      setActiveTab(next === undefined || next.id === id ? null : next.id);
+    }
+  };
   const { history } = project;
   const mod = appInfo.platform === 'darwin' ? '⌘' : 'Ctrl+';
   const undoTitle =
@@ -132,14 +158,82 @@ export function ProjectWorkspace({ projectView }: { readonly projectView: number
           }}
         />
       </header>
-      <div className="workspace__body">
-        <aside className="workspace__sidebar">
-          <ProjectTree selected={selectionKey(target)} onSelect={setTarget} />
-        </aside>
-        <main className="workspace__details" data-testid="details">
-          <DocumentDetails target={target} />
-        </main>
-      </div>
+      <OpenDocumentContext value={openDocument}>
+        <div className="workspace__body">
+          <aside className="workspace__sidebar">
+            <ProjectTree
+              selected={selectionKey(target)}
+              onSelect={(next) => {
+                setTarget(next);
+                if (active !== null) {
+                  setActiveTab(null);
+                }
+              }}
+            />
+          </aside>
+          <div className="workspace__main">
+            {openTabs.length > 0 && (
+              <div className="tabs" role="tablist" aria-label={t('viewer.tabs')}>
+                <button
+                  type="button"
+                  role="tab"
+                  className="tabs__tab"
+                  aria-selected={active === null}
+                  data-testid="tab-details"
+                  onClick={() => {
+                    setActiveTab(null);
+                  }}
+                >
+                  <Icon name="info" size={16} />
+                  <span>{t('viewer.details')}</span>
+                </button>
+                {openTabs.map((document) => (
+                  <div
+                    key={document.id}
+                    className="tabs__item"
+                    data-selected={document.id === active?.id}
+                  >
+                    <button
+                      type="button"
+                      role="tab"
+                      className="tabs__tab"
+                      aria-selected={document.id === active?.id}
+                      data-testid={`tab-${document.id}`}
+                      onClick={() => {
+                        setActiveTab(document.id);
+                      }}
+                    >
+                      <Icon name={document.kind === 'pcb' ? 'board' : 'schematic'} size={16} />
+                      <span>{document.name}</span>
+                    </button>
+                    <button
+                      type="button"
+                      className="tabs__close"
+                      aria-label={t('viewer.closeTab', { name: document.name })}
+                      title={t('viewer.closeTab', { name: document.name })}
+                      data-testid={`tab-close-${document.id}`}
+                      onClick={() => {
+                        closeTab(document.id);
+                      }}
+                    >
+                      <Icon name="close" size={14} />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+            {active === null ? (
+              <main className="workspace__details" data-testid="details">
+                <DocumentDetails target={target} />
+              </main>
+            ) : (
+              <main className="workspace__viewer">
+                <DocumentViewer key={active.id} document={active} units={project.settings.units} />
+              </main>
+            )}
+          </div>
+        </div>
+      </OpenDocumentContext>
     </div>
   );
 }

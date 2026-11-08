@@ -15,6 +15,10 @@ const fakeEngine = (reply: string | Error): NativeEngine => ({
     }
     return reply;
   },
+  dispatchBinary: () => ({
+    reply: '{"result":{"kind":"pcb"}}',
+    data: new Uint8Array([1, 2, 3, 4]),
+  }),
   takeEvents: () => '[]',
   engineVersion: () => '0.0.0',
 });
@@ -36,6 +40,13 @@ describe('handleRequest (unit)', () => {
         error: { code: 'invalidRequest', message: 'invalid method name' },
       });
     }
+  });
+
+  it('returns the scene buffer next to the metadata', () => {
+    expect(handleRequest(engine, { id: 9, method: 'view.scene', params: { doc: 'x' } })).toEqual({
+      id: 9,
+      result: { kind: 'pcb', data: new Uint8Array([1, 2, 3, 4]) },
+    });
   });
 
   it('forwards results', () => {
