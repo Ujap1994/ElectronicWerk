@@ -11,7 +11,8 @@ version = 2
 confidence-threshold = 0.9
 # Only licenses that are actually in use; extend deliberately when a new
 # dependency needs another permissive license.
-allow = ["MIT", "Apache-2.0", "ISC", "Unicode-3.0"]
+# Zlib: foldhash (hash function of hashbrown, used by rusqlite), M4.
+allow = ["MIT", "Apache-2.0", "ISC", "Unicode-3.0", "Zlib"]
 
 [bans]
 multiple-versions = "warn"

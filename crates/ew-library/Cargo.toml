@@ -1,0 +1,28 @@
+[package]
+name = "ew-library"
+description = "ElectronicWerk base library: search index (SQLite FTS5), ingest, deduplication, 3D mesh fingerprints and library packs"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+publish = false
+
+[dependencies]
+ew-kicad.workspace = true
+ew-model.workspace = true
+flate2.workspace = true
+rayon.workspace = true
+rusqlite.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+sha2.workspace = true
+thiserror.workspace = true
+zip.workspace = true
+
+[dev-dependencies]
+tempfile.workspace = true
+
+[lints]
+workspace = true

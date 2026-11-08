@@ -14,6 +14,7 @@ authors = ["ElectronicWerk contributors"]
 ew-core = { path = "crates/ew-core" }
 ew-format = { path = "crates/ew-format" }
 ew-kicad = { path = "crates/ew-kicad" }
+ew-library = { path = "crates/ew-library" }
 ew-model = { path = "crates/ew-model" }
 ew-scene = { path = "crates/ew-scene" }
 ew-synth = { path = "crates/ew-synth" }
@@ -26,6 +27,9 @@ napi-build = "2.6"
 napi-derive = "3.7"
 serde = { version = "1.0", features = ["derive"] }
 serde_json = { version = "1.0", features = ["float_roundtrip"] }
+rayon = "1.12"
+rusqlite = { version = "0.41", features = ["bundled"] }
+sha2 = "0.11"
 proptest = { version = "1.11", default-features = false, features = ["std"] }
 tempfile = "3.27"
 thiserror = "2.0"
