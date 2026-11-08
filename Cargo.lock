@@ -306,7 +306,7 @@ dependencies = [
 
 [[package]]
 name = "ew-cli"
-version = "0.3.0"
+version = "0.4.0"
 dependencies = [
  "clap",
  "ew-core",
@@ -320,7 +320,7 @@ dependencies = [
 
 [[package]]
 name = "ew-core"
-version = "0.3.0"
+version = "0.4.0"
 dependencies = [
  "ew-format",
  "ew-kicad",
@@ -336,7 +336,7 @@ dependencies = [
 
 [[package]]
 name = "ew-format"
-version = "0.3.0"
+version = "0.4.0"
 dependencies = [
  "criterion",
  "ew-model",
@@ -352,7 +352,7 @@ dependencies = [
 
 [[package]]
 name = "ew-kicad"
-version = "0.3.0"
+version = "0.4.0"
 dependencies = [
  "ew-model",
  "serde",
@@ -363,7 +363,7 @@ dependencies = [
 
 [[package]]
 name = "ew-model"
-version = "0.3.0"
+version = "0.4.0"
 dependencies = [
  "proptest",
  "serde",
@@ -374,7 +374,7 @@ dependencies = [
 
 [[package]]
 name = "ew-node"
-version = "0.3.0"
+version = "0.4.0"
 dependencies = [
  "ew-core",
  "napi",
@@ -385,7 +385,7 @@ dependencies = [
 
 [[package]]
 name = "ew-scene"
-version = "0.3.0"
+version = "0.4.0"
 dependencies = [
  "earcut",
  "ew-model",
@@ -397,7 +397,7 @@ dependencies = [
 
 [[package]]
 name = "ew-synth"
-version = "0.3.0"
+version = "0.4.0"
 dependencies = [
  "ew-model",
 ]

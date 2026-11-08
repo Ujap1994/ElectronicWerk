@@ -1,7 +1,7 @@
 # ElectronicWerk Roadmap
 
-> **Status:** v0.5 (2026-11-08). M0, M1 and M2 are complete (releases
-> v0.1.0, v0.2.0 and v0.3.0); M3 is next.
+> **Status:** v0.7 (2026-11-08). M0 to M3 are complete (releases v0.1.0 to
+> v0.4.0; M0 and M1 accepted by the maintainer); M4 is next.
 > This roadmap is a living document. It **must** be updated with every feature
 > (requirement D5). Every change to it is listed in the
 > [roadmap changelog](#13-roadmap-changelog).
@@ -238,7 +238,7 @@ own work only. Maintainer test cycles and feedback come on top. Status values:
 | M0  | Foundation and delivery pipeline                      | v0.1.0  | T1, T2, T7, D1–D5 | 6–8 S           | ✅     |
 | M1  | Project system, data model, native file format        | v0.2.0  | F3, T3, T6        | 6–8 S           | ✅     |
 | M2  | 2D rendering engine and read-only viewer              | v0.3.0  | T3, T4, T5        | 7–10 S          | ✅     |
-| M3  | KiCad import (projects and libraries), netlist import | v0.4.0  | F3                | 6–9 S           | ⬜     |
+| M3  | KiCad import (projects and libraries), netlist import | v0.4.0  | F3                | 6–9 S           | ✅     |
 | M4  | Unified base library and library manager              | v0.5.0  | F2                | 5–8 S           | ⬜     |
 | M5  | Schematic editor and ERC                              | v0.6.0  | F4, F10           | 12–18 S         | ⬜     |
 | M6  | Symbol editor and footprint editor                    | v0.7.0  | F5, F6            | 8–12 S          | ⬜     |
@@ -378,6 +378,7 @@ loading.
 - [x] Documentation: Projects, Project tree and properties, Undo/autosave and
       recovery, File format, Benchmarks, CLI and Engine API references
 - [x] Release v0.2.0
+- [x] Tested and accepted by the maintainer (2026-11-08)
 
 ### M2 — 2D rendering engine and read-only viewer (v0.3.0, 7–10 S)
 
@@ -443,6 +444,45 @@ CI.
 
 **Acceptance:** a 4-layer, multi-sheet KiCad 10 project imports without errors
 and matches the original visually and electrically (net comparison).
+
+**Progress (completed 2026-11-08):**
+
+- [x] Crate `ew-kicad` (ADR-0004): a non-recursive, borrowing S-expression
+      parser; KiCad 6 to 10 (net names in KiCad 10, net codes before; layers
+      mapped by name; `hide` in both styles)
+- [x] Import of schematics (hierarchy, symbols with KiCad's transforms and
+      field placement, wires, buses, labels, junctions, no-connects, texts,
+      graphics, title blocks), symbol libraries (units, pins, pin text,
+      derived symbols), boards (stackup, footprints with every pad shape,
+      tracks, arcs, vias, zones with filled areas, keep-outs, outline),
+      project files (net classes, assignments, constraints, text variables),
+      library tables (`${KIPRJMOD}`) and 3D model references; symbols and
+      footprints linked as components
+- [x] Import as a new project with a detailed report (21 codes, severities,
+      counts), also written as `kicad-import-report.md`; `.kicad_dru` custom
+      rules, dimensions, text boxes, images and alternate body styles are
+      reported
+- [x] KiCad library import into a project library (`.kicad_sym`,
+      `.kicad_symdir`, `.pretty`, `.kicad_mod`)
+- [x] Netlists: KiCad `.net`, KiCad XML and CSV; comparison by connectivity,
+      differences, apply as one undoable step
+- [x] UI: import card on the start screen, menu and palette commands, import
+      dialog, report dialog, netlist dialog, context menus in the project
+      tree; CLI `ewerk import kicad|library|netlist`; engine methods
+      `import.*`
+- [x] View: solid zone fills, hidden pin names and numbers, upright texts
+- [x] Tests: synthetic KiCad 10 project (generated, 4 layers, two sheets, a
+      bottom-side part, a filled zone, netlists in three formats) in unit,
+      engine, CLI and end-to-end tests; local-only regression tests against a
+      real project and the official KiCad libraries
+- [x] Acceptance checked locally: a real 4-layer, multi-sheet KiCad 10
+      project imports with 0 errors in 0.08 s, 480 of 480 nets match KiCad's
+      netlist, and the sheets and the board were checked against KiCad's PDF
+      plots; all official KiCad libraries (22,916 symbols, 15,470 footprints)
+      read in 5.6 s without errors
+- [x] Documentation: Importing KiCad projects, Netlists, CLI and Engine API
+      references, file format, benchmarks, architecture, ADR-0004
+- [x] Release v0.4.0
 
 ### M4 — Unified base library and library manager (v0.5.0, 5–8 S)
 
@@ -702,3 +742,5 @@ The CLI grows with every milestone. This milestone completes it.
 | 2026-11-07 | v0.3       | M0 complete: v0.1.0 released with every package and the documentation site. The command palette and the update notice were delivered as part of M0.                                                         |
 | 2026-11-08 | v0.4       | M1 complete: v0.2.0 with projects, the native file format, undo, autosave journal and crash recovery. The line-based `ewerk rpc` session (planned for M12) was added early for scripting and the kill test. |
 | 2026-11-08 | v0.5       | M2 complete: v0.3.0 with the WebGL2 2D engine, the read-only viewer for sheets and boards, layer panel and inspector. Zooming out is limited to a tenth of the fitted view (fill-rate guard).               |
+| 2026-11-08 | v0.6       | M1 tested and accepted by the maintainer. M3 started.                                                                                                                                                       |
+| 2026-11-08 | v0.7       | M3 complete: v0.4.0 with the KiCad project and library import, the import report and netlist comparison. Custom `.kicad_dru` rules are reported and follow with the rule editor (M7).                       |
