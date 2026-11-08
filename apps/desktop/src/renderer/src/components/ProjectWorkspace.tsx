@@ -17,6 +17,7 @@ function ToolButton({
   label,
   title,
   disabled = false,
+  iconOnly = false,
   testId,
   onClick,
 }: {
@@ -24,13 +25,15 @@ function ToolButton({
   readonly label: string;
   readonly title?: string;
   readonly disabled?: boolean;
+  /** Shows the icon only (the label stays for screen readers). */
+  readonly iconOnly?: boolean;
   readonly testId: string;
   readonly onClick: () => void;
 }): ReactNode {
   return (
     <button
       type="button"
-      className="toolbar__button"
+      className={`toolbar__button${iconOnly ? ' toolbar__button--icon' : ''}`}
       title={title ?? label}
       disabled={disabled}
       data-testid={testId}
@@ -160,6 +163,7 @@ export function ProjectWorkspace({
             label={t('library.open')}
             title={`${t('library.open')} (${mod}${appInfo.platform === 'darwin' ? '⇧' : 'Shift+'}L)`}
             testId="toolbar-library"
+            iconOnly
             onClick={onOpenLibrary}
           />
         </div>

@@ -12,7 +12,7 @@ instead of three times (see [Duplicates](./duplicates)).
 ## Opening the library
 
 - On the start screen, click **Library**.
-- In a project, click **Library** in the toolbar.
+- In a project, click the library icon (**Library**) in the toolbar.
 - Choose **View → Library…** in the menu bar, or press
   <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>L</kbd> (<kbd>⌘</kbd>+<kbd>⇧</kbd>+<kbd>L</kbd>
   on macOS).
