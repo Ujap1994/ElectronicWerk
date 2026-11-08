@@ -25,7 +25,7 @@ follow in the next releases.
 | Projects, project tree, properties        | Available | [Projects](./projects), [Project tree](./project-tree) |
 | Undo, autosave and crash recovery         | Available | [Undo and recovery](./undo-and-recovery)               |
 | Native, git-friendly file format          | Available | [File format](../reference/file-format)                |
-| 2D viewer for schematics and boards       | Planned   | v0.3                                                   |
+| 2D viewer for schematics and boards       | Available | [Viewing sheets and boards](./viewer)                  |
 | KiCad import                              | Planned   | v0.4                                                   |
 | Schematic, symbol, footprint, PCB editors | Planned   | v0.6 to v0.8                                           |
 | Live 3D view, manufacturing outputs       | Planned   | v0.9 and v0.10                                         |

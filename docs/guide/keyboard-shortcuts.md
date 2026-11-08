@@ -33,7 +33,29 @@
 | <kbd>Home</kbd> / <kbd>End</kbd>  | First / last item                              |
 | <kbd>F2</kbd>                     | Rename the selected document                   |
 | <kbd>Delete</kbd>                 | Remove the selected document (asks first)      |
+| <kbd>Enter</kbd>                  | Open the selected sheet or board in the viewer |
 | <kbd>Enter</kbd> / <kbd>Esc</kbd> | Confirm / cancel renaming                      |
+
+## In the 2D view
+
+Click the drawing area first; see [Viewing sheets and boards](./viewer#navigating).
+
+| Key or gesture                                                        | Action                               |
+| --------------------------------------------------------------------- | ------------------------------------ |
+| Mouse wheel                                                           | Zoom around the cursor               |
+| Two-finger scroll (trackpad)                                          | Pan                                  |
+| Pinch (trackpad), <kbd>Ctrl</kbd>/<kbd>⌘</kbd> + wheel                | Zoom continuously                    |
+| Middle or right button, <kbd>Space</kbd> + drag                       | Pan                                  |
+| <kbd>←</kbd> <kbd>→</kbd> <kbd>↑</kbd> <kbd>↓</kbd>                   | Pan (with <kbd>Shift</kbd>: farther) |
+| <kbd>+</kbd> / <kbd>-</kbd>                                           | Zoom in / out                        |
+| <kbd>Home</kbd>                                                       | Fit the document to the window       |
+| <kbd>F</kbd>                                                          | Zoom to the selection                |
+| <kbd>B</kbd>                                                          | View the board from the bottom       |
+| Click, <kbd>Shift</kbd> + click, <kbd>Ctrl</kbd>/<kbd>⌘</kbd> + click | Select, add, toggle                  |
+| Drag right / left                                                     | Box selection: inside / touching     |
+| <kbd>Alt</kbd> + drag                                                 | Lasso selection                      |
+| <kbd>Ctrl</kbd>/<kbd>⌘</kbd> + <kbd>A</kbd>                           | Select every visible object          |
+| <kbd>Esc</kbd>                                                        | Clear the selection or cancel a drag |
 
 ## In dialogs
 

@@ -1,7 +1,7 @@
 # ElectronicWerk Roadmap
 
-> **Status:** v0.4 (2026-11-08). M0 and M1 are complete (releases v0.1.0 and
-> v0.2.0); M2 is next.
+> **Status:** v0.5 (2026-11-08). M0, M1 and M2 are complete (releases
+> v0.1.0, v0.2.0 and v0.3.0); M3 is next.
 > This roadmap is a living document. It **must** be updated with every feature
 > (requirement D5). Every change to it is listed in the
 > [roadmap changelog](#13-roadmap-changelog).
@@ -237,7 +237,7 @@ own work only. Maintainer test cycles and feedback come on top. Status values:
 | --- | ----------------------------------------------------- | ------- | ----------------- | --------------- | ------ |
 | M0  | Foundation and delivery pipeline                      | v0.1.0  | T1, T2, T7, D1–D5 | 6–8 S           | ✅     |
 | M1  | Project system, data model, native file format        | v0.2.0  | F3, T3, T6        | 6–8 S           | ✅     |
-| M2  | 2D rendering engine and read-only viewer              | v0.3.0  | T3, T4, T5        | 7–10 S          | ⬜     |
+| M2  | 2D rendering engine and read-only viewer              | v0.3.0  | T3, T4, T5        | 7–10 S          | ✅     |
 | M3  | KiCad import (projects and libraries), netlist import | v0.4.0  | F3                | 6–9 S           | ⬜     |
 | M4  | Unified base library and library manager              | v0.5.0  | F2                | 5–8 S           | ⬜     |
 | M5  | Schematic editor and ERC                              | v0.6.0  | F4, F10           | 12–18 S         | ⬜     |
@@ -392,6 +392,38 @@ loading.
 
 **Acceptance:** an L design pans and zooms at ≥ 60 fps. The benchmarks run in
 CI.
+
+**Progress (completed 2026-11-08):**
+
+- [x] Crate `ew-scene` and engine methods `view.scene` / `view.object`: sheets
+      and boards become instanced primitives (segments, arcs, discs/rings,
+      rounded rectangles, triangle meshes) and texts in one binary buffer,
+      Z-order sorted with chunk boxes; an object table for selection
+      (ADR-0003)
+- [x] WebGL2 engine: SDF primitives with exact shapes, MSAA with
+      alpha-to-coverage, per-layer opacity through the constant blend colour
+      and a per-layer depth value, SDF text (bundled JetBrains Mono), adaptive
+      dot grid, chunk culling, text level of detail, selection/hover flag
+      texture
+- [x] Interaction: animated zoom around the cursor (wheel, pinch, keys),
+      pan (drag, trackpad, keys), fit, zoom to selection, view from the
+      bottom; hover, click, box (window/crossing) and lasso selection with a
+      Flatbush R-tree and exact hit tests
+- [x] Layer panel (visibility, active layer, opacity, highlight active
+      layer), Display panel for sheets, read-only inspector, document tabs
+      opened from the project tree, view memory per document, live reload
+      after every change
+- [x] Budgets: L board scene ≈ 40 ms in Rust (CI budget 0.5 s); L board opens
+      in the app in 0.2 s and pans/zooms at 60 fps with ≈ 0.2 ms CPU per frame
+      on an Apple M3; XL (2.3 million primitives) also 60 fps. Viewer
+      benchmark job in CI (macOS)
+- [x] Tests: Rust unit and engine tests, Vitest unit tests (camera, culling,
+      layers, text layout), an integration test against the native engine,
+      3 end-to-end tests and the benchmark test
+- [x] Documentation: Viewing sheets and boards, keyboard shortcuts,
+      troubleshooting, Engine API (`view.*`), benchmarks, architecture,
+      ADR-0003
+- [x] Release v0.3.0
 
 ### M3 — KiCad import and netlist import (v0.4.0, 6–9 S)
 
@@ -669,3 +701,4 @@ The CLI grows with every milestone. This milestone completes it.
 | 2026-11-07 | v0.2       | Approved by the maintainer: milestone order (import and viewer before the editors) confirmed, Eagle XML import added to M14, project renamed to ElectronicWerk. M0 started.                                 |
 | 2026-11-07 | v0.3       | M0 complete: v0.1.0 released with every package and the documentation site. The command palette and the update notice were delivered as part of M0.                                                         |
 | 2026-11-08 | v0.4       | M1 complete: v0.2.0 with projects, the native file format, undo, autosave journal and crash recovery. The line-based `ewerk rpc` session (planned for M12) was added early for scripting and the kill test. |
+| 2026-11-08 | v0.5       | M2 complete: v0.3.0 with the WebGL2 2D engine, the read-only viewer for sheets and boards, layer panel and inspector. Zooming out is limited to a tenth of the fitted view (fill-rate guard).               |

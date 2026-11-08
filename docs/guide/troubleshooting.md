@@ -39,6 +39,23 @@ ElectronicWerk restarted its engine automatically after a crash. You can keep
 working; click **×** to dismiss the notice. If you can repeat what caused it,
 please report it so it can be fixed.
 
+## The 2D view stays empty or is slow
+
+The [2D view](./viewer) is drawn by the graphics card with WebGL 2.
+
+- **"The 2D view needs WebGL 2"**: the graphics driver does not offer WebGL 2.
+  Update the driver (on Linux, install the Mesa drivers of your distribution).
+  Without any usable graphics card, for example in a virtual machine or over
+  a remote desktop, ElectronicWerk uses Chromium's software renderer, which
+  works but is much slower on large boards.
+- **Slow on a laptop with two graphics chips**: ElectronicWerk asks for the
+  fast graphics chip. If the operating system still uses the slower one, set
+  the graphics preference for ElectronicWerk in the system settings
+  (Windows: _Settings → System → Display → Graphics_).
+- To see which renderer is used, open _View → Toggle Developer Tools_ and
+  enter `document.createElement('canvas').getContext('webgl2')` in the
+  console.
+
 ## The update check fails
 
 - Check your internet connection.

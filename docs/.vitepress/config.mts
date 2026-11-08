@@ -37,6 +37,7 @@ export default defineConfig({
         items: [
           { text: 'Projects', link: '/guide/projects' },
           { text: 'Project tree and properties', link: '/guide/project-tree' },
+          { text: 'Viewing sheets and boards', link: '/guide/viewer' },
           { text: 'Undo, autosave and recovery', link: '/guide/undo-and-recovery' },
           { text: 'Settings', link: '/guide/settings' },
           { text: 'Command palette', link: '/guide/command-palette' },

@@ -43,10 +43,11 @@ design.
 
 ## Budgets checked in CI
 
-| Metric           | Budget | Typical (Apple M-series) | Test                                |
-| ---------------- | ------ | ------------------------ | ----------------------------------- |
-| Open project (L) | < 3 s  | ≈ 0.14 s                 | `crates/ew-format/tests/budgets.rs` |
-| Save project (L) | < 1 s  | ≈ 0.31 s                 | `crates/ew-format/tests/budgets.rs` |
+| Metric           | Budget  | Typical (Apple M-series) | Test                                |
+| ---------------- | ------- | ------------------------ | ----------------------------------- |
+| Open project (L) | < 3 s   | ≈ 0.14 s                 | `crates/ew-format/tests/budgets.rs` |
+| Save project (L) | < 1 s   | ≈ 0.31 s                 | `crates/ew-format/tests/budgets.rs` |
+| Board scene (L)  | < 0.5 s | ≈ 0.04 s                 | `crates/ew-scene/tests/budgets.rs`  |
 
 The L board file is about 55 MB. Saving writes every file (not only changed
 ones), each through a synced temporary file, so the measurement includes the
@@ -55,11 +56,45 @@ full cost of an atomic save. Documents are encoded and written in parallel.
 The CI job **Performance budgets** runs:
 
 ```sh
-cargo test --release -p ew-format --test budgets -- --ignored --nocapture
+cargo test --release -p ew-format -p ew-scene --test budgets -- --ignored --nocapture
 ```
 
-and prints the measured times. The rendering budgets (frame rate, input
-latency) follow with the 2D engine in milestone M2.
+and prints the measured times. The board scene is everything the
+[2D view](../guide/viewer) needs from the engine: about 590,000 primitives for
+the L board, built in one pass and sorted for view culling.
+
+## Viewer
+
+The end-to-end test `apps/desktop/e2e/viewer-benchmark.spec.ts` opens a
+project in the real app, pans and zooms its board for 240 frames each and
+measures the frame rate and the CPU time per frame:
+
+```sh
+ewerk synth L /tmp/synth-l
+npm run build -w @electronicwerk/desktop
+cd apps/desktop
+EW_PERF_PROJECT="/tmp/synth-l/Synthetic L.ewproj" EW_PERF_MIN_FPS=58 \
+  npx playwright test e2e/viewer-benchmark.spec.ts --reporter=line
+```
+
+The results are written to `apps/desktop/test-results/viewer-benchmark.json`.
+
+| Design | Primitives  | Open to first frame | Pan    | Zoom   | CPU per frame |
+| ------ | ----------- | ------------------- | ------ | ------ | ------------- |
+| L      | ≈ 590,000   | 0.20 s              | 60 fps | 60 fps | 0.16 ms       |
+| XL     | ≈ 2,280,000 | 0.86 s              | 60 fps | 60 fps | 0.17 ms       |
+
+Measured on an Apple M3 (integrated graphics, 60 Hz display, window
+1600 × 1000). 60 fps is the refresh rate of the display, so the view is never
+the bottleneck there. The CPU time stays tiny because the engine prepares the
+primitives once and every frame only sets a few uniforms and issues one draw
+call per visible run of chunks.
+
+The CI job **Viewer benchmark** runs the same test on a macOS runner. Its
+virtual GPU is much slower than real hardware, so CI checks a lower frame
+rate (20 fps) and the CPU time per frame (below 4 ms); on software renderers
+only the CPU time is checked. The roadmap budget of 60 fps on a mid-range
+integrated GPU is verified on real hardware for every release.
 
 ## Micro-benchmarks
 
@@ -78,5 +113,5 @@ against them, so you can check a change locally before and after.
 
 ```console
 $ ewerk bench --size L
-L design: open 137 ms, save 310 ms (best of 3)
+L design: open 142 ms, save 304 ms, board scene 40 ms (587730 primitives) (best of 3)
 ```

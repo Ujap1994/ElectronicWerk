@@ -26,6 +26,9 @@ features:
   - icon: ⚡
     title: Fast and stable engine
     details: The design engine is written in Rust and runs in its own process. If it ever crashes, it restarts on its own and the window stays open.
+  - icon: 🔍
+    title: Smooth 2D view
+    details: Sheets and boards are drawn by the graphics card. A board with 5,000 parts pans and zooms at 60 frames per second, with layers, selection and an inspector.
   - icon: 🛟
     title: Never lose work
     details: Unlimited undo, an autosave journal for every change, crash recovery and atomic saves.

@@ -9,7 +9,7 @@ with [ADR-0001: Application architecture](https://github.com/Ujap1994/Electronic
 ```text
 ┌──────────────────────── ElectronicWerk desktop app ────────────────────────┐
 │                                                                            │
-│  Renderer (React UI, sandboxed) ◄──── MessagePort (JSON) ────►  Engine host │
+│  Renderer (React UI, WebGL2) ◄── MessagePort (JSON, buffers) ─► Engine host │
 │        ▲                                                       (utility    │
 │        │ IPC: settings, status, updates                         process)   │
 │        ▼                                                          │        │
@@ -24,7 +24,7 @@ with [ADR-0001: Application architecture](https://github.com/Ujap1994/Electronic
 | Part           | Technology                | Responsibility                                                                                                                        |
 | -------------- | ------------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
 | Main process   | Electron, TypeScript      | Windows, menus, settings, security policy, update check, starting and restarting the engine                                           |
-| Renderer       | React, TypeScript         | The user interface. It has no access to Node.js or the file system                                                                    |
+| Renderer       | React, TypeScript, WebGL2 | The user interface and the 2D view. It has no access to Node.js or the file system                                                    |
 | Preload script | TypeScript                | The only bridge: a small, typed API (`window.ew`)                                                                                     |
 | Engine host    | Electron `utilityProcess` | Loads the native engine and serves requests                                                                                           |
 | Engine         | Rust (`crates/ew-*`)      | Data model (`ew-model`), file format (`ew-format`), sessions, transactions, undo and journal (`ew-core`); later all design algorithms |
@@ -45,9 +45,38 @@ the files are described in the [file format reference](../reference/file-format)
 | `ew-model`  | Data types: project, documents, objects, units, layers                          |
 | `ew-format` | JSON layout, schema versions and migrations, atomic saves, validation, archives |
 | `ew-synth`  | Synthetic reference designs for tests and [benchmarks](./benchmarks)            |
+| `ew-scene`  | Render scenes for the 2D view: primitives, texts and the object table           |
 | `ew-core`   | Sessions, transactions, undo/redo, journal, events, RPC                         |
 | `ew-node`   | Node-API bridge for the desktop app                                             |
 | `ew-cli`    | The `ewerk` command-line tool                                                   |
+
+## 2D rendering
+
+The [2D view](../guide/viewer) splits the work between the engine and the
+GPU, as recorded in
+[ADR-0003: 2D rendering engine](https://github.com/Ujap1994/ElectronicWerk/blob/main/docs/adr/0003-2d-rendering.md):
+
+1. `view.scene` (crate `ew-scene`) converts a sheet or board into a **scene**:
+   per layer, instanced primitives (line segments, arcs, discs and rings,
+   rounded rectangles, triangle meshes) and texts, plus a table of every
+   selectable object with its bounding box, parent, net and id. Footprints and
+   symbols are placed, pads expanded, polygons triangulated, and the
+   primitives of each layer sorted along a Z-order curve and grouped into
+   chunks of 1,024 with bounding boxes.
+2. The scene arrives as one binary buffer next to the JSON metadata. The
+   renderer uploads it to the GPU as it is.
+3. Every frame, the renderer draws the visible chunks of each layer with one
+   instanced draw call per kind. Fragment shaders compute the exact shape
+   (signed distance fields), so edges stay sharp at every zoom level.
+   Multisampling turns the edge coverage into anti-aliasing; a depth value
+   per layer makes each pixel blend only once per layer, so layers can be
+   transparent without overlapping shapes darkening each other.
+4. Hit-testing runs in the renderer: a packed R-tree (Flatbush) over the
+   object boxes finds candidates, and exact distance tests on the drawn
+   primitives decide. Selection and hover are a per-object flag texture that
+   the shaders read, so changing the selection never re-uploads geometry.
+5. When the project changes, the view asks for a new scene. Incremental
+   updates follow with the editors.
 
 ## Why a separate engine process?
 

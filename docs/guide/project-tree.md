@@ -44,7 +44,8 @@ do with it:
 | ----------------- | ------------------------------------------------------------------------------------ |
 | Project           | Add sheet, Add board, Add library, Add output job, Show in folder                    |
 | A group           | Add a document of that kind (one board and one rule set per project), Show in folder |
-| A schematic sheet | **Add sub-sheet** (placed on this sheet), Rename, Show in folder, Remove             |
+| A schematic sheet | **Open**, **Add sub-sheet** (placed on this sheet), Rename, Show in folder, Remove   |
+| A board           | **Open**, Rename, Show in folder, Remove                                             |
 | Other documents   | Rename, Show in folder, Remove                                                       |
 | A file            | Show in folder                                                                       |
 
@@ -72,11 +73,13 @@ document back.
 | <kbd>→</kbd>                     | Expand the item, or go to its first child         |
 | <kbd>←</kbd>                     | Collapse the item, or go to its parent            |
 | <kbd>Home</kbd> / <kbd>End</kbd> | First / last item                                 |
+| <kbd>Enter</kbd>                 | Open the selected sheet or board                  |
 | <kbd>F2</kbd>                    | Rename the selected document                      |
 | <kbd>Delete</kbd>                | Remove the selected document (after confirmation) |
 | Context menu key                 | Open the actions of the selected item             |
 
-Double-clicking a group or a sheet with sub-sheets expands or collapses it.
+Double-clicking a sheet or the board opens it in the
+[2D view](./viewer); double-clicking a group expands or collapses it.
 
 ## Project properties
 

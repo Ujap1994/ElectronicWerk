@@ -8,13 +8,13 @@ An open-source ECAD suite for beginners and advanced hobbyists. It covers
 schematic, symbol, footprint and layout editing, a live 3D view, ERC/DRC,
 manufacturing outputs, online part search, GitHub integration and a full CLI.
 
-> **Status:** early development. Version 0.2 adds projects (wizard, project
-> tree, native file format, undo, autosave and crash recovery) to the
-> application foundation; the editors follow milestone by milestone. See the
-> [roadmap](ROADMAP.md) for milestones and progress.
+> **Status:** early development. Version 0.3 adds a fast 2D view for
+> schematics and boards to projects (wizard, project tree, native file format,
+> undo, autosave and crash recovery); the editors follow milestone by
+> milestone. See the [roadmap](ROADMAP.md) for milestones and progress.
 
 <p align="center">
-  <img src="docs/public/screenshots/workspace-light.png" width="800" alt="A project open in ElectronicWerk">
+  <img src="docs/public/screenshots/viewer-pad-selected.png" width="800" alt="A board in the ElectronicWerk 2D view with a selected pad and its properties">
 </p>
 
 **[Documentation](https://ujap1994.github.io/ElectronicWerk/)** ·
@@ -28,6 +28,10 @@ manufacturing outputs, online part search, GitHub integration and a full CLI.
   tree, project properties and text variables
 - **Never lose work:** unlimited undo/redo, an autosave journal of every
   change, crash recovery and atomic saves
+- A fast **2D view** for schematic sheets and boards, drawn by the graphics
+  card: smooth pan and zoom (60 fps on a board with 5,000 parts), layers with
+  colours and opacity, view from the bottom, click/box/lasso selection and a
+  property inspector
 - An open, **git-friendly file format**: readable JSON, one object per line,
   with schema versions and migrations
 - A **CLI** (`ewerk`) to create, inspect, check and archive projects, and a

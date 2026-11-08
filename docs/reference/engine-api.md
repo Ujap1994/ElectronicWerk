@@ -284,6 +284,99 @@ Labels of built-in commands: `add-document`, `add-sheet`, `remove-document`,
 `rename-document`, `set-document-properties`, `set-project-properties`,
 `apply` (default of `edit.apply`), `recover`.
 
+## View
+
+The methods behind the [2D view](../guide/viewer). They only read the
+project.
+
+### `view.scene`
+
+| Parameter  | Type   | Meaning                                                                                                                    |
+| ---------- | ------ | -------------------------------------------------------------------------------------------------------------------------- |
+| `doc`      | UUID   | A schematic sheet or board                                                                                                 |
+| `encoding` | string | `base64` (default): `data` is the buffer in base64; `none`: `data` is `null` (metadata only)                               |
+| `labels`   | object | Optional title block labels in the UI language: `file`, `size`, `date`, `revision` (default `File`, `Size`, `Date`, `Rev`) |
+
+Returns everything the view draws for the document. The metadata is JSON;
+the primitives are one little-endian binary buffer (`data`). The desktop app
+receives the buffer as raw bytes instead of base64.
+
+```console
+$ ewerk rpc
+{"id":1,"method":"project.open","params":{"path":"LED Blinker"}}
+{"id":2,"method":"view.scene","params":{"doc":"0a64e4a4-…","encoding":"none"}}
+{"id":2,"result":{"kind":"pcb","name":"LED Blinker","origin":[40000000,25000000],"stats":{"objects":412,"segments":731,…},…}}
+```
+
+| Field         | Content                                                                                                                  |
+| ------------- | ------------------------------------------------------------------------------------------------------------------------ |
+| `doc`, `kind` | Document id; `pcb` or `schematic`                                                                                        |
+| `origin`      | Every coordinate in the buffer is relative to this point (nm), so f32 keeps full precision near the design               |
+| `bounds`      | Bounding box of everything drawn `[minX, minY, maxX, maxY]` (absolute nm)                                                |
+| `home`        | The area to fit on open: the board outline or the page                                                                   |
+| `page`        | Page size of a sheet `[width, height]`                                                                                   |
+| `grid`        | Grid spacing from the project settings                                                                                   |
+| `chunk`       | Instances per culling chunk (1,024)                                                                                      |
+| `font`        | Text metrics relative to the text size: `advance` per character, `linePitch`                                             |
+| `layers`      | One entry per layer, in panel order (see below)                                                                          |
+| `objectTypes` | Names of the object types (`track`, `via`, `footprint`, `pad`, `symbol`, `pin`, …), indexed by type code                 |
+| `objects`     | Byte offsets of the object table: `types` (u8), `parents`, `children`, `nets` (u32), `boxes` (4 × f32), `ids` (16 bytes) |
+| `nets`        | Net names, indexed by net number                                                                                         |
+| `stats`       | Counts of objects and primitives, and the buffer size `bytes`                                                            |
+| `data`        | The buffer (base64) or `null`                                                                                            |
+
+A layer has a `key` (`cu.top`, `silk.bottom`, `holes`, `sch.wires`, …), a
+`group`, a `side`, an optional stack-up `name`, its draw order `z` in the top
+view and whether it is `visible` by default. Its primitives are sections of
+the buffer with `offset`, `count` and the byte offset of their `chunks`
+(bounding boxes of four f32 per 1,024 instances):
+
+| Section    | Layout per instance (f32 unless noted)                                          |
+| ---------- | ------------------------------------------------------------------------------- |
+| `segments` | start x, y, end x, y, half width, object (u32)                                  |
+| `arcs`     | centre x, y, radius, half width, start angle, sweep (radians), object           |
+| `circles`  | centre x, y, outer radius, inner radius (0 for a disc), object                  |
+| `rects`    | centre x, y, half width, half height, rotation (radians), corner radius, object |
+| `mesh`     | vertices: x, y, object (u32), flags (u32; 1 = hatched); u32 triangle indices    |
+
+`texts` lists the layer's texts as `[text, x, y, size, rotation°, hAlign,
+vAlign, flags, object]`, with alignment −1/0/1 (left/centre/right,
+bottom/centre/top) and flags 1 (mirrored), 2 (bold), 4 (italic). Texts use a
+monospace font: each character advances `font.advance × size`, where `size` is
+the cap height.
+
+The object table lists every selectable object, including pads, pins, sheet
+pins and symbol fields as children of their footprint, symbol or sheet.
+Children carry the id of their parent and their index in `children`; the
+value `0xFFFFFFFF` means "none" in the u32 tables. Primitives without an
+object (the page and the title block) also use `0xFFFFFFFF`.
+
+### `view.object`
+
+`{"doc": "…", "id": "…", "child": {"kind": "pad", "index": 0}}` (`child` only
+for pads, footprint texts, pins, fields and sheet pins). Returns the
+properties shown in the inspector:
+
+```json
+{
+  "type": "pad",
+  "id": "4f0c3b2e-…",
+  "title": "U8-1",
+  "rows": [
+    { "key": "number", "value": "1", "kind": "text" },
+    { "key": "net", "value": "N00045", "kind": "net" },
+    { "key": "position", "value": [15238000, 37700000], "kind": "point" },
+    { "key": "size", "value": [1550000, 600000], "kind": "size" },
+    { "key": "layers", "value": ["cu.top", "mask.top", "paste.top"], "kind": "layers" }
+  ]
+}
+```
+
+`kind` tells clients how to show the value: `text`, `length` (nm), `point`,
+`size`, `angle` (degrees), `bool`, `layer`, `layers`, `net`, `enum` (a
+camelCase name such as `throughHole`) or `count`. Positions of pads and pins
+are absolute. An unknown object fails with `notFound`.
+
 ## Engine
 
 ### `engine.info`

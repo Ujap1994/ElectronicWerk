@@ -266,13 +266,16 @@ Created synthetic M design: /home/lab/demo-m/Synthetic M.ewproj
 ewerk bench [--size S|M|L|XL] [--json]
 ```
 
-Generates a design in a temporary folder and measures opening and saving it
+Generates a design in a temporary folder and measures opening, saving and building the board scene
 (best of three runs).
 
 ```console
 $ ewerk bench --size L
-L design: open 137 ms, save 310 ms (best of 3)
+L design: open 142 ms, save 304 ms, board scene 40 ms (587730 primitives) (best of 3)
 ```
+
+The board scene is what the [2D view](../guide/viewer) gets from the engine
+(see [`view.scene`](./engine-api#view-scene)).
 
 ### `ewerk info`
 
