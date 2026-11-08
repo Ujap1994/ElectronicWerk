@@ -323,6 +323,7 @@ name = "ew-core"
 version = "0.3.0"
 dependencies = [
  "ew-format",
+ "ew-kicad",
  "ew-model",
  "ew-scene",
  "ew-synth",
@@ -347,6 +348,17 @@ dependencies = [
  "tempfile",
  "thiserror",
  "zip",
+]
+
+[[package]]
+name = "ew-kicad"
+version = "0.3.0"
+dependencies = [
+ "ew-model",
+ "serde",
+ "serde_json",
+ "tempfile",
+ "thiserror",
 ]
 
 [[package]]

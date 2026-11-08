@@ -1,0 +1,22 @@
+[package]
+name = "ew-kicad"
+description = "ElectronicWerk KiCad import: S-expression parser, symbols, footprints, schematics, boards, projects and netlists"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+publish = false
+
+[dependencies]
+ew-model.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+thiserror.workspace = true
+
+[dev-dependencies]
+tempfile.workspace = true
+
+[lints]
+workspace = true
