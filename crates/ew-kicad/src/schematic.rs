@@ -162,11 +162,8 @@ fn field_placement(
     let fx = if mirror { -fx } else { fx };
     let (sin, cos) = symbol_angle.to_radians().sin_cos();
     let offset = (fx * cos - fy * sin, fx * sin + fy * cos);
-    let turn = if ((field_angle + symbol_angle) / 90.0)
-        .round()
-        .rem_euclid(2.0)
-        == 1.0
-    {
+    let quarters = ((field_angle + symbol_angle) / 90.0).round() as i64;
+    let turn = if quarters.rem_euclid(2) == 1 {
         90.0
     } else {
         0.0
