@@ -130,7 +130,7 @@ select {
 
 .start__actions {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
   gap: var(--space-4);
   margin: 0 0 var(--space-8);
   padding: 0;
