@@ -2,6 +2,8 @@
   "config": {
     "default": true,
     "MD013": false,
+    // Keep a Changelog repeats "Added", "Fixed", … under every version.
+    "MD024": { "siblings_only": true },
     "MD033": {
       "allowed_elements": ["img", "p", "br", "picture", "source", "a", "details", "summary", "kbd"],
     },

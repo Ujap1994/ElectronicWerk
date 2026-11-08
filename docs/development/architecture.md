@@ -21,14 +21,33 @@ with [ADR-0001: Application architecture](https://github.com/Ujap1994/Electronic
                      ewerk CLI ──────────► Rust engine (ew-core)
 ```
 
-| Part           | Technology                | Responsibility                                                                              |
-| -------------- | ------------------------- | ------------------------------------------------------------------------------------------- |
-| Main process   | Electron, TypeScript      | Windows, menus, settings, security policy, update check, starting and restarting the engine |
-| Renderer       | React, TypeScript         | The user interface. It has no access to Node.js or the file system                          |
-| Preload script | TypeScript                | The only bridge: a small, typed API (`window.ew`)                                           |
-| Engine host    | Electron `utilityProcess` | Loads the native engine and serves requests                                                 |
-| Engine         | Rust (`crates/ew-core`)   | Data model, commands and, later, all design algorithms                                      |
-| CLI            | Rust (`crates/ew-cli`)    | The same engine for terminals, scripts and AI agents                                        |
+| Part           | Technology                | Responsibility                                                                                                                        |
+| -------------- | ------------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
+| Main process   | Electron, TypeScript      | Windows, menus, settings, security policy, update check, starting and restarting the engine                                           |
+| Renderer       | React, TypeScript         | The user interface. It has no access to Node.js or the file system                                                                    |
+| Preload script | TypeScript                | The only bridge: a small, typed API (`window.ew`)                                                                                     |
+| Engine host    | Electron `utilityProcess` | Loads the native engine and serves requests                                                                                           |
+| Engine         | Rust (`crates/ew-*`)      | Data model (`ew-model`), file format (`ew-format`), sessions, transactions, undo and journal (`ew-core`); later all design algorithms |
+| CLI            | Rust (`crates/ew-cli`)    | The same engine for terminals, scripts and AI agents                                                                                  |
+
+## Projects, transactions and recovery
+
+The engine holds the open project. Every edit is a transaction of reversible
+changes: it can be undone and redone, is appended to an autosave journal on
+disk, and is announced to every window as a change set. If the engine
+process crashes, the app restarts it, reopens the project and replays the
+journal, so no work is lost. The design is recorded in
+[ADR-0002: Data model, file format and transactions](https://github.com/Ujap1994/ElectronicWerk/blob/main/docs/adr/0002-data-model-and-file-format.md);
+the files are described in the [file format reference](../reference/file-format).
+
+| Crate       | Responsibility                                                                  |
+| ----------- | ------------------------------------------------------------------------------- |
+| `ew-model`  | Data types: project, documents, objects, units, layers                          |
+| `ew-format` | JSON layout, schema versions and migrations, atomic saves, validation, archives |
+| `ew-synth`  | Synthetic reference designs for tests and [benchmarks](./benchmarks)            |
+| `ew-core`   | Sessions, transactions, undo/redo, journal, events, RPC                         |
+| `ew-node`   | Node-API bridge for the desktop app                                             |
+| `ew-cli`    | The `ewerk` command-line tool                                                   |
 
 ## Why a separate engine process?
 

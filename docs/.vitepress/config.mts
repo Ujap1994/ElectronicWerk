@@ -35,6 +35,9 @@ export default defineConfig({
       {
         text: 'Using ElectronicWerk',
         items: [
+          { text: 'Projects', link: '/guide/projects' },
+          { text: 'Project tree and properties', link: '/guide/project-tree' },
+          { text: 'Undo, autosave and recovery', link: '/guide/undo-and-recovery' },
           { text: 'Settings', link: '/guide/settings' },
           { text: 'Command palette', link: '/guide/command-palette' },
           { text: 'Updates', link: '/guide/updates' },
@@ -47,6 +50,7 @@ export default defineConfig({
         items: [
           { text: 'Command-line tool (ewerk)', link: '/reference/cli' },
           { text: 'Engine API', link: '/reference/engine-api' },
+          { text: 'File format', link: '/reference/file-format' },
         ],
       },
       {
@@ -54,6 +58,7 @@ export default defineConfig({
         items: [
           { text: 'Architecture', link: '/development/architecture' },
           { text: 'Building from source', link: '/development/building' },
+          { text: 'Benchmarks', link: '/development/benchmarks' },
           { text: 'Releases', link: '/development/releases' },
         ],
       },

@@ -22,13 +22,16 @@ hero:
 features:
   - icon: 📁
     title: One project for everything
-    details: Like Altium Designer and KiCad, a project holds schematics, PCB, libraries, rules and output jobs. (Planned for v0.2.)
+    details: Like Altium Designer and KiCad, a project holds schematics, PCB, libraries, rules and output jobs, organised in a project tree.
   - icon: ⚡
     title: Fast and stable engine
     details: The design engine is written in Rust and runs in its own process. If it ever crashes, it restarts on its own and the window stays open.
+  - icon: 🛟
+    title: Never lose work
+    details: Unlimited undo, an autosave journal for every change, crash recovery and atomic saves.
   - icon: 🔁
-    title: Open formats and KiCad import
-    details: Text-based, git-friendly project files, plus import of KiCad projects and open standard formats. (Planned.)
+    title: Open, git-friendly files
+    details: Readable JSON with one object per line, so changes diff cleanly. KiCad import and open standard formats follow.
   - icon: 🌐
     title: German and English
     details: The user interface follows your system language and can be switched at any time.
@@ -41,8 +44,9 @@ features:
 ---
 
 ::: warning Early development
-ElectronicWerk is at an early stage. Version 0.1 provides the application
-foundation: the secure app shell, the engine, settings, the update notice and
-the command palette. The editors follow milestone by milestone. See the
+ElectronicWerk is at an early stage. Version 0.2 provides projects on top of
+the application foundation: the project wizard and tree, the native file
+format, undo, autosave and crash recovery. The editors follow milestone by
+milestone. See the
 [roadmap](https://github.com/Ujap1994/ElectronicWerk/blob/main/ROADMAP.md).
 :::

@@ -3,8 +3,7 @@
 `ewerk` is ElectronicWerk's command-line interface. It contains the same engine
 as the desktop app, so everything the engine can do is available in a
 terminal, in scripts, in CI pipelines and to AI agents. The command set grows
-with every milestone; with the project milestone (v0.2) it will create and
-edit projects.
+with every milestone.
 
 ## Installation
 
@@ -22,8 +21,8 @@ Unpack it and move `ewerk` (`ewerk.exe` on Windows) to a folder on your `PATH`,
 for example:
 
 ```sh
-tar -xzf ewerk-0.1.0-linux-x64.tar.gz
-sudo mv ewerk-0.1.0-linux-x64/ewerk /usr/local/bin/
+tar -xzf ewerk-0.2.0-linux-x64.tar.gz
+sudo mv ewerk-0.2.0-linux-x64/ewerk /usr/local/bin/
 ewerk --version
 ```
 
@@ -32,64 +31,206 @@ macOS quarantines downloaded programs. Run
 `xattr -d com.apple.quarantine ewerk` once after unpacking.
 :::
 
-## Global options
+## Overview
 
-| Option            | Effect                                                        |
-| ----------------- | ------------------------------------------------------------- |
-| `-h`, `--help`    | Show help (also per command, for example `ewerk call --help`) |
-| `-V`, `--version` | Print the version                                             |
+| Command                                               | Purpose                                              |
+| ----------------------------------------------------- | ---------------------------------------------------- |
+| [`ewerk project new`](#ewerk-project-new)             | Create a project from a template                     |
+| [`ewerk project info`](#ewerk-project-info)           | Show a summary of a project                          |
+| [`ewerk project validate`](#ewerk-project-validate)   | Check a project for errors                           |
+| [`ewerk project archive`](#ewerk-project-archive)     | Write a ZIP archive of a project                     |
+| [`ewerk project upgrade`](#ewerk-project-upgrade)     | Rewrite a project in the current file format         |
+| [`ewerk project templates`](#ewerk-project-templates) | List the project templates                           |
+| [`ewerk rpc`](#ewerk-rpc)                             | Run an engine session over standard input and output |
+| [`ewerk call`](#ewerk-call-method-params)             | Call one engine method                               |
+| [`ewerk methods`](#ewerk-methods)                     | List every engine method                             |
+| [`ewerk synth`](#ewerk-synth)                         | Generate a synthetic reference design                |
+| [`ewerk bench`](#ewerk-bench)                         | Measure opening and saving a synthetic design        |
+| [`ewerk info`](#ewerk-info)                           | Show information about the engine build              |
 
-## Commands
+Global options: `-h`, `--help` (also per command, for example
+`ewerk project new --help`) and `-V`, `--version`.
 
-### `ewerk info`
+## Projects
 
-Shows information about the engine build.
+`<project>` is a project folder or its `.ewproj` file.
 
-```console
-$ ewerk info
-ElectronicWerk Engine 0.1.0
-Target:  linux-x86_64
-Threads: 16
-Build:   release
+### `ewerk project new`
+
+```text
+ewerk project new <dir> [--name <name>] [--template <id>] [--width <mm>] [--height <mm>]
+                        [--layers <n>] [--thickness <mm>] [--units mm|mil|inch] [--json]
 ```
 
-With `--json`, the same information is printed as JSON for scripts:
+Creates the folder `<dir>` (it must not exist or be empty) with a new project.
+The name defaults to the folder name, the template to `board-2l`.
 
 ```console
-$ ewerk info --json
-{
-  "name": "ElectronicWerk Engine",
-  "version": "0.1.0",
-  "os": "linux",
-  "arch": "x86_64",
-  "threads": 16,
-  "debug": false
-}
+$ ewerk project new "LED Blinker" --template board-2l --width 80 --height 50
+Created /home/lab/LED Blinker/LED Blinker.ewproj
+Project:   LED Blinker
+Revision:  A
+Folder:    /home/lab/LED Blinker
+Documents:
+  schematic  schematics/root.ewsch              0 symbols, 0 wires
+  pcb        pcb/led-blinker.ewpcb              80.000 mm × 50.000 mm, 2 layers, 0 footprints, 0 tracks, 0 vias
+  library    library/project.ewlib              0 symbols, 0 footprints
+  rules      rules/design.ewrules               2 net classes
+  outputJob  outputs/fabrication.ewout          6 outputs
 ```
 
-### `ewerk methods`
+The templates are described in [Projects](../guide/projects#step-2-template).
 
-Lists every engine method, one per line:
+### `ewerk project info`
+
+```text
+ewerk project info <project> [--json]
+```
+
+Prints the summary shown above. With `--json`, the complete project snapshot
+(the result of the engine method `project.open`) is printed. If the project
+has unsaved work from a session that ended unexpectedly, a note says so.
+
+### `ewerk project validate`
+
+```text
+ewerk project validate <project> [--json]
+```
+
+Checks every file and reference and lists the findings. The exit code is `1`
+if there are errors, so the command fits CI pipelines:
 
 ```console
-$ ewerk methods
-engine.info
-engine.methods
-engine.ping
+$ ewerk project validate "LED Blinker"
+5 documents, 1 objects checked: 0 errors, 0 warnings.
+
+$ ewerk project validate Broken
+error   rules/design.ewrules: …: expected value at line 1 column 2 [unreadable-document]
+warning schematics/stray.ewsch: `schematics/stray.ewsch` is not part of the project [unlisted-file]
+3 documents, 0 objects checked: 1 errors, 1 warnings.
+```
+
+| Code (examples)             | Severity | Meaning                                                |
+| --------------------------- | -------- | ------------------------------------------------------ |
+| `unreadable-document`       | error    | A file is missing, unreadable or not valid             |
+| `duplicate-id`              | error    | Two objects share an id                                |
+| `sheet-cycle`               | error    | A sheet includes itself (directly or indirectly)       |
+| `sheet-target-missing`      | error    | A sheet symbol refers to a missing schematic           |
+| `unknown-net`               | error    | A track, via, zone or pad refers to a missing net      |
+| `layer-not-in-stackup`      | error    | An object is on a copper layer the board does not have |
+| `invalid-via`               | error    | A via's drill is not smaller than its diameter         |
+| `coordinate-out-of-range`   | error    | A coordinate lies outside ±10 m                        |
+| `symbol-not-in-library`     | warning  | A placed symbol is not in a project library            |
+| `no-board-outline`          | warning  | The board has no outline                               |
+| `builtin-variable-shadowed` | warning  | A user variable uses a built-in name                   |
+| `unlisted-file`             | warning  | A native file in the folder is not part of the project |
+| `unplaced-sheet`            | info     | A sheet is not placed in the hierarchy                 |
+
+### `ewerk project archive`
+
+```text
+ewerk project archive <project> [--output <file.zip>]
+```
+
+Writes a ZIP archive with one folder containing the project file, every
+document and the other files of the project folder (without `.ewerk/` and
+generated outputs). The default output is `<name>.zip` next to the project
+folder.
+
+```console
+$ ewerk project archive "LED Blinker"
+Archived 7 files (2945 bytes) to /home/lab/LED Blinker.zip
+```
+
+### `ewerk project upgrade`
+
+```text
+ewerk project upgrade <project>
+```
+
+Rewrites every file in the current file format. Files from older versions are
+backed up to `.ewerk/backup/schema-v<N>/` first.
+
+```console
+$ ewerk project upgrade "LED Blinker"
+Already current; rewrote 6 files in schema version 1.
+```
+
+### `ewerk project templates`
+
+```console
+$ ewerk project templates
+empty            no board
+board-2l         100.000 mm × 100.000 mm, 2 layers
+board-4l         100.000 mm × 100.000 mm, 4 layers
+arduino-shield   68.580 mm × 53.340 mm, 2 layers
+demo             no board
+```
+
+## Engine access
+
+### `ewerk rpc`
+
+```text
+ewerk rpc [--events] [--no-journal]
+```
+
+Runs a **session** with one open project: read one JSON request per line from
+standard input, write one JSON reply per line to standard output. This is how
+scripts and AI agents edit projects step by step, with undo and the autosave
+journal, exactly like the desktop app.
+
+- A request is `{"id": …, "method": "…", "params": …}`; the reply carries the
+  same `id` plus `result` or `error` (see the [Engine API](./engine-api)).
+- `--events` also writes the engine's events as `{"event": …}` lines.
+- `--no-journal` disables the autosave journal (useful for throw-away edits).
+
+```console
+$ ewerk rpc --events
+{"id":1,"method":"project.open","params":{"path":"LED Blinker"}}
+{"id":1,"result":{"name":"LED Blinker","revision":"A", …}}
+{"event":{"type":"project","action":"opened","path":"/home/lab/LED Blinker/LED Blinker.ewproj"}}
+{"id":2,"method":"project.setProperties","params":{"revision":"B"}}
+{"id":2,"result":{"dirty":true,"canUndo":true,"undoLabel":"set-project-properties", …}}
+{"event":{"type":"changed","changeSet":{"cause":"commit", …}}}
+{"id":3,"method":"project.save"}
+{"id":3,"result":{"written":["LED Blinker.ewproj"],"deleted":[], …}}
+```
+
+Example in Python:
+
+```python
+import json, subprocess
+
+engine = subprocess.Popen(["ewerk", "rpc"], stdin=subprocess.PIPE,
+                          stdout=subprocess.PIPE, text=True)
+
+def call(method, params=None, _id=[0]):
+    _id[0] += 1
+    engine.stdin.write(json.dumps({"id": _id[0], "method": method, "params": params}) + "\n")
+    engine.stdin.flush()
+    reply = json.loads(engine.stdout.readline())
+    if "error" in reply:
+        raise RuntimeError(reply["error"]["message"])
+    return reply["result"]
+
+project = call("project.create", {"path": "Sensor", "name": "Sensor", "template": "board-4l"})
+call("project.setProperties", {"variables": {"AUTHOR": "Hardware Lab"}})
+call("project.save")
 ```
 
 ### `ewerk call <method> [params]`
 
-Calls an engine method directly and prints the JSON reply. `params` is a JSON
-value and defaults to `null`. The [Engine API](./engine-api) describes all
-methods.
+Calls one engine method on a fresh engine and prints the JSON reply. `params`
+is a JSON value and defaults to `null`. Because every call starts a new
+engine, use [`ewerk rpc`](#ewerk-rpc) for anything that needs an open project.
 
 ```console
 $ ewerk call engine.ping '{"hello": "world"}'
 {"result":{"echo":{"hello":"world"},"pong":true}}
 
-$ ewerk call engine.unknown
-{"error":{"code":"methodNotFound","message":"unknown method `engine.unknown`"}}
+$ ewerk call project.probe '{"path": "LED Blinker"}'
+{"result":{"exists":true,"hasRecovery":false,"manifestPath":"…/LED Blinker.ewproj","name":"LED Blinker","path":"…","valid":true}}
 ```
 
 ::: tip Quoting on Windows
@@ -97,23 +238,68 @@ In PowerShell, wrap JSON in single quotes and escape inner double quotes:
 `ewerk call engine.ping '{\"hello\": \"world\"}'`.
 :::
 
+### `ewerk methods`
+
+Lists every engine method, one per line (see the [Engine API](./engine-api)).
+
+## Development tools
+
+### `ewerk synth`
+
+```text
+ewerk synth <S|M|L|XL> <dir> [--seed <n>] [--json]
+```
+
+Generates a synthetic, reproducible reference design (see
+[Benchmarks](../development/benchmarks)). The same size and seed always
+produce the same project.
+
+```console
+$ ewerk synth M demo-m
+Created synthetic M design: /home/lab/demo-m/Synthetic M.ewproj
+500 symbols on 6 sheets, 500 footprints (2642 pads), 1000 nets, 20000 tracks, 2440 vias, 2 zones, 4 copper layers (247 ms)
+```
+
+### `ewerk bench`
+
+```text
+ewerk bench [--size S|M|L|XL] [--json]
+```
+
+Generates a design in a temporary folder and measures opening and saving it
+(best of three runs).
+
+```console
+$ ewerk bench --size L
+L design: open 137 ms, save 310 ms (best of 3)
+```
+
+### `ewerk info`
+
+```console
+$ ewerk info
+ElectronicWerk Engine 0.2.0
+Target:  linux-x86_64
+Threads: 16
+Build:   release
+```
+
+With `--json`, the same information is printed as JSON.
+
 ## Exit codes
 
-| Code | Meaning                                                             |
-| ---- | ------------------------------------------------------------------- |
-| `0`  | Success                                                             |
-| `1`  | The engine reported an error, or the parameters were not valid JSON |
-| `2`  | Wrong command-line usage (unknown command or option)                |
+| Code | Meaning                                                                               |
+| ---- | ------------------------------------------------------------------------------------- |
+| `0`  | Success                                                                               |
+| `1`  | The engine reported an error, the project has validation errors, or input was invalid |
+| `2`  | Wrong command-line usage (unknown command or option)                                  |
 
 ## Using `ewerk` in scripts
 
-The JSON output works well with tools such as `jq`:
-
 ```sh
-threads=$(ewerk info --json | jq .threads)
-echo "The engine may use $threads threads."
+# Fail a CI job if the project has errors.
+ewerk project validate hardware/ || exit 1
 
-if ewerk call engine.ping > /dev/null; then
-  echo "Engine OK"
-fi
+# Read values with jq.
+ewerk project info hardware/ --json | jq -r '.documents[] | select(.kind=="pcb") | .stats.copperLayers'
 ```
