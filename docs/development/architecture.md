@@ -40,16 +40,17 @@ journal, so no work is lost. The design is recorded in
 [ADR-0002: Data model, file format and transactions](https://github.com/Ujap1994/ElectronicWerk/blob/main/docs/adr/0002-data-model-and-file-format.md);
 the files are described in the [file format reference](../reference/file-format).
 
-| Crate       | Responsibility                                                                  |
-| ----------- | ------------------------------------------------------------------------------- |
-| `ew-model`  | Data types: project, documents, objects, units, layers                          |
-| `ew-format` | JSON layout, schema versions and migrations, atomic saves, validation, archives |
-| `ew-synth`  | Synthetic reference designs for tests and [benchmarks](./benchmarks)            |
-| `ew-scene`  | Render scenes for the 2D view: primitives, texts and the object table           |
-| `ew-kicad`  | KiCad import: S-expression parser, projects, libraries, netlists, import report |
-| `ew-core`   | Sessions, transactions, undo/redo, journal, events, RPC                         |
-| `ew-node`   | Node-API bridge for the desktop app                                             |
-| `ew-cli`    | The `ewerk` command-line tool                                                   |
+| Crate        | Responsibility                                                                  |
+| ------------ | ------------------------------------------------------------------------------- |
+| `ew-model`   | Data types: project, documents, objects, units, layers                          |
+| `ew-format`  | JSON layout, schema versions and migrations, atomic saves, validation, archives |
+| `ew-synth`   | Synthetic reference designs for tests and [benchmarks](./benchmarks)            |
+| `ew-scene`   | Render scenes for the 2D view: primitives, texts and the object table           |
+| `ew-kicad`   | KiCad import: S-expression parser, projects, libraries, netlists, import report |
+| `ew-library` | Base library: SQLite/FTS5 index, fingerprints, deduplication, library packs     |
+| `ew-core`    | Sessions, transactions, undo/redo, journal, events, RPC                         |
+| `ew-node`    | Node-API bridge for the desktop app                                             |
+| `ew-cli`     | The `ewerk` command-line tool                                                   |
 
 ## 2D rendering
 
@@ -133,3 +134,22 @@ The [KiCad import](../guide/import-kicad) is a one-way conversion in the crate
 4. The engine creates a new project from the result (`import.kicad`), adds
    libraries (`import.library`) or compares and applies netlists
    (`import.netlist`) as undoable transactions.
+
+## Base library
+
+The [base library](../guide/library) is recorded in
+[ADR-0005: Base library and deduplication](https://github.com/Ujap1994/ElectronicWerk/blob/main/docs/adr/0005-base-library.md):
+
+1. `ew-library` reads sources (KiCad folders and tessellated meshes) into
+   source-independent entries with fingerprints, groups exact duplicates,
+   near duplicates and aliases, and writes a SQLite index with an FTS5
+   full-text index.
+2. The engine's `library.*` methods search the index, build preview scenes
+   with `ew-scene`, record review decisions and copy parts into a project.
+   Builds run in a background thread and report progress as events.
+3. STEP models are tessellated to GLB with OpenCASCADE (WebAssembly): in
+   bulk by `apps/desktop/scripts/tessellate.ts` for library releases, and on
+   demand in a worker thread of the engine host. The renderer shows them with
+   three.js.
+4. Library releases are built by the **Library** workflow and downloaded by
+   the main process (see [Building the base library](./library)).

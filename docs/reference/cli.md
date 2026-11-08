@@ -33,23 +33,29 @@ macOS quarantines downloaded programs. Run
 
 ## Overview
 
-| Command                                               | Purpose                                              |
-| ----------------------------------------------------- | ---------------------------------------------------- |
-| [`ewerk project new`](#ewerk-project-new)             | Create a project from a template                     |
-| [`ewerk project info`](#ewerk-project-info)           | Show a summary of a project                          |
-| [`ewerk project validate`](#ewerk-project-validate)   | Check a project for errors                           |
-| [`ewerk project archive`](#ewerk-project-archive)     | Write a ZIP archive of a project                     |
-| [`ewerk project upgrade`](#ewerk-project-upgrade)     | Rewrite a project in the current file format         |
-| [`ewerk project templates`](#ewerk-project-templates) | List the project templates                           |
-| [`ewerk import kicad`](#ewerk-import-kicad)           | Import a KiCad project as a new project              |
-| [`ewerk import library`](#ewerk-import-library)       | Add a KiCad library to a project library             |
-| [`ewerk import netlist`](#ewerk-import-netlist)       | Compare a netlist with a board, or apply it          |
-| [`ewerk rpc`](#ewerk-rpc)                             | Run an engine session over standard input and output |
-| [`ewerk call`](#ewerk-call-method-params)             | Call one engine method                               |
-| [`ewerk methods`](#ewerk-methods)                     | List every engine method                             |
-| [`ewerk synth`](#ewerk-synth)                         | Generate a synthetic reference design                |
-| [`ewerk bench`](#ewerk-bench)                         | Measure opening and saving a synthetic design        |
-| [`ewerk info`](#ewerk-info)                           | Show information about the engine build              |
+| Command                                                 | Purpose                                              |
+| ------------------------------------------------------- | ---------------------------------------------------- |
+| [`ewerk project new`](#ewerk-project-new)               | Create a project from a template                     |
+| [`ewerk project info`](#ewerk-project-info)             | Show a summary of a project                          |
+| [`ewerk project validate`](#ewerk-project-validate)     | Check a project for errors                           |
+| [`ewerk project archive`](#ewerk-project-archive)       | Write a ZIP archive of a project                     |
+| [`ewerk project upgrade`](#ewerk-project-upgrade)       | Rewrite a project in the current file format         |
+| [`ewerk project templates`](#ewerk-project-templates)   | List the project templates                           |
+| [`ewerk import kicad`](#ewerk-import-kicad)             | Import a KiCad project as a new project              |
+| [`ewerk import library`](#ewerk-import-library)         | Add a KiCad library to a project library             |
+| [`ewerk import netlist`](#ewerk-import-netlist)         | Compare a netlist with a board, or apply it          |
+| [`ewerk library build`](#ewerk-library-build)           | Build the base library from KiCad libraries          |
+| [`ewerk library info`](#ewerk-library-info)             | Show what the base library contains                  |
+| [`ewerk library search`](#ewerk-library-search)         | Search the base library                              |
+| [`ewerk library duplicates`](#ewerk-library-duplicates) | Print the deduplication report                       |
+| [`ewerk library pack`](#ewerk-library-pack)             | Write library packs for a library release            |
+| [`ewerk library install`](#ewerk-library-install)       | Install a library pack                               |
+| [`ewerk rpc`](#ewerk-rpc)                               | Run an engine session over standard input and output |
+| [`ewerk call`](#ewerk-call-method-params)               | Call one engine method                               |
+| [`ewerk methods`](#ewerk-methods)                       | List every engine method                             |
+| [`ewerk synth`](#ewerk-synth)                           | Generate a synthetic reference design                |
+| [`ewerk bench`](#ewerk-bench)                           | Measure opening and saving a synthetic design        |
+| [`ewerk info`](#ewerk-info)                             | Show information about the engine build              |
 
 Global options: `-h`, `--help` (also per command, for example
 `ewerk project new --help`) and `-V`, `--version`.
@@ -247,6 +253,133 @@ Run with --apply to change 1 pads.
 
 With `--json`, the result of the engine method
 [`import.netlist`](./engine-api#import-netlist) is printed.
+
+## Library
+
+The library commands work on the [base library](../guide/library). Every
+command takes these options:
+
+| Option        | Meaning                                                                                                                                                   |
+| ------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `--dir <dir>` | The library folder. Default: `EW_LIBRARY_DIR`, or the app's library folder (`<config>/ElectronicWerk/library`), so the CLI and the app share one library. |
+| `--json`      | Print machine-readable JSON (the result of the engine method).                                                                                            |
+
+### `ewerk library build`
+
+```text
+ewerk library build [--kicad <dir>] [--symbols <dir>] [--footprints <dir>] [--models <dir>]
+                    [--meshes <dir>] [--version <text>] [--license-file <file>] [--dir <dir>] [--json]
+```
+
+Builds the library from KiCad libraries and replaces the current index (your
+[duplicate decisions](../guide/duplicates) are kept and applied again).
+`--kicad` takes a KiCad installation or a folder with the library
+repositories and finds the symbol, footprint and 3D model folders in it;
+`--symbols`, `--footprints` and `--models` name them one by one. `--meshes`
+adds tessellated 3D models (`<Library>.3dshapes/<name>.glb`, made by the
+[tessellator](../development/library#tessellating-the-3d-models)).
+
+```console
+$ ewerk library build --kicad kicad --meshes meshes --version demo
+Built in 0.0 s
+Library:  /home/lab/.config/ElectronicWerk/library
+Source:   KiCad demo (CC-BY-SA-4.0 WITH KiCad-libraries-exception)
+symbols:  6 (5 shown, the others merged into duplicates)
+footprints:6 (5 shown, the others merged into duplicates)
+models:   4 (3 shown, the others merged into duplicates)
+Groups:   3 exact, 3 near (3 to review), 1 alias
+Meshes:   4
+```
+
+Problems while reading the libraries are listed below the summary, grouped
+by code (for example custom pads that are simplified).
+
+### `ewerk library info`
+
+```text
+ewerk library info [--dir <dir>] [--json]
+```
+
+Prints the same summary as `build`. The exit code is `1` if there is no
+library.
+
+### `ewerk library search`
+
+```text
+ewerk library search <text> [--kind symbol|footprint|model] [--library <name>] [--limit <n>]
+                     [--dir <dir>] [--json]
+```
+
+Searches like the [library manager](../guide/library#searching): every word
+must match the start of a word, words with punctuation are phrases.
+
+```console
+$ ewerk library search 0805 --kind footprint
+footprint Demo:C_0805  Capacitor SMD 0805 (demo)
+footprint Demo:R_0805  Resistor SMD 0805 (demo)
+footprint Demo:R_0805_Wide  Resistor SMD 0805, wider pad spacing (demo)
+3 matches in 0.2 ms
+```
+
+### `ewerk library duplicates`
+
+```text
+ewerk library duplicates [--markdown] [--dir <dir>]
+```
+
+Prints the [deduplication report](../guide/duplicates#the-deduplication-report)
+with the current decisions, as JSON or (with `--markdown`) as Markdown:
+
+```console
+$ ewerk library duplicates --markdown
+# Library deduplication report
+
+Tolerance for near duplicates: 0.050 mm
+
+| Kind | Entries | Exact groups | Near groups | Alias groups | Merged | Pending review |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| symbol | 6 | 1 | 1 | 1 | 1 | 1 |
+| footprint | 6 | 1 | 1 | 0 | 1 | 1 |
+| model | 4 | 1 | 1 | 0 | 1 | 1 |
+
+## Exact duplicates
+
+- **Demo:R** (symbol, merge): same name and drawing
+  - Demo_Copy:R
+…
+```
+
+### `ewerk library pack`
+
+```text
+ewerk library pack <out> [--prefix <text>] [--name <text>] [--version <text>] [--dir <dir>] [--json]
+```
+
+Writes the [library packs](../development/library#packs) of the library to
+`<out>`: the index pack, one mesh pack per 3D library and `manifest.json`
+with the size and SHA-256 checksum of every pack. File names start with
+`--prefix` (default `ewerk-library`).
+
+```console
+$ ewerk library pack packs --prefix ewerk-library-demo --name "Demo library" --version demo
+Wrote 2 packs (0.0 MB) and manifest.json to packs
+```
+
+### `ewerk library install`
+
+```text
+ewerk library install <pack> [--dir <dir>] [--json]
+```
+
+Installs a pack: an index pack replaces the index (after checking that it
+opens), a mesh pack adds its meshes to the mesh cache (each checked against
+its name, which is its content hash). A damaged pack is refused and the
+library stays as it was.
+
+```console
+$ ewerk library install packs/ewerk-library-demo-meshes-Demo.zip
+Installed: index unchanged, 3 meshes
+```
 
 ## Engine access
 

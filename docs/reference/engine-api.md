@@ -467,6 +467,149 @@ Each entry of `differences` is `{"reference", "pin", "expected", "actual",
 if none), and whether the netlist leaves the pin unconnected while the board
 connects it.
 
+## Library
+
+The [base library](../guide/library) lives in its own folder: `EW_LIBRARY_DIR`
+if set (the desktop app sets it to `<userData>/library`), otherwise
+`<config>/ElectronicWerk/library`. Methods other than `library.status`,
+`library.open`, `library.detect` and `library.build` fail with `notFound`
+until a library is installed.
+
+### `library.status`
+
+Returns `{"dir", "installed", "building", "status"}`. `building` is
+`{"stage", "done", "total"}` while a build runs (stages `symbols`,
+`footprints`, `models`, `index`), else `null`. `status` describes the index:
+`path`, `format`, `sources` (`name`, `version`, `license`, `url`), `counts`
+and `visible` entries per kind (`symbol`, `footprint`, `model`), `groups` per
+class (`exact`, `near`, `alias`), `pending` near groups, `meshes`, `bytes`
+and the `release` the index was downloaded from.
+
+### `library.open`
+
+`{"dir": "…"}`. Uses another library folder (closes the current index).
+
+### `library.detect`
+
+Lists KiCad installations of this computer with libraries: `[{"path",
+"symbols", "footprints", "models"}]`.
+
+### `library.build`
+
+| Parameter | Type    | Meaning                                                                                                                                                                                                            |
+| --------- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `sources` | array   | Sources, highest priority first: `{"kicad"}` (an installation or a folder with the library repositories) and/or `{"symbols", "footprints", "models", "meshes"}`, plus optional `name`, `version`, `license`, `url` |
+| `license` | string  | License text, written as `LICENSE.md`                                                                                                                                                                              |
+| `wait`    | boolean | Build within the request (scripts). Default: build in the background                                                                                                                                               |
+
+A background build returns `{"started": true}` at once and reports through
+events (see below); searches keep using the old index until the new one is
+ready. With `wait`, the result is `{"status", "problems"}`. Review decisions
+are kept.
+
+### `library.search`
+
+| Parameter         | Type     | Meaning                                         |
+| ----------------- | -------- | ----------------------------------------------- |
+| `text`            | string   | Search text (empty: browse by library and name) |
+| `kind`            | string   | `symbol`, `footprint` or `model`                |
+| `libraries`       | string[] | Only these libraries                            |
+| `mounting`        | string   | Footprints: `smd`, `tht` or `other`             |
+| `withModel`       | boolean  | Footprints with a 3D model only                 |
+| `duplicates`      | boolean  | Entries in a duplicate group only               |
+| `includeMerged`   | boolean  | Also entries merged into another one            |
+| `offset`, `limit` | number   | Paging (`limit` at most 500)                    |
+
+Returns `{"total", "items", "elapsedMs"}`. Each item: `id`, `kind`,
+`library`, `name`, `description`, `value`, `package`, `pins`, `mounting`,
+`mergedInto` (the id of the entry it is merged into, or `null`) and `groups`
+(the number of duplicate groups it belongs to).
+
+### `library.facets`
+
+`{"kind": "footprint"}`. The libraries of a kind with their number of
+visible entries: `[{"library", "count"}]`.
+
+### `library.get`
+
+`{"id": 42}`. Everything about an entry: the search fields plus `keywords`,
+`mpn`, `manufacturer`, `datasheet`, `params`, `units`, `size` (mm), `model`
+(the model key of a footprint, `Library/Name`), `modelId`, `file`,
+`sourceFile` (the STEP file on this computer, if known), `mesh` (the GLB
+content hash of a model), `aliases` (merged entries), `duplicateGroups`,
+`source` and `definition` (the full symbol or footprint in the
+[file format](./file-format)).
+
+### `library.preview`
+
+`{"id": 42, "unit": 1}`. The 2D scene of a symbol (one unit) or footprint, in
+the same form as `view.scene` (the desktop app receives the
+buffer separately). 3D models have no 2D preview (`invalidParams`).
+
+### `library.groups`
+
+| Parameter         | Type   | Meaning                                 |
+| ----------------- | ------ | --------------------------------------- |
+| `kind`            | string | Only this kind                          |
+| `class`           | string | `exact`, `near` or `alias`              |
+| `decision`        | string | `merge`, `separate` or `pending`        |
+| `offset`, `limit` | number | Paging (default limit 100, at most 500) |
+
+Returns `{"total", "groups"}`; each group has `key`, `kind`, `class`,
+`reason`, `decision`, `canonical` (the id of the shown entry) and `members`
+(`id`, `name`), best first.
+
+### `library.decide`
+
+`{"key": "…", "decision": "merge", "canonical": 42}`. Records a review
+decision (also in `decisions.json`) and returns the group. `canonical` sets
+the shown entry. Emits a `changed` event.
+
+### `library.report`
+
+`{"format": "markdown"}` or JSON (default). The deduplication report as a
+string.
+
+### `library.install`
+
+`{"file": "…", "release": "library-…", "remove": true}`. Installs a pack (see
+[Building the base library](../development/library#packs)). `release` is
+stored with an index pack; `remove` deletes the pack afterwards. Returns
+`{"installed": {"index", "meshes"}, "status"}` and emits `changed`.
+
+### `library.mesh`
+
+`{"hash": "…"}`. Where the GLB file of a mesh hash is cached:
+`{"path", "exists"}`.
+
+### `library.add`
+
+`{"ids": [42, 43], "doc": "…", "footprints": true}`. Copies symbols and
+footprints into a library of the open project (default: the first one), as
+one undoable step (`add-from-library`). With `footprints` (default), the
+default footprints of the symbols are copied too, if the base library has
+them. Returns `{"symbols", "footprints", "skipped", "history"}`.
+
+### Library events
+
+| Event                                                                     | When                                               |
+| ------------------------------------------------------------------------- | -------------------------------------------------- |
+| `{"type": "library", "action": "progress", "stage", "done", "total"}`     | During a background build (at most every 200 ms)   |
+| `{"type": "library", "action": "built", "seconds", "status", "problems"}` | A background build finished; the new index is open |
+| `{"type": "library", "action": "failed", "message"}`                      | A background build failed; the old index stays     |
+| `{"type": "library", "action": "changed"}`                                | A decision or an installation changed the index    |
+
+### Meshes in the desktop app
+
+The desktop app's engine host answers two more methods itself (they are not
+part of the Rust engine):
+
+- `mesh.load` `{"hash"}` returns the cached GLB file of a mesh hash as
+  `{"data"}` (bytes), or `notFound`.
+- `mesh.tessellate` `{"file"}` converts an absolute STEP path to GLB in a
+  worker thread (OpenCASCADE) and caches it by path, size and time; returns
+  `{"data", "cached"}`.
+
 ## Engine
 
 ### `engine.info`

@@ -4,6 +4,8 @@
  * demo data is shown, so the images are safe to publish.
  */
 import { cpSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { execFileSync } from 'node:child_process';
+import { homedir } from 'node:os';
 import { join, resolve } from 'node:path';
 
 import { expect, test, type Locator, type Page } from '@playwright/test';
@@ -599,5 +601,140 @@ test('kicad import', async () => {
     clip: { x: 0, y: 40, width: 480, height: 480 },
   });
   await page.keyboard.press('Escape');
+  await close();
+});
+
+// --- Library manager ----------------------------------------------------------
+
+const LIBRARY_FIXTURES = resolve(
+  import.meta.dirname,
+  '../../../../crates/ew-library/tests/fixtures',
+);
+
+/** A library release of the synthetic demo library, made with `ewerk`. */
+function demoLibraryRelease(): string {
+  const work = '/tmp/ElectronicWerk/LibraryRelease';
+  rmSync(work, { recursive: true, force: true });
+  const repo = resolve(import.meta.dirname, '../../../..');
+  const cargo = join(homedir(), '.cargo', 'bin', 'cargo');
+  const ewerk = (...args: string[]): void => {
+    execFileSync(cargo, ['run', '-q', '-p', 'ew-cli', '--', 'library', ...args], { cwd: repo });
+  };
+  ewerk(
+    'build',
+    '--kicad',
+    join(LIBRARY_FIXTURES, 'kicad'),
+    '--meshes',
+    join(LIBRARY_FIXTURES, 'meshes'),
+    '--version',
+    'demo',
+    '--dir',
+    join(work, 'built'),
+  );
+  ewerk(
+    'pack',
+    join(work, 'feed'),
+    '--prefix',
+    'ewerk-library-demo',
+    '--name',
+    'Demo library',
+    '--version',
+    'demo',
+    '--dir',
+    join(work, 'built'),
+  );
+  return join(work, 'feed');
+}
+
+test('library manager', async () => {
+  test.setTimeout(180_000);
+  freshProjects();
+  const { page, close } = await start({
+    settings: { theme: 'light' },
+    libraryFeed: demoLibraryRelease(),
+  });
+  await page.setViewportSize({ width: 1400, height: 860 });
+  await shoot(page.locator('.start__actions'), 'library-start-action');
+
+  // Setting up: download (here from the demo release) or build locally.
+  await page.getByTestId('library').click();
+  await expect(page.getByTestId('library-setup')).toContainText('Demo library');
+  await shoot(page, 'library-setup');
+  await page.getByTestId('library-download').click();
+  await expect(page.getByTestId('library-manager')).toHaveAttribute('data-installed', 'true');
+
+  // Browsing and searching.
+  await page.getByTestId('library-kind-footprint').click();
+  await page.getByTestId('library-search').fill('0805');
+  await page.locator('.library-row[data-name="Demo:R_0805"]').click();
+  await expect(page.getByTestId('library-preview')).toHaveAttribute('data-state', 'ready');
+  await page.mouse.move(10, 840);
+  await page.waitForTimeout(300);
+  await shoot(page, 'library-footprint');
+  await page.getByTestId('library-tab-3d').click();
+  await expect(page.getByTestId('library-model')).toHaveAttribute('data-state', 'ready', {
+    timeout: 60_000,
+  });
+  await page.waitForTimeout(500);
+  await shoot(page, 'library-footprint-3d');
+  await shoot(page.locator('.library-filters'), 'library-filters');
+
+  await page.getByTestId('library-kind-symbol').click();
+  await page.getByTestId('library-search').fill('demo semi');
+  await page.locator('.library-row[data-name="Demo:LM_A"]').click();
+  await expect(page.getByTestId('library-preview')).toHaveAttribute('data-state', 'ready');
+  await page.waitForTimeout(300);
+  await shoot(page, 'library-symbol');
+
+  await page.getByTestId('library-kind-model').click();
+  await page.getByTestId('library-search').fill('');
+  await page.locator('.library-row[data-name="Demo:SOIC-8"]').click();
+  await expect(page.getByTestId('library-model')).toHaveAttribute('data-state', 'ready', {
+    timeout: 60_000,
+  });
+  await page.waitForTimeout(500);
+  await shoot(page, 'library-model');
+
+  // Reviewing duplicates.
+  await page.getByTestId('library-tab-duplicates').click();
+  await page.getByTestId('duplicates-kind').selectOption('footprint');
+  await page.locator('[data-testid="duplicates-list"] .vlist__row').first().click();
+  await expect(page.getByTestId('duplicate-preview').first()).toHaveAttribute(
+    'data-state',
+    'ready',
+  );
+  await page.waitForTimeout(500);
+  await shoot(page, 'library-duplicates');
+  await page.getByTestId('duplicates-kind').selectOption('model');
+  await page.locator('[data-testid="duplicates-list"] .vlist__row').first().click();
+  await expect(page.getByTestId('library-model').first()).toHaveAttribute('data-state', 'ready', {
+    timeout: 60_000,
+  });
+  await page.waitForTimeout(800);
+  await shoot(page, 'library-duplicates-3d');
+
+  await page.getByTestId('library-info-button').click();
+  await shoot(page.getByTestId('library-info'), 'library-info');
+  await page.keyboard.press('Escape');
+  await page.keyboard.press('Escape');
+
+  // Adding a part to the project library.
+  await page.getByTestId('new-project').click();
+  await page.getByTestId('wizard-name').fill('Library Demo');
+  await page.getByTestId('wizard-next').click();
+  await page.getByTestId('template-board-2l').click();
+  await page.getByTestId('wizard-create').click();
+  await page.getByTestId('workspace').waitFor();
+  await shoot(page.locator('.toolbar'), 'library-toolbar');
+  await page.getByTestId('toolbar-library').click();
+  await page.getByTestId('library-tab-browse').click();
+  await page.getByTestId('library-kind-symbol').click();
+  await page.getByTestId('library-search').fill('LM_B');
+  await page.locator('.library-row[data-name="Demo:LM_B"]').click();
+  await expect(page.getByTestId('library-preview')).toHaveAttribute('data-state', 'ready');
+  await page.getByTestId('library-add').click();
+  await expect(page.getByTestId('notice').last()).toContainText('Added 1 symbols');
+  await page.waitForTimeout(300);
+  await shoot(page, 'library-add');
   await close();
 });

@@ -117,6 +117,20 @@ every symbol and footprint library below a folder.
 | A 4-layer, multi-sheet KiCad 10 project (480 nets, about 2,800 pins) | 0.08 s, 480 of 480 nets match |
 | All official KiCad libraries (22,916 symbols, 15,470 footprints)     | 5.6 s, no errors              |
 
+## Base library
+
+| Measurement (Apple M3, release build)                                     | Result                                    |
+| ------------------------------------------------------------------------- | ----------------------------------------- |
+| Build the index from the KiCad 10 libraries (45,643 entries, with meshes) | 6.6 s                                     |
+| Search over the whole library (14 queries × 4 kinds)                      | 0.1–15 ms, slowest `r` (22,250 results)   |
+| Search over 50,000 synthetic entries (CI budget 100 ms)                   | slowest 15 ms                             |
+| Tessellate all 7,257 KiCad STEP models (8 worker threads)                 | 7.4 min, 29 million triangles, 656 MB GLB |
+| Library packs                                                             | index 42 MB, 105 mesh packs 220 MB        |
+
+The search budget runs in CI (`cargo test --release -p ew-library --test
+budgets -- --ignored`); the real libraries are measured locally (see
+[Building the base library](./library#testing)).
+
 ## Micro-benchmarks
 
 [Criterion](https://github.com/bheisler/criterion.rs) benchmarks measure

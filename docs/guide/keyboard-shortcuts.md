@@ -5,6 +5,7 @@
 | Command palette               | <kbd>⌘</kbd>+<kbd>K</kbd>                               | <kbd>Ctrl</kbd>+<kbd>K</kbd>                               |
 | Command palette (alternative) | <kbd>⌘</kbd>+<kbd>Shift</kbd>+<kbd>P</kbd>              | <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>P</kbd>              |
 | Settings                      | <kbd>⌘</kbd>+<kbd>,</kbd>                               | <kbd>Ctrl</kbd>+<kbd>,</kbd>                               |
+| Library                       | <kbd>⌘</kbd>+<kbd>Shift</kbd>+<kbd>L</kbd>              | <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>L</kbd>              |
 | New project                   | <kbd>⌘</kbd>+<kbd>N</kbd>                               | <kbd>Ctrl</kbd>+<kbd>N</kbd>                               |
 | Open project                  | <kbd>⌘</kbd>+<kbd>O</kbd>                               | <kbd>Ctrl</kbd>+<kbd>O</kbd>                               |
 | Save                          | <kbd>⌘</kbd>+<kbd>S</kbd>                               | <kbd>Ctrl</kbd>+<kbd>S</kbd>                               |

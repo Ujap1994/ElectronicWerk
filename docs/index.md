@@ -32,6 +32,9 @@ features:
   - icon: 🛟
     title: Never lose work
     details: Unlimited undo, an autosave journal for every change, crash recovery and atomic saves.
+  - icon: 📚
+    title: One base library
+    details: About 45,000 KiCad symbols, footprints and 3D models, searchable in milliseconds, with 2D and 3D previews. Duplicates are found and merged.
   - icon: 📥
     title: KiCad import
     details: Turn a KiCad 6 to 10 project into an ElectronicWerk project in one step, with a detailed report. Compare and apply netlists from KiCad and CSV.
@@ -50,9 +53,9 @@ features:
 ---
 
 ::: warning Early development
-ElectronicWerk is at an early stage. Version 0.4 imports KiCad projects,
-libraries and netlists, on top of the 2D view and projects with the native
-file format, undo, autosave and crash recovery. The editors follow milestone
-by milestone. See the
+ElectronicWerk is at an early stage. Version 0.5 adds the base library with
+search, previews and duplicate detection, on top of the KiCad import, the 2D
+view and projects with the native file format, undo, autosave and crash
+recovery. The editors follow milestone by milestone. See the
 [roadmap](https://github.com/Ujap1994/ElectronicWerk/blob/main/ROADMAP.md).
 :::
