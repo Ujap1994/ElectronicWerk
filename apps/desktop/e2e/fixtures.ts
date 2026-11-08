@@ -1,5 +1,5 @@
 import { spawnSync } from 'node:child_process';
-import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 
@@ -34,6 +34,11 @@ export interface LaunchOptions {
   readonly updateFeed?: unknown;
   /** Default folder for new projects (a fresh temporary folder if omitted). */
   readonly projectsDir?: string;
+  /**
+   * Folder with a library `manifest.json` and packs, used instead of GitHub
+   * (an empty folder by default: no library release).
+   */
+  readonly libraryFeed?: string;
 }
 
 /** A GitHub API release object for tests. */
@@ -65,6 +70,9 @@ export async function launchApp(options: LaunchOptions = {}): Promise<LaunchedAp
   writeFileSync(feedFile, typeof feed === 'string' ? feed : JSON.stringify(feed));
 
   const projectsDir = options.projectsDir ?? mkdtempSync(join(tmpdir(), 'ew-projects-'));
+  // Tests never contact GitHub for library releases either.
+  const libraryFeed = options.libraryFeed ?? join(userDataDir, 'library-feed');
+  mkdirSync(libraryFeed, { recursive: true });
   const app = await electron.launch({
     // Start the app folder (not the script) so the version comes from package.json.
     args: [APP_DIR],
@@ -80,6 +88,7 @@ export async function launchApp(options: LaunchOptions = {}): Promise<LaunchedAp
       EW_UPDATE_FEED: feedFile,
       EW_UPDATE_DELAY_MS: '0',
       EW_PROJECTS_DIR: projectsDir,
+      EW_LIBRARY_FEED: libraryFeed,
       ELECTRON_RENDERER_URL: '',
     },
   });

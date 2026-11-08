@@ -13,6 +13,7 @@ export default defineConfig({
         input: {
           index: resolve(import.meta.dirname, 'src/main/index.ts'),
           'engine-host': resolve(import.meta.dirname, 'src/engine-host/index.ts'),
+          'mesh-worker': resolve(import.meta.dirname, 'src/engine-host/mesh-worker.ts'),
         },
       },
     },

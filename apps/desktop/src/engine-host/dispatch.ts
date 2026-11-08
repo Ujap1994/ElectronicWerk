@@ -22,6 +22,9 @@ export function takeEvents(engine: NativeEngine): unknown[] {
 
 const METHOD_PATTERN = /^[a-z][\w.]{0,127}$/u;
 
+/** Methods whose reply carries a binary buffer (`data`). */
+const BINARY_METHODS = new Set(['view.scene', 'library.preview']);
+
 /**
  * Validates one request from the UI, forwards it to the native engine and
  * returns the reply. Returns `null` for messages without a usable id.
@@ -39,7 +42,7 @@ export function handleRequest(engine: NativeEngine, data: unknown): EngineReply 
   }
   try {
     const request = JSON.stringify(params === undefined ? { method } : { method, params });
-    if (method === 'view.scene') {
+    if (BINARY_METHODS.has(method)) {
       // The scene's primitives travel as a binary buffer next to the JSON
       // metadata; the renderer hands them to the GPU without parsing.
       const { reply: json, data } = engine.dispatchBinary(request);

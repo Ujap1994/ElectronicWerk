@@ -68,6 +68,12 @@ const api: EwApi = {
     takePendingOpen: () => ipcRenderer.invoke(IPC.pendingOpen),
     onOpenPath: (listener) => subscribe(IPC.openPath, listener),
   },
+  library: {
+    latest: () => ipcRenderer.invoke(IPC.libraryLatest),
+    release: (tag) => ipcRenderer.invoke(IPC.libraryRelease, tag),
+    download: (tag, file) => ipcRenderer.invoke(IPC.libraryDownload, tag, file),
+    onProgress: (listener) => subscribe(IPC.libraryProgress, listener),
+  },
   window: {
     setState: (state) => {
       ipcRenderer.send(IPC.windowState, state);

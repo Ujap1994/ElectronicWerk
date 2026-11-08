@@ -10,6 +10,7 @@ import { SettingsDialog } from './components/SettingsDialog';
 import { StartScreen } from './components/StartScreen';
 import { StatusBar } from './components/StatusBar';
 import { UpdateDialog, type UpdateDialogState } from './components/UpdateDialog';
+import { LibraryManager } from './library/LibraryManager';
 import { useProject } from './project/ProjectProvider';
 import { useAppState } from './state';
 
@@ -35,6 +36,13 @@ export function App(): ReactNode {
   const [projectView, setProjectView] = useState(0);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [paletteOpen, setPaletteOpen] = useState(false);
+  const [libraryOpen, setLibraryOpen] = useState(false);
+  const openLibrary = useCallback(() => {
+    setLibraryOpen(true);
+  }, []);
+  const closeLibrary = useCallback(() => {
+    setLibraryOpen(false);
+  }, []);
   const [update, setUpdate] = useState<UpdateDialogState | null>(null);
 
   const checkForUpdates = useCallback(() => {
@@ -58,6 +66,9 @@ export function App(): ReactNode {
             break;
           case 'command-palette':
             setPaletteOpen(true);
+            break;
+          case 'library':
+            setLibraryOpen(true);
             break;
           case 'new-project':
             newProject();
@@ -156,6 +167,11 @@ export function App(): ReactNode {
         run: () => {
           void startKicadImport();
         },
+      },
+      {
+        id: 'open-library',
+        label: 'commands.openLibrary',
+        run: openLibrary,
       },
       ...(project?.documents.some((document) => document.kind === 'pcb') === true
         ? [
@@ -307,6 +323,7 @@ export function App(): ReactNode {
       closeProject,
       importNetlist,
       newProject,
+      openLibrary,
       openProject,
       startKicadImport,
       project,
@@ -324,8 +341,18 @@ export function App(): ReactNode {
 
   return (
     <div className="app">
-      <main className="app__content" data-view={project === null ? 'start' : 'project'}>
-        {project === null ? <StartScreen /> : <ProjectWorkspace projectView={projectView} />}
+      <main
+        className="app__content"
+        data-view={libraryOpen ? 'library' : project === null ? 'start' : 'project'}
+      >
+        <div className="app__view" inert={libraryOpen}>
+          {project === null ? (
+            <StartScreen onOpenLibrary={openLibrary} />
+          ) : (
+            <ProjectWorkspace projectView={projectView} onOpenLibrary={openLibrary} />
+          )}
+        </div>
+        {libraryOpen && <LibraryManager onClose={closeLibrary} />}
       </main>
       <ProjectDialogs />
       <StatusBar

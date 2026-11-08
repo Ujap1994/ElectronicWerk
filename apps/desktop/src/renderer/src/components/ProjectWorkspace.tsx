@@ -46,7 +46,13 @@ function ToolButton({
  * The open project: toolbar, project tree and details. Increasing
  * `projectView` selects the project properties (menu command).
  */
-export function ProjectWorkspace({ projectView }: { readonly projectView: number }): ReactNode {
+export function ProjectWorkspace({
+  projectView,
+  onOpenLibrary,
+}: {
+  readonly projectView: number;
+  readonly onOpenLibrary: () => void;
+}): ReactNode {
   const { t, appInfo } = useAppState();
   const { project, save, undo, redo, validate, archive, closeProject } = useProject();
   const [target, setTarget] = useState<TreeTarget>({ type: 'project' });
@@ -146,6 +152,15 @@ export function ProjectWorkspace({ projectView }: { readonly projectView: number
             onClick={() => {
               void archive();
             }}
+          />
+        </div>
+        <div className="toolbar__group">
+          <ToolButton
+            icon="library"
+            label={t('library.open')}
+            title={`${t('library.open')} (${mod}${appInfo.platform === 'darwin' ? '⇧' : 'Shift+'}L)`}
+            testId="toolbar-library"
+            onClick={onOpenLibrary}
           />
         </div>
         <div className="toolbar__spacer" />

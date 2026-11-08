@@ -127,6 +127,10 @@ export interface ProjectApi {
     kind: 'kicadLibraryFile' | 'kicadLibraryFolder',
     doc?: string,
   ) => Promise<void>;
+  /** Copies base-library entries (and the symbols' footprints) into the project library. */
+  readonly addFromLibrary: (ids: readonly number[], name: string) => Promise<void>;
+  /** Shows a short notice. */
+  readonly notify: (text: string, kind?: Notice['kind']) => void;
 }
 
 const ProjectContext = createContext<ProjectApi | null>(null);
@@ -833,6 +837,26 @@ export function ProjectProvider({ children }: { readonly children: ReactNode }):
     return unsubscribe;
   }, [engine, openProject]);
 
+  const addFromLibrary = useCallback(
+    async (ids: readonly number[], name: string) => {
+      const result = await run('libraryImport.importing', () =>
+        engine.call<{ symbols: number; footprints: number; skipped: number }>(
+          'library.add',
+          { ids },
+          LONG_CALL_MS,
+        ),
+      );
+      if (result !== null) {
+        notify(
+          result.symbols + result.footprints === 0
+            ? t('library.nothingAdded', { name })
+            : t('library.added', { symbols: result.symbols, footprints: result.footprints }),
+        );
+      }
+    },
+    [engine, notify, run, t],
+  );
+
   const value = useMemo<ProjectApi>(
     () => ({
       project,
@@ -873,6 +897,8 @@ export function ProjectProvider({ children }: { readonly children: ReactNode }):
       applyNetlist,
       closeNetlist,
       importLibrary,
+      addFromLibrary,
+      notify,
     }),
     [
       project,
@@ -913,6 +939,8 @@ export function ProjectProvider({ children }: { readonly children: ReactNode }):
       applyNetlist,
       closeNetlist,
       importLibrary,
+      addFromLibrary,
+      notify,
     ],
   );
 

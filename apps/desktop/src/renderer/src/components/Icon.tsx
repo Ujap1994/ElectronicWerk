@@ -41,6 +41,13 @@ const PATHS = {
   eyeOff:
     'M3 3l18 18M10.6 5.1A10.9 10.9 0 0 1 12 5c6.5 0 10 7 10 7a17.6 17.6 0 0 1-3.2 4.2M6.6 6.6A17.4 17.4 0 0 0 2 12s3.5 7 10 7a10.3 10.3 0 0 0 5.4-1.6M9.9 9.9a3 3 0 0 0 4.2 4.2',
   layers: 'M12 3 2 8l10 5 10-5zM2 13l10 5 10-5M2 17.5l10 5 10-5',
+  search: 'M11 18a7 7 0 1 0 0-14 7 7 0 0 0 0 14zM20 20l-4-4',
+  download: 'M12 4v11m0 0-4-4m4 4 4-4M4 19h16',
+  cube: 'M12 3 4 7.5v9L12 21l8-4.5v-9zM4 7.5l8 4.5 8-4.5M12 12v9',
+  duplicate: 'M8 8h12v12H8zM4 16V4h12',
+  merge: 'M6 3v5l6 6v7M18 3v5l-6 6',
+  split: 'M12 3v7l-6 6v5M12 10l6 6v5',
+  copy: 'M9 9h11v11H9zM5 15H4V4h11v1',
 } as const;
 
 export type IconName = keyof typeof PATHS;

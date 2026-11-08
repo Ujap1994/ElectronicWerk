@@ -34,7 +34,17 @@ import {
 import { EngineManager } from './engine';
 import { buildMenu } from './menu';
 import { projectFromArgv } from './open-path';
-import { devServerUrl, paths, testHooksEnabled, testUpdateFeed, updateCheckDelayMs } from './paths';
+import { LIBRARY_TAG } from '@shared/library';
+
+import { LibraryDownloader } from './library';
+import {
+  devServerUrl,
+  paths,
+  testHooksEnabled,
+  testLibraryFeed,
+  testUpdateFeed,
+  updateCheckDelayMs,
+} from './paths';
 import { handleAppScheme, registerAppScheme } from './protocol';
 import { RecentStore } from './recent-store';
 import { createSenderCheck, hardenApp, openExternalSafely } from './security';
@@ -128,6 +138,10 @@ function main(): void {
   const engine = new EngineManager({
     hostPath: paths.engineHost,
     nativeDir: paths.nativeDir(),
+    env: {
+      EW_LIBRARY_DIR: join(app.getPath('userData'), 'library'),
+      EW_OCCT_DIR: paths.occtDir(),
+    },
     onStatus: (status) => {
       sendToWindows(IPC.engineStatusChanged, status);
     },
@@ -387,6 +401,41 @@ function main(): void {
         closeConfirmed = true;
         mainWindow?.close();
       }
+    });
+
+    // --- Library packs --------------------------------------------------
+
+    const feedDir = testLibraryFeed();
+    const library = new LibraryDownloader({
+      dir: join(app.getPath('userData'), 'library'),
+      appVersion: app.getVersion(),
+      ...(feedDir === undefined ? {} : { feedDir }),
+    });
+
+    ipcMain.handle(IPC.libraryLatest, (event) =>
+      isTrustedSender(event.senderFrame) ? library.latest() : null,
+    );
+
+    ipcMain.handle(IPC.libraryRelease, (event, tag: unknown) =>
+      isTrustedSender(event.senderFrame) && typeof tag === 'string' && LIBRARY_TAG.test(tag)
+        ? library.release(tag)
+        : null,
+    );
+
+    ipcMain.handle(IPC.libraryDownload, (event, tag: unknown, file: unknown) => {
+      if (
+        !isTrustedSender(event.senderFrame) ||
+        typeof tag !== 'string' ||
+        typeof file !== 'string'
+      ) {
+        return null;
+      }
+      const sender = event.sender;
+      return library.download(tag, file, (progress) => {
+        if (!sender.isDestroyed()) {
+          sender.send(IPC.libraryProgress, progress);
+        }
+      });
     });
 
     // --- Updates --------------------------------------------------------

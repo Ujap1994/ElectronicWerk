@@ -39,6 +39,13 @@ const ACTIONS: readonly Action[] = [
     availableIn: null,
     icon: <path d="M12 4v11m0 0-4-4m4 4 4-4M4 20h16" />,
   },
+  {
+    id: 'library',
+    title: 'library.open',
+    hint: 'library.openHint',
+    availableIn: null,
+    icon: <path d="M4 4h4v16H4zM10 4h4v16h-4zM16 5l3.5-1 2.5 15.5-3.5 1z" />,
+  },
 ];
 
 function RestartNotice(): ReactNode {
@@ -171,10 +178,11 @@ function RecentProjects(): ReactNode {
   );
 }
 
-export function StartScreen(): ReactNode {
+export function StartScreen({ onOpenLibrary }: { readonly onOpenLibrary: () => void }): ReactNode {
   const { t } = useAppState();
   const { newProject, openProject, startKicadImport } = useProject();
   const run: Readonly<Record<string, () => void>> = {
+    library: onOpenLibrary,
     'new-project': newProject,
     'open-project': () => {
       void openProject();

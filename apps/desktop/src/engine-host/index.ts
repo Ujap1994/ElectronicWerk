@@ -14,6 +14,7 @@ import {
 
 import { findAddon } from './addon';
 import { handleRequest, takeEvents, type NativeEngine } from './dispatch';
+import { handleMeshRequest, isMeshMethod } from './meshes';
 
 const parentPort = process.parentPort;
 
@@ -45,6 +46,15 @@ function start(): void {
 
   // Every window's port; engine events go to all of them.
   const ports = new Set<Electron.MessagePortMain>();
+  const flush = (): void => {
+    for (const engineEvent of takeEvents(engine)) {
+      for (const target of ports) {
+        target.postMessage({ event: engineEvent });
+      }
+    }
+  };
+  // Background work (library builds) produces events between requests.
+  setInterval(flush, 250).unref();
 
   parentPort.on(
     'message',
@@ -62,15 +72,18 @@ function start(): void {
         ports.delete(port);
       });
       port.on('message', (message) => {
+        const data = message.data as { id?: unknown; method?: unknown; params?: unknown } | null;
+        if (data !== null && typeof data.id === 'number' && isMeshMethod(data.method)) {
+          void handleMeshRequest(data.id, String(data.method), data.params).then((reply) => {
+            port.postMessage(reply);
+          });
+          return;
+        }
         const reply: EngineReply | null = handleRequest(engine, message.data);
         if (reply !== null) {
           port.postMessage(reply);
         }
-        for (const engineEvent of takeEvents(engine)) {
-          for (const target of ports) {
-            target.postMessage({ event: engineEvent });
-          }
-        }
+        flush();
       });
       port.start();
     },

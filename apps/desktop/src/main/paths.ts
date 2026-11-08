@@ -1,4 +1,5 @@
-import { join } from 'node:path';
+import { createRequire } from 'node:module';
+import { dirname, join } from 'node:path';
 
 import { app } from 'electron';
 
@@ -14,6 +15,13 @@ export const paths = {
   windowIcon: join(mainDir, '../renderer/favicon.png'),
   /** Dock icon for development runs (packaged macOS apps use the .icns). */
   devDockIcon: join(mainDir, '../../build/icon-macos.png'),
+  /** Directory of OpenCASCADE for WebAssembly (`occt-import-js`), used to tessellate STEP models. */
+  occtDir(): string {
+    if (app.isPackaged) {
+      return join(process.resourcesPath, 'occt');
+    }
+    return dirname(createRequire(import.meta.url).resolve('occt-import-js'));
+  },
   /** Directory that holds the native engine addon (`ew_node.<platform>-<arch>.node`). */
   nativeDir(): string {
     // Development: apps/desktop/native (two levels above out/main).
@@ -36,6 +44,12 @@ export function testHooksEnabled(): boolean {
 export function testUpdateFeed(): string | undefined {
   const file = process.env['EW_UPDATE_FEED'];
   return testHooksEnabled() && file !== undefined && file !== '' ? file : undefined;
+}
+
+/** Test hook: folder with a library `manifest.json` and packs instead of GitHub. */
+export function testLibraryFeed(): string | undefined {
+  const dir = process.env['EW_LIBRARY_FEED'];
+  return testHooksEnabled() && dir !== undefined && dir !== '' ? dir : undefined;
 }
 
 /** Delay before the automatic update check (shorter in tests). */

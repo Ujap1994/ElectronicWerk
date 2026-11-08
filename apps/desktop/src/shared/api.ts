@@ -1,3 +1,4 @@
+import type { LibraryDownloadProgress, LibraryRelease } from './library';
 import type { EngineStatus } from './engine';
 import type { Language } from './i18n';
 import type { RecentState } from './recent';
@@ -36,6 +37,10 @@ export const IPC = {
   closeConfirmed: 'window:close-confirmed',
   openPath: 'app:open-path',
   pendingOpen: 'app:pending-open',
+  libraryLatest: 'library:latest',
+  libraryRelease: 'library:release',
+  libraryDownload: 'library:download',
+  libraryProgress: 'library:download-progress',
 } as const;
 
 /** `window.postMessage` tag used by the preload to hand over the engine port. */
@@ -78,10 +83,11 @@ export type MenuAction =
   | 'project-properties'
   | 'validate'
   | 'check-updates'
-  | 'command-palette';
+  | 'command-palette'
+  | 'library';
 
 /** Why a folder is chosen (sets the dialog title). */
-export type FolderPurpose = 'location' | 'saveAs' | 'saveCopy';
+export type FolderPurpose = 'location' | 'saveAs' | 'saveCopy' | 'library';
 
 /** What kind of file an import dialog asks for. */
 export type ImportKind = 'kicadProject' | 'netlist' | 'kicadLibraryFile' | 'kicadLibraryFolder';
@@ -96,7 +102,7 @@ export function isImportKind(value: unknown): value is ImportKind {
 }
 
 export function isFolderPurpose(value: unknown): value is FolderPurpose {
-  return value === 'location' || value === 'saveAs' || value === 'saveCopy';
+  return value === 'location' || value === 'saveAs' || value === 'saveCopy' || value === 'library';
 }
 
 /** What the window shows; drives the title, menus and the close prompt. */
@@ -162,6 +168,15 @@ export interface EwApi {
     takePendingOpen: () => Promise<string | null>;
     /** Projects opened from the "Open Recent" menu, the OS or a second launch. */
     onOpenPath: (listener: (path: string) => void) => Unsubscribe;
+  };
+  readonly library: {
+    /** The newest library release on GitHub (`null`: none published yet). */
+    latest: () => Promise<LibraryRelease | null>;
+    /** A library release by tag. */
+    release: (tag: string) => Promise<LibraryRelease>;
+    /** Downloads a pack and returns its local path (checked against the manifest). */
+    download: (tag: string, file: string) => Promise<string>;
+    onProgress: (listener: (progress: LibraryDownloadProgress) => void) => Unsubscribe;
   };
   readonly window: {
     setState: (state: WindowState) => void;

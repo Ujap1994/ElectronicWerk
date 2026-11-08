@@ -44,6 +44,7 @@ const FOLDER_TITLES = {
   location: 'dialogs.chooseFolderTitle',
   saveAs: 'dialogs.saveAsTitle',
   saveCopy: 'dialogs.saveCopyTitle',
+  library: 'dialogs.chooseLibraryTitle',
 } as const satisfies Record<FolderPurpose, Parameters<Translate>[0]>;
 
 export async function chooseFolder(

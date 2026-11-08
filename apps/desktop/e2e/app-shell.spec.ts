@@ -30,7 +30,7 @@ test('shows the start screen with a secure, sandboxed renderer', async () => {
   expect(exposure).toEqual({
     hasRequire: false,
     hasProcess: false,
-    api: ['app', 'dialogs', 'engine', 'projects', 'settings', 'updates', 'window'],
+    api: ['app', 'dialogs', 'engine', 'library', 'projects', 'settings', 'updates', 'window'],
   });
   expect(page.url()).toBe('app://bundle/index.html');
 });

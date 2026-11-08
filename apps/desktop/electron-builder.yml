@@ -28,6 +28,10 @@ extraResources:
   - from: native
     to: native
     filter: ['*.node']
+  # OpenCASCADE (WebAssembly, LGPL-2.1) tessellates STEP models in a worker.
+  - from: ../../node_modules/occt-import-js/dist
+    to: occt
+    filter: ['occt-import-js.js', 'occt-import-js.wasm', 'license.*.txt']
 
 asar: true
 npmRebuild: false

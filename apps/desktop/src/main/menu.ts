@@ -156,6 +156,13 @@ export function buildMenu({
           onAction('command-palette');
         },
       },
+      {
+        label: t('menu.library'),
+        accelerator: 'CmdOrCtrl+Shift+L',
+        click: () => {
+          onAction('library');
+        },
+      },
       { type: 'separator' },
       { label: t('menu.actualSize'), role: 'resetZoom' },
       { label: t('menu.zoomIn'), role: 'zoomIn' },

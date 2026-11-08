@@ -18,6 +18,8 @@ export interface EngineManagerOptions {
   readonly hostPath: string;
   /** Directory that contains the native addon. */
   readonly nativeDir: string;
+  /** More environment variables for the engine host. */
+  readonly env?: Readonly<Record<string, string>>;
   /** Called on every status change. */
   readonly onStatus: (status: EngineStatus) => void;
   /** Maximum automatic restarts within `restartWindowMs`. */
@@ -50,6 +52,7 @@ export class EngineManager {
       maxRestarts: 3,
       restartWindowMs: 60_000,
       restartDelayMs: 300,
+      env: {},
       ...options,
     };
   }
@@ -96,7 +99,7 @@ export class EngineManager {
   private spawn(state: 'starting' | 'restarting'): void {
     const child = utilityProcess.fork(this.options.hostPath, [], {
       serviceName: 'ElectronicWerk Engine',
-      env: { ...process.env, EW_NATIVE_DIR: this.options.nativeDir },
+      env: { ...process.env, ...this.options.env, EW_NATIVE_DIR: this.options.nativeDir },
       stdio: 'inherit',
     });
     this.child = child;

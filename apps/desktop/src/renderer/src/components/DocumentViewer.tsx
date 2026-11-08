@@ -11,6 +11,7 @@ import {
 import { formatLength, isEngineEvent, type DocumentSummary, type Units } from '@shared/project';
 
 import { useAppState } from '../state';
+import { useDarkScheme } from '../use-dark-scheme';
 import { zoomPercent } from '../viewer/camera';
 import { ViewerController, type ViewMemory } from '../viewer/controller';
 import { loadCanvasFont } from '../viewer/glyph-atlas';
@@ -30,19 +31,6 @@ export function forgetViewMemories(): void {
 
 /** CSS pixels per millimetre at 100 % zoom (96 dpi). */
 const CSS_PX_PER_MM = 96 / 25.4;
-
-function useDarkScheme(): boolean {
-  return useSyncExternalStore(
-    (listener) => {
-      const query = window.matchMedia('(prefers-color-scheme: dark)');
-      query.addEventListener('change', listener);
-      return () => {
-        query.removeEventListener('change', listener);
-      };
-    },
-    () => window.matchMedia('(prefers-color-scheme: dark)').matches,
-  );
-}
 
 function ToolButton({
   icon,
