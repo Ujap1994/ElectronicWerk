@@ -58,7 +58,7 @@ jobs:
         run: |
           target/release/ewerk library pack dist --prefix "ewerk-library-kicad-$KICAD" \
             --name "KiCad $KICAD" --version "$KICAD" --dir library
-          ls -la dist | head -20
+          find dist -maxdepth 1 -type f | sort | head -20
           du -sh dist
       - name: Release notes
         run: |
