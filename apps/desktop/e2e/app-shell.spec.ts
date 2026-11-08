@@ -4,7 +4,7 @@ import { join } from 'node:path';
 
 import { expect, test } from '@playwright/test';
 
-import { APP_DIR, launchApp, type LaunchedApp } from './fixtures';
+import { APP_DIR, APP_VERSION, launchApp, type LaunchedApp } from './fixtures';
 
 let launched: LaunchedApp;
 
@@ -30,16 +30,17 @@ test('shows the start screen with a secure, sandboxed renderer', async () => {
   expect(exposure).toEqual({
     hasRequire: false,
     hasProcess: false,
-    api: ['app', 'engine', 'settings', 'updates'],
+    api: ['app', 'dialogs', 'engine', 'projects', 'settings', 'updates', 'window'],
   });
   expect(page.url()).toBe('app://bundle/index.html');
 });
 
 test('connects to the Rust engine over the MessagePort', async () => {
+  const version = APP_VERSION;
   const status = launched.page.getByTestId('engine-status');
   await expect(status).toHaveAttribute('data-state', 'ready');
-  await expect(status).toContainText('Engine 0.1.0');
-  await expect(launched.page.getByText('Version 0.1.0')).toBeVisible();
+  await expect(status).toContainText(`Engine ${version}`);
+  await expect(launched.page.getByText(`Version ${version}`)).toBeVisible();
 });
 
 test('follows the theme setting', async () => {

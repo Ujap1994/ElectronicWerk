@@ -1,9 +1,21 @@
-import type { EngineReply } from '@shared/engine';
+import type { EngineApiErrorCode, EngineReply } from '@shared/engine';
 
 /** Functions exported by the native addon (`crates/ew-node`). */
 export interface NativeEngine {
   dispatch: (request: string) => string;
+  /** Events produced since the last call, as a JSON array. */
+  takeEvents: () => string;
   engineVersion: () => string;
+}
+
+/** Collects the pending engine events (never throws). */
+export function takeEvents(engine: NativeEngine): unknown[] {
+  try {
+    const events: unknown = JSON.parse(engine.takeEvents());
+    return Array.isArray(events) ? events : [];
+  } catch {
+    return [];
+  }
 }
 
 const METHOD_PATTERN = /^[a-z][\w.]{0,127}$/u;
@@ -26,8 +38,7 @@ export function handleRequest(engine: NativeEngine, data: unknown): EngineReply 
   try {
     const request = params === undefined ? { method } : { method, params };
     const reply = JSON.parse(engine.dispatch(JSON.stringify(request))) as
-      | { result: unknown }
-      | { error: { code: 'invalidRequest' | 'methodNotFound' | 'invalidParams'; message: string } };
+      { result: unknown } | { error: { code: EngineApiErrorCode; message: string } };
     return 'result' in reply ? { id, result: reply.result } : { id, error: reply.error };
   } catch (error) {
     return {

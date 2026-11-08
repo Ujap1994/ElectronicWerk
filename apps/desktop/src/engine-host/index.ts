@@ -13,7 +13,7 @@ import {
 } from '@shared/engine';
 
 import { findAddon } from './addon';
-import { handleRequest, type NativeEngine } from './dispatch';
+import { handleRequest, takeEvents, type NativeEngine } from './dispatch';
 
 const parentPort = process.parentPort;
 
@@ -43,6 +43,9 @@ function start(): void {
     process.exit(HOST_EXIT_FATAL);
   }
 
+  // Every window's port; engine events go to all of them.
+  const ports = new Set<Electron.MessagePortMain>();
+
   parentPort.on(
     'message',
     (event: { data: MainToHostMessage; ports: Electron.MessagePortMain[] }) => {
@@ -54,10 +57,19 @@ function start(): void {
       if (port === undefined) {
         return;
       }
+      ports.add(port);
+      port.on('close', () => {
+        ports.delete(port);
+      });
       port.on('message', (message) => {
         const reply: EngineReply | null = handleRequest(engine, message.data);
         if (reply !== null) {
           port.postMessage(reply);
+        }
+        for (const engineEvent of takeEvents(engine)) {
+          for (const target of ports) {
+            target.postMessage({ event: engineEvent });
+          }
         }
       });
       port.start();

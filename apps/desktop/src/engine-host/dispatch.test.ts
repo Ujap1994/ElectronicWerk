@@ -1,10 +1,12 @@
+import { mkdtempSync } from 'node:fs';
 import { createRequire } from 'node:module';
+import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 
 import { describe, expect, it } from 'vitest';
 
 import { addonCandidates, findAddon } from './addon';
-import { handleRequest, type NativeEngine } from './dispatch';
+import { handleRequest, takeEvents, type NativeEngine } from './dispatch';
 
 const fakeEngine = (reply: string | Error): NativeEngine => ({
   dispatch: () => {
@@ -13,6 +15,7 @@ const fakeEngine = (reply: string | Error): NativeEngine => ({
     }
     return reply;
   },
+  takeEvents: () => '[]',
   engineVersion: () => '0.0.0',
 });
 
@@ -62,6 +65,18 @@ describe('addonCandidates', () => {
   });
 });
 
+describe('takeEvents', () => {
+  it('parses the event list and survives garbage', () => {
+    const engine = (events: string): NativeEngine => ({
+      ...fakeEngine('{}'),
+      takeEvents: () => events,
+    });
+    expect(takeEvents(engine('[{"type":"project"}]'))).toEqual([{ type: 'project' }]);
+    expect(takeEvents(engine('{}'))).toEqual([]);
+    expect(takeEvents(engine('nope'))).toEqual([]);
+  });
+});
+
 describe('handleRequest (native engine)', () => {
   const addon = findAddon(nativeDir);
 
@@ -79,5 +94,35 @@ describe('handleRequest (native engine)', () => {
 
     const missing = handleRequest(engine, { id: 3, method: 'no.such' });
     expect(missing).toMatchObject({ id: 3, error: { code: 'methodNotFound' } });
+  });
+
+  it('creates, edits and saves a project through the real engine', () => {
+    const engine = createRequire(import.meta.url)(addon ?? '') as NativeEngine;
+    const folder = join(mkdtempSync(join(tmpdir(), 'ew-host-')), 'Demo');
+    const created = handleRequest(engine, {
+      id: 1,
+      method: 'project.create',
+      params: { path: folder, name: 'Demo', template: 'board-2l' },
+    });
+    expect(created).toMatchObject({ id: 1, result: { name: 'Demo' } });
+    expect(takeEvents(engine)).toEqual([
+      { type: 'project', action: 'opened', path: join(folder, 'Demo.ewproj') },
+    ]);
+    const edited = handleRequest(engine, {
+      id: 2,
+      method: 'project.setProperties',
+      params: { revision: 'B' },
+    });
+    expect(edited).toMatchObject({ result: { dirty: true, undoLabel: 'set-project-properties' } });
+    const events = takeEvents(engine);
+    expect(events).toHaveLength(1);
+    expect(events[0]).toMatchObject({ type: 'changed', changeSet: { cause: 'commit' } });
+    expect(handleRequest(engine, { id: 3, method: 'project.save' })).toMatchObject({
+      result: { history: { dirty: false } },
+    });
+    expect(handleRequest(engine, { id: 4, method: 'project.close' })).toMatchObject({
+      result: { closed: true },
+    });
+    takeEvents(engine);
   });
 });

@@ -1,4 +1,4 @@
-import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 
@@ -6,10 +6,17 @@ import { _electron as electron, type ElectronApplication, type Page } from '@pla
 
 export const APP_DIR = resolve(import.meta.dirname, '..');
 
+/** The version of the app under test (from its package.json). */
+export const APP_VERSION = (
+  JSON.parse(readFileSync(join(APP_DIR, 'package.json'), 'utf8')) as { version: string }
+).version;
+
 export interface LaunchedApp {
   readonly app: ElectronApplication;
   readonly page: Page;
   readonly userDataDir: string;
+  /** Default folder for new projects. */
+  readonly projectsDir: string;
   close: () => Promise<void>;
 }
 
@@ -24,6 +31,8 @@ export interface LaunchOptions {
    * as-is, which allows testing broken responses.
    */
   readonly updateFeed?: unknown;
+  /** Default folder for new projects (a fresh temporary folder if omitted). */
+  readonly projectsDir?: string;
 }
 
 /** A GitHub API release object for tests. */
@@ -54,6 +63,7 @@ export async function launchApp(options: LaunchOptions = {}): Promise<LaunchedAp
   const feed = options.updateFeed ?? null;
   writeFileSync(feedFile, typeof feed === 'string' ? feed : JSON.stringify(feed));
 
+  const projectsDir = options.projectsDir ?? mkdtempSync(join(tmpdir(), 'ew-projects-'));
   const app = await electron.launch({
     // Start the app folder (not the script) so the version comes from package.json.
     args: [APP_DIR],
@@ -68,6 +78,7 @@ export async function launchApp(options: LaunchOptions = {}): Promise<LaunchedAp
       EW_TEST_HOOKS: '1',
       EW_UPDATE_FEED: feedFile,
       EW_UPDATE_DELAY_MS: '0',
+      EW_PROJECTS_DIR: projectsDir,
       ELECTRON_RENDERER_URL: '',
     },
   });
@@ -77,11 +88,49 @@ export async function launchApp(options: LaunchOptions = {}): Promise<LaunchedAp
     app,
     page,
     userDataDir,
+    projectsDir,
     close: async () => {
+      // Projects may be open with unsaved changes: skip the prompt.
+      await app
+        .evaluate(({ BrowserWindow }) => {
+          for (const window of BrowserWindow.getAllWindows()) {
+            window.destroy();
+          }
+        })
+        .catch(() => undefined);
       await app.close().catch(() => undefined);
       if (options.userDataDir === undefined) {
         rmSync(userDataDir, { recursive: true, force: true });
       }
+      if (options.projectsDir === undefined) {
+        rmSync(projectsDir, { recursive: true, force: true });
+      }
     },
   };
+}
+
+/** Makes the next native file dialog return `answer` (`null` = cancelled). */
+export async function queueDialogAnswer(
+  app: ElectronApplication,
+  answer: string | null,
+): Promise<void> {
+  await app.evaluate((_electron, value) => {
+    const hooks = (globalThis as { __ewTest?: { queueDialogAnswer: (v: string | null) => void } })
+      .__ewTest;
+    hooks?.queueDialogAnswer(value);
+  }, answer);
+}
+
+/** Creates a project through the wizard and waits for the workspace. */
+export async function createProjectWithWizard(
+  page: Page,
+  name: string,
+  template = 'board-2l',
+): Promise<void> {
+  await page.getByTestId('new-project').click();
+  await page.getByTestId('wizard-name').fill(name);
+  await page.getByTestId('wizard-next').click();
+  await page.getByTestId(`template-${template}`).click();
+  await page.getByTestId('wizard-create').click();
+  await page.getByTestId('workspace').waitFor();
 }

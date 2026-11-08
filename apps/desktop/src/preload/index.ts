@@ -47,6 +47,35 @@ const api: EwApi = {
       ipcRenderer.send(IPC.engineRequestPort);
     },
   },
+  dialogs: {
+    openProject: () => ipcRenderer.invoke(IPC.dialogOpenProject),
+    chooseFolder: (defaultPath, purpose) =>
+      ipcRenderer.invoke(IPC.dialogChooseFolder, defaultPath, purpose),
+    saveArchive: (defaultPath) => ipcRenderer.invoke(IPC.dialogSaveArchive, defaultPath),
+  },
+  projects: {
+    defaultLocation: () => ipcRenderer.invoke(IPC.projectsLocation),
+    recent: () => ipcRenderer.invoke(IPC.recentGet),
+    addRecent: (manifestPath, name) => ipcRenderer.invoke(IPC.recentAdd, manifestPath, name),
+    removeRecent: (manifestPath) => ipcRenderer.invoke(IPC.recentRemove, manifestPath),
+    clearRecent: () => ipcRenderer.invoke(IPC.recentClear),
+    setLastLocation: (folder) => ipcRenderer.invoke(IPC.recentSetLocation, folder),
+    onRecentChanged: (listener) => subscribe(IPC.recentChanged, listener),
+    showInFolder: (path) => {
+      ipcRenderer.send(IPC.showItem, path);
+    },
+    takePendingOpen: () => ipcRenderer.invoke(IPC.pendingOpen),
+    onOpenPath: (listener) => subscribe(IPC.openPath, listener),
+  },
+  window: {
+    setState: (state) => {
+      ipcRenderer.send(IPC.windowState, state);
+    },
+    onCloseRequested: (listener) => subscribe(IPC.closeRequested, listener),
+    confirmClose: () => {
+      ipcRenderer.send(IPC.closeConfirmed);
+    },
+  },
 };
 
 // MessagePorts cannot cross the context bridge as values; hand them over to

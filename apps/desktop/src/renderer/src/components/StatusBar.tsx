@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
 
+import { useProject } from '../project/ProjectProvider';
 import { useAppState } from '../state';
 import { useEngineInfo } from '../use-engine-info';
 
@@ -10,6 +11,7 @@ interface StatusBarProps {
 
 export function StatusBar({ onOpenSettings, onOpenPalette }: StatusBarProps): ReactNode {
   const { t, engineStatus, appInfo } = useAppState();
+  const { project } = useProject();
   const info = useEngineInfo();
 
   let engineText: string;
@@ -46,6 +48,20 @@ export function StatusBar({ onOpenSettings, onOpenPalette }: StatusBarProps): Re
         <span className="status-bar__dot" aria-hidden="true" />
         {engineText}
       </span>
+      {project !== null && (
+        <span
+          className="status-bar__project"
+          title={project.manifestPath}
+          data-testid="status-project"
+        >
+          {t('status.project', { path: project.path })}
+        </span>
+      )}
+      {project?.history.dirty === true && (
+        <span className="status-bar__dirty" data-testid="status-dirty">
+          {t('status.unsaved')}
+        </span>
+      )}
       <span className="status-bar__spacer" />
       <span className="status-bar__version">
         {t('status.appVersion', { version: appInfo.version })}

@@ -33,8 +33,25 @@ export interface EngineRequest {
   readonly params?: unknown;
 }
 
-export type EngineErrorCode =
-  'invalidRequest' | 'methodNotFound' | 'invalidParams' | 'hostError' | 'disconnected' | 'timeout';
+/** Error codes of the engine API (see crates/ew-core/src/error.rs). */
+export type EngineApiErrorCode =
+  | 'invalidRequest'
+  | 'methodNotFound'
+  | 'invalidParams'
+  | 'noProject'
+  | 'projectOpen'
+  | 'unsavedChanges'
+  | 'recoveryPending'
+  | 'conflict'
+  | 'notFound'
+  | 'alreadyExists'
+  | 'ioError'
+  | 'formatError'
+  | 'newerFormat'
+  | 'internal';
+
+/** Engine errors plus problems outside the engine (host and transport). */
+export type EngineErrorCode = EngineApiErrorCode | 'hostError' | 'disconnected' | 'timeout';
 
 export interface EngineErrorBody {
   readonly code: EngineErrorCode;
@@ -56,6 +73,15 @@ export type MainToHostMessage = { readonly type: 'connect' } | { readonly type: 
 
 /** Exit code the host uses for unrecoverable setup errors (no restart). */
 export const HOST_EXIT_FATAL = 78;
+
+/** An event pushed by the engine host to every window. */
+export interface EngineEventMessage {
+  readonly event: unknown;
+}
+
+export function isEngineEventMessage(value: unknown): value is EngineEventMessage {
+  return typeof value === 'object' && value !== null && 'event' in value && !('id' in value);
+}
 
 export function isEngineReply(value: unknown): value is EngineReply {
   if (typeof value !== 'object' || value === null) {

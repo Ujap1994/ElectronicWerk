@@ -1,8 +1,9 @@
 import { Menu, type MenuItemConstructorOptions } from 'electron';
 
-import type { MenuAction } from '@shared/api';
+import type { MenuAction, WindowState } from '@shared/api';
 import { DOCS_URL, PROJECT_URL } from '@shared/links';
 import type { Translate } from '@shared/i18n';
+import type { RecentProject } from '@shared/recent';
 
 import { openExternalSafely } from './security';
 
@@ -12,10 +13,36 @@ export interface MenuOptions {
   readonly isPackaged: boolean;
   readonly onAction: (action: MenuAction) => void;
   readonly onAbout: () => void;
+  readonly state: WindowState;
+  readonly recent: readonly RecentProject[];
+  readonly onOpenRecent: (manifestPath: string) => void;
+  readonly onClearRecent: () => void;
 }
 
 /** Builds the translated application menu. */
-export function buildMenu({ t, isMac, isPackaged, onAction, onAbout }: MenuOptions): Menu {
+export function buildMenu({
+  t,
+  isMac,
+  isPackaged,
+  onAction,
+  onAbout,
+  state,
+  recent,
+  onOpenRecent,
+  onClearRecent,
+}: MenuOptions): Menu {
+  const action = (
+    label: string,
+    command: MenuAction,
+    extra: Partial<MenuItemConstructorOptions> = {},
+  ): MenuItemConstructorOptions => ({
+    label,
+    click: () => {
+      onAction(command);
+    },
+    ...extra,
+  });
+  const open = state.projectOpen;
   const updatesItem: MenuItemConstructorOptions = {
     label: t('menu.checkForUpdates'),
     click: () => {
@@ -51,11 +78,38 @@ export function buildMenu({ t, isMac, isPackaged, onAction, onAbout }: MenuOptio
       ]
     : [];
 
+  const recentItems: MenuItemConstructorOptions[] =
+    recent.length === 0
+      ? [{ label: t('menu.noRecent'), enabled: false }]
+      : [
+          ...recent.map((project): MenuItemConstructorOptions => ({
+            label: project.name === '' ? project.manifestPath : project.name,
+            sublabel: project.manifestPath,
+            toolTip: project.manifestPath,
+            click: () => {
+              onOpenRecent(project.manifestPath);
+            },
+          })),
+          { type: 'separator' },
+          { label: t('menu.clearRecent'), click: onClearRecent },
+        ];
+
   const fileMenu: MenuItemConstructorOptions = {
     label: t('menu.file'),
     submenu: [
-      { label: t('menu.newProject'), accelerator: 'CmdOrCtrl+N', enabled: false },
-      { label: t('menu.openProject'), accelerator: 'CmdOrCtrl+O', enabled: false },
+      action(t('menu.newProject'), 'new-project', { accelerator: 'CmdOrCtrl+N' }),
+      action(t('menu.openProject'), 'open-project', { accelerator: 'CmdOrCtrl+O' }),
+      { label: t('menu.openRecent'), submenu: recentItems },
+      { type: 'separator' },
+      action(t('menu.save'), 'save', { accelerator: 'CmdOrCtrl+S', enabled: open }),
+      action(t('menu.saveAs'), 'save-as', { accelerator: 'CmdOrCtrl+Shift+S', enabled: open }),
+      action(t('menu.saveCopy'), 'save-copy', { enabled: open }),
+      action(t('menu.archiveProject'), 'archive', { enabled: open }),
+      { type: 'separator' },
+      action(t('menu.projectProperties'), 'project-properties', { enabled: open }),
+      action(t('menu.validateProject'), 'validate', { enabled: open }),
+      { type: 'separator' },
+      action(t('menu.closeProject'), 'close-project', { enabled: open }),
       ...(isMac
         ? []
         : ([
@@ -70,8 +124,12 @@ export function buildMenu({ t, isMac, isPackaged, onAction, onAbout }: MenuOptio
   const editMenu: MenuItemConstructorOptions = {
     label: t('menu.edit'),
     submenu: [
-      { label: t('menu.undo'), role: 'undo' },
-      { label: t('menu.redo'), role: 'redo' },
+      // Undo/redo go to the renderer: text fields use their own undo, the
+      // project uses the engine history.
+      action(t('menu.undo'), 'undo', { accelerator: 'CmdOrCtrl+Z' }),
+      action(t('menu.redo'), 'redo', {
+        accelerator: isMac ? 'Shift+CmdOrCtrl+Z' : 'CmdOrCtrl+Y',
+      }),
       { type: 'separator' },
       { label: t('menu.cut'), role: 'cut' },
       { label: t('menu.copy'), role: 'copy' },

@@ -2,6 +2,7 @@ import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 
 import { App } from './App';
+import { ProjectProvider } from './project/ProjectProvider';
 import { AppStateProvider } from './state';
 import './styles.css';
 
@@ -18,7 +19,9 @@ async function bootstrap(): Promise<void> {
   createRoot(container).render(
     <StrictMode>
       <AppStateProvider initial={{ appInfo, snapshot, engineStatus }}>
-        <App />
+        <ProjectProvider>
+          <App />
+        </ProjectProvider>
       </AppStateProvider>
     </StrictMode>,
   );

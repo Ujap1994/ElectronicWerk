@@ -32,6 +32,15 @@ extraResources:
 asar: true
 npmRebuild: false
 
+# Double-clicking a project file opens it in ElectronicWerk (installer
+# packages; portable builds cannot register file types).
+fileAssociations:
+  - ext: ewproj
+    name: ElectronicWerk Project
+    description: ElectronicWerk project
+    mimeType: application/x-electronicwerk-project
+    role: Editor
+
 electronFuses:
   runAsNode: false
   enableCookieEncryption: true

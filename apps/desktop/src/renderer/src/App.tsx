@@ -4,14 +4,33 @@ import { DOCS_URL, PROJECT_URL } from '@shared/links';
 
 import type { Command } from './commands';
 import { CommandPalette } from './components/CommandPalette';
+import { ProjectDialogs } from './components/ProjectDialogs';
+import { ProjectWorkspace } from './components/ProjectWorkspace';
 import { SettingsDialog } from './components/SettingsDialog';
 import { StartScreen } from './components/StartScreen';
 import { StatusBar } from './components/StatusBar';
 import { UpdateDialog, type UpdateDialogState } from './components/UpdateDialog';
+import { useProject } from './project/ProjectProvider';
 import { useAppState } from './state';
 
 export function App(): ReactNode {
-  const { updateSettings } = useAppState();
+  const { updateSettings, t } = useAppState();
+  const {
+    project,
+    newProject,
+    openProject,
+    save,
+    saveAs,
+    saveCopy,
+    archive,
+    closeProject,
+    undo,
+    redo,
+    validate,
+    addDocument,
+    showInFolder,
+  } = useProject();
+  const [projectView, setProjectView] = useState(0);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [update, setUpdate] = useState<UpdateDialogState | null>(null);
@@ -28,15 +47,64 @@ export function App(): ReactNode {
   useEffect(
     () =>
       window.ew.app.onMenuAction((action) => {
-        if (action === 'settings') {
-          setSettingsOpen(true);
-        } else if (action === 'check-updates') {
-          checkForUpdates();
-        } else if (action === 'command-palette') {
-          setPaletteOpen(true);
+        switch (action) {
+          case 'settings':
+            setSettingsOpen(true);
+            break;
+          case 'check-updates':
+            checkForUpdates();
+            break;
+          case 'command-palette':
+            setPaletteOpen(true);
+            break;
+          case 'new-project':
+            newProject();
+            break;
+          case 'open-project':
+            void openProject();
+            break;
+          case 'save':
+            void save();
+            break;
+          case 'save-as':
+            void saveAs();
+            break;
+          case 'save-copy':
+            void saveCopy();
+            break;
+          case 'archive':
+            void archive();
+            break;
+          case 'close-project':
+            void closeProject();
+            break;
+          case 'undo':
+            undo();
+            break;
+          case 'redo':
+            redo();
+            break;
+          case 'validate':
+            validate();
+            break;
+          case 'project-properties':
+            setProjectView((count) => count + 1);
+            break;
         }
       }),
-    [checkForUpdates],
+    [
+      archive,
+      checkForUpdates,
+      closeProject,
+      newProject,
+      openProject,
+      redo,
+      save,
+      saveAs,
+      saveCopy,
+      undo,
+      validate,
+    ],
   );
 
   // The automatic startup check reports a new release (now or before the UI was ready).
@@ -68,6 +136,81 @@ export function App(): ReactNode {
 
   const commands = useMemo<Command[]>(
     () => [
+      { id: 'new-project', label: 'commands.newProject', run: newProject },
+      {
+        id: 'open-project',
+        label: 'commands.openProject',
+        run: () => {
+          void openProject();
+        },
+      },
+      ...(project === null
+        ? []
+        : ([
+            {
+              id: 'save-project',
+              label: 'commands.saveProject',
+              run: () => {
+                void save();
+              },
+            },
+            {
+              id: 'save-project-as',
+              label: 'commands.saveProjectAs',
+              run: () => {
+                void saveAs();
+              },
+            },
+            {
+              id: 'save-copy',
+              label: 'commands.saveCopy',
+              run: () => {
+                void saveCopy();
+              },
+            },
+            {
+              id: 'archive-project',
+              label: 'commands.archiveProject',
+              run: () => {
+                void archive();
+              },
+            },
+            { id: 'undo', label: 'commands.undo', run: undo },
+            { id: 'redo', label: 'commands.redo', run: redo },
+            { id: 'validate-project', label: 'commands.validateProject', run: validate },
+            {
+              id: 'project-properties',
+              label: 'commands.projectProperties',
+              run: () => {
+                setProjectView((count) => count + 1);
+              },
+            },
+            {
+              id: 'add-sheet',
+              label: 'commands.addSheet',
+              run: () => {
+                void addDocument(
+                  'schematic',
+                  t('tree.newSheet'),
+                  project.rootSchematic ?? undefined,
+                );
+              },
+            },
+            {
+              id: 'show-project-folder',
+              label: 'commands.showProjectFolder',
+              run: () => {
+                showInFolder();
+              },
+            },
+            {
+              id: 'close-project',
+              label: 'commands.closeProject',
+              run: () => {
+                void closeProject();
+              },
+            },
+          ] satisfies Command[])),
       {
         id: 'open-settings',
         label: 'commands.openSettings',
@@ -133,14 +276,32 @@ export function App(): ReactNode {
         },
       },
     ],
-    [checkForUpdates, updateSettings],
+    [
+      addDocument,
+      archive,
+      checkForUpdates,
+      closeProject,
+      newProject,
+      openProject,
+      project,
+      redo,
+      save,
+      saveAs,
+      saveCopy,
+      showInFolder,
+      t,
+      undo,
+      updateSettings,
+      validate,
+    ],
   );
 
   return (
     <div className="app">
-      <main className="app__content">
-        <StartScreen />
+      <main className="app__content" data-view={project === null ? 'start' : 'project'}>
+        {project === null ? <StartScreen /> : <ProjectWorkspace projectView={projectView} />}
       </main>
+      <ProjectDialogs />
       <StatusBar
         onOpenSettings={() => {
           setSettingsOpen(true);

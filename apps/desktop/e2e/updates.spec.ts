@@ -4,7 +4,7 @@ import { join } from 'node:path';
 
 import { expect, test } from '@playwright/test';
 
-import { fakeRelease, launchApp } from './fixtures';
+import { APP_VERSION, fakeRelease, launchApp } from './fixtures';
 
 const NOTES =
   '## Added\n\n- **Faster** rendering\n- New [guide](https://github.com/Ujap1994/ElectronicWerk#readme)';
@@ -27,7 +27,7 @@ test('announces a newer release at startup and can skip it', async () => {
     const dialog = launched.page.getByTestId('update-dialog');
     await expect(dialog).toBeVisible();
     await expect(dialog).toContainText('ElectronicWerk 9.9.0 is available');
-    await expect(dialog).toContainText('Installed version: 0.1.0');
+    await expect(dialog).toContainText(`Installed version: ${APP_VERSION}`);
     await expect(dialog).toContainText('Released on December 1, 2026');
     await expect(launched.page.getByTestId('update-notes').locator('strong')).toHaveText('Faster');
     await expect(launched.page.getByTestId('update-notes').locator('li')).toHaveCount(2);
@@ -57,13 +57,13 @@ test('announces a newer release at startup and can skip it', async () => {
 });
 
 test('reports "up to date" on a manual check', async () => {
-  const launched = await launchApp({ updateFeed: fakeRelease('0.1.0') });
+  const launched = await launchApp({ updateFeed: fakeRelease(APP_VERSION) });
   try {
     await launched.page.getByTestId('open-settings').click();
     await launched.page.getByTestId('check-updates-now').click();
     const dialog = launched.page.getByTestId('update-dialog');
     await expect(dialog).toContainText('No update available');
-    await expect(dialog).toContainText('ElectronicWerk 0.1.0 is the latest version.');
+    await expect(dialog).toContainText(`ElectronicWerk ${APP_VERSION} is the latest version.`);
   } finally {
     await launched.close();
   }

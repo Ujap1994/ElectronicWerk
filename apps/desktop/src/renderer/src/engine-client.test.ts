@@ -88,4 +88,43 @@ describe('EngineClient', () => {
     vi.advanceTimersByTime(51);
     await expect(call).rejects.toMatchObject({ code: 'timeout' });
   });
+
+  it('forwards engine events to listeners', () => {
+    const client = new EngineClient();
+    const port = new FakePort();
+    client.attach(port);
+    const seen: unknown[] = [];
+    const unsubscribe = client.onEvent((event) => seen.push(event));
+    port.reply({ event: { type: 'project', action: 'opened' } });
+    unsubscribe();
+    port.reply({ event: { type: 'project', action: 'closed' } });
+    expect(seen).toEqual([{ type: 'project', action: 'opened' }]);
+  });
+
+  it('waits for a connection', async () => {
+    const client = new EngineClient();
+    let connected = false;
+    const waiting = client.whenConnected().then(() => {
+      connected = true;
+    });
+    await Promise.resolve();
+    expect(connected).toBe(false);
+    client.attach(new FakePort());
+    await waiting;
+    expect(connected).toBe(true);
+    await expect(client.whenConnected()).resolves.toBeUndefined();
+  });
+
+  it('accepts a per-call timeout', async () => {
+    vi.useFakeTimers();
+    const client = new EngineClient({ timeoutMs: 10 });
+    client.attach(new FakePort());
+    const slow = client.call('project.open', { path: '/x' }, 1_000);
+    vi.advanceTimersByTime(500);
+    const fast = client.call('engine.info');
+    vi.advanceTimersByTime(20);
+    await expect(fast).rejects.toMatchObject({ code: 'timeout' });
+    vi.advanceTimersByTime(1_000);
+    await expect(slow).rejects.toMatchObject({ code: 'timeout' });
+  });
 });
