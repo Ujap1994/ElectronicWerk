@@ -770,7 +770,7 @@ export const de: Messages = {
     reportIntro: '{source} wurde importiert.',
     imported: 'Importiert',
     findings: 'Hinweise',
-    summary: '{errors} Fehler, {warnings} Warnungen, {notes} Hinweise',
+    summary: 'Fehler: {errors} · Warnungen: {warnings} · Hinweise: {notes}',
     noFindings: 'Alles wurde ohne Probleme importiert.',
     showReport: 'Berichtsdatei zeigen',
     severity: {
@@ -839,6 +839,7 @@ export const de: Messages = {
     inNetlist: 'Netzliste',
     onBoard: 'Platine',
     none: '—',
+    unconnected: '{net} (nicht verbunden)',
     missingFootprints: 'Nicht auf der Platine: {list}',
     extraFootprints: 'Nicht in der Netzliste: {list}',
     changes:

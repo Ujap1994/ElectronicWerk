@@ -185,7 +185,13 @@ function ImportReportDialog(): ReactNode {
     report.findings
       .filter((finding) => finding.severity === severity)
       .reduce((sum, finding) => sum + finding.count, 0);
-  const counts = Object.entries(report.counts);
+  // Sheets first, then the board, then the libraries (unknown keys last).
+  const order = Object.keys(COUNT_LABELS);
+  const rank = (key: string): number => {
+    const index = order.indexOf(key);
+    return index === -1 ? order.length : index;
+  };
+  const counts = Object.entries(report.counts).sort(([a], [b]) => rank(a) - rank(b));
   const severityLabel = {
     error: t('import.severity.error'),
     warning: t('import.severity.warning'),
@@ -356,7 +362,13 @@ function NetlistDialog(): ReactNode {
                   <td>
                     {difference.reference}-{difference.pin}
                   </td>
-                  <td>{difference.expected ?? t('netlist.none')}</td>
+                  <td>
+                    {difference.expected === null
+                      ? t('netlist.none')
+                      : difference.unconnected
+                        ? t('netlist.unconnected', { net: difference.expected })
+                        : difference.expected}
+                  </td>
                   <td>{difference.actual ?? t('netlist.none')}</td>
                 </tr>
               ))}

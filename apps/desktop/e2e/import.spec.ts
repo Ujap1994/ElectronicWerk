@@ -36,7 +36,7 @@ test('imports a KiCad project, a netlist and a library', async () => {
   const report = page.getByTestId('import-report');
   await expect(report).toBeVisible();
   await expect(page.getByTestId('import-counts')).toContainText('Footprints');
-  await expect(page.getByTestId('import-summary')).toContainText('0 errors');
+  await expect(page.getByTestId('import-summary')).toContainText('Errors: 0');
   await expect(report).toContainText('Custom design rules are not imported');
   await report.getByRole('button', { name: 'Close', exact: true }).last().click();
   await expect(page.getByTestId('workspace')).toBeVisible();

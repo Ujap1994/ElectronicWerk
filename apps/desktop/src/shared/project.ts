@@ -182,6 +182,8 @@ export interface NetlistComparison {
     readonly pin: string;
     readonly expected: string | null;
     readonly actual: string | null;
+    /** The netlist leaves the pin unconnected, but the board connects it. */
+    readonly unconnected: boolean;
   }[];
 }
 

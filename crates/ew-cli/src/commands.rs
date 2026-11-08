@@ -336,9 +336,14 @@ fn print_netlist(result: &Value, apply: bool, out: &mut impl Write) -> io::Resul
         .flatten()
         .take(50)
     {
+        let unconnected = if difference["unconnected"].as_bool() == Some(true) {
+            " (not connected)"
+        } else {
+            ""
+        };
         writeln!(
             out,
-            "  {}-{}: netlist {} / board {}",
+            "  {}-{}: netlist {}{unconnected} / board {}",
             difference["reference"].as_str().unwrap_or(""),
             difference["pin"].as_str().unwrap_or(""),
             difference["expected"].as_str().unwrap_or("—"),

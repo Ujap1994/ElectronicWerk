@@ -279,6 +279,9 @@ pub struct NodeDifference {
     pub expected: Option<String>,
     /// Net on the board (`None`: no net or no such pad).
     pub actual: Option<String>,
+    /// The netlist leaves the pin unconnected (it is the only node of
+    /// `expected`), but the board connects it.
+    pub unconnected: bool,
 }
 
 /// The result of comparing a netlist with a board.
@@ -388,13 +391,31 @@ pub fn compare(expected: &Netlist, actual: &Netlist) -> Comparison {
                             pin: node.1.clone(),
                             expected: Some(name.clone()),
                             actual: actual_net,
+                            unconnected: false,
                         });
                     }
                 }
             }
         }
     }
-    // A node the netlist leaves unconnected must not be connected on the board.
+    comparison
+        .differences
+        .extend(unconnected_differences(expected, actual, &actual_of));
+    comparison
+        .differences
+        .sort_by(|a, b| (&a.reference, &a.pin).cmp(&(&b.reference, &b.pin)));
+    comparison.differences.dedup();
+    comparison
+}
+
+/// Nodes that the netlist leaves unconnected (single-node nets) but the
+/// board connects to other nodes.
+fn unconnected_differences(
+    expected: &Netlist,
+    actual: &Netlist,
+    actual_of: &BTreeMap<&Node, &String>,
+) -> Vec<NodeDifference> {
+    let mut out = Vec::new();
     for (name, nodes) in expected.nets.iter().filter(|(_, nodes)| nodes.len() == 1) {
         for node in nodes {
             let actual_net = actual_of.get(node).map(|n| (*n).clone());
@@ -403,20 +424,17 @@ pub fn compare(expected: &Netlist, actual: &Netlist) -> Comparison {
                 .and_then(|n| actual.nets.get(n))
                 .is_some_and(|nodes| nodes.len() > 1);
             if connected {
-                comparison.differences.push(NodeDifference {
+                out.push(NodeDifference {
                     reference: node.0.clone(),
                     pin: node.1.clone(),
                     expected: Some(name.clone()),
                     actual: actual_net,
+                    unconnected: true,
                 });
             }
         }
     }
-    comparison
-        .differences
-        .sort_by(|a, b| (&a.reference, &a.pin).cmp(&(&b.reference, &b.pin)));
-    comparison.differences.dedup();
-    comparison
+    out
 }
 
 #[cfg(test)]
@@ -492,7 +510,7 @@ mod tests {
             comparison
                 .differences
                 .iter()
-                .any(|d| d.reference == "C1" && d.pin == "1")
+                .any(|d| d.reference == "C1" && d.pin == "1" && d.unconnected)
         );
         // Missing components.
         let empty = Netlist::default();

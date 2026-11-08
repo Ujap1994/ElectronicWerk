@@ -763,7 +763,7 @@ export const en = {
     reportIntro: 'Imported {source}.',
     imported: 'Imported',
     findings: 'Findings',
-    summary: '{errors} errors, {warnings} warnings, {notes} notes',
+    summary: 'Errors: {errors} · Warnings: {warnings} · Notes: {notes}',
     noFindings: 'Everything was imported without problems.',
     showReport: 'Show the report file',
     severity: {
@@ -831,6 +831,7 @@ export const en = {
     inNetlist: 'Netlist',
     onBoard: 'Board',
     none: '—',
+    unconnected: '{net} (not connected)',
     missingFootprints: 'Not on the board: {list}',
     extraFootprints: 'Not in the netlist: {list}',
     changes: 'Applying the netlist changes the net of {pads} pads and creates {nets} nets.',
