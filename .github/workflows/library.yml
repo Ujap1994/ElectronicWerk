@@ -1,0 +1,116 @@
+name: Library
+
+# Builds the base library from the official KiCad libraries (GitLab) and,
+# when "publish" is ticked, publishes it as a GitHub release
+# `library-kicad-<version>-r<run>`: the index pack, one mesh pack per 3D
+# library and manifest.json. The release is never marked as the latest
+# release, so the app's update check keeps pointing at app releases.
+on:
+  workflow_dispatch:
+    inputs:
+      kicad:
+        description: Tag of the KiCad library repositories (for example 10.0.8)
+        default: '10.0.8'
+      publish:
+        description: Publish the library release (otherwise build only)
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+env:
+  CARGO_TERM_COLOR: always
+  LEFTHOOK: '0'
+  KICAD: ${{ inputs.kicad }}
+
+jobs:
+  build:
+    name: Build the library (KiCad ${{ inputs.kicad }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 240
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - name: Build ewerk
+        run: cargo build --release -p ew-cli
+      - name: Download the KiCad libraries
+        run: |
+          mkdir kicad
+          for pair in symbols:kicad-symbols footprints:kicad-footprints 3dmodels:kicad-packages3D; do
+            git clone --quiet --depth 1 --branch "$KICAD" \
+              "https://gitlab.com/kicad/libraries/${pair#*:}.git" "kicad/${pair%%:*}"
+          done
+          du -sh kicad/*
+      - name: Tessellate the 3D models (STEP → GLB)
+        run: node apps/desktop/scripts/tessellate.ts kicad/3dmodels meshes --jobs 4
+      - name: Build the index
+        run: |
+          target/release/ewerk library build --kicad kicad --meshes meshes \
+            --version "$KICAD" --license-file assets/library/LICENSE.md --dir library
+      - name: Write the packs
+        run: |
+          target/release/ewerk library pack dist --prefix "ewerk-library-kicad-$KICAD" \
+            --name "KiCad $KICAD" --version "$KICAD" --dir library
+          ls -la dist | head -20
+          du -sh dist
+      - name: Release notes
+        run: |
+          {
+            echo "The ElectronicWerk base library, built from the official KiCad libraries $KICAD."
+            echo
+            echo "The app downloads these files itself (**Library** → **Download the KiCad library**);"
+            echo "there is no need to download them by hand."
+            echo
+            target/release/ewerk library info --dir library
+            echo
+            echo "The library data is licensed under CC-BY-SA 4.0 with the KiCad libraries exception"
+            echo "(see LICENSE.md in the index pack). The ElectronicWerk application is MIT-licensed."
+          } > library-notes.md
+          cat library-notes.md
+      - uses: actions/upload-artifact@v7
+        with:
+          name: library-reports
+          path: |
+            dist/manifest.json
+            library/dedup-report.md
+            library/dedup-report.json
+            meshes/tessellate-report.json
+            library-notes.md
+          retention-days: 30
+      - uses: actions/upload-artifact@v7
+        if: inputs.publish
+        with:
+          name: library-packs
+          path: |
+            dist/*
+            library-notes.md
+          retention-days: 3
+
+  publish:
+    name: Publish the library release
+    needs: build
+    if: inputs.publish
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v8
+        with:
+          name: library-packs
+      - name: Create release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "library-kicad-$KICAD-r$GITHUB_RUN_NUMBER" dist/* \
+            --repo "$GITHUB_REPOSITORY" \
+            --target "$GITHUB_SHA" \
+            --title "Base library: KiCad $KICAD" \
+            --notes-file library-notes.md \
+            --latest=false

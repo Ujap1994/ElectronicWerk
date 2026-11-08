@@ -54,6 +54,8 @@ jobs:
       - uses: Swatinem/rust-cache@v2
       - name: Open, save and view the synthetic L design (release build)
         run: cargo test --release -p ew-format -p ew-scene --test budgets -- --ignored --nocapture
+      - name: Search 50,000 library entries (release build)
+        run: cargo test --release -p ew-library --test budgets -- --ignored --nocapture
 
   viewer-benchmark:
     name: Viewer benchmark
