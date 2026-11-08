@@ -19,6 +19,8 @@ export function App(): ReactNode {
     project,
     newProject,
     openProject,
+    startKicadImport,
+    importNetlist,
     save,
     saveAs,
     saveCopy,
@@ -63,6 +65,9 @@ export function App(): ReactNode {
           case 'open-project':
             void openProject();
             break;
+          case 'import-kicad':
+            void startKicadImport();
+            break;
           case 'save':
             void save();
             break;
@@ -93,6 +98,7 @@ export function App(): ReactNode {
         }
       }),
     [
+      startKicadImport,
       archive,
       checkForUpdates,
       closeProject,
@@ -144,6 +150,24 @@ export function App(): ReactNode {
           void openProject();
         },
       },
+      {
+        id: 'import-kicad',
+        label: 'commands.importKicad',
+        run: () => {
+          void startKicadImport();
+        },
+      },
+      ...(project?.documents.some((document) => document.kind === 'pcb') === true
+        ? [
+            {
+              id: 'import-netlist',
+              label: 'commands.importNetlist',
+              run: () => {
+                void importNetlist();
+              },
+            } as const,
+          ]
+        : []),
       ...(project === null
         ? []
         : ([
@@ -281,8 +305,10 @@ export function App(): ReactNode {
       archive,
       checkForUpdates,
       closeProject,
+      importNetlist,
       newProject,
       openProject,
+      startKicadImport,
       project,
       redo,
       save,

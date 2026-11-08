@@ -19,6 +19,9 @@ import {
   type BoardOptions,
   type DocumentKind,
   type FileEntry,
+  type ImportReport,
+  type KicadProbe,
+  type NetlistResult,
   type ProjectSnapshot,
   type TemplateId,
   type TemplateInfo,
@@ -57,6 +60,22 @@ export interface ProjectPrompts {
   readonly remove: { readonly id: string; readonly name: string } | null;
   readonly validation: ValidationReport | 'running' | null;
   readonly wizard: boolean;
+  /** The KiCad import dialog (source file and suggested name). */
+  readonly kicadImport: { readonly source: string; readonly probe: KicadProbe } | null;
+  /** The report of the last KiCad import. */
+  readonly importReport: { readonly report: ImportReport; readonly reportFile: string } | null;
+  /** A netlist compared with the board. */
+  readonly netlist: {
+    readonly source: string;
+    readonly doc: string | null;
+    readonly result: NetlistResult;
+  } | null;
+}
+
+export interface KicadImportOptions {
+  readonly source: string;
+  readonly name: string;
+  readonly location: string;
 }
 
 export interface ProjectApi {
@@ -97,6 +116,17 @@ export interface ProjectApi {
   readonly documentProperties: (doc: string) => Promise<Record<string, unknown> | null>;
   readonly resolveText: (text: string, doc?: string) => Promise<string>;
   readonly showInFolder: (relativePath?: string) => void;
+  readonly startKicadImport: () => Promise<void>;
+  readonly runKicadImport: (options: KicadImportOptions) => Promise<boolean>;
+  readonly closeKicadImport: () => void;
+  readonly closeImportReport: () => void;
+  readonly importNetlist: (doc?: string) => Promise<void>;
+  readonly applyNetlist: () => Promise<void>;
+  readonly closeNetlist: () => void;
+  readonly importLibrary: (
+    kind: 'kicadLibraryFile' | 'kicadLibraryFolder',
+    doc?: string,
+  ) => Promise<void>;
 }
 
 const ProjectContext = createContext<ProjectApi | null>(null);
@@ -125,6 +155,9 @@ const EMPTY_PROMPTS: ProjectPrompts = {
   remove: null,
   validation: null,
   wizard: false,
+  kicadImport: null,
+  importReport: null,
+  netlist: null,
 };
 
 export function ProjectProvider({ children }: { readonly children: ReactNode }): ReactNode {
@@ -439,6 +472,135 @@ export function ProjectProvider({ children }: { readonly children: ReactNode }):
     [adopt, appInfo.platform, engine, run, t],
   );
 
+  const localizedNames = useCallback(
+    () => ({
+      library: t('defaults.library'),
+      rules: t('defaults.rules'),
+      outputJob: t('defaults.outputJob'),
+      outputs: {
+        gerber: t('defaults.outputGerber'),
+        drill: t('defaults.outputDrill'),
+        bom: t('defaults.outputBom'),
+        pickAndPlace: t('defaults.outputPickAndPlace'),
+        pdf: t('defaults.outputPdf'),
+        step: t('defaults.outputStep'),
+      },
+    }),
+    [t],
+  );
+
+  const startKicadImport = useCallback(async () => {
+    const source = await window.ew.dialogs.chooseImport('kicadProject');
+    if (source === null) {
+      return;
+    }
+    const probe = await run(null, () => engine.call<KicadProbe>('import.kicadProbe', { source }));
+    if (probe === null || !(await closeInternal(false))) {
+      return;
+    }
+    setPrompts((current) => ({ ...current, kicadImport: { source, probe } }));
+  }, [closeInternal, engine, run]);
+
+  const closeKicadImport = useCallback(() => {
+    setPrompts((current) => ({ ...current, kicadImport: null }));
+  }, []);
+
+  const runKicadImport = useCallback(
+    async (options: KicadImportOptions): Promise<boolean> => {
+      const path = joinPath(options.location, sanitizeFolderName(options.name), appInfo.platform);
+      const result = await run('import.importing', () =>
+        engine.call<{ project: ProjectSnapshot; report: ImportReport; reportFile: string }>(
+          'import.kicad',
+          { source: options.source, path, name: options.name.trim(), names: localizedNames() },
+          LONG_CALL_MS,
+        ),
+      );
+      if (result === null) {
+        return false;
+      }
+      void window.ew.projects.setLastLocation(options.location);
+      setPrompts((current) => ({
+        ...current,
+        kicadImport: null,
+        importReport: { report: result.report, reportFile: result.reportFile },
+      }));
+      await adopt(result.project);
+      return true;
+    },
+    [adopt, appInfo.platform, engine, localizedNames, run],
+  );
+
+  const closeImportReport = useCallback(() => {
+    setPrompts((current) => ({ ...current, importReport: null }));
+  }, []);
+
+  const importNetlist = useCallback(
+    async (doc?: string) => {
+      const source = await window.ew.dialogs.chooseImport('netlist');
+      if (source === null) {
+        return;
+      }
+      const params = doc === undefined ? { source } : { source, doc };
+      const result = await run('netlist.reading', () =>
+        engine.call<NetlistResult>('import.netlist', params, LONG_CALL_MS),
+      );
+      if (result !== null) {
+        setPrompts((current) => ({ ...current, netlist: { source, doc: doc ?? null, result } }));
+      }
+    },
+    [engine, run],
+  );
+
+  const applyNetlist = useCallback(async () => {
+    const current = prompts.netlist;
+    if (current === null) {
+      return;
+    }
+    const params =
+      current.doc === null
+        ? { source: current.source, apply: true }
+        : { source: current.source, doc: current.doc, apply: true };
+    const result = await run('netlist.applying', () =>
+      engine.call<NetlistResult>('import.netlist', params, LONG_CALL_MS),
+    );
+    if (result !== null) {
+      setPrompts((state) => ({ ...state, netlist: null }));
+      notify(t('netlist.applied', { pads: result.changedPads, nets: result.newNets }));
+    }
+  }, [engine, notify, prompts.netlist, run, t]);
+
+  const closeNetlist = useCallback(() => {
+    setPrompts((current) => ({ ...current, netlist: null }));
+  }, []);
+
+  const importLibrary = useCallback(
+    async (kind: 'kicadLibraryFile' | 'kicadLibraryFolder', doc?: string) => {
+      const source = await window.ew.dialogs.chooseImport(kind);
+      if (source === null) {
+        return;
+      }
+      const params = doc === undefined ? { source } : { source, doc };
+      const result = await run('libraryImport.importing', () =>
+        engine.call<{ symbols: number; footprints: number; report: ImportReport }>(
+          'import.library',
+          params,
+          LONG_CALL_MS,
+        ),
+      );
+      if (result !== null) {
+        const skipped = result.report.findings
+          .filter((finding) => finding.code === 'already-in-library')
+          .reduce((sum, finding) => sum + finding.count, 0);
+        const text = t('libraryImport.added', {
+          symbols: result.symbols,
+          footprints: result.footprints,
+        });
+        notify(skipped > 0 ? `${text} ${t('libraryImport.skipped', { count: skipped })}` : text);
+      }
+    },
+    [engine, notify, run, t],
+  );
+
   const saveTo = useCallback(
     async (purpose: 'saveAs' | 'saveCopy') => {
       const current = projectRef.current;
@@ -703,6 +865,14 @@ export function ProjectProvider({ children }: { readonly children: ReactNode }):
       documentProperties,
       resolveText,
       showInFolder,
+      startKicadImport,
+      runKicadImport,
+      closeKicadImport,
+      closeImportReport,
+      importNetlist,
+      applyNetlist,
+      closeNetlist,
+      importLibrary,
     }),
     [
       project,
@@ -735,6 +905,14 @@ export function ProjectProvider({ children }: { readonly children: ReactNode }):
       documentProperties,
       resolveText,
       showInFolder,
+      startKicadImport,
+      runKicadImport,
+      closeKicadImport,
+      closeImportReport,
+      importNetlist,
+      applyNetlist,
+      closeNetlist,
+      importLibrary,
     ],
   );
 

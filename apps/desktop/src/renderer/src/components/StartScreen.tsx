@@ -36,7 +36,7 @@ const ACTIONS: readonly Action[] = [
     id: 'import-kicad',
     title: 'start.importKicad',
     hint: 'start.importKicadHint',
-    availableIn: 'v0.4',
+    availableIn: null,
     icon: <path d="M12 4v11m0 0-4-4m4 4 4-4M4 20h16" />,
   },
 ];
@@ -173,11 +173,14 @@ function RecentProjects(): ReactNode {
 
 export function StartScreen(): ReactNode {
   const { t } = useAppState();
-  const { newProject, openProject } = useProject();
+  const { newProject, openProject, startKicadImport } = useProject();
   const run: Readonly<Record<string, () => void>> = {
     'new-project': newProject,
     'open-project': () => {
       void openProject();
+    },
+    'import-kicad': () => {
+      void startKicadImport();
     },
   };
   return (

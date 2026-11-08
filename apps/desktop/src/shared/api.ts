@@ -22,6 +22,7 @@ export const IPC = {
   dialogOpenProject: 'dialog:open-project',
   dialogChooseFolder: 'dialog:choose-folder',
   dialogSaveArchive: 'dialog:save-archive',
+  dialogChooseImport: 'dialog:choose-import',
   projectsLocation: 'projects:default-location',
   recentGet: 'recent:get',
   recentAdd: 'recent:add',
@@ -66,6 +67,7 @@ export type MenuAction =
   | 'settings'
   | 'new-project'
   | 'open-project'
+  | 'import-kicad'
   | 'save'
   | 'save-as'
   | 'save-copy'
@@ -80,6 +82,18 @@ export type MenuAction =
 
 /** Why a folder is chosen (sets the dialog title). */
 export type FolderPurpose = 'location' | 'saveAs' | 'saveCopy';
+
+/** What kind of file an import dialog asks for. */
+export type ImportKind = 'kicadProject' | 'netlist' | 'kicadLibraryFile' | 'kicadLibraryFolder';
+
+export function isImportKind(value: unknown): value is ImportKind {
+  return (
+    value === 'kicadProject' ||
+    value === 'netlist' ||
+    value === 'kicadLibraryFile' ||
+    value === 'kicadLibraryFolder'
+  );
+}
 
 export function isFolderPurpose(value: unknown): value is FolderPurpose {
   return value === 'location' || value === 'saveAs' || value === 'saveCopy';
@@ -130,6 +144,8 @@ export interface EwApi {
     chooseFolder: (defaultPath: string, purpose: FolderPurpose) => Promise<string | null>;
     /** Asks where to save a `.zip` archive. */
     saveArchive: (defaultPath: string) => Promise<string | null>;
+    /** Lets the user pick a file (or folder) to import. */
+    chooseImport: (kind: ImportKind) => Promise<string | null>;
   };
   readonly projects: {
     /** Default folder for new projects. */

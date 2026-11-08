@@ -5,6 +5,7 @@ import { useProject } from '../project/ProjectProvider';
 import { useAppState } from '../state';
 import { ConfirmDialog } from './ConfirmDialog';
 import { Icon } from './Icon';
+import { ImportDialogs } from './ImportDialogs';
 import { Modal } from './Modal';
 import { NewProjectWizard } from './NewProjectWizard';
 
@@ -251,6 +252,7 @@ export function ProjectDialogs(): ReactNode {
       <CloseDialog />
       <RemoveDialog />
       <ValidationDialog />
+      <ImportDialogs />
       <Notices />
       {busy !== null && (
         <div className="busy" role="progressbar" aria-label={t(busy)} data-testid="busy">

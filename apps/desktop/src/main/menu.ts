@@ -100,6 +100,7 @@ export function buildMenu({
       action(t('menu.newProject'), 'new-project', { accelerator: 'CmdOrCtrl+N' }),
       action(t('menu.openProject'), 'open-project', { accelerator: 'CmdOrCtrl+O' }),
       { label: t('menu.openRecent'), submenu: recentItems },
+      action(t('menu.importKicad'), 'import-kicad'),
       { type: 'separator' },
       action(t('menu.save'), 'save', { accelerator: 'CmdOrCtrl+S', enabled: open }),
       action(t('menu.saveAs'), 'save-as', { accelerator: 'CmdOrCtrl+Shift+S', enabled: open }),

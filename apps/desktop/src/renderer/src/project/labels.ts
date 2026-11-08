@@ -15,6 +15,8 @@ const HISTORY_LABELS: Readonly<Record<string, MessageKey>> = {
   'set-project-properties': 'history.setProjectProperties',
   apply: 'history.apply',
   recover: 'history.recover',
+  'import-netlist': 'history.importNetlist',
+  'import-library': 'history.importLibrary',
 };
 
 /** A readable name for an undo/redo step (scripts may use their own labels). */

@@ -1,6 +1,6 @@
 import { dialog, type BrowserWindow } from 'electron';
 
-import type { FolderPurpose } from '@shared/api';
+import type { FolderPurpose, ImportKind } from '@shared/api';
 import type { Translate } from '@shared/i18n';
 
 import { testHooksEnabled } from './paths';
@@ -61,6 +61,55 @@ export async function chooseFolder(
     defaultPath,
     properties: ['openDirectory', 'createDirectory', 'promptToCreate'],
   };
+  const result =
+    window === null
+      ? await dialog.showOpenDialog(options)
+      : await dialog.showOpenDialog(window, options);
+  return result.canceled ? null : (result.filePaths[0] ?? null);
+}
+
+const IMPORT_DIALOGS = {
+  kicadProject: {
+    title: 'dialogs.importKicadTitle',
+    filter: 'dialogs.kicadProjectFilter',
+    extensions: ['kicad_pro', 'kicad_sch', 'kicad_pcb'],
+  },
+  netlist: {
+    title: 'dialogs.importNetlistTitle',
+    filter: 'dialogs.netlistFilter',
+    extensions: ['net', 'xml', 'csv', 'txt'],
+  },
+  kicadLibraryFile: {
+    title: 'dialogs.importLibraryTitle',
+    filter: 'dialogs.kicadLibraryFilter',
+    extensions: ['kicad_sym', 'kicad_mod'],
+  },
+  kicadLibraryFolder: {
+    title: 'dialogs.importLibraryFolderTitle',
+    filter: null,
+    extensions: [],
+  },
+} as const;
+
+/** Asks for a file or folder to import. */
+export async function chooseImport(
+  window: BrowserWindow | null,
+  t: Translate,
+  kind: ImportKind,
+): Promise<string | null> {
+  const stub = takeQueued();
+  if (stub !== null) {
+    return stub.answer;
+  }
+  const spec = IMPORT_DIALOGS[kind];
+  const options: Electron.OpenDialogOptions =
+    spec.filter === null
+      ? { title: t(spec.title), properties: ['openDirectory'] }
+      : {
+          title: t(spec.title),
+          properties: ['openFile'],
+          filters: [{ name: t(spec.filter), extensions: [...spec.extensions] }],
+        };
   const result =
     window === null
       ? await dialog.showOpenDialog(options)

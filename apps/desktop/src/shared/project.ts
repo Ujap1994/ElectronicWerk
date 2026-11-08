@@ -145,6 +145,84 @@ export interface ArchiveReport {
   readonly bytes: number;
 }
 
+// --- Imports ----------------------------------------------------------------
+
+export interface ImportFinding {
+  readonly severity: 'info' | 'warning' | 'error';
+  readonly code: string;
+  readonly message: string;
+  readonly file?: string;
+  readonly count: number;
+}
+
+/** The report of `import.kicad` (see crates/ew-kicad/src/report.rs). */
+export interface ImportReport {
+  readonly source: string;
+  readonly versions: Readonly<Record<string, string>>;
+  readonly counts: Readonly<Record<string, number>>;
+  readonly findings: readonly ImportFinding[];
+}
+
+export interface KicadProbe {
+  readonly name: string;
+  readonly folder: string;
+  readonly project: boolean;
+  readonly schematic: boolean;
+  readonly board: boolean;
+}
+
+export interface NetlistComparison {
+  readonly nets: number;
+  readonly nodes: number;
+  readonly matchingNets: number;
+  readonly sameNames: number;
+  readonly missingComponents: readonly string[];
+  readonly differences: readonly {
+    readonly reference: string;
+    readonly pin: string;
+    readonly expected: string | null;
+    readonly actual: string | null;
+  }[];
+}
+
+/** The result of `import.netlist`. */
+export interface NetlistResult {
+  readonly format: 'kicad' | 'xml' | 'csv';
+  readonly nets: number;
+  readonly components: number;
+  readonly comparison: NetlistComparison;
+  readonly changedPads: number;
+  readonly newNets: number;
+  readonly missingFootprints: readonly string[];
+  readonly extraFootprints: readonly string[];
+  readonly applied: boolean;
+}
+
+/** Codes of import findings (crates/ew-kicad). */
+export const IMPORT_CODES: ReadonlySet<string> = new Set([
+  'alternate-body-style',
+  'already-in-library',
+  'chamfered-pad',
+  'custom-pad',
+  'custom-rules',
+  'external-library',
+  'footprint-zone',
+  'missing-parent',
+  'missing-sheet',
+  'missing-symbol',
+  'no-board',
+  'no-designator',
+  'no-project-file',
+  'no-schematic',
+  'reused-sheet',
+  'text-box',
+  'unknown-layer',
+  'unreadable-file',
+  'unsupported-item',
+  'vertical-slot',
+  'zone-layer',
+]);
+
 /** Events the engine streams after each call. */
 export type EngineEvent =
   | {

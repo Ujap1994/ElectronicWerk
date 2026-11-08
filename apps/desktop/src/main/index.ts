@@ -14,6 +14,7 @@ import {
 import {
   IPC,
   isFolderPurpose,
+  isImportKind,
   type AppInfo,
   type MenuAction,
   type SettingsSnapshot,
@@ -23,7 +24,13 @@ import { createTranslator, resolveLanguage, type Translate } from '@shared/i18n'
 import type { RecentState } from '@shared/recent';
 import type { Settings } from '@shared/settings';
 
-import { chooseArchiveFile, chooseFolder, chooseProjectFile, queueDialogAnswer } from './dialogs';
+import {
+  chooseArchiveFile,
+  chooseFolder,
+  chooseImport,
+  chooseProjectFile,
+  queueDialogAnswer,
+} from './dialogs';
 import { EngineManager } from './engine';
 import { buildMenu } from './menu';
 import { projectFromArgv } from './open-path';
@@ -297,6 +304,12 @@ function main(): void {
             typeof defaultPath === 'string' ? defaultPath : '',
             isFolderPurpose(purpose) ? purpose : 'location',
           )
+        : null,
+    );
+
+    ipcMain.handle(IPC.dialogChooseImport, (event, kind: unknown) =>
+      isTrustedSender(event.senderFrame) && isImportKind(kind)
+        ? chooseImport(mainWindow, t, kind)
         : null,
     );
 

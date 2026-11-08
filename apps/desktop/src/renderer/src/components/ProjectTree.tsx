@@ -85,7 +85,16 @@ interface ProjectTreeProps {
 
 export function ProjectTree({ selected, onSelect }: ProjectTreeProps): ReactNode {
   const { t } = useAppState();
-  const { project, files, addDocument, renameDocument, requestRemove, showInFolder } = useProject();
+  const {
+    project,
+    files,
+    addDocument,
+    renameDocument,
+    requestRemove,
+    showInFolder,
+    importNetlist,
+    importLibrary,
+  } = useProject();
   const open = useOpenDocument();
   const [collapsed, setCollapsed] = useState<ReadonlySet<string>>(() => new Set());
   const [renaming, setRenaming] = useState<string | null>(null);
@@ -205,6 +214,24 @@ export function ProjectTree({ selected, onSelect }: ProjectTreeProps): ReactNode
         },
       ];
     };
+    const libraryImports = (doc?: string): MenuAction[] => [
+      {
+        id: 'import-library-file',
+        label: t('libraryImport.file'),
+        icon: 'library',
+        run: () => {
+          void importLibrary('kicadLibraryFile', doc);
+        },
+      },
+      {
+        id: 'import-library-folder',
+        label: t('libraryImport.folder'),
+        icon: 'folder',
+        run: () => {
+          void importLibrary('kicadLibraryFolder', doc);
+        },
+      },
+    ];
     switch (target.type) {
       case 'project':
         return [
@@ -215,7 +242,11 @@ export function ProjectTree({ selected, onSelect }: ProjectTreeProps): ReactNode
           reveal(),
         ];
       case 'group':
-        return [...addFor(target.group), reveal()];
+        return [
+          ...addFor(target.group),
+          ...(target.group === 'libraries' ? libraryImports() : []),
+          reveal(),
+        ];
       case 'document': {
         const { document } = target;
         return [
@@ -231,6 +262,19 @@ export function ProjectTree({ selected, onSelect }: ProjectTreeProps): ReactNode
                 },
               ]
             : []),
+          ...(document.kind === 'pcb'
+            ? [
+                {
+                  id: 'import-netlist',
+                  label: t('tree.importNetlist'),
+                  icon: 'output' as const,
+                  run: () => {
+                    void importNetlist(document.id);
+                  },
+                },
+              ]
+            : []),
+          ...(document.kind === 'library' ? libraryImports(document.id) : []),
           ...(document.kind === 'schematic'
             ? [
                 {
