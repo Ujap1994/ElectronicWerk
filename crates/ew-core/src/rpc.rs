@@ -99,6 +99,8 @@ pub const METHODS: &[&str] = &[
     "project.setProperties",
     "project.templates",
     "project.validate",
+    "view.object",
+    "view.scene",
 ];
 
 /// Transaction labels used by the built-in commands. Clients translate
@@ -226,6 +228,26 @@ struct ValidateParams {
     path: Option<PathBuf>,
 }
 
+/// How `view.scene` returns the binary buffer to JSON clients.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize)]
+#[serde(rename_all = "camelCase")]
+enum SceneEncoding {
+    /// `data` is a base64 string (default).
+    Base64,
+    /// `data` is `null` (only the metadata is wanted).
+    None,
+}
+
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct SceneParams {
+    doc: Id,
+    #[serde(default)]
+    encoding: Option<SceneEncoding>,
+    #[serde(default)]
+    labels: Option<ew_scene::TitleLabels>,
+}
+
 #[derive(Deserialize)]
 #[serde(deny_unknown_fields)]
 struct ResolveParams {
@@ -282,6 +304,40 @@ impl Engine {
             }),
         };
         encode(&response)
+    }
+
+    /// Like [`Engine::dispatch`], but `view.scene` returns its binary buffer
+    /// separately instead of base64 inside the JSON (used by the desktop
+    /// app, which hands the buffer to the GPU as it is).
+    pub fn dispatch_binary(&mut self, request_json: &str) -> (String, Option<Vec<u8>>) {
+        let Ok(request) = serde_json::from_str::<RpcRequest>(request_json) else {
+            return (self.dispatch(request_json), None);
+        };
+        if request.method != "view.scene" {
+            return (encode(&self.handle(&request)), None);
+        }
+        let result = parse::<SceneParams>(&request.params).and_then(|params| self.scene(&params));
+        match result {
+            Ok((meta, data)) => (encode(&Response::Result(meta)), Some(data)),
+            Err(error) => (encode(&Response::Error(error.into())), None),
+        }
+    }
+
+    /// Builds the scene of a document: metadata and binary buffer.
+    fn scene(&self, params: &SceneParams) -> Result<(Value, Vec<u8>), EngineError> {
+        let session = self.open()?;
+        let doc = params.doc;
+        let resolve = |text: &str| session.resolve_text(text, Some(doc));
+        let options = ew_scene::Options {
+            resolve: &resolve,
+            labels: params.labels.clone().unwrap_or_default(),
+        };
+        let scene =
+            ew_scene::build(session.project(), doc, &options).map_err(|error| match error {
+                ew_scene::SceneError::NotFound(_) => EngineError::not_found(error.to_string()),
+                ew_scene::SceneError::NotViewable => EngineError::invalid_params(error.to_string()),
+            })?;
+        Ok((to_value(&scene.meta)?, scene.data))
     }
 
     /// Executes a parsed request.
@@ -343,6 +399,27 @@ impl Engine {
             _ if method.starts_with("project.") => self.call_project(method, params),
             _ if method.starts_with("document.") => self.call_document(method, params),
             _ if method.starts_with("edit.") => self.call_edit(method, params),
+            "view.scene" => {
+                let params: SceneParams = parse(params)?;
+                let (mut meta, data) = self.scene(&params)?;
+                if let Some(object) = meta.as_object_mut() {
+                    let encoded = if params.encoding == Some(SceneEncoding::None) {
+                        Value::Null
+                    } else {
+                        Value::String(ew_scene::base64(&data))
+                    };
+                    object.insert("data".to_owned(), encoded);
+                }
+                Ok(meta)
+            }
+            "view.object" => {
+                let target: ew_scene::ObjectRef = parse(params)?;
+                let session = self.open()?;
+                let info = ew_scene::describe(session.project(), &target).ok_or_else(|| {
+                    EngineError::not_found(format!("no object with id {}", target.id))
+                })?;
+                to_value(&info)
+            }
             other => Err(EngineError::new(
                 ErrorCode::MethodNotFound,
                 format!("unknown method `{other}`"),

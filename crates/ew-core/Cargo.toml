@@ -12,6 +12,7 @@ publish = false
 [dependencies]
 ew-format.workspace = true
 ew-model.workspace = true
+ew-scene.workspace = true
 ew-synth.workspace = true
 serde.workspace = true
 serde_json.workspace = true

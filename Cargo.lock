@@ -274,6 +274,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "914a755b7c2d4af2bdcff7ce1739e2db9a1b81a9b07123d8015786ae03c0980d"
 
 [[package]]
+name = "earcut"
+version = "0.4.12"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "beecb4bee051769371e9fd229b2168782e484bd50fc5f48e9ccce4172a0037d7"
+dependencies = [
+ "num-traits",
+]
+
+[[package]]
 name = "either"
 version = "1.19.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -303,6 +312,7 @@ dependencies = [
  "ew-core",
  "ew-format",
  "ew-model",
+ "ew-scene",
  "ew-synth",
  "serde_json",
  "tempfile",
@@ -314,6 +324,7 @@ version = "0.2.0"
 dependencies = [
  "ew-format",
  "ew-model",
+ "ew-scene",
  "ew-synth",
  "proptest",
  "serde",
@@ -358,6 +369,18 @@ dependencies = [
  "napi-build",
  "napi-derive",
  "serde_json",
+]
+
+[[package]]
+name = "ew-scene"
+version = "0.2.0"
+dependencies = [
+ "earcut",
+ "ew-model",
+ "ew-synth",
+ "serde",
+ "serde_json",
+ "thiserror",
 ]
 
 [[package]]

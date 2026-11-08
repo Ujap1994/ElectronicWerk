@@ -536,3 +536,96 @@ fn templates_are_listed() {
         vec!["empty", "board-2l", "board-4l", "arduino-shield", "demo"]
     );
 }
+
+#[test]
+fn view_scene_and_object() {
+    let dir = tempfile::tempdir().unwrap();
+    let mut engine = Engine::new();
+    let snapshot = create(&mut engine, &dir.path().join("Viewer"), "board-2l");
+    let docs = snapshot["documents"].as_array().unwrap();
+    let pcb = docs.iter().find(|d| d["kind"] == "pcb").unwrap()["id"]
+        .as_str()
+        .unwrap()
+        .to_owned();
+    let sheet = root_doc(&snapshot);
+
+    // JSON clients get the buffer as base64 (or not at all).
+    let meta = call(
+        &mut engine,
+        "view.scene",
+        json!({"doc": pcb, "encoding": "none"}),
+    );
+    assert_eq!(meta["kind"], "pcb");
+    assert!(meta["data"].is_null());
+    let keys: Vec<&str> = meta["layers"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|l| l["key"].as_str().unwrap())
+        .collect();
+    assert_eq!(&keys[..2], ["cu.top", "cu.bottom"]);
+    assert_eq!(meta["home"], json!([0, 0, 100_000_000, 100_000_000]));
+    let encoded = call(&mut engine, "view.scene", json!({"doc": pcb}));
+    let bytes = meta["stats"]["bytes"].as_u64().unwrap();
+    assert_eq!(
+        encoded["data"].as_str().unwrap().len() as u64,
+        bytes.div_ceil(3) * 4
+    );
+
+    // The desktop app gets the raw buffer.
+    let request =
+        json!({"method": "view.scene", "params": {"doc": sheet, "labels": {"file": "Datei"}}});
+    let (reply, data) = engine.dispatch_binary(&request.to_string());
+    let reply: Value = serde_json::from_str(&reply).unwrap();
+    let data = data.unwrap();
+    assert_eq!(reply["result"]["kind"], "schematic");
+    assert_eq!(
+        reply["result"]["stats"]["bytes"].as_u64().unwrap(),
+        data.len() as u64
+    );
+    let frame = reply["result"]["layers"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|l| l["key"] == "sch.frame")
+        .unwrap()
+        .clone();
+    assert!(
+        frame["texts"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|t| t[0].as_str().unwrap().starts_with("Datei: "))
+    );
+    let (other, data) = engine.dispatch_binary(r#"{"method":"engine.ping"}"#);
+    assert!(data.is_none());
+    assert!(other.contains("pong"));
+
+    // Objects are described for the inspector.
+    let outline = call(&mut engine, "document.get", json!({"doc": pcb}))["shapes"][0]["id"]
+        .as_str()
+        .unwrap()
+        .to_owned();
+    let info = call(
+        &mut engine,
+        "view.object",
+        json!({"doc": pcb, "id": outline}),
+    );
+    assert_eq!(info["type"], "boardShape");
+    assert!(
+        info["rows"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|r| r["key"] == "layer" && r["value"] == "outline")
+    );
+    assert_eq!(
+        call_err(&mut engine, "view.object", json!({"doc": pcb, "id": sheet})),
+        "notFound"
+    );
+    let library = docs.iter().find(|d| d["kind"] == "library").unwrap()["id"].clone();
+    assert_eq!(
+        call_err(&mut engine, "view.scene", json!({"doc": library})),
+        "invalidParams"
+    );
+}

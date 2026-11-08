@@ -473,11 +473,31 @@ fn bench(size: &str, json: bool, out: &mut impl Write) -> Outcome {
         ew_format::store::create_project(&dir, &project).map_err(|err| Failure(err.to_string()))?;
     let mut open_ms = f64::MAX;
     let mut save_ms = f64::MAX;
+    let mut scene_ms = f64::MAX;
+    let mut primitives = 0;
     for _ in 0..3 {
         let started = Instant::now();
         let loaded =
             ew_format::store::load_project(&dir).map_err(|err| Failure(err.to_string()))?;
         open_ms = open_ms.min(started.elapsed().as_secs_f64() * 1e3);
+        let board = loaded
+            .project
+            .documents_of(ew_model::document::DocumentKind::Pcb)
+            .next()
+            .map(|entry| entry.id);
+        if let Some(board) = board {
+            let options = ew_scene::Options {
+                resolve: &str::to_owned,
+                labels: ew_scene::TitleLabels::default(),
+            };
+            let started = Instant::now();
+            let scene = ew_scene::build(&loaded.project, board, &options)
+                .map_err(|err| Failure(err.to_string()))?;
+            scene_ms = scene_ms.min(started.elapsed().as_secs_f64() * 1e3);
+            let stats = scene.meta.stats;
+            primitives =
+                stats.segments + stats.arcs + stats.circles + stats.rects + stats.triangles;
+        }
         let started = Instant::now();
         ew_format::store::save_project(
             &dir,
@@ -492,12 +512,18 @@ fn bench(size: &str, json: bool, out: &mut impl Write) -> Outcome {
     if json {
         print_json(
             out,
-            &json!({"size": size.name(), "openMs": open_ms, "saveMs": save_ms}),
+            &json!({
+                "size": size.name(),
+                "openMs": open_ms,
+                "saveMs": save_ms,
+                "sceneMs": scene_ms,
+                "primitives": primitives,
+            }),
         )?;
     } else {
         writeln!(
             out,
-            "{size} design: open {open_ms:.0} ms, save {save_ms:.0} ms (best of 3)"
+            "{size} design: open {open_ms:.0} ms, save {save_ms:.0} ms, board scene {scene_ms:.0} ms ({primitives} primitives) (best of 3)"
         )?;
     }
     Ok(ExitCode::SUCCESS)
