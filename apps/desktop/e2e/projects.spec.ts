@@ -6,15 +6,18 @@ import { expect, test, type Page } from '@playwright/test';
 
 import {
   createProjectWithWizard,
+  killHard,
   launchApp,
   queueDialogAnswer,
+  removeTemp,
   type LaunchedApp,
 } from './fixtures';
 
-let launched: LaunchedApp;
+let launched: LaunchedApp | undefined;
 
 test.afterEach(async () => {
-  await launched.close();
+  await launched?.close();
+  launched = undefined;
 });
 
 const manifest = (folder: string, name: string): Record<string, unknown> =>
@@ -221,16 +224,16 @@ test('offers to restore unsaved work after the app was killed', async () => {
   try {
     writeFileSync(join(userDataDir, 'settings.json'), JSON.stringify({ language: 'en' }));
     const first = await launchApp({ userDataDir, projectsDir });
+    launched = first;
     await createProjectWithWizard(first.page, 'Killed');
     await setRevision(first.page, 'K');
     // Hard kill: no chance to save or clean up.
-    first.app.process().kill('SIGKILL');
-    await new Promise((resolve) => {
-      setTimeout(resolve, 500);
-    });
+    await killHard(first.app);
+    launched = undefined;
 
-    launched = await launchApp({ userDataDir, projectsDir });
-    const { page } = launched;
+    const second = await launchApp({ userDataDir, projectsDir });
+    launched = second;
+    const { page } = second;
     await expect(page.getByTestId('recent-recovery')).toBeVisible();
     await page.getByTestId('recent-open').first().click();
     await expect(page.getByTestId('recovery-dialog')).toContainText('1 unsaved changes');
@@ -241,9 +244,10 @@ test('offers to restore unsaved work after the app was killed', async () => {
     await expect(page.getByTestId('dirty-indicator')).toHaveText('All changes saved');
     expect(manifest(join(projectsDir, 'Killed'), 'Killed')['revision']).toBe('K');
   } finally {
-    await launched.close();
-    rmSync(userDataDir, { recursive: true, force: true });
-    rmSync(projectsDir, { recursive: true, force: true });
+    await launched?.close();
+    launched = undefined;
+    removeTemp(userDataDir);
+    removeTemp(projectsDir);
   }
 });
 

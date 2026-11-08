@@ -11,6 +11,7 @@ import { expect, test, type Locator, type Page } from '@playwright/test';
 import {
   APP_VERSION,
   fakeRelease,
+  killHard,
   launchApp,
   queueDialogAnswer,
   type LaunchedApp,
@@ -329,10 +330,7 @@ test('recent projects and crash recovery', async () => {
   await first.page.getByTestId('variable-new-value').fill('NEMA 17');
   await first.page.getByTestId('variable-add').click();
   await expect(first.page.getByTestId('variable-MOTOR')).toBeVisible();
-  first.app.process().kill('SIGKILL');
-  await new Promise((resolve) => {
-    setTimeout(resolve, 500);
-  });
+  await killHard(first.app);
 
   const second = await start({ userDataDir });
   await expect(second.page.getByTestId('recent-recovery')).toBeVisible();

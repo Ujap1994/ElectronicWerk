@@ -1,3 +1,4 @@
+import { spawnSync } from 'node:child_process';
 import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
@@ -100,10 +101,10 @@ export async function launchApp(options: LaunchOptions = {}): Promise<LaunchedAp
         .catch(() => undefined);
       await app.close().catch(() => undefined);
       if (options.userDataDir === undefined) {
-        rmSync(userDataDir, { recursive: true, force: true });
+        removeTemp(userDataDir);
       }
       if (options.projectsDir === undefined) {
-        rmSync(projectsDir, { recursive: true, force: true });
+        removeTemp(projectsDir);
       }
     },
   };
@@ -133,4 +134,40 @@ export async function createProjectWithWizard(
   await page.getByTestId(`template-${template}`).click();
   await page.getByTestId('wizard-create').click();
   await page.getByTestId('workspace').waitFor();
+}
+
+/**
+ * Deletes a temporary folder. On Windows, Electron's helper processes may
+ * keep files open for a moment after the app quits, so this retries and
+ * never fails a test (the OS cleans up its temp folder).
+ */
+export function removeTemp(path: string): void {
+  try {
+    rmSync(path, { recursive: true, force: true, maxRetries: 10, retryDelay: 200 });
+  } catch {
+    // Best effort: a leftover temp folder does not affect other tests.
+  }
+}
+
+/**
+ * Kills the app with all its child processes at once, like a crash or a
+ * power cut, and waits until it is gone.
+ */
+export async function killHard(app: ElectronApplication): Promise<void> {
+  const child = app.process();
+  const exited =
+    child.exitCode !== null || child.signalCode !== null
+      ? Promise.resolve()
+      : new Promise<void>((resolve) => {
+          child.once('exit', () => {
+            resolve();
+          });
+        });
+  if (process.platform === 'win32' && child.pid !== undefined) {
+    // Windows does not end the helper processes with the main process.
+    spawnSync('taskkill', ['/pid', String(child.pid), '/T', '/F']);
+  } else {
+    child.kill('SIGKILL');
+  }
+  await exited;
 }
