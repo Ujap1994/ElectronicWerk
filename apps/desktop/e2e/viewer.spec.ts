@@ -5,11 +5,10 @@
 import { readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
-import { expect, test, type Locator, type Page } from '@playwright/test';
+import { expect, test } from '@playwright/test';
 
 import { createProjectWithWizard, launchApp, type LaunchedApp } from './fixtures';
-
-type Point = [number, number];
+import { openDocument as open, settle, toScreen, type Point } from './viewer-helpers';
 
 interface Footprint {
   designator: string;
@@ -45,36 +44,10 @@ function readDocument(projectDir: string, folder: string): unknown {
   return JSON.parse(readFileSync(join(dir, file ?? ''), 'utf8'));
 }
 
-/** Opens a document from the project tree and waits until it is drawn. */
-async function open(page: Page, name: string): Promise<Locator> {
-  await page.locator('[data-testid^="tree-doc:"]', { hasText: name }).first().dblclick();
-  const canvas = page.locator('[data-testid="viewer-canvas"][data-ready="true"]');
-  await canvas.waitFor();
-  // Let the fit animation settle.
-  await expect(async () => {
-    const first = await canvas.getAttribute('data-view');
-    await page.waitForTimeout(150);
-    expect(await canvas.getAttribute('data-view')).toBe(first);
-  }).toPass();
-  return canvas;
-}
-
-/** Screen position of a design point (nanometres). */
-async function toScreen(canvas: Locator, [x, y]: Point): Promise<Point> {
-  const box = await canvas.boundingBox();
-  const [cx = 0, cy = 0, scale = 1, flipped = 0] = ((await canvas.getAttribute('data-view')) ?? '')
-    .split(',')
-    .map(Number);
-  const sign = flipped === 1 ? -1 : 1;
-  return [
-    (box?.x ?? 0) + (box?.width ?? 0) / 2 + (x - cx) * scale * sign,
-    (box?.y ?? 0) + (box?.height ?? 0) / 2 - (y - cy) * scale,
-  ];
-}
-
 test('board view: navigation, selection, inspector and layers', async () => {
   launched = await launchApp();
   const { page, projectsDir } = launched;
+  await page.setViewportSize({ width: 1280, height: 800 });
   await createProjectWithWizard(page, 'Viewer Demo', 'demo');
   const board = readDocument(join(projectsDir, 'Viewer Demo'), 'pcb') as Board;
   const canvas = await open(page, 'Viewer Demo');
@@ -147,6 +120,8 @@ test('board view: navigation, selection, inspector and layers', async () => {
   await expect(page.getByTestId('viewer-zoom')).not.toHaveText(zoom ?? '');
   await page.getByTestId('viewer-flip').click();
   await expect(page.getByTestId('viewer-flip')).toHaveAttribute('aria-pressed', 'true');
+  // The active outer layer follows to the side that faces the viewer.
+  await expect(page.getByTestId('layer-cu.top')).toHaveAttribute('data-active', 'true');
   await canvas.focus();
   await page.keyboard.press('b');
   await expect(page.getByTestId('viewer-flip')).toHaveAttribute('aria-pressed', 'false');
@@ -168,6 +143,7 @@ test('board view: navigation, selection, inspector and layers', async () => {
 test('sheet view: symbols, inspector, live reload and tabs', async () => {
   launched = await launchApp();
   const { page, projectsDir } = launched;
+  await page.setViewportSize({ width: 1280, height: 800 });
   await createProjectWithWizard(page, 'Sheet Demo', 'demo');
   const sheet = readDocument(join(projectsDir, 'Sheet Demo'), 'schematics') as Sheet;
   // A change that the viewer must pick up later (undone in the viewer).
@@ -187,11 +163,7 @@ test('sheet view: symbols, inspector, live reload and tabs', async () => {
   for (let i = 0; i < 4; i += 1) {
     await page.mouse.wheel(0, -120);
   }
-  await expect(async () => {
-    const first = await canvas.getAttribute('data-view');
-    await page.waitForTimeout(150);
-    expect(await canvas.getAttribute('data-view')).toBe(first);
-  }).toPass();
+  await settle(page);
   const [sx, sy] = await toScreen(canvas, symbol?.at ?? [0, 0]);
   await page.mouse.click(sx, sy);
   await expect(page.getByTestId('inspector-title')).toContainText('Symbol');

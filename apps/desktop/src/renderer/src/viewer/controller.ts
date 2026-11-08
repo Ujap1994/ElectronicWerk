@@ -116,6 +116,8 @@ export class ViewerController {
   private status: ViewerSnapshot['status'] = 'empty';
   private version = 0;
   private restoredCamera = false;
+  /** The view shows the whole document and follows size changes. */
+  private autoFit = true;
   private snapshotCache: ViewerSnapshot | null = null;
   private viewCache: ViewState | null = null;
   private readonly listeners = new Set<() => void>();
@@ -297,8 +299,8 @@ export class ViewerController {
     if (this.scene !== null) {
       this.camera.limitTo(this.homeBox());
     }
-    if (first && this.scene !== null && !this.restoredCamera) {
-      this.camera.set(this.camera.fitState(this.homeBox()));
+    if ((first || this.autoFit) && this.scene !== null && !this.restoredCamera) {
+      this.camera.set({ ...this.camera.fitState(this.homeBox()), flipped: this.camera.flipped });
     }
     this.requestRender();
     this.viewChanged();
@@ -365,8 +367,12 @@ export class ViewerController {
     if (restore) {
       this.camera.set(memory.camera);
       this.restoredCamera = true;
-    } else if (!sameDoc && this.camera.width > 1) {
-      this.camera.set({ ...this.camera.fitState(this.homeBox()), flipped: false });
+      this.autoFit = false;
+    } else if (!sameDoc) {
+      this.autoFit = true;
+      if (this.camera.width > 1) {
+        this.camera.set({ ...this.camera.fitState(this.homeBox()), flipped: false });
+      }
     }
     this.changed();
     this.viewChanged();
@@ -406,9 +412,17 @@ export class ViewerController {
 
   fitAll(animate = true): void {
     this.animateTo(this.camera.fitState(this.homeBox()), animate);
+    this.autoFit = true;
+    this.restoredCamera = false;
+  }
+
+  /** The user moved the view: stop following size changes. */
+  private navigated(): void {
+    this.autoFit = false;
   }
 
   fitSelection(): void {
+    this.navigated();
     const scene = this.scene;
     const box = scene === null ? null : boundsOf(scene, this.selected);
     if (box === null) {
@@ -426,11 +440,26 @@ export class ViewerController {
     this.zoomAround(this.camera.width / 2, this.camera.height / 2, factor);
   }
 
+  /**
+   * Views the board from the other side. An active outer copper layer
+   * follows to the side that now faces the viewer.
+   */
   toggleFlip(): void {
-    if (this.scene?.meta.kind !== 'pcb') {
+    const scene = this.scene;
+    if (scene?.meta.kind !== 'pcb') {
       return;
     }
     this.camera.flip();
+    const key = this.active === null ? null : scene.meta.layers[this.active]?.key;
+    const other = key === 'cu.top' ? 'cu.bottom' : key === 'cu.bottom' ? 'cu.top' : null;
+    const index = other === null ? -1 : scene.meta.layers.findIndex((layer) => layer.key === other);
+    if (index >= 0) {
+      this.active = index;
+      const setting = this.settings[index];
+      if (setting !== undefined) {
+        setting.visible = true;
+      }
+    }
     this.changed();
     this.requestRender();
   }
@@ -653,6 +682,7 @@ export class ViewerController {
   }
 
   private zoomAround(x: number, y: number, factor: number): void {
+    this.navigated();
     this.fitAnimation = null;
     const base = this.zoomAnimation?.target ?? this.camera.scale;
     this.zoomAnimation = { x, y, target: this.camera.clamp(base * factor) };
@@ -715,6 +745,7 @@ export class ViewerController {
     this.cursor = this.camera.toScene(x, y);
     const drag = this.drag;
     if (drag?.kind === 'pan') {
+      this.navigated();
       this.camera.pan(x - drag.x, y - drag.y);
       this.drag = { kind: 'pan', x, y };
       this.requestRender();
@@ -856,6 +887,7 @@ export class ViewerController {
 
   private onWheel = (event: WheelEvent): void => {
     event.preventDefault();
+    this.navigated();
     const [x, y] = this.local(event);
     const lines = event.deltaMode === WheelEvent.DOM_DELTA_LINE;
     const dy = lines ? event.deltaY * 33 : event.deltaY;
@@ -885,6 +917,7 @@ export class ViewerController {
 
   private onKeyDown = (event: KeyboardEvent): void => {
     const pan = (fx: number, fy: number): void => {
+      this.navigated();
       const step = event.shiftKey ? 0.5 : 0.15;
       this.camera.pan(fx * this.camera.width * step, fy * this.camera.height * step);
       this.requestRender();

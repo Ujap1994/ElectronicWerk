@@ -3,7 +3,7 @@
  * Run with `npm run docs:screenshots` after building the app. Only synthetic
  * demo data is shown, so the images are safe to publish.
  */
-import { mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 
 import { expect, test, type Locator, type Page } from '@playwright/test';
@@ -17,6 +17,14 @@ import {
   type LaunchedApp,
   type LaunchOptions,
 } from '../fixtures';
+import {
+  openDocument,
+  settle,
+  toScreen,
+  viewerCanvas,
+  zoomAt,
+  type Point,
+} from '../viewer-helpers';
 
 /** A tidy, anonymous project folder for the screenshots. */
 const PROJECTS = '/tmp/ElectronicWerk/Projects';
@@ -27,13 +35,13 @@ mkdirSync(OUT, { recursive: true });
 const DEMO_NOTES = [
   '## Added',
   '',
-  '- **2D viewer:** pan and zoom through schematics and boards',
-  '- Layer panel with colours and visibility for every board layer',
-  '- Select objects to see their properties',
+  '- **KiCad import:** open KiCad projects as ElectronicWerk projects',
+  '- Import report with everything that could not be mapped',
+  '- Netlist import (KiCad and CSV)',
   '',
   '## Fixed',
   '',
-  '- The settings dialog remembers the last selected section',
+  '- The layer panel remembers collapsed groups',
 ].join('\n');
 
 /** A fictitious next release for the update notice. */
@@ -356,4 +364,148 @@ test('recent projects and crash recovery', async () => {
   await shoot(second.page.getByTestId('notices'), 'archive-notice');
   await second.close();
   rmSync(userDataDir, { recursive: true, force: true });
+});
+
+// --- 2D viewer ----------------------------------------------------------------
+
+interface DemoBoard {
+  footprints: {
+    designator: string;
+    at: Point;
+    rotation?: number;
+    side?: string;
+    pads: { at: Point }[];
+  }[];
+}
+
+function readBoard(project: string): DemoBoard {
+  const dir = join(PROJECTS, project, 'pcb');
+  const file = readdirSync(dir).find((name) => name.endsWith('.ewpcb')) ?? '';
+  return JSON.parse(readFileSync(join(dir, file), 'utf8')) as DemoBoard;
+}
+
+test('board viewer', async () => {
+  freshProjects();
+  const { page, close } = await start({ settings: { theme: 'light' } });
+  await page.setViewportSize({ width: 1400, height: 860 });
+  await createDemo(page, 'Demo Board');
+  const canvas = await openDocument(page, 'Demo Board');
+  await shoot(page, 'viewer-board');
+
+  // A footprint near the centre, zoomed in, with a pad selected.
+  const board = readBoard('Demo Board');
+  const fp =
+    board.footprints.find((entry) => entry.designator === 'U8') ??
+    board.footprints.find((entry) => (entry.side ?? 'top') === 'top' && !entry.rotation);
+  const pad = fp?.pads[0];
+  // Pad position: mirrored on the bottom side, rotated with the footprint.
+  const local = pad?.at ?? [0, 0];
+  const lx = fp?.side === 'bottom' ? -local[0] : local[0];
+  const angle = ((fp?.rotation ?? 0) * Math.PI) / 180;
+  const at: Point = [
+    (fp?.at[0] ?? 0) + lx * Math.cos(angle) - local[1] * Math.sin(angle),
+    (fp?.at[1] ?? 0) + lx * Math.sin(angle) + local[1] * Math.cos(angle),
+  ];
+  await zoomAt(page, [fp?.at[0] ?? 0, fp?.at[1] ?? 0], 7);
+  const [px, py] = await toScreen(canvas, at);
+  await page.mouse.click(px, py);
+  await page.mouse.move(px + 160, py + 40);
+  await expect(page.getByTestId('inspector-title')).toContainText(fp?.designator ?? '');
+  await settle(page);
+  await shoot(page, 'viewer-pad-selected');
+  await shoot(page.getByTestId('inspector'), 'viewer-inspector');
+
+  // Box selection while dragging (right to left: crossing).
+  await page.keyboard.press('Home');
+  await settle(page);
+  const box = await canvas.boundingBox();
+  if (box === null) {
+    throw new Error('no canvas');
+  }
+  await page.mouse.move(box.x + box.width * 0.62, box.y + box.height * 0.3);
+  await page.mouse.down();
+  await page.mouse.move(box.x + box.width * 0.4, box.y + box.height * 0.55, { steps: 6 });
+  await shoot(page.locator('.viewer__main'), 'viewer-box-selection');
+  await page.mouse.up();
+  await expect(page.getByTestId('inspector-title')).toContainText('objects selected');
+  await shoot(page, 'viewer-multiple-selected');
+
+  // Lasso.
+  await page.keyboard.press('Escape');
+  await page.getByTestId('viewer-tool-lasso').click();
+  const lasso: Point[] = [
+    [0.3, 0.35],
+    [0.45, 0.25],
+    [0.6, 0.35],
+    [0.58, 0.6],
+    [0.4, 0.68],
+    [0.28, 0.55],
+    [0.31, 0.4],
+  ];
+  const [first] = lasso;
+  await page.mouse.move(
+    box.x + box.width * (first?.[0] ?? 0),
+    box.y + box.height * (first?.[1] ?? 0),
+  );
+  await page.mouse.down();
+  for (const [fx, fy] of lasso.slice(1)) {
+    await page.mouse.move(box.x + box.width * fx, box.y + box.height * fy, { steps: 5 });
+  }
+  await shoot(page.locator('.viewer__main'), 'viewer-lasso');
+  await page.mouse.up();
+  await page.getByTestId('viewer-tool-box').click();
+  await canvas.focus();
+  await page.keyboard.press('Escape');
+  await expect(page.getByTestId('inspector')).toContainText('Click an object');
+
+  // Layers: panel, active bottom copper with high contrast, bottom view.
+  await shoot(page.locator('.viewer-panel').first(), 'viewer-layers');
+  await page.getByTestId('layer-activate-cu.bottom').click();
+  await page.getByTestId('viewer-high-contrast').click();
+  await page.mouse.move(box.x + box.width - 4, box.y + 4);
+  await settle(page);
+  await shoot(page, 'viewer-high-contrast');
+  await page.getByTestId('viewer-high-contrast').click();
+  await page.getByTestId('layer-activate-cu.top').click();
+  await page.getByTestId('viewer-flip').click();
+  await settle(page);
+  await shoot(page, 'viewer-bottom-view');
+  await close();
+
+  const dark = await start({ settings: { theme: 'dark' } });
+  await dark.page.setViewportSize({ width: 1400, height: 860 });
+  await queueDialogAnswer(dark.app, join(PROJECTS, 'Demo Board', 'Demo Board.ewproj'));
+  await dark.page.getByTestId('open-project').click();
+  await dark.page.getByTestId('workspace').waitFor();
+  await openDocument(dark.page, 'Demo Board');
+  await shoot(dark.page, 'viewer-board-dark');
+  await dark.close();
+});
+
+test('sheet viewer', async () => {
+  freshProjects();
+  for (const theme of ['light', 'dark'] as const) {
+    const { page, close } = await start({ settings: { theme } });
+    await page.setViewportSize({ width: 1400, height: 860 });
+    await createDemo(page, theme === 'light' ? 'Demo Board' : 'Demo Board Dark');
+    await openDocument(page, 'Root');
+    await shoot(page, `viewer-sheet-${theme}`);
+    if (theme === 'light') {
+      const sheetDir = join(PROJECTS, 'Demo Board', 'schematics');
+      const file = readdirSync(sheetDir).find((name) => name.endsWith('.ewsch')) ?? '';
+      const sheet = JSON.parse(readFileSync(join(sheetDir, file), 'utf8')) as {
+        symbols: { designator: string; at: Point }[];
+      };
+      const symbol = sheet.symbols.find((entry) => entry.designator === 'U2') ?? sheet.symbols[0];
+      await zoomAt(page, symbol?.at ?? [0, 0], 6);
+      const [sx, sy] = await toScreen(viewerCanvas(page), symbol?.at ?? [0, 0]);
+      await page.mouse.click(sx, sy);
+      await page.mouse.move(sx + 220, sy - 120);
+      await expect(page.getByTestId('inspector-title')).toContainText('Symbol');
+      await settle(page);
+      await shoot(page, 'viewer-sheet-symbol');
+      await shoot(page.locator('.viewer-panel').first(), 'viewer-sheet-display');
+    }
+    await close();
+  }
 });

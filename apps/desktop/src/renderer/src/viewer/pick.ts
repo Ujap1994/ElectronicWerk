@@ -43,6 +43,18 @@ function area(box: Box): number {
   return (box[2] - box[0]) * (box[3] - box[1]);
 }
 
+/** Lexicographic comparison of two sort keys. */
+function lessThan(a: readonly number[], b: readonly number[]): boolean {
+  for (let i = 0; i < Math.max(a.length, b.length); i += 1) {
+    const x = a[i] ?? -Infinity;
+    const y = b[i] ?? -Infinity;
+    if (x !== y) {
+      return x < y;
+    }
+  }
+  return false;
+}
+
 /** `true` if the object has a primitive on `layer`. */
 function onLayer(scene: Scene, obj: number, layer: number): boolean {
   const from = scene.refStart[obj] ?? 0;
@@ -56,9 +68,10 @@ function onLayer(scene: Scene, obj: number, layer: number): boolean {
 }
 
 /**
- * The best object at (x, y) within `tolerance` (scene units), or `null`.
- * Pads beat tracks, tracks beat footprints, footprints beat zones; within a
- * class, objects on the active layer and closer objects win.
+ * The best object at (x, y), or `null`. Objects directly under the cursor
+ * (within `direct`) win over objects that are only near it (within
+ * `tolerance`); zones come last. Within each tier, pads beat tracks, tracks
+ * beat footprints, and objects on the active layer and closer objects win.
  */
 export function pick(
   scene: Scene,
@@ -67,6 +80,7 @@ export function pick(
   tolerance: number,
   visible: LayerFilter,
   active: number | null = null,
+  direct = tolerance / 2,
 ): number | null {
   const index = scene.index;
   if (index === null) {
@@ -74,7 +88,7 @@ export function pick(
   }
   const candidates = index.search(x - tolerance, y - tolerance, x + tolerance, y + tolerance);
   let best: number | null = null;
-  let bestKey: [number, number, number, number] = [Infinity, 0, 0, 0];
+  let bestKey: readonly number[] = [Infinity];
   for (const obj of candidates) {
     const type = scene.typeOf(obj);
     const box = scene.box(obj);
@@ -90,19 +104,15 @@ export function pick(
         continue;
       }
     }
-    const key: [number, number, number, number] = [
+    const tier = type === 'zone' ? 2 : distance <= direct ? 0 : 1;
+    const key = [
+      tier,
       PRIORITY[type] ?? 4,
       active !== null && onLayer(scene, obj, active) ? 0 : 1,
       distance,
       area(box),
     ];
-    if (
-      key[0] < bestKey[0] ||
-      (key[0] === bestKey[0] &&
-        (key[1] < bestKey[1] ||
-          (key[1] === bestKey[1] &&
-            (key[2] < bestKey[2] || (key[2] === bestKey[2] && key[3] < bestKey[3])))))
-    ) {
+    if (lessThan(key, bestKey)) {
       best = obj;
       bestKey = key;
     }
