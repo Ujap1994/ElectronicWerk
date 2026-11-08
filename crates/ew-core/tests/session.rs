@@ -8,7 +8,7 @@
 )]
 
 use std::fs;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
 use ew_core::Engine;
 use serde_json::{Value, json};
@@ -627,5 +627,128 @@ fn view_scene_and_object() {
     assert_eq!(
         call_err(&mut engine, "view.scene", json!({"doc": library})),
         "invalidParams"
+    );
+}
+
+fn fixture(name: &str) -> PathBuf {
+    Path::new(env!("CARGO_MANIFEST_DIR"))
+        .join("../ew-kicad/tests/fixtures/blinky")
+        .join(name)
+}
+
+#[test]
+#[allow(clippy::too_many_lines, reason = "one end-to-end import scenario")]
+fn imports_a_kicad_project_library_and_netlist() {
+    let dir = tempfile::tempdir().unwrap();
+    let mut engine = Engine::new();
+
+    let probe = call(
+        &mut engine,
+        "import.kicadProbe",
+        json!({"source": fixture("")}),
+    );
+    assert_eq!(probe["name"], "blinky");
+    assert_eq!(probe["board"], true);
+    assert_eq!(
+        call_err(
+            &mut engine,
+            "import.kicadProbe",
+            json!({"source": fixture("Blinky.pretty")})
+        ),
+        "invalidParams"
+    );
+
+    let target = dir.path().join("Blinky");
+    let result = call(
+        &mut engine,
+        "import.kicad",
+        json!({"source": fixture("blinky.kicad_pro"), "path": target, "name": "Blinky",
+               "names": {"library": "Projektbibliothek"}}),
+    );
+    assert_eq!(result["project"]["name"], "Blinky");
+    assert_eq!(result["reportFile"], "kicad-import-report.md");
+    assert!(target.join("kicad-import-report.md").exists());
+    assert_eq!(result["report"]["counts"]["footprints"], 8);
+    let docs = result["project"]["documents"].as_array().unwrap().clone();
+    assert!(docs.iter().any(|d| d["name"] == "Projektbibliothek"));
+    assert_eq!(
+        call_err(
+            &mut engine,
+            "import.kicad",
+            json!({"source": fixture(""), "path": dir.path().join("x")})
+        ),
+        "projectOpen"
+    );
+
+    // The board matches the netlist; nothing to apply.
+    let check = call(
+        &mut engine,
+        "import.netlist",
+        json!({"source": fixture("blinky.net")}),
+    );
+    assert_eq!(check["format"], "kicad");
+    assert_eq!(check["changedPads"], 0);
+    assert_eq!(
+        check["comparison"]["matchingNets"],
+        check["comparison"]["nets"]
+    );
+
+    // A changed netlist: one pad moves to a new net.
+    let csv = fs::read_to_string(fixture("blinky-netlist.csv"))
+        .unwrap()
+        .replace("/LED_A;D1;2", "/LED_B;D1;2");
+    let changed = dir.path().join("changed.csv");
+    fs::write(&changed, csv).unwrap();
+    let preview = call(&mut engine, "import.netlist", json!({"source": changed}));
+    assert_eq!(
+        (preview["changedPads"].as_u64(), preview["newNets"].as_u64()),
+        (Some(1), Some(1))
+    );
+    assert_eq!(preview["applied"], false);
+    let applied = call(
+        &mut engine,
+        "import.netlist",
+        json!({"source": changed, "apply": true}),
+    );
+    assert_eq!(applied["applied"], true);
+    let history = call(&mut engine, "edit.history", Value::Null);
+    assert_eq!(history["undo"][0], "import-netlist");
+    let after = call(&mut engine, "import.netlist", json!({"source": changed}));
+    assert_eq!(after["changedPads"], 0);
+
+    // Library import into the project library (once).
+    let lib = call(
+        &mut engine,
+        "import.library",
+        json!({"source": fixture("Blinky.pretty"), "nickname": "Extra"}),
+    );
+    assert_eq!(lib["footprints"], 1);
+    let again = call(
+        &mut engine,
+        "import.library",
+        json!({"source": fixture("Blinky.pretty"), "nickname": "Extra"}),
+    );
+    assert_eq!(again["footprints"], 0);
+    assert_eq!(
+        call_err(
+            &mut engine,
+            "import.netlist",
+            json!({"source": dir.path().join("missing.net")})
+        ),
+        "notFound"
+    );
+
+    // The imported project is valid and can be viewed.
+    let report = call(&mut engine, "project.validate", Value::Null);
+    assert_eq!(report["errors"], 0, "{report}");
+    let pcb = docs.iter().find(|d| d["kind"] == "pcb").unwrap()["id"].clone();
+    let scene = call(
+        &mut engine,
+        "view.scene",
+        json!({"doc": pcb, "encoding": "none"}),
+    );
+    assert!(
+        scene["stats"]["triangles"].as_u64().unwrap() > 0,
+        "zone fill"
     );
 }

@@ -11,6 +11,7 @@ publish = false
 
 [dependencies]
 ew-format.workspace = true
+ew-kicad.workspace = true
 ew-model.workspace = true
 ew-scene.workspace = true
 ew-synth.workspace = true

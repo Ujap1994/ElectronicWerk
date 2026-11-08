@@ -174,6 +174,22 @@ fn rename_documents(project: &mut Project, names: &DocumentNames) {
     }
 }
 
+/// Applies localized names to the library, rules and output job of an
+/// imported project (sheets and the board keep their KiCad names).
+pub(crate) fn name_imported_documents(project: &mut Project, names: &DocumentNames) {
+    for document in project.documents.values_mut() {
+        match document {
+            Document::Library(library) => rename(&mut library.name, names.library.as_ref()),
+            Document::Rules(rules) => rename(&mut rules.name, names.rules.as_ref()),
+            Document::OutputJob(job) => {
+                rename(&mut job.name, names.output_job.as_ref());
+                name_outputs(job, &names.outputs);
+            }
+            Document::Pcb(_) | Document::Schematic(_) => {}
+        }
+    }
+}
+
 /// Builds a project from a template.
 ///
 /// # Errors

@@ -24,6 +24,7 @@ use serde_json::{Map, Value, json};
 
 use crate::change::Request;
 use crate::error::{EngineError, ErrorCode};
+use crate::import;
 use crate::info::EngineInfo;
 use crate::session::{ChangeSet, Session};
 use crate::summary;
@@ -83,6 +84,10 @@ pub const METHODS: &[&str] = &[
     "engine.info",
     "engine.methods",
     "engine.ping",
+    "import.kicad",
+    "import.kicadProbe",
+    "import.library",
+    "import.netlist",
     "project.archive",
     "project.close",
     "project.create",
@@ -118,6 +123,10 @@ pub mod labels {
     pub const SET_DOCUMENT_PROPERTIES: &str = "set-document-properties";
     /// `project.setProperties`.
     pub const SET_PROJECT_PROPERTIES: &str = "set-project-properties";
+    /// `import.library`.
+    pub const IMPORT_LIBRARY: &str = "import-library";
+    /// `import.netlist` with `apply`.
+    pub const IMPORT_NETLIST: &str = "import-netlist";
     /// `edit.apply` without a label.
     pub const APPLY: &str = "apply";
 }
@@ -226,6 +235,43 @@ struct CloseParams {
 struct ValidateParams {
     #[serde(default)]
     path: Option<PathBuf>,
+}
+
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields, rename_all = "camelCase")]
+struct ImportKicadParams {
+    source: PathBuf,
+    path: PathBuf,
+    #[serde(default)]
+    name: Option<String>,
+    #[serde(default)]
+    names: Option<DocumentNames>,
+}
+
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct SourceParams {
+    source: PathBuf,
+}
+
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct ImportLibraryParams {
+    source: PathBuf,
+    #[serde(default)]
+    doc: Option<Id>,
+    #[serde(default)]
+    nickname: Option<String>,
+}
+
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct ImportNetlistParams {
+    source: PathBuf,
+    #[serde(default)]
+    doc: Option<Id>,
+    #[serde(default)]
+    apply: bool,
 }
 
 /// How `view.scene` returns the binary buffer to JSON clients.
@@ -399,6 +445,7 @@ impl Engine {
             _ if method.starts_with("project.") => self.call_project(method, params),
             _ if method.starts_with("document.") => self.call_document(method, params),
             _ if method.starts_with("edit.") => self.call_edit(method, params),
+            _ if method.starts_with("import.") => self.call_import(method, params),
             "view.scene" => {
                 let params: SceneParams = parse(params)?;
                 let (mut meta, data) = self.scene(&params)?;
@@ -694,6 +741,92 @@ impl Engine {
             requests.push(Request::SetProject { props });
         }
         Ok((requests, id, label))
+    }
+
+    fn call_import(&mut self, method: &str, params: &Value) -> Result<Value, EngineError> {
+        match method {
+            "import.kicadProbe" => {
+                let params: SourceParams = parse(params)?;
+                to_value(&import::probe(&params.source)?)
+            }
+            "import.kicad" => {
+                self.ensure_closed()?;
+                let params: ImportKicadParams = parse(params)?;
+                let mut imported = ew_kicad::import_project(&params.source, params.name.as_deref())
+                    .map_err(|error| import::engine_error(&error))?;
+                if let Some(names) = &params.names {
+                    templates::name_imported_documents(&mut imported.project, names);
+                }
+                crate::change::check_name(&imported.project.manifest.name)?;
+                let session = Session::create(&params.path, &imported.project, self.journaling)?;
+                let markdown = imported
+                    .report
+                    .to_markdown(&format!("KiCad import: {}", imported.project.manifest.name));
+                // The report is a plain file in the project folder; failing to
+                // write it does not fail the import.
+                let _ = std::fs::write(session.root().join(import::REPORT_FILE), markdown);
+                self.session = Some(session);
+                self.project_event("opened");
+                Ok(json!({
+                    "project": self.snapshot()?,
+                    "report": to_value(&imported.report)?,
+                    "reportFile": import::REPORT_FILE,
+                }))
+            }
+            "import.library" => {
+                let params: ImportLibraryParams = parse(params)?;
+                let session = self.open()?;
+                let project = session.project();
+                let doc = match params.doc {
+                    Some(doc) => doc,
+                    None => project
+                        .documents_of(DocumentKind::Library)
+                        .next()
+                        .map(|entry| entry.id)
+                        .ok_or_else(|| EngineError::not_found("the project has no library"))?,
+                };
+                if !matches!(project.document(doc), Some(Document::Library(_))) {
+                    return Err(EngineError::invalid_params("the target must be a library"));
+                }
+                let mut report = ew_kicad::ImportReport::new(params.source.display().to_string());
+                let imported = ew_kicad::library::import(
+                    &params.source,
+                    params.nickname.as_deref(),
+                    &mut report,
+                )
+                .map_err(|error| import::engine_error(&error))?;
+                let (symbols, footprints, requests) =
+                    import::library_changes(project, doc, imported, &mut report);
+                report.finish();
+                let history = if requests.is_empty() {
+                    self.open()?.history_state()
+                } else {
+                    self.commit(labels::IMPORT_LIBRARY, requests)?.history
+                };
+                Ok(json!({
+                    "symbols": symbols,
+                    "footprints": footprints,
+                    "report": to_value(&report)?,
+                    "history": to_value(&history)?,
+                }))
+            }
+            "import.netlist" => {
+                let params: ImportNetlistParams = parse(params)?;
+                let (list, format) = import::read_netlist(&params.source)?;
+                let session = self.open()?;
+                let pcb = import::board(session.project(), params.doc)?;
+                let (mut result, requests) = import::netlist_changes(pcb, &list, format);
+                if params.apply && !requests.is_empty() {
+                    self.commit(labels::IMPORT_NETLIST, requests)?;
+                    result.applied = true;
+                }
+                to_value(&result)
+            }
+            other => Err(EngineError::new(
+                ErrorCode::MethodNotFound,
+                format!("unknown method `{other}`"),
+            )),
+        }
     }
 
     fn call_edit(&mut self, method: &str, params: &Value) -> Result<Value, EngineError> {

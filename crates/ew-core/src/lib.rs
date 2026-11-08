@@ -11,11 +11,13 @@
 //! - [`history`]: undo/redo stacks with a memory limit.
 //! - [`journal`]: the autosave journal.
 //! - [`templates`]: new-project templates.
+//! - [`import`]: KiCad projects, libraries and netlists.
 //! - [`summary`]: project snapshots for clients.
 
 pub mod change;
 pub mod error;
 pub mod history;
+pub mod import;
 pub mod info;
 pub mod journal;
 pub mod rpc;

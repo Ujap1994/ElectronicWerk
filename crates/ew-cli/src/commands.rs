@@ -10,7 +10,7 @@ use ew_core::info::EngineInfo;
 use ew_synth::DesignSize;
 use serde_json::{Value, json};
 
-use crate::{Command, NewArgs, ProjectCommand};
+use crate::{Command, ImportCommand, NewArgs, ProjectCommand};
 
 /// A command failure with a message for standard error.
 #[derive(Debug)]
@@ -88,6 +88,7 @@ pub fn run(command: Command, out: &mut impl Write) -> Outcome {
             rpc(stdin, out, events, !no_journal)
         }
         Command::Project(command) => project(command, out),
+        Command::Import(command) => import(command, out),
         Command::Synth {
             size,
             dir,
@@ -176,6 +177,202 @@ pub fn rpc(
         out.flush()?;
     }
     Ok(ExitCode::SUCCESS)
+}
+
+fn print_findings(report: &Value, out: &mut impl Write) -> io::Result<()> {
+    for finding in report["findings"].as_array().into_iter().flatten() {
+        let count = finding["count"].as_u64().unwrap_or(1);
+        let times = if count > 1 {
+            format!(" (×{count})")
+        } else {
+            String::new()
+        };
+        let file = finding["file"]
+            .as_str()
+            .map(|f| format!("{f}: "))
+            .unwrap_or_default();
+        writeln!(
+            out,
+            "{:<8}{file}{} [{}]{times}",
+            finding["severity"].as_str().unwrap_or(""),
+            finding["message"].as_str().unwrap_or(""),
+            finding["code"].as_str().unwrap_or("")
+        )?;
+    }
+    Ok(())
+}
+
+#[allow(clippy::too_many_lines, reason = "one arm per import command")]
+fn import(command: ImportCommand, out: &mut impl Write) -> Outcome {
+    let mut engine = Engine::without_journal();
+    match command {
+        ImportCommand::Kicad {
+            source,
+            dir,
+            name,
+            json,
+        } => {
+            let mut params = json!({"source": source, "path": dir});
+            if let Some(name) = name {
+                params["name"] = Value::String(name);
+            }
+            let result = call(&mut engine, "import.kicad", params)?;
+            let report = &result["report"];
+            if json {
+                print_json(out, &result)?;
+            } else {
+                let project = &result["project"];
+                writeln!(
+                    out,
+                    "Imported {} into {}",
+                    report["source"].as_str().unwrap_or(""),
+                    project["path"].as_str().unwrap_or("")
+                )?;
+                let counts: Vec<String> = report["counts"]
+                    .as_object()
+                    .into_iter()
+                    .flatten()
+                    .map(|(kind, n)| format!("{n} {kind}"))
+                    .collect();
+                writeln!(out, "{}", counts.join(", "))?;
+                print_findings(report, out)?;
+                writeln!(
+                    out,
+                    "Report: {}",
+                    Path::new(project["path"].as_str().unwrap_or("."))
+                        .join(result["reportFile"].as_str().unwrap_or(""))
+                        .display()
+                )?;
+            }
+            let errors = report["findings"]
+                .as_array()
+                .into_iter()
+                .flatten()
+                .filter(|f| f["severity"] == "error")
+                .count();
+            Ok(if errors == 0 {
+                ExitCode::SUCCESS
+            } else {
+                ExitCode::FAILURE
+            })
+        }
+        ImportCommand::Library {
+            source,
+            project,
+            nickname,
+            json,
+        } => {
+            call(&mut engine, "project.open", json!({"path": project}))?;
+            let mut params = json!({"source": source});
+            if let Some(nickname) = nickname {
+                params["nickname"] = Value::String(nickname);
+            }
+            let result = call(&mut engine, "import.library", params)?;
+            call(&mut engine, "project.save", Value::Null)?;
+            if json {
+                print_json(out, &result)?;
+            } else {
+                writeln!(
+                    out,
+                    "Added {} symbols and {} footprints to the project library.",
+                    result["symbols"], result["footprints"]
+                )?;
+                print_findings(&result["report"], out)?;
+            }
+            Ok(ExitCode::SUCCESS)
+        }
+        ImportCommand::Netlist {
+            source,
+            project,
+            apply,
+            json,
+        } => {
+            call(&mut engine, "project.open", json!({"path": project}))?;
+            let result = call(
+                &mut engine,
+                "import.netlist",
+                json!({"source": source, "apply": apply}),
+            )?;
+            if apply {
+                call(&mut engine, "project.save", Value::Null)?;
+            }
+            if json {
+                print_json(out, &result)?;
+            } else {
+                print_netlist(&result, apply, out)?;
+            }
+            let comparison = &result["comparison"];
+            let equivalent = comparison["matchingNets"] == comparison["nets"]
+                && comparison["differences"]
+                    .as_array()
+                    .is_none_or(Vec::is_empty)
+                && comparison["missingComponents"]
+                    .as_array()
+                    .is_none_or(Vec::is_empty);
+            Ok(if equivalent || apply {
+                ExitCode::SUCCESS
+            } else {
+                ExitCode::FAILURE
+            })
+        }
+    }
+}
+
+fn print_netlist(result: &Value, apply: bool, out: &mut impl Write) -> io::Result<()> {
+    let comparison = &result["comparison"];
+    writeln!(
+        out,
+        "{} netlist: {} nets, {} components. {} of {} connected nets match the board ({} with the same name).",
+        result["format"].as_str().unwrap_or(""),
+        result["nets"],
+        result["components"],
+        comparison["matchingNets"],
+        comparison["nets"],
+        comparison["sameNames"]
+    )?;
+    for difference in comparison["differences"]
+        .as_array()
+        .into_iter()
+        .flatten()
+        .take(50)
+    {
+        writeln!(
+            out,
+            "  {}-{}: netlist {} / board {}",
+            difference["reference"].as_str().unwrap_or(""),
+            difference["pin"].as_str().unwrap_or(""),
+            difference["expected"].as_str().unwrap_or("—"),
+            difference["actual"].as_str().unwrap_or("—")
+        )?;
+    }
+    for (key, label) in [
+        ("missingFootprints", "Not on the board"),
+        ("extraFootprints", "Not in the netlist"),
+    ] {
+        let list: Vec<&str> = result[key]
+            .as_array()
+            .into_iter()
+            .flatten()
+            .filter_map(Value::as_str)
+            .collect();
+        if !list.is_empty() {
+            writeln!(out, "{label}: {}", list.join(", "))?;
+        }
+    }
+    if apply {
+        writeln!(
+            out,
+            "Applied: {} pads changed, {} nets created; the project was saved.",
+            result["changedPads"], result["newNets"]
+        )?;
+    } else if result["changedPads"].as_u64().unwrap_or(0) > 0 {
+        writeln!(
+            out,
+            "Run with --apply to change {} pads.",
+            result["changedPads"]
+        )?;
+    }
+    Ok(())
 }
 
 fn project(command: ProjectCommand, out: &mut impl Write) -> Outcome {
@@ -714,5 +911,51 @@ mod tests {
         assert_eq!(replies[3]["id"], "x");
         assert_eq!(replies[3]["result"]["revision"], "C");
         assert!(lines.iter().any(|line| line["event"]["type"] == "changed"));
+    }
+
+    fn fixture(name: &str) -> std::path::PathBuf {
+        Path::new(env!("CARGO_MANIFEST_DIR"))
+            .join("../ew-kicad/tests/fixtures/blinky")
+            .join(name)
+    }
+
+    #[test]
+    fn imports_kicad_projects_libraries_and_netlists() {
+        let dir = tempfile::tempdir().unwrap();
+        let target = dir.path().join("Blinky");
+        let (code, output) = run_to_string(Command::Import(ImportCommand::Kicad {
+            source: fixture("blinky.kicad_pro"),
+            dir: target.clone(),
+            name: Some("Blinky".into()),
+            json: false,
+        }));
+        assert_eq!(code, ExitCode::SUCCESS, "{output}");
+        assert!(output.contains("8 footprints"), "{output}");
+        assert!(output.contains("custom-rules"), "{output}");
+        assert!(target.join("kicad-import-report.md").exists());
+
+        let (code, output) = run_to_string(Command::Import(ImportCommand::Netlist {
+            source: fixture("blinky.net"),
+            project: target.clone(),
+            apply: false,
+            json: false,
+        }));
+        assert_eq!(code, ExitCode::SUCCESS, "{output}");
+        assert!(output.contains("7 of 7 connected nets match"), "{output}");
+
+        let (code, output) = run_to_string(Command::Import(ImportCommand::Library {
+            source: fixture("Blinky.kicad_sym"),
+            project: target.clone(),
+            nickname: Some("Extra".into()),
+            json: true,
+        }));
+        assert_eq!(code, ExitCode::SUCCESS);
+        let value: Value = serde_json::from_str(&output).unwrap();
+        assert_eq!(value["symbols"], 2);
+        let (_, output) = run_to_string(Command::Project(ProjectCommand::Info {
+            path: target,
+            json: false,
+        }));
+        assert!(output.contains("Blinky"));
     }
 }

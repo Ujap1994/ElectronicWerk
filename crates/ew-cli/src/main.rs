@@ -50,6 +50,9 @@ enum Command {
     /// Create, inspect, check and archive projects.
     #[command(subcommand)]
     Project(ProjectCommand),
+    /// Import KiCad projects, libraries and netlists.
+    #[command(subcommand)]
+    Import(ImportCommand),
     /// Generate a synthetic reference design (for tests and benchmarks).
     Synth {
         /// Size class: S, M, L or XL.
@@ -109,6 +112,51 @@ enum ProjectCommand {
     },
     /// List the project templates.
     Templates,
+}
+
+#[derive(Debug, Subcommand)]
+enum ImportCommand {
+    /// Import a KiCad project as a new ElectronicWerk project.
+    Kicad {
+        /// The `.kicad_pro` file (or its schematic, board or folder).
+        source: PathBuf,
+        /// Folder for the new project (must not exist or be empty).
+        dir: PathBuf,
+        /// Project name (default: the KiCad project name).
+        #[arg(long)]
+        name: Option<String>,
+        /// Print the report as JSON.
+        #[arg(long)]
+        json: bool,
+    },
+    /// Add the symbols and footprints of a KiCad library to a project's library.
+    Library {
+        /// `.kicad_sym`, `.kicad_symdir`, `.kicad_mod` or `.pretty`.
+        source: PathBuf,
+        /// Project folder or `.ewproj` file.
+        #[arg(long)]
+        project: PathBuf,
+        /// Prefix of the names (default: the library file name).
+        #[arg(long)]
+        nickname: Option<String>,
+        /// Print the result as JSON.
+        #[arg(long)]
+        json: bool,
+    },
+    /// Compare a netlist with a project's board, or apply it (`--apply`).
+    Netlist {
+        /// KiCad `.net`, XML or CSV netlist.
+        source: PathBuf,
+        /// Project folder or `.ewproj` file.
+        #[arg(long)]
+        project: PathBuf,
+        /// Assign the pads to the nets of the netlist and save the project.
+        #[arg(long)]
+        apply: bool,
+        /// Print the result as JSON.
+        #[arg(long)]
+        json: bool,
+    },
 }
 
 #[derive(Debug, Args)]
