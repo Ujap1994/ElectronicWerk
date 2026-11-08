@@ -48,7 +48,14 @@ pub struct Issue {
     /// Object concerned.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub object: Option<Id>,
+    /// Values in the message (names, ids, …), so clients can show a
+    /// translated message built from `code` and `params`.
+    #[serde(skip_serializing_if = "BTreeMap::is_empty")]
+    pub params: BTreeMap<&'static str, String>,
 }
+
+/// Message parameters of an issue.
+type Params = Vec<(&'static str, String)>;
 
 /// Validation result.
 #[derive(Debug, Clone, Default, PartialEq, Eq, Serialize)]
@@ -109,6 +116,7 @@ impl Checker<'_> {
         code: &'static str,
         object: Option<Id>,
         message: String,
+        params: Params,
     ) {
         self.issues.push(Issue {
             severity,
@@ -116,6 +124,7 @@ impl Checker<'_> {
             message,
             path: self.path.clone(),
             object,
+            params: params.into_iter().collect(),
         });
     }
 
@@ -126,6 +135,7 @@ impl Checker<'_> {
                 "coordinate-out-of-range",
                 Some(object),
                 format!("object {object} has a coordinate outside ±10 m"),
+                vec![("object", object.to_string())],
             );
         }
     }
@@ -159,6 +169,7 @@ fn check_variables(checker: &mut Checker<'_>) {
                 "invalid-variable-name",
                 None,
                 format!("variable name `{name}` is not valid (use letters, digits and _)"),
+                vec![("name", name.clone())],
             );
         } else if variables::BUILTIN_VARIABLES.contains(&name.as_str()) {
             checker.push(
@@ -166,6 +177,7 @@ fn check_variables(checker: &mut Checker<'_>) {
                 "builtin-variable-shadowed",
                 None,
                 format!("variable `{name}` is built in; the project value is ignored"),
+                vec![("name", name.clone())],
             );
         }
     }
@@ -195,6 +207,7 @@ fn check_ids(checker: &mut Checker<'_>) {
             "duplicate-id",
             Some(id),
             format!("id {id} is used by more than one object"),
+            vec![("id", id.to_string())],
         );
     }
     checker.path = None;
@@ -212,12 +225,14 @@ fn check_root(checker: &mut Checker<'_>) {
             "root-schematic-missing",
             Some(root),
             format!("the top sheet {root} is not a schematic of this project"),
+            vec![("id", root.to_string())],
         ),
         None if !schematics.is_empty() => checker.push(
             Severity::Warning,
             "no-root-schematic",
             None,
             "the project has schematics but no top sheet".to_owned(),
+            Vec::new(),
         ),
         _ => {}
     }
@@ -271,6 +286,7 @@ fn check_documents(checker: &mut Checker<'_>) {
                             "duplicate-net-class",
                             None,
                             format!("net class `{}` is defined twice", class.name),
+                            vec![("name", class.name.clone())],
                         );
                     }
                     if class.track_width <= 0 || class.clearance < 0 || class.via_drill <= 0 {
@@ -279,6 +295,7 @@ fn check_documents(checker: &mut Checker<'_>) {
                             "invalid-net-class",
                             None,
                             format!("net class `{}` has a zero or negative size", class.name),
+                            vec![("name", class.name.clone())],
                         );
                     }
                 }
@@ -288,6 +305,7 @@ fn check_documents(checker: &mut Checker<'_>) {
                         "missing-default-net-class",
                         None,
                         format!("there is no `{DEFAULT_NET_CLASS}` net class"),
+                        vec![("name", DEFAULT_NET_CLASS.to_owned())],
                     );
                 }
             }
@@ -301,6 +319,7 @@ fn check_documents(checker: &mut Checker<'_>) {
                             "output-source-missing",
                             Some(output.id),
                             format!("output `{}` refers to a missing document", output.name),
+                            vec![("name", output.name.clone())],
                         );
                     }
                 }
@@ -357,6 +376,7 @@ fn check_hierarchy(checker: &mut Checker<'_>, schematics: &BTreeSet<Id>) {
                             "sheet `{}` refers to a schematic that does not exist",
                             symbol.name
                         ),
+                        vec![("name", symbol.name.clone())],
                     );
                 }
                 referenced.insert(symbol.schematic);
@@ -380,6 +400,7 @@ fn check_hierarchy(checker: &mut Checker<'_>, schematics: &BTreeSet<Id>) {
             "sheet-cycle",
             Some(id),
             "the sheet hierarchy contains a cycle (a sheet includes itself)".to_owned(),
+            Vec::new(),
         );
     }
 
@@ -393,6 +414,7 @@ fn check_hierarchy(checker: &mut Checker<'_>, schematics: &BTreeSet<Id>) {
                 Some(*id),
                 "this sheet is not placed in the hierarchy (it is treated as a flat extra sheet)"
                     .to_owned(),
+                Vec::new(),
             );
         }
     }
@@ -417,6 +439,10 @@ fn check_schematic(
                     "{} uses symbol `{}`, which is not in a project library",
                     symbol.designator, symbol.symbol
                 ),
+                vec![
+                    ("designator", symbol.designator.clone()),
+                    ("symbol", symbol.symbol.clone()),
+                ],
             );
         }
         if let Some(footprint) = &symbol.footprint
@@ -430,6 +456,10 @@ fn check_schematic(
                     "{} uses footprint `{footprint}`, which is not in a project library",
                     symbol.designator
                 ),
+                vec![
+                    ("designator", symbol.designator.clone()),
+                    ("footprint", footprint.clone()),
+                ],
             );
         }
         if let Some(previous) = designators.insert(&symbol.designator, symbol.component)
@@ -444,6 +474,7 @@ fn check_schematic(
                     "designator {} is used by more than one part",
                     symbol.designator
                 ),
+                vec![("designator", symbol.designator.clone())],
             );
         }
     }
@@ -456,6 +487,7 @@ fn check_schematic(
                 "zero-length-wire",
                 Some(wire.id),
                 format!("wire {} has zero length", wire.id),
+                vec![("id", wire.id.to_string())],
             );
         }
     }
@@ -467,6 +499,7 @@ fn check_schematic(
                 "empty-label",
                 Some(label.id),
                 "a net label has no text".to_owned(),
+                Vec::new(),
             );
         }
     }
@@ -480,6 +513,7 @@ fn check_pcb(checker: &mut Checker<'_>, pcb: &Pcb, net_classes: Option<&BTreeSet
             "stackup-no-copper",
             None,
             "the stack-up has no copper layer".to_owned(),
+            Vec::new(),
         );
     }
     if pcb.outline_bounds().is_none() {
@@ -488,6 +522,7 @@ fn check_pcb(checker: &mut Checker<'_>, pcb: &Pcb, net_classes: Option<&BTreeSet
             "no-board-outline",
             None,
             "the board has no outline (draw it on the `outline` layer)".to_owned(),
+            Vec::new(),
         );
     }
     for net in &pcb.nets {
@@ -503,6 +538,7 @@ fn check_pcb(checker: &mut Checker<'_>, pcb: &Pcb, net_classes: Option<&BTreeSet
                     "net `{}` uses the unknown net class `{}`",
                     net.name, net.class
                 ),
+                vec![("net", net.name.clone()), ("class", net.class.clone())],
             );
         }
     }
@@ -520,6 +556,7 @@ fn check_pcb_objects(checker: &mut Checker<'_>, pcb: &Pcb) {
                 "unknown-net",
                 Some(object),
                 format!("object {object} refers to the unknown net {net}"),
+                vec![("object", object.to_string()), ("net", net.to_string())],
             );
         }
     };
@@ -530,6 +567,7 @@ fn check_pcb_objects(checker: &mut Checker<'_>, pcb: &Pcb) {
                 "layer-not-in-stackup",
                 Some(object),
                 format!("object {object} is on {layer}, which the stack-up does not have"),
+                vec![("object", object.to_string()), ("layer", layer.to_string())],
             );
         }
     };
@@ -544,6 +582,7 @@ fn check_pcb_objects(checker: &mut Checker<'_>, pcb: &Pcb) {
                 "invalid-width",
                 Some(track.id),
                 format!("track {} has no width", track.id),
+                vec![("id", track.id.to_string())],
             );
         }
     }
@@ -558,6 +597,7 @@ fn check_pcb_objects(checker: &mut Checker<'_>, pcb: &Pcb) {
                 "invalid-via",
                 Some(via.id),
                 format!("via {} needs a drill smaller than its diameter", via.id),
+                vec![("id", via.id.to_string())],
             );
         }
     }
@@ -572,6 +612,7 @@ fn check_pcb_objects(checker: &mut Checker<'_>, pcb: &Pcb) {
                 "zone-outline-too-small",
                 Some(zone.id),
                 format!("zone {} needs at least three outline points", zone.id),
+                vec![("id", zone.id.to_string())],
             );
         }
         for point in &zone.outline {
@@ -611,6 +652,7 @@ pub fn validate_dir(path: &Path) -> Result<Report, FormatError> {
     let file_issue = |path: &str, code: &'static str, message: String| Issue {
         severity: Severity::Error,
         code,
+        params: BTreeMap::from([("message", message.clone())]),
         message,
         path: Some(path.to_owned()),
         object: None,
@@ -618,7 +660,11 @@ pub fn validate_dir(path: &Path) -> Result<Report, FormatError> {
     let manifest = match codec::decode_manifest(&manifest_path, &text) {
         Ok(decoded) => decoded.value,
         Err(error) => {
-            issues.push(file_issue(&manifest_file, error.code(), error.to_string()));
+            issues.push(file_issue(
+                &manifest_file,
+                "unreadable-manifest",
+                error.to_string(),
+            ));
             return Ok(Report::finish(issues, 0, 0));
         }
     };
@@ -671,37 +717,49 @@ pub fn validate_dir(path: &Path) -> Result<Report, FormatError> {
     let report = validate_project(&project);
     issues.extend(report.issues);
 
-    // Native files that the manifest does not list.
-    let listed: BTreeSet<String> = manifest
-        .documents
-        .iter()
-        .map(|entry| entry.path.to_lowercase())
-        .collect();
-    if let Ok(files) = store::list_files(root, &manifest_file, &project, &[]) {
-        for file in files {
-            let extension = Path::new(&file.path)
-                .extension()
-                .and_then(|extension| extension.to_str())
-                .unwrap_or_default();
-            if DocumentKind::from_extension(extension).is_some()
-                && !listed.contains(&file.path.to_lowercase())
-                && !file.path.starts_with(STATE_DIR)
-            {
-                issues.push(Issue {
-                    severity: Severity::Warning,
-                    code: "unlisted-file",
-                    message: format!("`{}` is not part of the project", file.path),
-                    path: Some(file.path),
-                    object: None,
-                });
-            }
-        }
-    }
+    issues.extend(unlisted_files(root, &manifest_file, &manifest, &project));
     Ok(Report::finish(
         issues,
         project.documents.len(),
         project.object_count(),
     ))
+}
+
+/// Native files in the folder that the manifest does not list.
+fn unlisted_files(
+    root: &Path,
+    manifest_file: &str,
+    manifest: &ew_model::project::Manifest,
+    project: &Project,
+) -> Vec<Issue> {
+    let listed: BTreeSet<String> = manifest
+        .documents
+        .iter()
+        .map(|entry| entry.path.to_lowercase())
+        .collect();
+    let Ok(files) = store::list_files(root, manifest_file, project, &[]) else {
+        return Vec::new();
+    };
+    files
+        .into_iter()
+        .filter(|file| {
+            let extension = Path::new(&file.path)
+                .extension()
+                .and_then(|extension| extension.to_str())
+                .unwrap_or_default();
+            DocumentKind::from_extension(extension).is_some()
+                && !listed.contains(&file.path.to_lowercase())
+                && !file.path.starts_with(STATE_DIR)
+        })
+        .map(|file| Issue {
+            severity: Severity::Warning,
+            code: "unlisted-file",
+            message: format!("`{}` is not part of the project", file.path),
+            params: BTreeMap::from([("path", file.path.clone())]),
+            path: Some(file.path),
+            object: None,
+        })
+        .collect()
 }
 
 #[cfg(test)]
@@ -831,6 +889,22 @@ mod tests {
                 .iter()
                 .any(|issue| issue.code == "unplaced-sheet" && issue.object == Some(loose))
         );
+    }
+
+    #[test]
+    fn issues_carry_message_params() {
+        let mut project = Project::new(Id::random(), "Params");
+        project
+            .manifest
+            .variables
+            .insert("REVISION".into(), "x".into());
+        let report = validate_project(&project);
+        assert_eq!(
+            report.issues[0].params.get("name").map(String::as_str),
+            Some("REVISION")
+        );
+        let json = serde_json::to_value(&report).unwrap();
+        assert_eq!(json["issues"][0]["params"]["name"], "REVISION");
     }
 
     #[test]

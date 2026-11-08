@@ -103,6 +103,32 @@ pub const TEMPLATES: [TemplateInfo; 5] = [
     },
 ];
 
+/// Names for the documents a template creates (the UI passes them in the
+/// user's language). Missing names fall back to English.
+#[derive(Debug, Clone, Default, PartialEq, Eq, Deserialize)]
+#[serde(rename_all = "camelCase", default, deny_unknown_fields)]
+pub struct DocumentNames {
+    /// Top schematic sheet.
+    pub root_schematic: Option<String>,
+    /// Project library.
+    pub library: Option<String>,
+    /// Design rules.
+    pub rules: Option<String>,
+    /// Output job.
+    pub output_job: Option<String>,
+    /// Output names by output kind (`gerber`, `bom`, …).
+    pub outputs: BTreeMap<String, String>,
+}
+
+/// Replaces `target` with a valid, trimmed `name`; keeps it otherwise.
+fn rename(target: &mut String, name: Option<&String>) {
+    if let Some(name) = name
+        && crate::change::check_name(name).is_ok()
+    {
+        name.trim().clone_into(target);
+    }
+}
+
 /// Options for a new project.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct NewProject {
@@ -114,6 +140,38 @@ pub struct NewProject {
     pub board: Option<BoardOptions>,
     /// Display units.
     pub units: Units,
+    /// Names of the created documents.
+    pub names: DocumentNames,
+}
+
+/// Renames the outputs of a job to the given names (by output kind).
+fn name_outputs(job: &mut OutputJob, names: &BTreeMap<String, String>) {
+    for output in &mut job.outputs {
+        let kind = serde_json::to_value(output.kind)
+            .ok()
+            .and_then(|value| value.as_str().map(str::to_owned))
+            .unwrap_or_default();
+        rename(&mut output.name, names.get(&kind));
+    }
+}
+
+/// Applies localized names to the documents of a generated project.
+fn rename_documents(project: &mut Project, names: &DocumentNames) {
+    for document in project.documents.values_mut() {
+        match document {
+            Document::Schematic(sheet) if Some(sheet.id) == project.manifest.root_schematic => {
+                rename(&mut sheet.name, names.root_schematic.as_ref());
+            }
+            Document::Library(library) => rename(&mut library.name, names.library.as_ref()),
+            Document::Rules(rules) => rename(&mut rules.name, names.rules.as_ref()),
+            Document::OutputJob(job) => {
+                rename(&mut job.name, names.output_job.as_ref());
+                name_outputs(job, &names.outputs);
+            }
+            Document::Pcb(pcb) => project.manifest.name.clone_into(&mut pcb.name),
+            Document::Schematic(_) => {}
+        }
+    }
 }
 
 /// Builds a project from a template.
@@ -137,6 +195,7 @@ pub fn build(options: &NewProject) -> Result<Project, EngineError> {
         name.clone_into(&mut project.manifest.name);
         project.manifest.description = String::new();
         project.manifest.settings.units = options.units;
+        rename_documents(&mut project, &options.names);
         return Ok(project);
     }
 
@@ -191,6 +250,7 @@ pub fn build(options: &NewProject) -> Result<Project, EngineError> {
         Document::OutputJob(job),
         "outputs/fabrication.ewout",
     );
+    rename_documents(&mut project, &options.names);
     Ok(project)
 }
 
@@ -340,7 +400,52 @@ mod tests {
             template: template.into(),
             board: None,
             units: Units::Mm,
+            names: DocumentNames::default(),
         }
+    }
+
+    #[test]
+    fn documents_get_localized_names() {
+        for template in ["board-2l", "demo"] {
+            let mut options = new(template);
+            options.names = DocumentNames {
+                root_schematic: Some("Hauptblatt".into()),
+                library: Some("Projektbibliothek".into()),
+                rules: Some("Designregeln".into()),
+                output_job: Some("Fertigung".into()),
+                outputs: BTreeMap::from([("bom".to_owned(), "Stückliste".to_owned())]),
+            };
+            let project = build(&options).unwrap();
+            let mut names: Vec<&str> = project.documents.values().map(Document::name).collect();
+            names.sort_unstable();
+            assert!(names.contains(&"Hauptblatt"), "{names:?}");
+            assert!(names.contains(&"Projektbibliothek"));
+            assert!(names.contains(&"Designregeln"));
+            assert!(names.contains(&"Fertigung"));
+            assert!(
+                names.contains(&"My Board"),
+                "the board is named after the project"
+            );
+            let job = project
+                .documents
+                .values()
+                .find_map(|document| match document {
+                    Document::OutputJob(job) => Some(job),
+                    _ => None,
+                })
+                .unwrap();
+            assert!(job.outputs.iter().any(|output| output.name == "Stückliste"));
+        }
+        // Invalid names fall back to English.
+        let mut options = new("empty");
+        options.names.library = Some("  ".into());
+        let project = build(&options).unwrap();
+        assert!(
+            project
+                .documents
+                .values()
+                .any(|document| document.name() == "Project library")
+        );
     }
 
     #[test]

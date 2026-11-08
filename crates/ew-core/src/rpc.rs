@@ -27,7 +27,7 @@ use crate::error::{EngineError, ErrorCode};
 use crate::info::EngineInfo;
 use crate::session::{ChangeSet, Session};
 use crate::summary;
-use crate::templates::{self, BoardOptions, NewProject};
+use crate::templates::{self, BoardOptions, DocumentNames, NewProject};
 
 /// A single engine request.
 #[derive(Debug, Clone, PartialEq, Deserialize)]
@@ -170,6 +170,8 @@ struct CreateParams {
     board: Option<BoardOptions>,
     #[serde(default)]
     units: Option<Units>,
+    #[serde(default)]
+    names: Option<DocumentNames>,
 }
 
 #[derive(Deserialize)]
@@ -367,6 +369,7 @@ impl Engine {
                     template: params.template.unwrap_or_else(|| "empty".to_owned()),
                     board: params.board,
                     units: params.units.unwrap_or_default(),
+                    names: params.names.unwrap_or_default(),
                 })?;
                 self.session = Some(Session::create(&params.path, &project, self.journaling)?);
                 self.project_event("opened");
