@@ -1,6 +1,7 @@
 # ElectronicWerk Roadmap
 
-> **Status:** v0.3 (2026-11-07). M0 is complete (release v0.1.0); M1 is next.
+> **Status:** v0.4 (2026-11-08). M0 and M1 are complete (releases v0.1.0 and
+> v0.2.0); M2 is next.
 > This roadmap is a living document. It **must** be updated with every feature
 > (requirement D5). Every change to it is listed in the
 > [roadmap changelog](#13-roadmap-changelog).
@@ -235,7 +236,7 @@ own work only. Maintainer test cycles and feedback come on top. Status values:
 | ID  | Milestone                                             | Release | Requirements      | Effort          | Status |
 | --- | ----------------------------------------------------- | ------- | ----------------- | --------------- | ------ |
 | M0  | Foundation and delivery pipeline                      | v0.1.0  | T1, T2, T7, D1–D5 | 6–8 S           | ✅     |
-| M1  | Project system, data model, native file format        | v0.2.0  | F3, T3, T6        | 6–8 S           | ⬜     |
+| M1  | Project system, data model, native file format        | v0.2.0  | F3, T3, T6        | 6–8 S           | ✅     |
 | M2  | 2D rendering engine and read-only viewer              | v0.3.0  | T3, T4, T5        | 7–10 S          | ⬜     |
 | M3  | KiCad import (projects and libraries), netlist import | v0.4.0  | F3                | 6–9 S           | ⬜     |
 | M4  | Unified base library and library manager              | v0.5.0  | F2                | 5–8 S           | ⬜     |
@@ -345,6 +346,38 @@ operating systems, and the docs site is online.
 **Acceptance:** projects can be created, saved, reopened and archived. A kill
 test proves crash recovery. A round-trip property test covers saving and
 loading.
+
+**Progress (completed 2026-11-08):**
+
+- [x] Rust crates `ew-model` (data model), `ew-format` (file format) and
+      `ew-synth` (synthetic designs); sessions, transactions, history and
+      journal in `ew-core` (ADR-0002)
+- [x] Data model: project manifest, schematic sheets (hierarchy, symbols,
+      wires, buses, labels, power ports, sheet symbols), library (symbols,
+      footprints, 3D model references), board (stack-up, nets, footprints,
+      pads, tracks and arcs, vias, zones, texts, graphics), rules (constraints,
+      net classes), output jobs, text variables
+- [x] Native JSON format: deterministic layout with one object per line,
+      schema version, migration framework with backups, atomic multi-file
+      saves, validation (`project.validate`), ZIP archives
+- [x] Transactions with unlimited undo/redo (memory limit 256 MB),
+      change-set events to every window, autosave journal, crash recovery
+      (engine restart and app crash), dirty tracking per document
+- [x] New-project wizard (local storage; GitHub follows in M11) with five
+      templates, project tree, project and document properties, recent
+      projects, Save As/Copy, Archive, close prompts, `.ewproj` file
+      association
+- [x] CLI: `ewerk project new|info|validate|archive|upgrade|templates`,
+      `ewerk rpc`, `ewerk synth`, `ewerk bench`
+- [x] Synthetic S/M/L/XL designs, criterion benchmarks and the open/save
+      budgets in CI (L: open ≈ 0.14 s, save ≈ 0.31 s locally)
+- [x] Tests: round-trip and layout property tests, undo/journal property
+      tests, a SIGKILL test of a running `ewerk rpc` session, 8 new end-to-end
+      tests (wizard, editing, tree, close prompts, engine crash, app kill,
+      open/save as/copy/archive)
+- [x] Documentation: Projects, Project tree and properties, Undo/autosave and
+      recovery, File format, Benchmarks, CLI and Engine API references
+- [x] Release v0.2.0
 
 ### M2 — 2D rendering engine and read-only viewer (v0.3.0, 7–10 S)
 
@@ -630,8 +663,9 @@ The CLI grows with every milestone. This milestone completes it.
 
 ## 13. Roadmap changelog
 
-| Date       | Version    | Change                                                                                                                                                                      |
-| ---------- | ---------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 2026-11-07 | Draft v0.1 | Initial roadmap. DipTrace import deferred; import limited to KiCad and open standard formats; Altium/KiCad-style project concept added.                                     |
-| 2026-11-07 | v0.2       | Approved by the maintainer: milestone order (import and viewer before the editors) confirmed, Eagle XML import added to M14, project renamed to ElectronicWerk. M0 started. |
-| 2026-11-07 | v0.3       | M0 complete: v0.1.0 released with every package and the documentation site. The command palette and the update notice were delivered as part of M0.                         |
+| Date       | Version    | Change                                                                                                                                                                                                      |
+| ---------- | ---------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 2026-11-07 | Draft v0.1 | Initial roadmap. DipTrace import deferred; import limited to KiCad and open standard formats; Altium/KiCad-style project concept added.                                                                     |
+| 2026-11-07 | v0.2       | Approved by the maintainer: milestone order (import and viewer before the editors) confirmed, Eagle XML import added to M14, project renamed to ElectronicWerk. M0 started.                                 |
+| 2026-11-07 | v0.3       | M0 complete: v0.1.0 released with every package and the documentation site. The command palette and the update notice were delivered as part of M0.                                                         |
+| 2026-11-08 | v0.4       | M1 complete: v0.2.0 with projects, the native file format, undo, autosave journal and crash recovery. The line-based `ewerk rpc` session (planned for M12) was added early for scripting and the kill test. |
