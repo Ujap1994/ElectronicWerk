@@ -26,14 +26,20 @@ mkdirSync(OUT, { recursive: true });
 const DEMO_NOTES = [
   '## Added',
   '',
-  '- **Projects:** create, open and save projects with schematic and PCB',
-  '- Project tree panel with schematics, PCB, libraries and output jobs',
-  '- Command palette entries for every project action',
+  '- **2D viewer:** pan and zoom through schematics and boards',
+  '- Layer panel with colours and visibility for every board layer',
+  '- Select objects to see their properties',
   '',
   '## Fixed',
   '',
   '- The settings dialog remembers the last selected section',
 ].join('\n');
+
+/** A fictitious next release for the update notice. */
+const NEXT_VERSION = (() => {
+  const [major = 0, minor = 0] = APP_VERSION.split('.').map(Number);
+  return `${String(major)}.${String(minor + 1)}.0`;
+})();
 
 async function start(options: LaunchOptions = {}): Promise<LaunchedApp> {
   const launched = await launchApp({ projectsDir: PROJECTS, ...options });
@@ -91,7 +97,7 @@ test('update notice', async () => {
   for (const theme of ['light', 'dark'] as const) {
     const { page, close } = await start({
       settings: { theme },
-      updateFeed: fakeRelease('0.2.0', DEMO_NOTES),
+      updateFeed: fakeRelease(NEXT_VERSION, DEMO_NOTES),
     });
     await expect(page.getByTestId('update-dialog')).toBeVisible();
     await shoot(page, `update-available-window-${theme}`);

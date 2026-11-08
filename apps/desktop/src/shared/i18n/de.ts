@@ -297,6 +297,18 @@ export const de: Messages = {
     yellow: 'Gelb',
     purple: 'Violett',
   },
+  defaults: {
+    rootSheet: 'Hauptschaltplan',
+    library: 'Projektbibliothek',
+    rules: 'Designregeln',
+    outputJob: 'Fertigung',
+    outputGerber: 'Gerber',
+    outputDrill: 'Bohrdaten',
+    outputBom: 'Stückliste',
+    outputPickAndPlace: 'Bestückungsdaten',
+    outputPdf: 'Schaltplan-PDF',
+    outputStep: '3D-Modell',
+  },
   units: {
     mm: 'Millimeter (mm)',
     mil: 'Mil (mil)',
@@ -383,6 +395,47 @@ export const de: Messages = {
     warning: 'Warnung',
     info: 'Hinweis',
     close: 'Schließen',
+    codes: {
+      'unreadable-manifest': 'Die Projektdatei kann nicht gelesen werden: {message}',
+      'invalid-document-path': 'Ein Dokumentpfad ist ungültig: {message}',
+      'duplicate-document': 'Ein Dokument ist mehrfach aufgeführt: {message}',
+      'document-id-mismatch': 'Die Dokument-ID passt nicht zur Projektdatei.',
+      'unreadable-document': 'Die Datei kann nicht gelesen werden: {message}',
+      'unlisted-file': '{path} gehört nicht zum Projekt.',
+      'coordinate-out-of-range': 'Objekt {object} hat eine Koordinate außerhalb von ±10 m.',
+      'invalid-variable-name':
+        'Der Variablenname „{name}“ ist ungültig (Buchstaben, Ziffern und _ verwenden).',
+      'builtin-variable-shadowed':
+        'Die Variable „{name}“ ist eingebaut; der Projektwert wird ignoriert.',
+      'duplicate-id': 'Die ID {id} wird von mehreren Objekten verwendet.',
+      'root-schematic-missing': 'Das Hauptblatt {id} ist kein Schaltplan dieses Projekts.',
+      'no-root-schematic': 'Das Projekt hat Schaltpläne, aber kein Hauptblatt.',
+      'sheet-target-missing':
+        'Das Blatt „{name}“ verweist auf einen Schaltplan, den es nicht gibt.',
+      'sheet-cycle': 'Die Blatthierarchie enthält einen Zyklus (ein Blatt enthält sich selbst).',
+      'unplaced-sheet':
+        'Dieses Blatt ist nicht in der Hierarchie platziert; es wird als zusätzliches flaches Blatt behandelt.',
+      'symbol-not-in-library':
+        '{designator} verwendet das Symbol „{symbol}“, das in keiner Projektbibliothek enthalten ist.',
+      'footprint-not-in-library':
+        '{designator} verwendet den Footprint „{footprint}“, der in keiner Projektbibliothek enthalten ist.',
+      'duplicate-designator': 'Der Bezeichner {designator} wird von mehreren Bauteilen verwendet.',
+      'zero-length-wire': 'Eine Leitung hat die Länge null.',
+      'empty-label': 'Ein Netzlabel hat keinen Text.',
+      'stackup-no-copper': 'Der Lagenaufbau hat keine Kupferlage.',
+      'no-board-outline': 'Die Platine hat keine Kontur (auf der Konturlage zeichnen).',
+      'unknown-net-class': 'Das Netz „{net}“ verwendet die unbekannte Netzklasse „{class}“.',
+      'unknown-net': 'Objekt {object} verweist auf das unbekannte Netz {net}.',
+      'layer-not-in-stackup':
+        'Objekt {object} liegt auf {layer}, die es im Lagenaufbau nicht gibt.',
+      'invalid-width': 'Leiterbahn {id} hat keine Breite.',
+      'invalid-via': 'Via {id} braucht eine Bohrung, die kleiner als ihr Durchmesser ist.',
+      'zone-outline-too-small': 'Fläche {id} braucht mindestens drei Konturpunkte.',
+      'duplicate-net-class': 'Die Netzklasse „{name}“ ist doppelt definiert.',
+      'invalid-net-class': 'Die Netzklasse „{name}“ hat eine Größe von null oder kleiner.',
+      'missing-default-net-class': 'Es gibt keine Netzklasse „{name}“.',
+      'output-source-missing': 'Die Ausgabe „{name}“ verweist auf ein fehlendes Dokument.',
+    },
   },
   errors: {
     noProject: 'Es ist kein Projekt geöffnet.',

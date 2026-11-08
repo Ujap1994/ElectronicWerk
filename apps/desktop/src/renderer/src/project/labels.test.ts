@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { createTranslator } from '@shared/i18n';
 
 import { EngineError } from '../engine-client';
-import { errorMessage, historyLabel } from './labels';
+import { errorMessage, historyLabel, issueMessage } from './labels';
 
 const t = createTranslator('en');
 
@@ -31,5 +31,26 @@ describe('errorMessage', () => {
     );
     expect(errorMessage(t, new Error('plain'))).toBe('Unexpected error: plain');
     expect(errorMessage(t, 'text')).toBe('Unexpected error: text');
+  });
+});
+
+describe('issueMessage', () => {
+  it('translates known codes with their parameters', () => {
+    const issue = {
+      code: 'builtin-variable-shadowed',
+      message: 'variable `REVISION` is built in',
+      params: { name: 'REVISION' },
+    };
+    expect(issueMessage(createTranslator('de'), issue)).toBe(
+      'Die Variable „REVISION“ ist eingebaut; der Projektwert wird ignoriert.',
+    );
+    expect(issueMessage(t, { code: 'new-check', message: 'raw text' })).toBe('raw text');
+  });
+
+  it('has a translation for every code the engine reports', () => {
+    const de = createTranslator('de');
+    for (const code of ['sheet-cycle', 'unknown-net', 'unlisted-file', 'unreadable-manifest']) {
+      expect(issueMessage(de, { code, message: 'x' })).not.toContain('validation.codes');
+    }
   });
 });

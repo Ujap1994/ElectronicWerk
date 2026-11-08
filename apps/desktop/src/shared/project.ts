@@ -118,6 +118,8 @@ export interface ValidationIssue {
   readonly message: string;
   readonly path?: string;
   readonly object?: string;
+  /** Values in the message, for translated messages built from `code`. */
+  readonly params?: Readonly<Record<string, string>>;
 }
 
 export interface ValidationReport {
@@ -300,3 +302,39 @@ export const BUILTIN_VARIABLES = [
   'SHEET_NAME',
   'FILENAME',
 ] as const;
+
+/** Codes of the engine's validation findings that have a translation. */
+export const VALIDATION_CODES: ReadonlySet<string> = new Set([
+  'unreadable-manifest',
+  'invalid-document-path',
+  'duplicate-document',
+  'document-id-mismatch',
+  'unreadable-document',
+  'unlisted-file',
+  'coordinate-out-of-range',
+  'invalid-variable-name',
+  'builtin-variable-shadowed',
+  'duplicate-id',
+  'root-schematic-missing',
+  'no-root-schematic',
+  'sheet-target-missing',
+  'sheet-cycle',
+  'unplaced-sheet',
+  'symbol-not-in-library',
+  'footprint-not-in-library',
+  'duplicate-designator',
+  'zero-length-wire',
+  'empty-label',
+  'stackup-no-copper',
+  'no-board-outline',
+  'unknown-net-class',
+  'unknown-net',
+  'layer-not-in-stackup',
+  'invalid-width',
+  'invalid-via',
+  'zone-outline-too-small',
+  'duplicate-net-class',
+  'invalid-net-class',
+  'missing-default-net-class',
+  'output-source-missing',
+]);

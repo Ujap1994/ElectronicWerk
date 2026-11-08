@@ -1,6 +1,8 @@
 import type { EngineErrorCode } from '@shared/engine';
 import type { MessageKey, Translate } from '@shared/i18n';
 
+import { VALIDATION_CODES } from '@shared/project';
+
 import { EngineError } from '../engine-client';
 
 /** Translation keys of the engine's transaction labels. */
@@ -60,4 +62,19 @@ export function errorMessage(t: Translate, error: unknown): string {
     case 'methodNotFound':
       return t('errors.generic', { message });
   }
+}
+
+/** A translated validation message (falls back to the engine's English text). */
+export function issueMessage(
+  t: Translate,
+  issue: {
+    readonly code: string;
+    readonly message: string;
+    readonly params?: Readonly<Record<string, string>>;
+  },
+): string {
+  if (!VALIDATION_CODES.has(issue.code)) {
+    return issue.message;
+  }
+  return t(`validation.codes.${issue.code}` as MessageKey, issue.params ?? {});
 }

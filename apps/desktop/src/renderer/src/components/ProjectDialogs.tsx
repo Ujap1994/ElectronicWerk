@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
 
+import { issueMessage } from '../project/labels';
 import { useProject } from '../project/ProjectProvider';
 import { useAppState } from '../state';
 import { ConfirmDialog } from './ConfirmDialog';
@@ -180,7 +181,7 @@ function ValidationDialog(): ReactNode {
                       <strong>{severityLabel[issue.severity]}</strong>
                       {issue.path !== undefined && <code>{issue.path}</code>}
                     </div>
-                    <div className="issues__message">{issue.message}</div>
+                    <div className="issues__message">{issueMessage(t, issue)}</div>
                     <code className="issues__code">{issue.code}</code>
                   </div>
                 </li>

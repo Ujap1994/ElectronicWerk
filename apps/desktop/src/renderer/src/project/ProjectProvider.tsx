@@ -409,6 +409,20 @@ export function ProjectProvider({ children }: { readonly children: ReactNode }):
             name: options.name.trim(),
             template: options.template,
             units: options.units,
+            names: {
+              rootSchematic: t('defaults.rootSheet'),
+              library: t('defaults.library'),
+              rules: t('defaults.rules'),
+              outputJob: t('defaults.outputJob'),
+              outputs: {
+                gerber: t('defaults.outputGerber'),
+                drill: t('defaults.outputDrill'),
+                bom: t('defaults.outputBom'),
+                pickAndPlace: t('defaults.outputPickAndPlace'),
+                pdf: t('defaults.outputPdf'),
+                step: t('defaults.outputStep'),
+              },
+            },
             ...(options.board === null ? {} : { board: options.board }),
           },
           LONG_CALL_MS,
@@ -422,7 +436,7 @@ export function ProjectProvider({ children }: { readonly children: ReactNode }):
       await adopt(snapshot);
       return true;
     },
-    [adopt, appInfo.platform, engine, run],
+    [adopt, appInfo.platform, engine, run, t],
   );
 
   const saveTo = useCallback(
