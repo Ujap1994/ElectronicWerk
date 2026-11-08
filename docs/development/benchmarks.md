@@ -96,6 +96,27 @@ rate (20 fps) and the CPU time per frame (below 4 ms); on software renderers
 only the CPU time is checked. The roadmap budget of 60 fps on a mid-range
 integrated GPU is verified on real hardware for every release.
 
+## KiCad import
+
+The KiCad import is measured locally with ignored tests, because real
+projects and the official KiCad libraries are not part of the repository:
+
+```sh
+EW_KICAD_SAMPLE=/path/to/project.kicad_pro \
+EW_KICAD_LIBRARIES=/path/to/kicad-libraries \
+cargo test --release -p ew-kicad --test samples -- --ignored --nocapture
+```
+
+`EW_KICAD_SAMPLE` imports a project (with its KiCad netlist exported next to
+it as `.net`), checks that the board connects exactly like the netlist and
+that the pins of the placed symbols meet wires. `EW_KICAD_LIBRARIES` reads
+every symbol and footprint library below a folder.
+
+| Measurement (Apple M3, release build)                                | Result                        |
+| -------------------------------------------------------------------- | ----------------------------- |
+| A 4-layer, multi-sheet KiCad 10 project (480 nets, about 2,800 pins) | 0.08 s, 480 of 480 nets match |
+| All official KiCad libraries (22,916 symbols, 15,470 footprints)     | 5.6 s, no errors              |
+
 ## Micro-benchmarks
 
 [Criterion](https://github.com/bheisler/criterion.rs) benchmarks measure

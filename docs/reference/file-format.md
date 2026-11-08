@@ -150,12 +150,14 @@ is relative to the project folder, uses `/` and must not leave the folder.
 | `footprints`      | Placed footprints with their own copy of pads, graphics, texts and 3D models (as seen from the top; `side: "bottom"` mirrors them), `component`, `designator`, `value`, `at`, `rotation`, `locked`, `attributes` |
 | `tracks`          | `layer`, `net`, `width`, `start`, `end`, and `mid` for arcs                                                                                                                                                      |
 | `vias`            | `at`, `diameter`, `drill`, `net`, `from`/`to` layers (default through), `micro`                                                                                                                                  |
-| `zones`           | Copper pours and keep-outs: `net`, `layers`, `outline`, `holes`, `priority`, `keepout`, `fill` settings                                                                                                          |
+| `zones`           | Copper pours and keep-outs: `net`, `layers`, `outline`, `holes`, `priority`, `keepout`, `fill` settings, and `filled` (the computed copper per layer: `layer`, `points`; for example from a KiCad import)        |
 | `texts`, `shapes` | Free text and graphics; the board outline is drawn on the `outline` layer                                                                                                                                        |
 
 ## Libraries, rules and output jobs
 
-- **Library** (`.ewlib`): `symbols` (with `units`, `pins`, `graphics`) and
+- **Library** (`.ewlib`): `symbols` (with `units`, `pins`, `graphics`, and
+  `pinText`: `hideNumbers`, `hideNames` and `nameOffset`, where an offset of
+  0 puts pin names above the pin line instead of inside the body) and
   `footprints` (with `pads`, `graphics`, `texts`, `models`, `attributes`).
 - **Rules** (`.ewrules`): `constraints` (minimum clearance, track width, via,
   drill, annular ring, hole-to-hole, copper-to-edge, silkscreen width),
@@ -176,6 +178,9 @@ misinterpreted.
 in one go.
 
 Version 1 is the first version of the format (ElectronicWerk 0.2).
+ElectronicWerk 0.4 added the optional fields `filled` (zones) and `pinText`
+(symbols) without a new version: they are left out when they are empty or
+have their default value, and older versions of the app ignore them.
 
 ## Local state (`.ewerk/`)
 

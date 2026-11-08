@@ -32,9 +32,12 @@ features:
   - icon: 🛟
     title: Never lose work
     details: Unlimited undo, an autosave journal for every change, crash recovery and atomic saves.
+  - icon: 📥
+    title: KiCad import
+    details: Turn a KiCad 6 to 10 project into an ElectronicWerk project in one step, with a detailed report. Compare and apply netlists from KiCad and CSV.
   - icon: 🔁
     title: Open, git-friendly files
-    details: Readable JSON with one object per line, so changes diff cleanly. KiCad import and open standard formats follow.
+    details: Readable JSON with one object per line, so changes diff cleanly. Open standard formats follow.
   - icon: 🌐
     title: German and English
     details: The user interface follows your system language and can be switched at any time.
@@ -47,9 +50,9 @@ features:
 ---
 
 ::: warning Early development
-ElectronicWerk is at an early stage. Version 0.2 provides projects on top of
-the application foundation: the project wizard and tree, the native file
-format, undo, autosave and crash recovery. The editors follow milestone by
-milestone. See the
+ElectronicWerk is at an early stage. Version 0.4 imports KiCad projects,
+libraries and netlists, on top of the 2D view and projects with the native
+file format, undo, autosave and crash recovery. The editors follow milestone
+by milestone. See the
 [roadmap](https://github.com/Ujap1994/ElectronicWerk/blob/main/ROADMAP.md).
 :::

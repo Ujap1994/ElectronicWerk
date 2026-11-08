@@ -41,6 +41,9 @@ macOS quarantines downloaded programs. Run
 | [`ewerk project archive`](#ewerk-project-archive)     | Write a ZIP archive of a project                     |
 | [`ewerk project upgrade`](#ewerk-project-upgrade)     | Rewrite a project in the current file format         |
 | [`ewerk project templates`](#ewerk-project-templates) | List the project templates                           |
+| [`ewerk import kicad`](#ewerk-import-kicad)           | Import a KiCad project as a new project              |
+| [`ewerk import library`](#ewerk-import-library)       | Add a KiCad library to a project library             |
+| [`ewerk import netlist`](#ewerk-import-netlist)       | Compare a netlist with a board, or apply it          |
 | [`ewerk rpc`](#ewerk-rpc)                             | Run an engine session over standard input and output |
 | [`ewerk call`](#ewerk-call-method-params)             | Call one engine method                               |
 | [`ewerk methods`](#ewerk-methods)                     | List every engine method                             |
@@ -166,6 +169,84 @@ board-4l         100.000 mm × 100.000 mm, 4 layers
 arduino-shield   68.580 mm × 53.340 mm, 2 layers
 demo             no board
 ```
+
+## Import
+
+The import commands read KiCad files and netlists; they never change them.
+See [Importing KiCad projects](../guide/import-kicad) and
+[Netlists](../guide/netlists) for what is imported and how.
+
+### `ewerk import kicad`
+
+```text
+ewerk import kicad <source> <dir> [--name <name>] [--json]
+```
+
+Imports the KiCad project `<source>` (the `.kicad_pro` file, its schematic or
+board, or a folder with exactly one KiCad project) into the new project
+folder `<dir>` (it must not exist or be empty). The name defaults to the name
+of the KiCad project. The command prints the counts and every finding of the
+import report, and writes the report into the project as
+`kicad-import-report.md`:
+
+```console
+$ ewerk import kicad blinky/blinky.kicad_pro Blinky
+Imported blinky/blinky.kicad_pro into /home/lab/Blinky
+3 board graphics, 8 footprints, 10 labels, 1 library footprints, 2 library symbols, 7 nets, 22 pads, 3 sheet texts and graphics, 2 sheets, 17 symbols, 12 tracks, 2 vias, 19 wires, 1 zones
+warning blinky.kicad_dru: 1 custom design rules are not imported; the rule editor arrives with the layout editor [custom-rules]
+info    sym-lib-table: the symbol library `Device` is outside the project; the symbols the design uses were imported from the design itself [external-library]
+info    blinky.kicad_pcb: `dimension` items are not imported [unsupported-item]
+Report: /home/lab/Blinky/kicad-import-report.md
+```
+
+With `--json`, the result of the engine method
+[`import.kicad`](./engine-api#import-kicad) is printed: the project snapshot,
+the report and the report file. The exit code is `1` if the report contains
+errors (the project is created anyway).
+
+### `ewerk import library`
+
+```text
+ewerk import library <source> --project <project> [--nickname <name>] [--json]
+```
+
+Adds the symbols and footprints of a KiCad library to the first library of
+the project and saves it. `<source>` is a symbol library (`.kicad_sym`), a
+KiCad 10 symbol library folder (`.kicad_symdir`), a footprint library folder
+(`.pretty`) or a single footprint (`.kicad_mod`). The names get the prefix
+`<nickname>:`, which defaults to the library's file name without extension.
+Names that the library has already are skipped:
+
+```console
+$ ewerk import library ~/kicad/MyParts.pretty --project Blinky
+Added 0 symbols and 12 footprints to the project library.
+```
+
+### `ewerk import netlist`
+
+```text
+ewerk import netlist <source> --project <project> [--apply] [--json]
+```
+
+Compares the netlist `<source>` (KiCad `.net`, KiCad XML or CSV) with the
+first board of the project. The exit code is `0` if the board connects
+exactly like the netlist and `1` if it does not, so the command fits CI
+pipelines. With `--apply`, the pads get the nets of the netlist, the project
+is saved and the exit code is `0`:
+
+```console
+$ ewerk import netlist blinky/blinky.net --project Blinky
+kicad netlist: 7 nets, 8 components. 7 of 7 connected nets match the board (7 with the same name).
+
+$ ewerk import netlist changed.csv --project Blinky
+csv netlist: 8 nets, 8 components. 6 of 6 connected nets match the board (6 with the same name).
+  D1-2: netlist /LED_B (not connected) / board /LED_A
+  R3-2: netlist /LED_A (not connected) / board /LED_A
+Run with --apply to change 1 pads.
+```
+
+With `--json`, the result of the engine method
+[`import.netlist`](./engine-api#import-netlist) is printed.
 
 ## Engine access
 

@@ -377,6 +377,96 @@ properties shown in the inspector:
 camelCase name such as `throughHole`) or `count`. Positions of pads and pins
 are absolute. An unknown object fails with `notFound`.
 
+## Import
+
+These methods read KiCad files and netlists; they never change them. See
+[Importing KiCad projects](../guide/import-kicad) and
+[Netlists](../guide/netlists).
+
+### `import.kicadProbe`
+
+`{"source": "…"}`. Checks a KiCad project without importing it: the
+`.kicad_pro` file, its schematic or board, or a folder with exactly one KiCad
+project. Returns `{"name", "folder", "project", "schematic", "board"}` (the
+last three tell which files exist). Fails with `invalidParams` if `source` is
+not a KiCad project.
+
+### `import.kicad`
+
+| Parameter | Type   | Meaning                                                           |
+| --------- | ------ | ----------------------------------------------------------------- |
+| `source`  | string | The KiCad project (as for `import.kicadProbe`)                    |
+| `path`    | string | Project folder to create (must not exist or be empty)             |
+| `name`    | string | Project name (default: the name of the KiCad project)             |
+| `names`   | object | Optional names for the created documents, as for `project.create` |
+
+Imports the KiCad project into a new project, opens it and returns
+`{"project", "report", "reportFile"}`: the [project snapshot](#project-snapshot),
+the import report and the path of the Markdown report inside the project
+(`kicad-import-report.md`). No project may be open.
+
+The report:
+
+```json
+{
+  "source": "/home/lab/blinky/blinky.kicad_pro",
+  "versions": { "board": "20260206", "schematic": "20260306" },
+  "counts": { "footprints": 8, "nets": 7, "sheets": 2, "tracks": 12 },
+  "findings": [
+    {
+      "severity": "warning",
+      "code": "custom-rules",
+      "message": "1 custom design rules are not imported; …",
+      "file": "blinky.kicad_dru",
+      "count": 1
+    }
+  ]
+}
+```
+
+`severity` is `error`, `warning` or `info`, most serious first. The codes are
+listed in [Report codes](../guide/import-kicad#report-codes).
+
+### `import.library`
+
+| Parameter  | Type   | Meaning                                                                  |
+| ---------- | ------ | ------------------------------------------------------------------------ |
+| `source`   | string | `.kicad_sym`, `.kicad_symdir`, `.pretty` or `.kicad_mod`                 |
+| `doc`      | id     | Target library document (default: the first library of the project)      |
+| `nickname` | string | Prefix of the names (default: the library's file name without extension) |
+
+Adds the symbols and footprints that the library does not have yet, as one
+undoable step (`Import library`). Returns `{"symbols", "footprints",
+"report", "history"}`: the numbers added, a report (with `already-in-library`
+for skipped names) and the history state.
+
+### `import.netlist`
+
+| Parameter | Type    | Meaning                                                        |
+| --------- | ------- | -------------------------------------------------------------- |
+| `source`  | string  | KiCad `.net`, KiCad XML or CSV netlist                         |
+| `doc`     | id      | The board (default: the first board of the project)            |
+| `apply`   | boolean | Apply the netlist to the board (default `false`: only compare) |
+
+Returns:
+
+| Field               | Meaning                                                                                                             |
+| ------------------- | ------------------------------------------------------------------------------------------------------------------- |
+| `format`            | `kicad`, `xml` or `csv`                                                                                             |
+| `nets`              | Nets in the netlist                                                                                                 |
+| `components`        | Components in the netlist                                                                                           |
+| `comparison`        | `nets` and `nodes` (connected nets and their pins), `matchingNets`, `sameNames`, `missingComponents`, `differences` |
+| `changedPads`       | Pads that applying the netlist changes                                                                              |
+| `newNets`           | Nets that applying the netlist creates                                                                              |
+| `missingFootprints` | Components of the netlist without a footprint on the board                                                          |
+| `extraFootprints`   | Footprints on the board that the netlist does not mention                                                           |
+| `applied`           | `true` if the netlist was applied (one undoable step, `Import netlist`)                                             |
+
+Each entry of `differences` is `{"reference", "pin", "expected", "actual",
+"unconnected"}`: the net of the pin in the netlist and on the board (`null`
+if none), and whether the netlist leaves the pin unconnected while the board
+connects it.
+
 ## Engine
 
 ### `engine.info`

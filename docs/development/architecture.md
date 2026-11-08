@@ -46,6 +46,7 @@ the files are described in the [file format reference](../reference/file-format)
 | `ew-format` | JSON layout, schema versions and migrations, atomic saves, validation, archives |
 | `ew-synth`  | Synthetic reference designs for tests and [benchmarks](./benchmarks)            |
 | `ew-scene`  | Render scenes for the 2D view: primitives, texts and the object table           |
+| `ew-kicad`  | KiCad import: S-expression parser, projects, libraries, netlists, import report |
 | `ew-core`   | Sessions, transactions, undo/redo, journal, events, RPC                         |
 | `ew-node`   | Node-API bridge for the desktop app                                             |
 | `ew-cli`    | The `ewerk` command-line tool                                                   |
@@ -114,3 +115,21 @@ macOS and Linux:
   text, so every text exists in German and English.
 - **Tests:** Rust unit tests, Vitest unit and integration tests (including the
   real native engine) and Playwright end-to-end tests of the running app.
+
+## KiCad import
+
+The [KiCad import](../guide/import-kicad) is a one-way conversion in the crate
+`ew-kicad`, as recorded in
+[ADR-0004: KiCad import](https://github.com/Ujap1994/ElectronicWerk/blob/main/docs/adr/0004-kicad-import.md):
+
+1. A non-recursive S-expression parser reads each file in one pass and
+   borrows the text instead of copying it.
+2. Converters map sheets, symbols, boards, footprints, project settings and
+   library tables to the data model: exact nanometre coordinates, layers by
+   name, KiCad's symbol transforms, bottom-side footprints stored as seen from
+   the top, and stable ids (KiCad's UUIDs or ids derived from the content).
+3. Everything that cannot be mapped exactly is collected in an import report
+   with severities and stable codes.
+4. The engine creates a new project from the result (`import.kicad`), adds
+   libraries (`import.library`) or compares and applies netlists
+   (`import.netlist`) as undoable transactions.

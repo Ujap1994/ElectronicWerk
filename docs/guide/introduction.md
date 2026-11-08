@@ -9,10 +9,13 @@ DipTrace and Eagle, but it is written from scratch and released under the
 
 ## What you can do today
 
-Version 0.2 adds **projects**: create, open, organise, save, archive and check
-projects with schematics, a board, a library, design rules and output jobs,
-with unlimited undo, an autosave journal and crash recovery. The editors
-follow in the next releases.
+Version 0.4 adds the **KiCad import**: KiCad projects become ElectronicWerk
+projects in one step, with a detailed report, and netlists from KiCad and
+other tools can be compared with a board and applied. It builds on the
+**2D view** (0.3) and on **projects** (0.2): create, open, organise, save,
+archive and check projects with schematics, a board, a library, design rules
+and output jobs, with unlimited undo, an autosave journal and crash recovery.
+The editors follow in the next releases.
 
 | Feature                                   | Status    | Page                                                   |
 | ----------------------------------------- | --------- | ------------------------------------------------------ |
@@ -26,7 +29,8 @@ follow in the next releases.
 | Undo, autosave and crash recovery         | Available | [Undo and recovery](./undo-and-recovery)               |
 | Native, git-friendly file format          | Available | [File format](../reference/file-format)                |
 | 2D viewer for schematics and boards       | Available | [Viewing sheets and boards](./viewer)                  |
-| KiCad import                              | Planned   | v0.4                                                   |
+| KiCad import (projects and libraries)     | Available | [Importing KiCad projects](./import-kicad)             |
+| Netlist comparison and import             | Available | [Netlists](./netlists)                                 |
 | Schematic, symbol, footprint, PCB editors | Planned   | v0.6 to v0.8                                           |
 | Live 3D view, manufacturing outputs       | Planned   | v0.9 and v0.10                                         |
 

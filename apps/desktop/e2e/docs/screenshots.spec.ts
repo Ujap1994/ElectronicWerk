@@ -3,7 +3,7 @@
  * Run with `npm run docs:screenshots` after building the app. Only synthetic
  * demo data is shown, so the images are safe to publish.
  */
-import { mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { cpSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 
 import { expect, test, type Locator, type Page } from '@playwright/test';
@@ -508,4 +508,96 @@ test('sheet viewer', async () => {
     }
     await close();
   }
+});
+
+// --- KiCad import -------------------------------------------------------------
+
+const KICAD_FIXTURE = resolve(
+  import.meta.dirname,
+  '../../../../crates/ew-kicad/tests/fixtures/blinky',
+);
+
+test('kicad import', async () => {
+  freshProjects();
+  // A copy next to the projects, so the dialog shows a neutral path.
+  const kicad = '/tmp/ElectronicWerk/KiCad/blinky';
+  rmSync(kicad, { recursive: true, force: true });
+  cpSync(KICAD_FIXTURE, kicad, { recursive: true });
+  const { app, page, close } = await start({ settings: { theme: 'light' } });
+  await page.setViewportSize({ width: 1400, height: 860 });
+  await shoot(page.locator('.start__actions'), 'import-start-action');
+  await queueDialogAnswer(app, join(kicad, 'blinky.kicad_pro'));
+  await page.getByTestId('import-kicad').click();
+  await page.getByTestId('kicad-import-name').fill('Blinky');
+  await expect(page.getByTestId('kicad-import-target')).toContainText('Blinky');
+  await shoot(page.getByTestId('kicad-import-dialog'), 'import-dialog');
+  await page.getByTestId('kicad-import-start').click();
+  await expect(page.getByTestId('import-report')).toBeVisible();
+  await shoot(page.getByTestId('import-report'), 'import-report');
+  await page
+    .getByTestId('import-report')
+    .getByRole('button', { name: 'Close', exact: true })
+    .last()
+    .click();
+  await shoot(page, 'import-workspace');
+
+  // The imported board and sheet in the viewer.
+  const boardRow = page.locator('[data-testid^="tree-doc:"]').filter({ hasText: /^Blinky$/u });
+  const sheetRow = page.locator('[data-testid^="tree-doc:"]').filter({ hasText: 'Top sheet' });
+  await boardRow.dblclick();
+  await settle(page);
+  await shoot(page, 'import-board');
+  await page.getByTestId('tab-details').click();
+  await sheetRow.dblclick();
+  await expect(page.getByTestId('viewer')).toHaveAttribute('data-kind', 'schematic');
+  await settle(page);
+  // Zoom in on the circuit (Ctrl + wheel zooms around the pointer).
+  await page.mouse.move(682, 407);
+  await page.keyboard.down('Control');
+  await page.mouse.wheel(0, -46);
+  await page.keyboard.up('Control');
+  await page.mouse.move(150, 700);
+  await settle(page);
+  await shoot(page, 'import-sheet');
+
+  // Netlists: the context menu, a matching and a changed netlist.
+  await page.getByTestId('tab-details').click();
+  await boardRow.click({ button: 'right' });
+  await page.screenshot({
+    path: join(OUT, 'netlist-menu.png'),
+    clip: { x: 0, y: 40, width: 480, height: 480 },
+  });
+  await queueDialogAnswer(app, join(kicad, 'blinky.net'));
+  await page.getByRole('menuitem', { name: 'Import netlist…' }).click();
+  await expect(page.getByTestId('netlist-summary')).toBeVisible();
+  await shoot(page.getByTestId('netlist-dialog'), 'netlist-match');
+  await page
+    .getByTestId('netlist-dialog')
+    .getByRole('button', { name: 'Close', exact: true })
+    .last()
+    .click();
+  const changed = join(PROJECTS, 'blinky-changed.csv');
+  writeFileSync(
+    changed,
+    readFileSync(join(kicad, 'blinky-netlist.csv'), 'utf8')
+      .replace('/LED_A;D1;2', '/LED_B;D1;2')
+      .replace('/DIS;R2;1', '/TRIG;R2;1'),
+  );
+  await queueDialogAnswer(app, changed);
+  await boardRow.click({ button: 'right' });
+  await page.getByRole('menuitem', { name: 'Import netlist…' }).click();
+  await expect(page.getByTestId('netlist-differences')).toBeVisible();
+  await shoot(page.getByTestId('netlist-dialog'), 'netlist-differences');
+  await page
+    .getByTestId('netlist-dialog')
+    .getByRole('button', { name: 'Close', exact: true })
+    .last()
+    .click();
+  await page.locator('[data-testid="tree-group:libraries"]').click({ button: 'right' });
+  await page.screenshot({
+    path: join(OUT, 'library-import-menu.png'),
+    clip: { x: 0, y: 40, width: 480, height: 480 },
+  });
+  await page.keyboard.press('Escape');
+  await close();
 });
