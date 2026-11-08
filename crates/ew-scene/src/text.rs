@@ -90,6 +90,19 @@ impl Serialize for TextItem {
     }
 }
 
+/// Turns a text so that it never reads upside down, keeping its box in
+/// place: a text turned by 180° also swaps its alignment.
+#[must_use]
+pub fn upright(mut item: TextItem) -> TextItem {
+    let turned = crate::geom::readable(item.rotation);
+    if (turned - item.rotation).rem_euclid(360.0).round() as i64 % 360 == 180 {
+        item.h = -item.h;
+        item.v = -item.v;
+    }
+    item.rotation = turned;
+    item
+}
+
 /// Width and height of a text block.
 #[must_use]
 pub fn extent(text: &str, size: f64) -> (f64, f64) {
@@ -179,6 +192,21 @@ mod tests {
     fn mirrored_left_aligned_text_extends_left() {
         let b = text_bounds(&item("abc", -1, -1, 0.0, MIRROR));
         assert!((b.max_x - 100.0).abs() < 1e-9);
+    }
+
+    #[test]
+    fn upright_text_keeps_its_box() {
+        let turned = item("abc", -1, -1, 180.0, 0);
+        let before = text_bounds(&turned);
+        let fixed = upright(turned);
+        assert!((fixed.rotation - 0.0).abs() < 1e-9);
+        assert_eq!((fixed.h, fixed.v), (1, 1));
+        let after = text_bounds(&fixed);
+        assert!(
+            (before.min_x - after.min_x).abs() < 1e-6 && (before.max_y - after.max_y).abs() < 1e-6
+        );
+        let vertical = upright(item("abc", 0, 0, 90.0, 0));
+        assert!((vertical.rotation - 90.0).abs() < 1e-9);
     }
 
     #[test]

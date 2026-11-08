@@ -9,7 +9,7 @@ use crate::id::Id;
 use crate::pcb::{FootprintAttributes, FootprintText, Graphic, Model3d, Pad};
 use crate::shape::{Fill, Geometry, Stroke};
 use crate::text::TextStyle;
-use crate::units::{Angle, Nm, Point};
+use crate::units::{Angle, Nm, Point, um};
 use crate::{impl_keyed, is_default};
 
 /// Electrical type of a pin (used by the ERC).
@@ -191,6 +191,34 @@ pub struct SymbolDef {
     /// Further default parameters.
     #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
     pub properties: BTreeMap<String, String>,
+    /// How pin names and numbers are shown.
+    #[serde(default, skip_serializing_if = "is_default")]
+    pub pin_text: PinText,
+}
+
+/// How the pin names and numbers of a symbol are shown.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase", default)]
+pub struct PinText {
+    /// Hide the pin numbers.
+    #[serde(skip_serializing_if = "is_default")]
+    pub hide_numbers: bool,
+    /// Hide the pin names.
+    #[serde(skip_serializing_if = "is_default")]
+    pub hide_names: bool,
+    /// Distance of the names from the pin end inside the body; 0 puts the
+    /// names above the pin line (and the numbers below it).
+    pub name_offset: Nm,
+}
+
+impl Default for PinText {
+    fn default() -> Self {
+        Self {
+            hide_numbers: false,
+            hide_names: false,
+            name_offset: um(508),
+        }
+    }
 }
 
 /// A footprint definition.

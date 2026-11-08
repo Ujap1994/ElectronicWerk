@@ -505,6 +505,7 @@ impl<'a> Generator<'a> {
                     priority: 0,
                     keepout: None,
                     fill: ZoneFill::default(),
+                    filled: Vec::new(),
                 });
             }
         }

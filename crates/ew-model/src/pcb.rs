@@ -660,6 +660,20 @@ pub struct Zone {
     /// Fill settings.
     #[serde(default)]
     pub fill: ZoneFill,
+    /// The filled copper (computed by the zone filler or imported).
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub filled: Vec<FilledArea>,
+}
+
+/// One filled copper polygon of a zone. Holes are cut in with slits, so
+/// every area is a single outline.
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct FilledArea {
+    /// The copper layer.
+    pub layer: CopperLayer,
+    /// The outline.
+    pub points: Vec<Point>,
 }
 
 /// Free text on the board.

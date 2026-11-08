@@ -1,7 +1,7 @@
 //! Schematic sheet scenes.
 
 use ew_model::document::Document;
-use ew_model::library::{Pin, PinDirection, PinShape, SymbolDef};
+use ew_model::library::{Pin, PinDirection, PinShape, PinText, SymbolDef};
 use ew_model::project::Project;
 use ew_model::schematic::{
     Label, LabelKind, PageFormat, PlacedSymbol, PortShape, PowerPort, PowerStyle, Schematic,
@@ -208,11 +208,11 @@ pub fn build(project: &Project, sheet: &Schematic, grid: i64, options: &Options<
         let item = TextItem::styled(
             ctx.resolve(&text.text),
             ctx.local(text.at),
-            geom::readable(text.rotation.degrees()),
+            text.rotation.degrees(),
             &text.style,
             obj,
         );
-        b.text(ctx.layers.texts, obj, item);
+        b.text(ctx.layers.texts, obj, text::upright(item));
     }
 
     b.finish(Header {
@@ -414,6 +414,7 @@ fn placed_symbol(b: &mut SceneBuilder, ctx: &Ctx<'_>, symbol: &PlacedSymbol) {
     };
     let obj = b.object(ObjType::Symbol, symbol.id, None, None);
     let def = ctx.symbol_def(&symbol.symbol);
+    let pin_text = def.map(|def| def.pin_text).unwrap_or_default();
     let unit = def.and_then(|def| {
         def.units
             .get(usize::from(symbol.unit.max(1) - 1))
@@ -451,18 +452,18 @@ fn placed_symbol(b: &mut SceneBuilder, ctx: &Ctx<'_>, symbol: &PlacedSymbol) {
             let item = TextItem::styled(
                 ctx.resolve(&text.text),
                 xf.point(text.at),
-                geom::readable(rotation),
+                rotation,
                 &text.style,
                 obj,
             );
-            b.text(ctx.layers.symbols, obj, item);
+            b.text(ctx.layers.symbols, obj, text::upright(item));
         }
         for (index, pin) in unit.pins.iter().enumerate() {
             if pin.hidden {
                 continue;
             }
             let pin_obj = b.object(ObjType::Pin, symbol.id, Some(obj), Some(index));
-            let direction = draw_pin(b, ctx, pin_obj, pin, &xf);
+            let direction = draw_pin(b, ctx, pin_obj, pin, &xf, &pin_text);
             pin_count += 1;
             if direction.y.abs() > direction.x.abs() {
                 vertical_pins += 1;
@@ -505,7 +506,14 @@ fn placed_symbol(b: &mut SceneBuilder, ctx: &Ctx<'_>, symbol: &PlacedSymbol) {
 
 /// Draws a pin and its texts; returns the direction from the connection
 /// point into the body.
-fn draw_pin(b: &mut SceneBuilder, ctx: &Ctx<'_>, obj: u32, pin: &Pin, xf: &Xform) -> P {
+fn draw_pin(
+    b: &mut SceneBuilder,
+    ctx: &Ctx<'_>,
+    obj: u32,
+    pin: &Pin,
+    xf: &Xform,
+    text: &PinText,
+) -> P {
     let start = xf.point(pin.at);
     let end_local = P::of(pin.at).add(pin_vector(pin.direction).scale(pin.length as f64));
     let end = xf.apply(end_local);
@@ -553,30 +561,53 @@ fn draw_pin(b: &mut SceneBuilder, ctx: &Ctx<'_>, obj: u32, pin: &Pin, xf: &Xform
 
     let horizontal = d.x.abs() >= d.y.abs();
     let middle = start.add(end).scale(0.5);
-    if !pin.number.is_empty() {
-        let (at, rotation) = if horizontal {
-            (middle.add(P::new(0.0, um(250) as f64)), 0.0)
+    // Above the pin line (left of it when vertical), or below (right).
+    let beside = |above: bool| -> (P, f64, i8) {
+        let gap = um(250) as f64;
+        if horizontal {
+            (
+                middle.add(P::new(0.0, if above { gap } else { -gap })),
+                0.0,
+                if above { -1 } else { 1 },
+            )
         } else {
-            (middle.add(P::new(-(um(250) as f64), 0.0)), 90.0)
-        };
+            (
+                middle.add(P::new(if above { -gap } else { gap }, 0.0)),
+                90.0,
+                if above { -1 } else { 1 },
+            )
+        }
+    };
+    let names_outside = text.name_offset == 0;
+    if !pin.number.is_empty() && !text.hide_numbers {
+        let (at, rotation, v) = beside(!names_outside);
         b.text(
             ctx.layers.pin_text,
             obj,
-            item(pin.number.clone(), at, PIN_TEXT, rotation, 0, -1, obj),
+            item(pin.number.clone(), at, PIN_TEXT, rotation, 0, v, obj),
         );
     }
-    if !pin.name.is_empty() && pin.name != "~" {
-        let at = end.add(d.scale(GAP));
-        let (rotation, h) = if horizontal {
-            (0.0, if d.x > 0.0 { -1 } else { 1 })
+    if !pin.name.is_empty() && pin.name != "~" && !text.hide_names {
+        if names_outside {
+            let (at, rotation, v) = beside(true);
+            b.text(
+                ctx.layers.pin_text,
+                obj,
+                item(pin.name.clone(), at, um(1_270) as f64, rotation, 0, v, obj),
+            );
         } else {
-            (90.0, if d.y > 0.0 { -1 } else { 1 })
-        };
-        b.text(
-            ctx.layers.pin_text,
-            obj,
-            item(pin.name.clone(), at, um(1_270) as f64, rotation, h, 0, obj),
-        );
+            let at = end.add(d.scale(text.name_offset as f64));
+            let (rotation, h) = if horizontal {
+                (0.0, if d.x > 0.0 { -1 } else { 1 })
+            } else {
+                (90.0, if d.y > 0.0 { -1 } else { 1 })
+            };
+            b.text(
+                ctx.layers.pin_text,
+                obj,
+                item(pin.name.clone(), at, um(1_270) as f64, rotation, h, 0, obj),
+            );
+        }
     }
     d
 }
@@ -608,11 +639,11 @@ fn fields(
             let item = TextItem::styled(
                 ctx.resolve(&value_of(&field.name)),
                 ctx.local(field.at),
-                geom::readable(field.rotation.degrees()),
+                field.rotation.degrees(),
                 &field.style,
                 field_obj,
             );
-            b.text(ctx.layers.fields, field_obj, item);
+            b.text(ctx.layers.fields, field_obj, text::upright(item));
         }
         return;
     }

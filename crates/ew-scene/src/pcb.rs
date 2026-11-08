@@ -241,7 +241,16 @@ pub fn build(pcb: &Pcb, grid: i64, options: &Options<'_>) -> Scene {
             let Some(layer) = layers.copper(*copper) else {
                 continue;
             };
-            b.polygon(layer, obj, &outline, &holes, MESH_HATCH);
+            // A filled zone shows its copper; an unfilled one is hatched.
+            let mut filled = false;
+            for area in zone.filled.iter().filter(|area| area.layer == *copper) {
+                let points: Vec<P> = area.points.iter().map(|p| local(*p)).collect();
+                b.polygon(layer, obj, &points, &[], 0);
+                filled = true;
+            }
+            if !filled {
+                b.polygon(layer, obj, &outline, &holes, MESH_HATCH);
+            }
             b.polyline(layer, obj, &outline, true, 0.0);
             for hole in &holes {
                 b.polyline(layer, obj, hole, true, 0.0);
@@ -412,14 +421,14 @@ fn footprint(
         let mut item = TextItem::styled(
             resolve(options, &content),
             xf.point(text.at),
-            geom::readable(rotation),
+            rotation,
             &text.style,
             text_obj,
         );
         if bottom {
             item.flags |= text::MIRROR;
         }
-        b.text(layer, text_obj, item);
+        b.text(layer, text_obj, text::upright(item));
     }
 }
 

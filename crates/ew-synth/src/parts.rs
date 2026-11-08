@@ -266,6 +266,7 @@ impl PartKind {
                 texts: Vec::new(),
             }],
             properties: BTreeMap::new(),
+            pin_text: ew_model::library::PinText::default(),
         }
     }
 
