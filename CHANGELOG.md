@@ -6,6 +6,52 @@ project uses [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-11-08
+
+The viewer release: schematic sheets and boards open in a fast 2D view drawn
+by the graphics card, with layers, selection and a property inspector.
+
+### Added
+
+- **2D view** for schematic sheets and boards. Documents open in tabs from the
+  project tree (double-click, <kbd>Enter</kbd>, **Open** in the context menu)
+  or the details panel, and remember their view while the project is open.
+- **Navigation** with mouse (wheel zoom around the cursor, middle/right-drag
+  or <kbd>Space</kbd>+drag to pan), trackpad (two-finger pan, pinch zoom) and
+  keyboard (arrows, <kbd>+</kbd>/<kbd>-</kbd>, <kbd>Home</kbd> to fit,
+  <kbd>F</kbd> to zoom to the selection); animated zoom, a grid that adapts
+  to the zoom level, and the cursor position in the project's units.
+- **Selection** by click (pads before tracks before footprints before zones,
+  objects on the active layer first), <kbd>Shift</kbd>/<kbd>Ctrl</kbd>/<kbd>⌘</kbd>
+  to add or toggle, **box selection** (left to right: inside; right to left:
+  touching), **lasso selection**, select all and hover highlighting.
+- **Inspector** with the read-only properties of tracks, vias, footprints,
+  pads, zones, texts, graphics, symbols, pins, fields, wires, buses, labels,
+  power ports and sheets, in the project's units.
+- **Layer panel** for boards: visibility, colours, active layer, opacity,
+  _Show all_ / _Only active_, highlighting of the active layer, and a **view
+  from the bottom**. Sheets get a **Display** panel for wires, labels,
+  symbols, pins, fields, the title block and more.
+- Sheets show the paper, a frame and a title block with resolved text
+  variables, and follow the light or dark theme.
+- Engine methods **`view.scene`** (everything the view draws, as JSON
+  metadata plus one binary buffer) and **`view.object`** (inspector
+  properties); `ewerk bench` also measures the board scene.
+- A viewer benchmark (end-to-end, in CI on macOS) and a scene budget test.
+
+### Changed
+
+- The synthetic designs (and the demo project template) point net labels
+  away from their symbols and keep every row on the sheet.
+- Without a usable graphics card, the app falls back to Chromium's software
+  WebGL renderer.
+
+### Performance
+
+- The L reference design (5,000 parts, about 590,000 primitives) opens in the
+  view in 0.2 s and pans and zooms at 60 fps with about 0.2 ms of CPU time per
+  frame (Apple M3); the XL design (2.3 million primitives) also keeps 60 fps.
+
 ## [0.2.0] - 2026-11-08
 
 The project release: create, organise, save and archive projects with
@@ -96,6 +142,7 @@ quality gates and the delivery pipeline that every later feature builds on.
   process ([ujap1994.github.io/ElectronicWerk](https://ujap1994.github.io/ElectronicWerk/)).
   **Help → Documentation** opens it.
 
-[Unreleased]: https://github.com/Ujap1994/ElectronicWerk/compare/v0.2.0...HEAD
+[Unreleased]: https://github.com/Ujap1994/ElectronicWerk/compare/v0.3.0...HEAD
+[0.3.0]: https://github.com/Ujap1994/ElectronicWerk/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/Ujap1994/ElectronicWerk/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/Ujap1994/ElectronicWerk/releases/tag/v0.1.0
