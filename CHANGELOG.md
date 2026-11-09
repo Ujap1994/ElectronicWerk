@@ -6,15 +6,15 @@ project uses [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
-## [0.6.1] - 2026-11-09
+## [0.6.2] - 2026-11-09
 
 The schematic release: sheets become editable, with an electrical rules
 check that gives the same answers as KiCad, net highlighting, find and
 replace, annotation, exports and a guide for a first schematic.
 
-Version 0.6.0 was tagged but never published: its Windows packages failed
-the release smoke test (see **Fixed**). 0.6.1 is the same release with the
-fix.
+Versions 0.6.0 and 0.6.1 were tagged but never published: their release
+smoke tests failed on Windows and on Intel Macs (see **Fixed**). 0.6.2 is
+the same release with both fixes.
 
 ### Added
 
@@ -75,6 +75,9 @@ fix.
 
 ### Fixed
 
+- The release smoke test starts the 3D mesh check only once and gives it
+  three minutes: under Rosetta, several checks started at the same time
+  and compiled OpenCASCADE in parallel until the test timed out.
 - 3D previews in packaged builds: OpenCASCADE is always loaded as CommonJS,
   also when the app folder lies below a `package.json` that declares ES
   modules (this made the Windows release smoke test fail).
@@ -346,8 +349,8 @@ quality gates and the delivery pipeline that every later feature builds on.
   process ([ujap1994.github.io/ElectronicWerk](https://ujap1994.github.io/ElectronicWerk/)).
   **Help → Documentation** opens it.
 
-[Unreleased]: https://github.com/Ujap1994/ElectronicWerk/compare/v0.6.1...HEAD
-[0.6.1]: https://github.com/Ujap1994/ElectronicWerk/compare/v0.5.0...v0.6.1
+[Unreleased]: https://github.com/Ujap1994/ElectronicWerk/compare/v0.6.2...HEAD
+[0.6.2]: https://github.com/Ujap1994/ElectronicWerk/compare/v0.5.0...v0.6.2
 [0.5.0]: https://github.com/Ujap1994/ElectronicWerk/compare/v0.4.0...v0.5.0
 [0.4.0]: https://github.com/Ujap1994/ElectronicWerk/compare/v0.3.0...v0.4.0
 [0.3.0]: https://github.com/Ujap1994/ElectronicWerk/compare/v0.2.0...v0.3.0
