@@ -40,17 +40,18 @@ journal, so no work is lost. The design is recorded in
 [ADR-0002: Data model, file format and transactions](https://github.com/Ujap1994/ElectronicWerk/blob/main/docs/adr/0002-data-model-and-file-format.md);
 the files are described in the [file format reference](../reference/file-format).
 
-| Crate        | Responsibility                                                                  |
-| ------------ | ------------------------------------------------------------------------------- |
-| `ew-model`   | Data types: project, documents, objects, units, layers                          |
-| `ew-format`  | JSON layout, schema versions and migrations, atomic saves, validation, archives |
-| `ew-synth`   | Synthetic reference designs for tests and [benchmarks](./benchmarks)            |
-| `ew-scene`   | Render scenes for the 2D view: primitives, texts and the object table           |
-| `ew-kicad`   | KiCad import: S-expression parser, projects, libraries, netlists, import report |
-| `ew-library` | Base library: SQLite/FTS5 index, fingerprints, deduplication, library packs     |
-| `ew-core`    | Sessions, transactions, undo/redo, journal, events, RPC                         |
-| `ew-node`    | Node-API bridge for the desktop app                                             |
-| `ew-cli`     | The `ewerk` command-line tool                                                   |
+| Crate          | Responsibility                                                                  |
+| -------------- | ------------------------------------------------------------------------------- |
+| `ew-model`     | Data types: project, documents, objects, units, layers                          |
+| `ew-format`    | JSON layout, schema versions and migrations, atomic saves, validation, archives |
+| `ew-synth`     | Synthetic reference designs for tests and [benchmarks](./benchmarks)            |
+| `ew-scene`     | Render scenes for the 2D view: primitives, texts and the object table           |
+| `ew-kicad`     | KiCad import: S-expression parser, projects, libraries, netlists, import report |
+| `ew-library`   | Base library: SQLite/FTS5 index, fingerprints, deduplication, library packs     |
+| `ew-schematic` | Schematic logic: connectivity, ERC, editing operations, annotation, exports     |
+| `ew-core`      | Sessions, transactions, undo/redo, journal, events, RPC                         |
+| `ew-node`      | Node-API bridge for the desktop app                                             |
+| `ew-cli`       | The `ewerk` command-line tool                                                   |
 
 ## 2D rendering
 
@@ -153,3 +154,21 @@ The [base library](../guide/library) is recorded in
    three.js.
 4. Library releases are built by the **Library** workflow and downloaded by
    the main process (see [Building the base library](./library)).
+
+## Schematic editor
+
+The [schematic editor](../guide/schematic-editor) and the
+[electrical rules check](../guide/erc) are recorded in
+[ADR-0006: Schematic editor and electrical rules check](https://github.com/Ujap1994/ElectronicWerk/blob/main/docs/adr/0006-schematic-editor.md):
+
+1. `ew-schematic` works out the nets of all sheets and placements the way
+   KiCad does, runs the ERC with a configurable pin type matrix, and turns
+   every editing action (placing, wiring, dragging, annotating, replacing, …)
+   into a list of changes, keeping the junctions right.
+2. The engine's `schematic.*` methods commit those changes as one undo step
+   each, and serve the ERC, net highlighting, netlists and the bill of
+   materials.
+3. In the renderer, `SchematicEditor` plugs into the viewer controller as its
+   interaction: it snaps to the grid, draws previews as SVG over the canvas,
+   moves selected objects with a shader offset until the edit is committed,
+   and calls the engine.

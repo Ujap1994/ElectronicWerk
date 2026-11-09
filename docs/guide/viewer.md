@@ -2,9 +2,9 @@
 
 ElectronicWerk draws schematic sheets and boards in a fast 2D view. You can
 pan and zoom smoothly through large designs, select objects, read their
-properties, and choose which layers you see. The view is read-only for now:
-the schematic editor arrives in version 0.6 and the layout editor in version
-0.8. Both build on this view.
+properties, and choose which layers you see. Sheets are edited right in this
+view (see [Drawing schematics](./schematic-editor)); boards are read-only
+until the layout editor arrives in version 0.8.
 
 ![A board in the 2D view](/screenshots/viewer-board.png)
 
@@ -70,15 +70,15 @@ part is about 10 mm wide on a typical screen.
 Click the drawing area first so that it has the keyboard focus (a blue frame
 appears when you move there with <kbd>Tab</kbd>).
 
-| Key                                                 | Effect                                    |
-| --------------------------------------------------- | ----------------------------------------- |
-| <kbd>←</kbd> <kbd>→</kbd> <kbd>↑</kbd> <kbd>↓</kbd> | Pan (with <kbd>Shift</kbd>: farther)      |
-| <kbd>+</kbd> / <kbd>-</kbd>                         | Zoom in / out around the centre           |
-| <kbd>Home</kbd>                                     | Fit the whole sheet or board              |
-| <kbd>F</kbd>                                        | Zoom to the selection                     |
-| <kbd>B</kbd>                                        | View the board from the bottom (and back) |
-| <kbd>Ctrl</kbd>/<kbd>⌘</kbd> + <kbd>A</kbd>         | Select every visible object               |
-| <kbd>Esc</kbd>                                      | Clear the selection or cancel a drag      |
+| Key                                                 | Effect                                                                          |
+| --------------------------------------------------- | ------------------------------------------------------------------------------- |
+| <kbd>←</kbd> <kbd>→</kbd> <kbd>↑</kbd> <kbd>↓</kbd> | Pan (with <kbd>Shift</kbd>: farther)                                            |
+| <kbd>+</kbd> / <kbd>-</kbd>                         | Zoom in / out around the centre                                                 |
+| <kbd>Home</kbd>                                     | Fit the whole sheet or board                                                    |
+| <kbd>F</kbd>                                        | Zoom to the selection                                                           |
+| <kbd>B</kbd>                                        | View the board from the bottom (and back); on a sheet, <kbd>B</kbd> draws a bus |
+| <kbd>Ctrl</kbd>/<kbd>⌘</kbd> + <kbd>A</kbd>         | Select every visible object                                                     |
+| <kbd>Esc</kbd>                                      | Clear the selection or cancel a drag                                            |
 
 Zooming is animated and always keeps the point under the cursor in place.
 You can zoom out until the document is a tenth of the window size, and in

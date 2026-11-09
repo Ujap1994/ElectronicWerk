@@ -202,7 +202,9 @@ open project is checked. Returns `issues` (`severity`, `code`, `message`,
 
 `{"kind": "schematic", "name": "Power Supply", "parent": "…"}`. Adds an empty
 document. With `parent` (a schematic), a sheet symbol for the new sheet is
-placed on the parent. Returns `id` and `path`. One undo step.
+placed on the parent: at `at` (its top-left corner) with `size`, or in the
+next free slot of a 6-column grid if they are missing. Returns `id` and
+`path`. One undo step.
 
 ### `document.rename`
 
@@ -283,6 +285,151 @@ first) and `bytes` (memory used by the history).
 Labels of built-in commands: `add-document`, `add-sheet`, `remove-document`,
 `rename-document`, `set-document-properties`, `set-project-properties`,
 `apply` (default of `edit.apply`), `recover`.
+
+## Schematic
+
+The schematic editor's methods. Edits work on one sheet (`doc`) and commit
+one undo step with their own history label (in brackets); they return
+`{"seq", "select", "changes", "history"}`: the sequence number of the change
+set (`null` if nothing changed, in which case no undo step is made), the ids
+to select afterwards, the number of changed objects and the history state.
+Coordinates are nanometres (y up); the grid starts at the top-left corner of
+the page.
+
+Every edit keeps the junctions right: a junction is added where three or more
+connections meet (a wire passing through counts twice, at least one of them
+ends there) and removed where it is no longer needed. Crossing wires never
+get one.
+
+### `schematic.erc`
+
+The electrical rules check of the whole project, with the settings of the
+rules document. Returns `{"issues", "errors", "warnings", "nets", "pins"}`;
+each issue has `code`, `severity` (`error` or `warning`), `message`
+(English), `args` (values for a translated message: `pin`, `net`, `name`,
+`kind`, …), `sheet` (document id), `path` (`/`, `/Power/`), `at` and `items`
+(the objects concerned). Errors come first, then by sheet and position. The
+codes are listed in [Electrical rules check](../guide/erc#what-is-checked).
+
+### `schematic.ercSettings` / `schematic.setErcSettings`
+
+`schematic.ercSettings` returns `{"checks": [{"code", "default", "value"}],
+"kinds", "defaultMatrix", "matrix", "rules"}`: the severity of every check,
+the pin types in matrix order and the 12 × 12 pin type matrix (`error`,
+`warning` or `ignore` per cell), with the defaults, and the rules document
+that stores them.
+
+`schematic.setErcSettings` takes `{"severities": {"code": "warning"},
+"matrix": [[…]]}` and stores only what differs from the defaults
+(`erc-settings`).
+
+### `schematic.net`
+
+`{"doc", "id"?, "pin"?: {"symbol", "index"}, "at"?}`. The net of a wire,
+label or other object, of a pin (its index in the unit's pin list) or of a
+point, and what belongs to it on each sheet: `{"net": "/DIS", "sheets":
+{"<doc>": {"items": [ids], "pins": ["<symbol id>/pin/<n>", "<sheet
+id>/sheetPin/<n>"]}}}`. `net` is `null` if nothing is there.
+
+### `schematic.symbols` / `schematic.symbol`
+
+`schematic.symbols` lists the symbols of the project libraries: `name`,
+`description`, `keywords`, `prefix`, `value`, `footprint`, `power`, `units`,
+`pins` and `library`, sorted by name. `schematic.symbol` (`{"name"}`) returns
+one symbol definition.
+
+### `schematic.place`
+
+`{"doc", "symbol", "at", "rotation"?, "mirror"?, "unit"?, "annotate"?}`.
+Places a symbol (`place-symbol`). With `annotate`, it gets the next free
+designator of its prefix across the project; otherwise `R?`.
+
+### `schematic.wire`
+
+`{"doc", "points": [[x, y], …], "bus"?}`. A wire (or bus) through the points
+(`draw-wire`). Repeated points are dropped and straight runs merged; inner
+corners count as connection points.
+
+### `schematic.add`
+
+`{"doc", "item", "at", "rotation"?}` with `item` one of `{"kind": "label",
+"label": "local" | "global" | "hierarchical", "text"}`, `{"kind":
+"powerPort", "net", "style"?}`, `{"kind": "noConnect"}`, `{"kind":
+"junction"}` or `{"kind": "text", "text"}` (`add-label`, `add-power-port`,
+`add-no-connect`, `add-junction`, `add-text`). A junction placed this way is
+kept even where it is not needed.
+
+### `schematic.move`
+
+`{"doc", "ids", "delta", "drag"?}` (`move`, `drag`). With `drag`, wires that
+end on a connection point of a moved object follow: horizontal and vertical
+wires stay straight and get a corner wire, others stretch; junctions, labels,
+power ports and flags on those points move along. Wires that shrink to
+nothing are removed.
+
+### `schematic.dragInfo`
+
+`{"doc", "ids"}`. What a drag of these objects drags along, for previews:
+`{"wires": [{"id", "start", "end", "startMoves", "endMoves"}], "followers":
+[ids]}`.
+
+### `schematic.orient`
+
+`{"doc", "ids", "orientation", "center"?}` with `orientation` `left`
+(counterclockwise), `right`, `horizontal` (mirror left to right) or
+`vertical` (top to bottom) (`rotate`, `mirror`). One object turns about its
+anchor, several about the centre of their anchors on the grid.
+
+### `schematic.delete`
+
+`{"doc", "ids"}` (`delete`).
+
+### `schematic.copy` / `schematic.paste`
+
+`schematic.copy` (`{"doc", "ids"}`) returns `{"objects"}`, the objects as
+stored. `schematic.paste` (`{"doc", "objects", "offset", "annotate"?}`,
+`paste`) inserts them on any sheet with new ids, moved by `offset`; symbols
+keep their designator if it is free and are numbered again otherwise
+(`annotate`, default `true`) or left unannotated. Units of one copied part
+stay one part.
+
+### `schematic.annotate`
+
+`{"sheet"?, "reset"?, "order"?, "bySheet"?}` (`annotate`). Numbers the
+symbols whose designator ends in `?` (with `reset`: all of them) on all
+sheets or only on `sheet`, sheet by sheet in hierarchy order and by position
+(`order`: `rows` or `columns`), from 1 or (with `bySheet`) from the sheet
+number × 100 + 1. Units of one part share a designator; sheets used more
+than once get one per placement.
+
+### `schematic.find` / `schematic.replace`
+
+`schematic.find` takes `{"query", "matchCase"?, "wholeWord"?, "sheet"?}` and
+returns `[{"doc", "id", "field", "text", "at"}]` with `field` one of
+`designator`, `value`, `footprint`, `property:<name>`, `label`, `power`,
+`text` and `sheet`. `schematic.replace` takes the same plus `"with"` and,
+optionally, `"only": [{"doc", "id", "field"}]` (`replace`); labels, power
+ports, sheet names and designators are never emptied.
+
+### `schematic.syncSheetPins`
+
+`{"doc", "id", "remove"?}` (`sync-sheet-pins`). Gives the sheet symbol `id` a
+pin for every hierarchical label of its sheet that has none yet (down the
+left edge, growing the symbol if needed); with `remove`, also removes pins
+without a label.
+
+### `schematic.snapToGrid`
+
+`{"doc", "ids"?}` (`snap-to-grid`). Moves wire ends, symbols, labels,
+junctions, flags, power ports, texts and sheet symbols of the sheet (or only
+`ids`) to the nearest grid point.
+
+### `schematic.netlist` / `schematic.bom`
+
+`schematic.netlist` (`{"format": "kicad" | "csv"}`) and `schematic.bom`
+return `{"text"}`: a KiCad netlist (version E), a CSV netlist
+(`Net,Designator,Pin`) or the bill of materials as CSV. See
+[Schematic exports](../guide/schematic-exports).
 
 ## View
 

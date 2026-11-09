@@ -66,5 +66,43 @@ Click the drawing area first; see [Viewing sheets and boards](./viewer#navigatin
 | <kbd>Space</kbd>                                 | Toggle a checkbox, press a button |
 | <kbd>Esc</kbd>                                   | Close the dialog                  |
 
-Editor shortcuts (placing parts, routing, …) will be added here together with
-the editors.
+## In the schematic editor
+
+Click the drawing area of a sheet first; see
+[Drawing schematics](./schematic-editor).
+
+| Key                                                                     | Action                                           |
+| ----------------------------------------------------------------------- | ------------------------------------------------ |
+| <kbd>A</kbd>                                                            | Add a symbol                                     |
+| <kbd>W</kbd>                                                            | Draw a wire                                      |
+| <kbd>B</kbd>                                                            | Draw a bus                                       |
+| <kbd>L</kbd>                                                            | Place a net label                                |
+| <kbd>Shift</kbd>+<kbd>L</kbd>                                           | Place a global label                             |
+| <kbd>H</kbd>                                                            | Place a hierarchical label                       |
+| <kbd>P</kbd>                                                            | Place a power port                               |
+| <kbd>Q</kbd>                                                            | Place a no-connect flag                          |
+| <kbd>J</kbd>                                                            | Place a junction                                 |
+| <kbd>T</kbd>                                                            | Place a text                                     |
+| <kbd>S</kbd>                                                            | Draw a sheet symbol                              |
+| <kbd>N</kbd>                                                            | Highlight a net (tool)                           |
+| <kbd>`</kbd>                                                            | Highlight the net under the cursor               |
+| <kbd>R</kbd> / <kbd>Shift</kbd>+<kbd>R</kbd>                            | Rotate counterclockwise / clockwise              |
+| <kbd>Y</kbd> / <kbd>X</kbd>                                             | Mirror left to right / top to bottom             |
+| <kbd>G</kbd>                                                            | Drag the selection with its wires                |
+| <kbd>M</kbd>                                                            | Move the selection without its wires             |
+| <kbd>Delete</kbd>, <kbd>Backspace</kbd>                                 | Delete the selection                             |
+| <kbd>Ctrl</kbd>/<kbd>⌘</kbd>+<kbd>C</kbd> / <kbd>X</kbd> / <kbd>V</kbd> | Copy / cut / paste at the cursor                 |
+| <kbd>Ctrl</kbd>/<kbd>⌘</kbd>+<kbd>D</kbd>                               | Duplicate the selection                          |
+| <kbd>Ctrl</kbd>/<kbd>⌘</kbd>+<kbd>F</kbd>                               | Find and replace                                 |
+| <kbd>Esc</kbd>                                                          | End the action, then back to **Select and move** |
+
+While drawing a wire:
+
+| Key                            | Action                   |
+| ------------------------------ | ------------------------ |
+| <kbd>/</kbd>                   | Bend the other way round |
+| <kbd>Backspace</kbd>           | Remove the last corner   |
+| <kbd>Enter</kbd>, double-click | Finish the wire          |
+| <kbd>Esc</kbd>                 | Throw the wire away      |
+
+Layout editor shortcuts will be added here together with the layout editor.

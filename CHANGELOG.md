@@ -8,6 +8,42 @@ project uses [Semantic Versioning](https://semver.org/).
 
 ### Added
 
+- **Schematic editor** in the sheet view: a tool palette for symbols, wires,
+  buses, net, global and hierarchical labels, power ports, no-connect flags,
+  junctions, texts and sheets, with grid snapping and live previews;
+  selecting, dragging with rubber-banding (straight wires get a corner,
+  labels and power ports move along), moving, rotating, mirroring, deleting,
+  copy, cut, paste and duplicate across sheets; an editable inspector
+  (designator, value, footprint, parameters, flags, label kinds, power port
+  symbols, texts, sheet names); renaming by double-click; every edit is one
+  undo step. See [Drawing schematics](docs/guide/schematic-editor.md).
+- Automatic junctions: added where three or more connections meet and
+  removed when no longer needed; crossing wires never get one.
+- The symbol chooser lists the project library and searches the base
+  library; a chosen base-library symbol is copied into the project.
+- Starter symbols in every new project (R, C, C_Polarized, L, D, LED,
+  Q_NPN_BCE, Conn_01x02, Conn_01x03, SW_Push, PWR_FLAG).
+- Hierarchical sheets: draw a sheet symbol, add its pins from the
+  hierarchical labels of the sheet, open it from the inspector.
+- Annotation: all sheets or one, only unannotated or all, rows or columns,
+  optionally starting each sheet at its number × 100; multi-unit parts and
+  reused sheets are handled.
+- Find and replace across all sheets; net highlighting across sheets.
+- The ERC panel below the drawing: filters, automatic updates after changes,
+  click to zoom to a problem on any sheet, fixes for unannotated symbols and
+  wire ends off the grid; check settings with severities and a clickable pin
+  type matrix. See [Electrical rules check](docs/guide/erc.md).
+- Exports: KiCad netlist, CSV netlist, bill of materials (CSV), SVG of a
+  sheet and a PDF of all sheets. See
+  [Schematic exports](docs/guide/schematic-exports.md).
+- Beginner aids: a guide for the first schematic that ticks itself off,
+  tooltips and status hints for every tool, and a grid and snapping
+  assistant that finds and fixes wire ends off the grid.
+- Schematic commands in the command palette.
+- Engine methods `schematic.*` (erc, ercSettings, setErcSettings, net,
+  symbols, symbol, place, wire, add, move, dragInfo, orient, delete, copy,
+  paste, annotate, find, replace, syncSheetPins, snapToGrid, netlist, bom);
+  `document.add` takes the position and size of a new sheet symbol.
 - New crate `ew-schematic`: the connectivity of all schematics across sheets
   and the hierarchy (wires, junctions, local, global and hierarchical labels,
   power symbols, sheet pins, one instance per sheet placement) with KiCad's
@@ -39,6 +75,12 @@ project uses [Semantic Versioning](https://semver.org/).
 - The smoke test of packaged builds also tessellates a STEP model with the
   bundled OpenCASCADE, so every release checks the 3D pipeline on every
   platform.
+- Sheets are no longer read-only; boards stay read-only until the layout
+  editor.
+- The dotted grid of a sheet starts at the top-left page corner (as in
+  KiCad), so imported drawings lie on it.
+- CI caches the Electron download and retries it when GitHub's release
+  downloads time out.
 
 ## [0.5.0] - 2026-11-08
 

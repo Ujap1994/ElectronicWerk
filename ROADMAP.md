@@ -240,7 +240,7 @@ own work only. Maintainer test cycles and feedback come on top. Status values:
 | M2  | 2D rendering engine and read-only viewer              | v0.3.0  | T3, T4, T5        | 7–10 S          | ✅     |
 | M3  | KiCad import (projects and libraries), netlist import | v0.4.0  | F3                | 6–9 S           | ✅     |
 | M4  | Unified base library and library manager              | v0.5.0  | F2                | 5–8 S           | ✅     |
-| M5  | Schematic editor and ERC                              | v0.6.0  | F4, F10           | 12–18 S         | ⬜     |
+| M5  | Schematic editor and ERC                              | v0.6.0  | F4, F10           | 12–18 S         | 🟦     |
 | M6  | Symbol editor and footprint editor                    | v0.7.0  | F5, F6            | 8–12 S          | ⬜     |
 | M7  | Layout editor, DRC, rules, schematic ↔ PCB sync       | v0.8.0  | F7, F10           | 16–24 S         | ⬜     |
 | M8  | Manufacturing outputs and output jobs                 | v0.9.0  | F10               | 7–10 S          | ⬜     |
@@ -567,6 +567,45 @@ dedup report is reproducible.
   missing power and more. Results panel with zoom-to-issue.
 - Beginner aids: guided first schematic, tooltips, a snap and grid assistant.
 - Exports: PDF/SVG print, netlist, BOM (preliminary).
+
+**Progress (completed 2026-11-09):**
+
+- [x] Crate `ew-schematic` (ADR-0006): connectivity of all sheets and sheet
+      placements with KiCad's rules and net names (480 of 480 connected nets
+      of a real 15-sheet project match KiCad's netlist); KiCad import fix for
+      mirrored symbols turned by 90° or 270°
+- [x] Placing, moving, rotating and mirroring symbols; wires and buses with
+      bends; net, global and hierarchical labels; power ports; no-connect
+      flags; junctions; texts — with grid snapping and live previews
+- [x] Hierarchical sheets: sheet tool, sheet pins from hierarchical labels,
+      reused sheets with designators per placement
+- [x] Annotation (all or unannotated, rows or columns, by sheet × 100,
+      multi-unit and reused sheets) and manual designators; parameters and
+      flags in an editable inspector; text variables and title blocks as
+      before
+- [x] Smart editing: dragging with rubber-banding that keeps wires straight,
+      automatic junctions (added and removed), copy, cut, paste and duplicate
+      across sheets, find and replace across sheets, net highlighting across
+      sheets
+- [x] ERC: KiCad's checks and pin type matrix, configurable per project
+      (severities and matrix, taken over from KiCad projects); results panel
+      with filters, automatic updates and zoom-to-issue; same findings as
+      `kicad-cli sch erc` on the demo and a real project
+- [x] Beginner aids: starter symbols in every new project, a guide for the
+      first schematic that ticks itself off, tooltips and status hints for
+      every tool, a grid and snapping assistant with "snap to grid"
+- [x] Exports: KiCad and CSV netlists, BOM (CSV), SVG of a sheet, PDF of all
+      sheets; commands in the command palette
+- [x] Engine methods `schematic.*` for every editing action, the ERC, nets,
+      find, annotation and exports
+- [x] Tests: Rust unit and integration tests (edits, junctions, drag,
+      annotation, find, exports, ERC against KiCad), engine tests, Vitest,
+      end-to-end tests of the editor (placing, wiring, properties, undo, ERC,
+      highlighting, find, annotation, exports, guide, settings), screenshots
+- [x] Documentation: Drawing schematics, Electrical rules check, Schematic
+      exports, keyboard shortcuts, Engine API and file format references,
+      architecture, ADR-0006
+- [ ] Release v0.6.0
 
 ### M6 — Symbol editor and footprint editor (v0.7.0, 8–12 S)
 
