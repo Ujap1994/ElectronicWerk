@@ -71,6 +71,9 @@ replace, annotation, exports and a guide for a first schematic.
 
 ### Fixed
 
+- 3D previews in packaged builds: OpenCASCADE is always loaded as CommonJS,
+  also when the app folder lies below a `package.json` that declares ES
+  modules (this made the Windows release smoke test fail).
 - A long name of the hovered object no longer makes the drawing area wider,
   so fitting the view gives the same zoom wherever the mouse is.
 - KiCad import: symbols that are mirrored and turned by 90° or 270° were
