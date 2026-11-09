@@ -104,6 +104,13 @@ export const en = {
     projectProperties: 'Project properties',
     showProjectFolder: 'Show project folder',
     addSheet: 'Add schematic sheet',
+    addSymbol: 'Schematic: add symbol',
+    runErc: 'Schematic: run the electrical rules check',
+    annotate: 'Schematic: annotate',
+    findReplace: 'Schematic: find and replace',
+    exportSchematic: 'Schematic: export (netlist, BOM, SVG, PDF)',
+    gridAssistant: 'Schematic: grid and snapping',
+    schematicGuide: 'Schematic: show the guide',
   },
   project: {
     save: 'Save',

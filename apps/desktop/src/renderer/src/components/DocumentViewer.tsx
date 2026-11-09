@@ -18,7 +18,13 @@ import { EditorOverlay } from '../schematic/EditorOverlay';
 import { ErcPanel, ErcSettingsDialog, runErc, useErcUpdates } from '../schematic/ErcPanel';
 import { AnnotateDialog, FindPanel } from '../schematic/FindPanel';
 import { ExportMenu, Guide, GridAssistant } from '../schematic/Panels';
-import { ercState, highlightedNet, requestFocus, takeFocus } from '../schematic/stores';
+import {
+  activeSheet,
+  ercState,
+  highlightedNet,
+  requestFocus,
+  takeFocus,
+} from '../schematic/stores';
 import { SymbolChooser } from '../schematic/SymbolChooser';
 import { useAppState } from '../state';
 import { useDarkScheme } from '../use-dark-scheme';
@@ -235,6 +241,30 @@ export function DocumentViewer({
     return highlightedNet.subscribe(apply);
   }, [editor]);
 
+  // The command palette offers the commands of the shown sheet. The
+  // registered object stays the same; it calls the latest commands.
+  const commandsRef = useRef<EditorCommands | null>(null);
+  useEffect(() => {
+    if (!sheet) {
+      return undefined;
+    }
+    const call = (name: keyof EditorCommands) => (): void => {
+      commandsRef.current?.[name]();
+    };
+    activeSheet.set({
+      chooseSymbol: call('chooseSymbol'),
+      annotate: call('annotate'),
+      erc: call('erc'),
+      find: call('find'),
+      exportMenu: call('exportMenu'),
+      grid: call('grid'),
+      guide: call('guide'),
+    });
+    return () => {
+      activeSheet.set(null);
+    };
+  }, [sheet]);
+
   /** Shows a point and selects objects, on this or another sheet. */
   const showTarget = (target: { doc: string; at: Point; ids: readonly string[] }): void => {
     if (target.doc === doc) {
@@ -275,6 +305,9 @@ export function DocumentViewer({
       setGuide(!guide);
     },
   };
+  useEffect(() => {
+    commandsRef.current = commands;
+  });
 
   useLayoutEffect(() => {
     const canvas = canvasRef.current;

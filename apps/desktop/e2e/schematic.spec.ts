@@ -173,8 +173,11 @@ test('the guide helps with a first schematic; check settings', async () => {
   await expect(page.getByTestId('action-grid')).toHaveAttribute('aria-pressed', 'false');
   await page.getByTestId('grid-snap').check();
 
-  // Check settings: one severity and one matrix cell.
-  await page.getByTestId('action-erc').click();
+  // Check settings: one severity and one matrix cell. The check starts
+  // from the command palette.
+  await page.getByTestId('open-palette').click();
+  await page.getByTestId('command-input').fill('electrical rules');
+  await page.getByTestId('command-run-erc').click();
   await expect(page.getByTestId('erc-clean')).toBeVisible();
   await page.getByTestId('erc-settings').click();
   const dialog = page.getByTestId('erc-settings-dialog');

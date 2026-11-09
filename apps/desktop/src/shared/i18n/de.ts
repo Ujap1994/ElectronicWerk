@@ -101,6 +101,13 @@ export const de: Messages = {
     projectProperties: 'Projekteigenschaften',
     showProjectFolder: 'Projektordner zeigen',
     addSheet: 'Schaltplanblatt hinzufügen',
+    addSymbol: 'Schaltplan: Symbol hinzufügen',
+    runErc: 'Schaltplan: elektrische Regelprüfung starten',
+    annotate: 'Schaltplan: annotieren',
+    findReplace: 'Schaltplan: suchen und ersetzen',
+    exportSchematic: 'Schaltplan: exportieren (Netzliste, Stückliste, SVG, PDF)',
+    gridAssistant: 'Schaltplan: Raster und Fang',
+    schematicGuide: 'Schaltplan: Anleitung zeigen',
   },
   project: {
     save: 'Speichern',

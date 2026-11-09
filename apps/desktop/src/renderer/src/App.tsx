@@ -1,4 +1,11 @@
-import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+  useSyncExternalStore,
+  type ReactNode,
+} from 'react';
 
 import { DOCS_URL, PROJECT_URL } from '@shared/links';
 
@@ -12,6 +19,7 @@ import { StatusBar } from './components/StatusBar';
 import { UpdateDialog, type UpdateDialogState } from './components/UpdateDialog';
 import { LibraryManager } from './library/LibraryManager';
 import { useProject } from './project/ProjectProvider';
+import { activeSheet } from './schematic/stores';
 import { useAppState } from './state';
 
 export function App(): ReactNode {
@@ -151,8 +159,20 @@ export function App(): ReactNode {
     };
   }, []);
 
+  const sheet = useSyncExternalStore(activeSheet.subscribe, activeSheet.get);
   const commands = useMemo<Command[]>(
     () => [
+      ...(sheet === null
+        ? []
+        : ([
+            { id: 'add-symbol', label: 'commands.addSymbol', run: sheet.chooseSymbol },
+            { id: 'run-erc', label: 'commands.runErc', run: sheet.erc },
+            { id: 'annotate', label: 'commands.annotate', run: sheet.annotate },
+            { id: 'find-replace', label: 'commands.findReplace', run: sheet.find },
+            { id: 'export-schematic', label: 'commands.exportSchematic', run: sheet.exportMenu },
+            { id: 'grid-assistant', label: 'commands.gridAssistant', run: sheet.grid },
+            { id: 'schematic-guide', label: 'commands.schematicGuide', run: sheet.guide },
+          ] satisfies Command[])),
       { id: 'new-project', label: 'commands.newProject', run: newProject },
       {
         id: 'open-project',
@@ -317,6 +337,7 @@ export function App(): ReactNode {
       },
     ],
     [
+      sheet,
       addDocument,
       archive,
       checkForUpdates,
