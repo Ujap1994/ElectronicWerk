@@ -6,6 +6,12 @@ project uses [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.6.0] - 2026-11-09
+
+The schematic release: sheets become editable, with an electrical rules
+check that gives the same answers as KiCad, net highlighting, find and
+replace, annotation, exports and a guide for a first schematic.
+
 ### Added
 
 - **Schematic editor** in the sheet view: a tool palette for symbols, wires,
@@ -16,7 +22,7 @@ project uses [Semantic Versioning](https://semver.org/).
   copy, cut, paste and duplicate across sheets; an editable inspector
   (designator, value, footprint, parameters, flags, label kinds, power port
   symbols, texts, sheet names); renaming by double-click; every edit is one
-  undo step. See [Drawing schematics](docs/guide/schematic-editor.md).
+  undo step. See [Drawing schematics](https://ujap1994.github.io/ElectronicWerk/guide/schematic-editor).
 - Automatic junctions: added where three or more connections meet and
   removed when no longer needed; crossing wires never get one.
 - The symbol chooser lists the project library and searches the base
@@ -32,10 +38,10 @@ project uses [Semantic Versioning](https://semver.org/).
 - The ERC panel below the drawing: filters, automatic updates after changes,
   click to zoom to a problem on any sheet, fixes for unannotated symbols and
   wire ends off the grid; check settings with severities and a clickable pin
-  type matrix. See [Electrical rules check](docs/guide/erc.md).
+  type matrix. See [Electrical rules check](https://ujap1994.github.io/ElectronicWerk/guide/erc).
 - Exports: KiCad netlist, CSV netlist, bill of materials (CSV), SVG of a
   sheet and a PDF of all sheets. See
-  [Schematic exports](docs/guide/schematic-exports.md).
+  [Schematic exports](https://ujap1994.github.io/ElectronicWerk/guide/schematic-exports).
 - Beginner aids: a guide for the first schematic that ticks itself off,
   tooltips and status hints for every tool, and a grid and snapping
   assistant that finds and fixes wire ends off the grid.
@@ -333,7 +339,8 @@ quality gates and the delivery pipeline that every later feature builds on.
   process ([ujap1994.github.io/ElectronicWerk](https://ujap1994.github.io/ElectronicWerk/)).
   **Help → Documentation** opens it.
 
-[Unreleased]: https://github.com/Ujap1994/ElectronicWerk/compare/v0.5.0...HEAD
+[Unreleased]: https://github.com/Ujap1994/ElectronicWerk/compare/v0.6.0...HEAD
+[0.6.0]: https://github.com/Ujap1994/ElectronicWerk/compare/v0.5.0...v0.6.0
 [0.5.0]: https://github.com/Ujap1994/ElectronicWerk/compare/v0.4.0...v0.5.0
 [0.4.0]: https://github.com/Ujap1994/ElectronicWerk/compare/v0.3.0...v0.4.0
 [0.3.0]: https://github.com/Ujap1994/ElectronicWerk/compare/v0.2.0...v0.3.0
