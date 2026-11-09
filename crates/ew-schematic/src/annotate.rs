@@ -15,7 +15,7 @@ use ew_model::schematic::PlacedSymbol;
 use serde::Deserialize;
 
 use crate::connectivity::{instances, natural_cmp, symbol_def};
-use crate::edit::{Change, Edit, split_designator};
+use crate::edit::{Change, Edit, is_unannotated};
 
 /// Which symbols to number.
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Deserialize)]
@@ -86,7 +86,7 @@ pub fn annotate(project: &Project, options: &AnnotateOptions) -> Edit {
             let designator = symbol.designator_in(&inst.key).to_owned();
             let def = symbol_def(project, &symbol.symbol);
             let units = def.map_or(1, |d| d.units.len());
-            let unannotated = split_designator(&designator).is_none();
+            let unannotated = is_unannotated(&designator);
             if in_scope && (options.reset || unannotated) {
                 let prefix = def.map_or_else(
                     || {

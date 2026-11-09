@@ -600,7 +600,7 @@ fn symbol_checks(ctx: &mut Ctx<'_>, project: &Project) {
             if designator.starts_with('#') {
                 continue;
             }
-            if designator.is_empty() || designator.ends_with('?') {
+            if crate::edit::is_unannotated(designator) {
                 ctx.report(
                     "unannotated",
                     instance,

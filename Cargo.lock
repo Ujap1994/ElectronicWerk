@@ -397,6 +397,7 @@ dependencies = [
  "ew-library",
  "ew-model",
  "ew-scene",
+ "ew-schematic",
  "ew-synth",
  "proptest",
  "serde",

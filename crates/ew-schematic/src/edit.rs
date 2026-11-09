@@ -373,7 +373,13 @@ fn designator_prefix(prefix: &str, power: bool) -> String {
     }
 }
 
-/// Splits `R12` into (`R`, 12); `None` for unannotated designators.
+/// `true` for a designator that still needs a number (`R?` or empty).
+#[must_use]
+pub fn is_unannotated(designator: &str) -> bool {
+    designator.is_empty() || designator.ends_with('?')
+}
+
+/// Splits `R12` into (`R`, 12); `None` without a trailing number.
 #[must_use]
 pub fn split_designator(designator: &str) -> Option<(&str, u32)> {
     let digits = designator.len()

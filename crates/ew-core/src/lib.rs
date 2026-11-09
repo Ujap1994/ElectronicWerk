@@ -13,6 +13,7 @@
 //! - [`templates`]: new-project templates.
 //! - [`import`]: KiCad projects, libraries and netlists.
 //! - [`summary`]: project snapshots for clients.
+//! - [`schematic`]: the schematic editor and ERC methods.
 
 pub mod change;
 pub mod error;
@@ -22,6 +23,7 @@ pub mod info;
 pub mod journal;
 pub mod library;
 pub mod rpc;
+pub mod schematic;
 pub mod session;
 pub mod summary;
 pub mod templates;

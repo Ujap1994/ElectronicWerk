@@ -119,6 +119,23 @@ pub const METHODS: &[&str] = &[
     "project.setProperties",
     "project.templates",
     "project.validate",
+    "schematic.add",
+    "schematic.annotate",
+    "schematic.bom",
+    "schematic.copy",
+    "schematic.delete",
+    "schematic.erc",
+    "schematic.find",
+    "schematic.move",
+    "schematic.net",
+    "schematic.netlist",
+    "schematic.orient",
+    "schematic.paste",
+    "schematic.place",
+    "schematic.replace",
+    "schematic.snapToGrid",
+    "schematic.syncSheetPins",
+    "schematic.wire",
     "view.object",
     "view.scene",
 ];
@@ -486,6 +503,7 @@ impl Engine {
             _ if method.starts_with("document.") => self.call_document(method, params),
             _ if method.starts_with("edit.") => self.call_edit(method, params),
             _ if method.starts_with("import.") => self.call_import(method, params),
+            _ if method.starts_with("schematic.") => self.call_schematic(method, params),
             "library.preview" => {
                 let params: PreviewParams = parse(params)?;
                 let (mut meta, data) = self.library_preview(&params)?;
@@ -977,6 +995,31 @@ impl Engine {
                 ErrorCode::MethodNotFound,
                 format!("unknown method `{other}`"),
             )),
+        }
+    }
+
+    fn call_schematic(&mut self, method: &str, params: &Value) -> Result<Value, EngineError> {
+        let outcome = crate::schematic::call(self.open()?.project(), method, params)?;
+        match outcome {
+            crate::schematic::Outcome::Read(value) => Ok(value),
+            crate::schematic::Outcome::Edit { label, edit } => {
+                if edit.changes.is_empty() {
+                    let history = self.open()?.history_state();
+                    return Ok(json!({
+                        "seq": null,
+                        "select": edit.select,
+                        "changes": 0,
+                        "history": history,
+                    }));
+                }
+                let change_set = self.commit(label, crate::schematic::requests(&edit))?;
+                Ok(json!({
+                    "seq": change_set.seq,
+                    "select": edit.select,
+                    "changes": edit.changes.len(),
+                    "history": change_set.history,
+                }))
+            }
         }
     }
 

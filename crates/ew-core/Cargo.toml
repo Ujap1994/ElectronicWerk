@@ -15,6 +15,7 @@ ew-kicad.workspace = true
 ew-library.workspace = true
 ew-model.workspace = true
 ew-scene.workspace = true
+ew-schematic.workspace = true
 ew-synth.workspace = true
 serde.workspace = true
 serde_json.workspace = true
