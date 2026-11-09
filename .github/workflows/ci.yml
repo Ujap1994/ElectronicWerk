@@ -70,8 +70,23 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
       - run: npm ci
+      - name: Cache Electron
+        uses: actions/cache@v6
+        with:
+          path: ${{ runner.temp }}/electron-cache
+          key: electron-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('package-lock.json') }}
       - name: Download Electron
-        run: node node_modules/electron/install.js
+        shell: bash
+        env:
+          electron_config_cache: ${{ runner.temp }}/electron-cache
+        # GitHub's release downloads time out now and then (504): retry.
+        run: |
+          for attempt in 1 2 3 4 5; do
+            node node_modules/electron/install.js && exit 0
+            echo "Electron download failed (attempt $attempt), retrying in 30 s"
+            sleep 30
+          done
+          exit 1
       - name: Build native engine (release)
         run: npm run build:native -- --release
       - name: Generate the synthetic L design
@@ -113,8 +128,23 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
       - run: npm ci
+      - name: Cache Electron
+        uses: actions/cache@v6
+        with:
+          path: ${{ runner.temp }}/electron-cache
+          key: electron-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('package-lock.json') }}
       - name: Download Electron
-        run: node node_modules/electron/install.js
+        shell: bash
+        env:
+          electron_config_cache: ${{ runner.temp }}/electron-cache
+        # GitHub's release downloads time out now and then (504): retry.
+        run: |
+          for attempt in 1 2 3 4 5; do
+            node node_modules/electron/install.js && exit 0
+            echo "Electron download failed (attempt $attempt), retrying in 30 s"
+            sleep 30
+          done
+          exit 1
       - name: Build native engine
         run: npm run build:native
       - name: Rust tests
