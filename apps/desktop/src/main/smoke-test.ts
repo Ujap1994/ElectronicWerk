@@ -44,15 +44,29 @@ function checkMeshes(timeoutMs: number): Promise<number> {
  * Playwright cannot attach because the Electron fuses disable debugging).
  * Waits until the UI shows a working engine connection and the mesh worker
  * can tessellate a STEP model, prints `SMOKE_OK` and exits with code 0, or
- * exits with code 1 on an error or after the timeout.
+ * exits with code 1 on an error or after the timeout. The mesh check has a
+ * longer timeout of its own: compiling OpenCASCADE's WebAssembly takes a
+ * while on slow machines and under Rosetta.
  */
-export function runSmokeTest(window: BrowserWindow, timeoutMs = 30_000): void {
+export function runSmokeTest(
+  window: BrowserWindow,
+  timeoutMs = 30_000,
+  meshTimeoutMs = 180_000,
+): void {
   const started = Date.now();
+  // Several polls may still be pending when the UI turns ready: the mesh
+  // check starts once, and the test ends once.
+  let checking = false;
+  let done = false;
   const script =
     "document.querySelector('[data-testid=\"engine-status\"]')?.getAttribute('data-state') ?? ''";
 
   const finish = (code: number, message: string): void => {
     clearInterval(timer);
+    if (done) {
+      return;
+    }
+    done = true;
     process.stdout.write(`${message}\n`);
     app.exit(code);
   };
@@ -64,9 +78,13 @@ export function runSmokeTest(window: BrowserWindow, timeoutMs = 30_000): void {
     }
     window.webContents.executeJavaScript(script).then(
       (state: unknown) => {
+        if (checking || done) {
+          return;
+        }
         if (state === 'ready') {
           clearInterval(timer);
-          checkMeshes(timeoutMs).then(
+          checking = true;
+          checkMeshes(meshTimeoutMs).then(
             (bytes) => {
               finish(
                 0,
@@ -82,7 +100,7 @@ export function runSmokeTest(window: BrowserWindow, timeoutMs = 30_000): void {
         }
       },
       (error: unknown) => {
-        if (Date.now() - started > timeoutMs) {
+        if (!checking && Date.now() - started > timeoutMs) {
           finish(1, `SMOKE_FAIL ${String(error)}`);
         }
       },
