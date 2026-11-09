@@ -9,8 +9,12 @@
     reason = "coordinates are limited to ±10 m by the data model"
 )]
 
+pub mod annotate;
 pub mod connectivity;
+pub mod edit;
 pub mod erc;
+pub mod export;
+pub mod find;
 pub mod geometry;
 
 pub use connectivity::{Connectivity, analyze};

@@ -63,3 +63,26 @@ fn the_demo_project_passes_the_erc() {
         [("power-not-driven", "VCC"), ("power-not-driven", "GND")]
     );
 }
+
+#[test]
+fn exported_netlists_read_back() {
+    let imported = ew_kicad::import_project(&fixture("blinky.kicad_pro"), None).unwrap();
+    let connectivity = analyze(&imported.project);
+    let text = ew_schematic::export::kicad_netlist(&imported.project, &connectivity);
+    let (exported, _) = ew_kicad::netlist::parse(&text).unwrap();
+    let expected = std::fs::read_to_string(fixture("blinky.net")).unwrap();
+    let (expected, _) = ew_kicad::netlist::parse(&expected).unwrap();
+    assert_eq!(exported.nets, expected.nets);
+    assert_eq!(exported.components, expected.components);
+
+    let csv = ew_schematic::export::csv_netlist(&connectivity);
+    assert!(csv.starts_with("Net,Designator,Pin\n/CV,C2,1\n"), "{csv}");
+
+    let bom = ew_schematic::export::bom_csv(&imported.project, &connectivity);
+    let lines: Vec<&str> = bom.lines().collect();
+    assert_eq!(
+        lines[0],
+        "Item,Quantity,Designators,Value,Footprint,Symbol,Description,Manufacturer,MPN,DNP"
+    );
+    assert_eq!(lines.len(), 9, "{bom}");
+}

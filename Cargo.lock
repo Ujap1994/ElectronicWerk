@@ -491,6 +491,7 @@ dependencies = [
  "ew-model",
  "serde",
  "serde_json",
+ "thiserror",
 ]
 
 [[package]]

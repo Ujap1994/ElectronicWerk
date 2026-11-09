@@ -69,6 +69,16 @@ pub struct ItemRef {
     pub at: Point,
 }
 
+/// What belongs to a net on one sheet.
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct NetMembers {
+    /// Wires, junctions, labels, power ports and flags.
+    pub items: BTreeSet<Id>,
+    /// Pins and sheet pins as scene keys.
+    pub pins: BTreeSet<String>,
+}
+
 /// One placement of a schematic in the hierarchy.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -787,6 +797,54 @@ impl Connectivity {
             .filter(|piece| piece.instance == instance)
             .find(|piece| piece.items.iter().any(|item| item.id == id))
             .map(|piece| piece.net)
+    }
+
+    /// The net of a pin (`index` in the unit's pin list) of a placed symbol.
+    #[must_use]
+    pub fn net_of_pin(&self, instance: usize, symbol: Id, index: usize) -> Option<usize> {
+        self.pins
+            .iter()
+            .find(|p| p.instance == instance && p.symbol == symbol && p.index == index)
+            .map(|p| p.net)
+    }
+
+    /// The first instance of a sheet document.
+    #[must_use]
+    pub fn instance_of(&self, sheet: Id) -> Option<usize> {
+        self.instances.iter().position(|i| i.sheet == sheet)
+    }
+
+    /// What belongs to a net, per sheet document: objects (wires,
+    /// junctions, labels, flags, sheet symbols with a pin on it) and pins
+    /// as scene keys (`<symbol id>/pin/<index>`).
+    #[must_use]
+    pub fn members(&self, net: usize) -> BTreeMap<Id, NetMembers> {
+        let mut out: BTreeMap<Id, NetMembers> = BTreeMap::new();
+        let Some(net) = self.nets.get(net) else {
+            return out;
+        };
+        for &piece in &net.pieces {
+            let piece = &self.pieces[piece];
+            let sheet = self.instances[piece.instance].sheet;
+            let entry = out.entry(sheet).or_default();
+            for item in &piece.items {
+                match (item.kind, item.index) {
+                    (ItemKind::SheetPin, Some(index)) => {
+                        entry.pins.insert(format!("{}/sheetPin/{index}", item.id));
+                    }
+                    _ => {
+                        entry.items.insert(item.id);
+                    }
+                }
+            }
+            for &pin in &piece.pins {
+                let pin = &self.pins[pin];
+                entry
+                    .pins
+                    .insert(format!("{}/pin/{}", pin.symbol, pin.index));
+            }
+        }
+        out
     }
 
     /// Component pins per net name, as a netlist: power symbols are left
