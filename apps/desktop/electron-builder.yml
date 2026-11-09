@@ -32,6 +32,9 @@ extraResources:
   - from: ../../node_modules/occt-import-js/dist
     to: occt
     filter: ['occt-import-js.js', 'occt-import-js.wasm', 'license.*.txt']
+  # A small STEP model for the smoke test of packaged builds.
+  - from: ../../crates/ew-library/tests/fixtures/kicad/3dmodels/Demo.3dshapes/R_0805.step
+    to: smoke/box.step
 
 asar: true
 npmRebuild: false

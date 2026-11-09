@@ -10,6 +10,17 @@ const mainDir = import.meta.dirname;
 export const paths = {
   preload: join(mainDir, '../preload/index.cjs'),
   engineHost: join(mainDir, 'engine-host.js'),
+  /** Worker that tessellates STEP models (started by the engine host). */
+  meshWorker: join(mainDir, 'mesh-worker.js'),
+  /** A small STEP model for the packaged-app smoke test. */
+  smokeModel(): string {
+    return app.isPackaged
+      ? join(process.resourcesPath, 'smoke', 'box.step')
+      : join(
+          mainDir,
+          '../../../../crates/ew-library/tests/fixtures/kicad/3dmodels/Demo.3dshapes/R_0805.step',
+        );
+  },
   renderer: join(mainDir, '../renderer'),
   /** Window and dialog icon (Windows/Linux); copied from the renderer's public folder. */
   windowIcon: join(mainDir, '../renderer/favicon.png'),
