@@ -910,7 +910,7 @@ textarea.field__control {
 .workspace__body {
   display: grid;
   flex: 1;
-  grid-template-columns: minmax(240px, 300px) 1fr;
+  grid-template-columns: minmax(240px, 300px) minmax(0, 1fr);
   min-height: 0;
 }
 
@@ -1596,7 +1596,9 @@ textarea.field__control {
 
 .viewer {
   display: grid;
-  grid-template-columns: 1fr 280px;
+
+  /* minmax(0, …): long footer texts must not widen the drawing area. */
+  grid-template-columns: minmax(0, 1fr) 280px;
   height: 100%;
   min-height: 0;
 }
@@ -1719,6 +1721,7 @@ textarea.field__control {
 }
 
 .viewer__hover {
+  min-width: 0;
   overflow: hidden;
   color: var(--color-text);
   text-overflow: ellipsis;
