@@ -113,16 +113,20 @@ pub struct SheetExtras {
     pub children: Vec<ChildSheet>,
 }
 
-/// Placement of a symbol: KiCad mirrors in library space first, then
-/// rotates; ElectronicWerk only mirrors x, so a mirror about the x axis
-/// becomes a mirror about the y axis plus 180°.
+/// Placement of a symbol. KiCad turns the symbol first and mirrors it
+/// afterwards (`SetOrientation`: rotation, then `SYM_MIRROR_X/Y`);
+/// ElectronicWerk mirrors x first and turns afterwards. Mirroring after a
+/// turn by θ equals mirroring before a turn by −θ, so `mirror y` becomes
+/// (−θ, mirrored) and `mirror x` (a mirror about the y axis plus a half
+/// turn) becomes (180° − θ, mirrored).
 fn orientation(node: &Sexp<'_>) -> (f64, bool) {
     let rotation = node.get("at").and_then(|a| a.num(2)).unwrap_or(0.0);
+    let normal = |angle: f64| angle.rem_euclid(360.0);
     match node.value("mirror") {
-        Some("y") => (rotation, true),
-        Some("x") => (rotation + 180.0, true),
-        Some("xy") => (rotation + 180.0, false),
-        _ => (rotation, false),
+        Some("y") => (normal(-rotation), true),
+        Some("x") => (normal(180.0 - rotation), true),
+        Some("xy") => (normal(rotation + 180.0), false),
+        _ => (normal(rotation), false),
     }
 }
 
@@ -192,6 +196,19 @@ fn instances(node: &Sexp<'_>) -> Vec<(String, String, u16)> {
         }
     }
     out
+}
+
+/// The ElectronicWerk instance key of a KiCad sheet path: the path without
+/// the root sheet, with the sheet symbol UUIDs as ids (which the importer
+/// keeps).
+fn instance_key(path: &str) -> String {
+    let ids: Vec<Id> = path
+        .split('/')
+        .filter(|part| !part.is_empty())
+        .skip(1)
+        .map(|part| common::parse_uuid(part).unwrap_or_else(|| derived_id(&[part])))
+        .collect();
+    ew_model::schematic::instance_key(&ids)
 }
 
 /// The board path of a symbol instance: the sheet path without the root
@@ -292,7 +309,7 @@ fn placed_symbol(
     let mut component = None;
     let list = instances(node);
     for (index, (path, reference, instance_unit)) in list.iter().enumerate() {
-        map.insert(path.clone(), reference.clone());
+        map.insert(instance_key(path), reference.clone());
         if index == 0 {
             component = Some(component_id(&board_path(path, &uuid)));
             if !reference.is_empty() {
@@ -702,8 +719,8 @@ mod tests {
         );
         assert_eq!(
             (symbol.rotation, symbol.mirror),
-            (Angle::DEG_270, true),
-            "mirror x = mirror y + 180°"
+            (Angle::DEG_90, true),
+            "a turn by 90° then mirror x = mirror y, then a turn by 180° − 90°"
         );
         assert_eq!(symbol.at, Point::new(mm(50), mm(150)));
         assert_eq!(
