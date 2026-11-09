@@ -166,7 +166,10 @@ test('the guide helps with a first schematic; check settings', async () => {
   await page.getByTestId('action-guide').click();
   await expect(guide).toBeVisible();
 
-  // New projects bring starter symbols: place a resistor, the first step ticks.
+  // New projects bring starter symbols: place a resistor, the first step
+  // ticks. The guide is closed meanwhile so it cannot cover the click points
+  // in smaller windows.
+  await page.getByTestId('guide-close').click();
   await viewerCanvas(page).focus();
   await page.keyboard.press('a');
   await page.getByTestId('chooser-search').fill('resistor');
@@ -176,8 +179,9 @@ test('the guide helps with a first schematic; check settings', async () => {
   await expect(page.getByTestId('property-designator')).toHaveValue('R1');
   await clickAt(page, [127 * MM, 105.41 * MM]);
   await expect(page.getByTestId('property-designator')).toHaveValue('R2');
-  await expect(page.getByTestId('guide-place')).toHaveAttribute('data-done', 'true');
   await page.keyboard.press('Escape');
+  await page.getByTestId('action-guide').click();
+  await expect(page.getByTestId('guide-place')).toHaveAttribute('data-done', 'true');
 
   // The grid assistant.
   await page.getByTestId('action-grid').click();

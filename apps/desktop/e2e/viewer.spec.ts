@@ -130,7 +130,15 @@ test('board view: navigation, selection, inspector and layers', async () => {
   await page.keyboard.press('b');
   await expect(page.getByTestId('viewer-flip')).toHaveAttribute('aria-pressed', 'false');
   await page.keyboard.press('Home');
-  await expect(page.getByTestId('viewer-zoom')).toHaveText(zoom ?? '');
+  // Fitting depends on the exact canvas size, which may change by a
+  // scrollbar's width on some systems: compare within 5 %.
+  const percent = (text: string | null): number =>
+    Number(/[\d.,]+/u.exec(text ?? '')?.[0].replace(',', '.') ?? 'NaN');
+  await expect
+    .poll(async () =>
+      Math.abs(percent(await page.getByTestId('viewer-zoom').textContent()) / percent(zoom) - 1),
+    )
+    .toBeLessThan(0.05);
 
   // The view is remembered when switching tabs.
   await page.getByTestId('viewer-zoom-in').click();
