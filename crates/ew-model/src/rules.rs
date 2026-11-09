@@ -1,8 +1,11 @@
 //! Design rules: constraints and net classes.
 
+use std::collections::BTreeMap;
+
 use serde::{Deserialize, Serialize};
 
 use crate::id::Id;
+use crate::library::PinKind;
 use crate::units::{Nm, um};
 
 /// Board-wide manufacturing constraints (minimum values).
@@ -111,6 +114,148 @@ pub struct NetClassAssignment {
     pub class: String,
 }
 
+/// How serious an electrical rules check finding is.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub enum ErcSeverity {
+    /// An error.
+    Error,
+    /// A warning.
+    Warning,
+    /// Not reported.
+    Ignore,
+}
+
+/// Settings of the electrical rules check. Only changes from the defaults
+/// are stored.
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ErcSettings {
+    /// Severity per check (`unconnected-pin` → `warning`).
+    #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
+    pub severities: BTreeMap<String, ErcSeverity>,
+    /// Pin type matrix: `output/output` → `error` (pin types in camelCase,
+    /// in either order).
+    #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
+    pub pin_matrix: BTreeMap<String, ErcSeverity>,
+}
+
+/// Every ERC check with its default severity (KiCad's defaults where KiCad
+/// has the same check).
+pub const ERC_CHECKS: &[(&str, ErcSeverity)] = &[
+    ("pin-conflict", ErcSeverity::Error),
+    ("power-not-driven", ErcSeverity::Error),
+    ("input-not-driven", ErcSeverity::Error),
+    ("unconnected-pin", ErcSeverity::Error),
+    ("no-connect-connected", ErcSeverity::Warning),
+    ("no-connect-dangling", ErcSeverity::Warning),
+    ("dangling-wire", ErcSeverity::Warning),
+    ("dangling-label", ErcSeverity::Error),
+    ("hierarchical-label-unmatched", ErcSeverity::Error),
+    ("sheet-pin-unmatched", ErcSeverity::Error),
+    ("single-global-label", ErcSeverity::Ignore),
+    ("net-name-conflict", ErcSeverity::Warning),
+    ("duplicate-designator", ErcSeverity::Error),
+    ("unannotated", ErcSeverity::Error),
+    ("missing-symbol", ErcSeverity::Error),
+    ("missing-sheet", ErcSeverity::Error),
+    ("sheet-cycle", ErcSeverity::Error),
+    ("off-grid", ErcSeverity::Warning),
+];
+
+const O: ErcSeverity = ErcSeverity::Ignore;
+const W: ErcSeverity = ErcSeverity::Warning;
+const E: ErcSeverity = ErcSeverity::Error;
+
+/// The default pin type matrix (KiCad's), rows and columns in
+/// [`PinKind::ALL`] order: what connecting two pin types on one net means.
+pub const ERC_PIN_MATRIX: [[ErcSeverity; 12]; 12] = [
+    //  In Out Bi  3S  Pas NIC Uns PwI PwO OC  OE  NC
+    [O, O, O, O, O, O, W, O, O, O, O, E], // input
+    [O, E, O, W, O, O, W, O, E, E, E, E], // output
+    [O, O, O, O, O, O, W, O, W, O, W, E], // bidirectional
+    [O, W, O, O, O, O, W, W, E, W, W, E], // tri-state
+    [O, O, O, O, O, O, W, O, O, O, O, E], // passive
+    [O, O, O, O, O, O, O, O, O, O, O, E], // free (not internally connected)
+    [W, W, W, W, W, O, W, W, W, W, W, E], // unspecified
+    [O, O, O, W, O, O, W, O, O, O, O, E], // power input
+    [O, E, W, E, O, O, W, O, E, E, E, E], // power output
+    [O, E, O, W, O, O, W, O, E, O, O, E], // open collector
+    [O, E, W, W, O, O, W, O, E, O, O, E], // open emitter
+    [E, E, E, E, E, E, E, E, E, E, E, E], // not connected
+];
+
+impl ErcSettings {
+    /// `true` if nothing differs from the defaults.
+    #[must_use]
+    pub fn is_empty(&self) -> bool {
+        self.severities.is_empty() && self.pin_matrix.is_empty()
+    }
+
+    /// The severity of a check (unknown checks are errors).
+    #[must_use]
+    pub fn severity(&self, code: &str) -> ErcSeverity {
+        self.severities.get(code).copied().unwrap_or_else(|| {
+            ERC_CHECKS
+                .iter()
+                .find(|(c, _)| *c == code)
+                .map_or(ErcSeverity::Error, |(_, s)| *s)
+        })
+    }
+
+    /// The matrix key of two pin types (`output/powerOut`, in matrix order).
+    #[must_use]
+    pub fn matrix_key(a: PinKind, b: PinKind) -> String {
+        let (a, b) = if a.index() <= b.index() {
+            (a, b)
+        } else {
+            (b, a)
+        };
+        format!("{}/{}", a.name(), b.name())
+    }
+
+    /// The effective pin type matrix: the defaults with the changes.
+    #[must_use]
+    pub fn matrix(&self) -> [[ErcSeverity; 12]; 12] {
+        let mut out = ERC_PIN_MATRIX;
+        for (key, severity) in &self.pin_matrix {
+            let Some((a, b)) = key.split_once('/') else {
+                continue;
+            };
+            if let (Some(a), Some(b)) = (PinKind::from_name(a), PinKind::from_name(b)) {
+                out[a.index()][b.index()] = *severity;
+                out[b.index()][a.index()] = *severity;
+            }
+        }
+        out
+    }
+
+    /// Sets the severities and the matrix from complete tables, storing
+    /// only what differs from the defaults.
+    pub fn set_from(
+        &mut self,
+        severities: &BTreeMap<String, ErcSeverity>,
+        matrix: &[[ErcSeverity; 12]; 12],
+    ) {
+        self.severities = severities
+            .iter()
+            .filter(|(code, severity)| ERC_CHECKS.iter().any(|(c, s)| c == code && s != *severity))
+            .map(|(c, s)| (c.clone(), *s))
+            .collect();
+        self.pin_matrix.clear();
+        for (a, row) in matrix.iter().enumerate() {
+            for (b, severity) in row.iter().enumerate().skip(a) {
+                if *severity != ERC_PIN_MATRIX[a][b] {
+                    self.pin_matrix.insert(
+                        Self::matrix_key(PinKind::ALL[a], PinKind::ALL[b]),
+                        *severity,
+                    );
+                }
+            }
+        }
+    }
+}
+
 /// A rules document (`.ewrules`).
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -128,6 +273,9 @@ pub struct Rules {
     /// Pattern-based net class assignments.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub assignments: Vec<NetClassAssignment>,
+    /// Electrical rules check settings.
+    #[serde(default, skip_serializing_if = "ErcSettings::is_empty")]
+    pub erc: ErcSettings,
 }
 
 /// Editable rule properties (the whole document except its id).
@@ -143,6 +291,9 @@ pub struct RulesProps {
     /// Assignments.
     #[serde(default)]
     pub assignments: Vec<NetClassAssignment>,
+    /// Electrical rules check settings.
+    #[serde(default)]
+    pub erc: ErcSettings,
 }
 
 impl Rules {
@@ -155,6 +306,7 @@ impl Rules {
             constraints: Constraints::default(),
             net_classes: vec![NetClass::default_class(), NetClass::power_class()],
             assignments: Vec::new(),
+            erc: ErcSettings::default(),
         }
     }
 
@@ -166,6 +318,7 @@ impl Rules {
             constraints: self.constraints,
             net_classes: self.net_classes.clone(),
             assignments: self.assignments.clone(),
+            erc: self.erc.clone(),
         }
     }
 
@@ -175,6 +328,7 @@ impl Rules {
         self.constraints = props.constraints;
         self.net_classes = props.net_classes;
         self.assignments = props.assignments;
+        self.erc = props.erc;
     }
 
     /// The net class with this name.

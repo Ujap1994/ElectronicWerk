@@ -6,10 +6,33 @@ project uses [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Added
+
+- New crate `ew-schematic`: the connectivity of all schematics across sheets
+  and the hierarchy (wires, junctions, local, global and hierarchical labels,
+  power symbols, sheet pins, one instance per sheet placement) with KiCad's
+  net naming. On a real 15-sheet project, all 480 connected nets match the
+  netlist KiCad exports.
+- Electrical rules check (ERC) in `ew-schematic`: KiCad's pin type matrix,
+  unconnected pins, conflicting drivers, power inputs without a source,
+  undriven inputs, dangling wires, labels and no-connect flags, unmatched
+  hierarchical labels and sheet pins, net name conflicts, duplicate and
+  missing designators (multi-unit aware), missing symbols and sheets, and
+  wire ends off the grid. Every check's severity and every matrix cell can be
+  changed in the rules document (`erc`, stored only where it differs from
+  the defaults). On the demo project and a real project it reports the same
+  errors as KiCad 10.
+- The KiCad import takes over the ERC settings of the `.kicad_pro` file
+  (check severities and pin type matrix).
+- Placed symbols resolve their designator per sheet instance
+  (`instances`, keyed by the path of sheet symbol ids).
+
 ### Fixed
 
 - A long name of the hovered object no longer makes the drawing area wider,
   so fitting the view gives the same zoom wherever the mouse is.
+- KiCad import: symbols that are mirrored and turned by 90° or 270° were
+  placed with their pins swapped (KiCad turns before it mirrors).
 
 ### Changed
 

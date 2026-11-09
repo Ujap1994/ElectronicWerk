@@ -43,6 +43,55 @@ pub enum PinKind {
     NoConnect,
 }
 
+impl PinKind {
+    /// Every pin type, in the order of the ERC pin type matrix.
+    pub const ALL: [Self; 12] = [
+        Self::Input,
+        Self::Output,
+        Self::Bidirectional,
+        Self::TriState,
+        Self::Passive,
+        Self::Free,
+        Self::Unspecified,
+        Self::PowerIn,
+        Self::PowerOut,
+        Self::OpenCollector,
+        Self::OpenEmitter,
+        Self::NoConnect,
+    ];
+
+    /// The name in files and settings (camelCase).
+    #[must_use]
+    pub const fn name(self) -> &'static str {
+        match self {
+            Self::Input => "input",
+            Self::Output => "output",
+            Self::Bidirectional => "bidirectional",
+            Self::TriState => "triState",
+            Self::Passive => "passive",
+            Self::Free => "free",
+            Self::Unspecified => "unspecified",
+            Self::PowerIn => "powerIn",
+            Self::PowerOut => "powerOut",
+            Self::OpenCollector => "openCollector",
+            Self::OpenEmitter => "openEmitter",
+            Self::NoConnect => "noConnect",
+        }
+    }
+
+    /// The position in [`PinKind::ALL`].
+    #[must_use]
+    pub fn index(self) -> usize {
+        Self::ALL.iter().position(|k| *k == self).unwrap_or(6)
+    }
+
+    /// Parses a name of [`PinKind::name`].
+    #[must_use]
+    pub fn from_name(name: &str) -> Option<Self> {
+        Self::ALL.into_iter().find(|k| k.name() == name)
+    }
+}
+
 /// Graphic style of a pin.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]

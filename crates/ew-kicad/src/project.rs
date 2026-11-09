@@ -2,7 +2,10 @@
 
 use std::collections::BTreeMap;
 
-use ew_model::rules::{Constraints, DEFAULT_NET_CLASS, NetClass, NetClassAssignment};
+use ew_model::rules::{
+    Constraints, DEFAULT_NET_CLASS, ERC_PIN_MATRIX, ErcSettings, ErcSeverity, NetClass,
+    NetClassAssignment,
+};
 use serde_json::Value;
 
 use crate::common::nm;
@@ -19,6 +22,79 @@ pub struct ProjectSettings {
     pub net_classes: Vec<NetClass>,
     /// Net class patterns.
     pub assignments: Vec<NetClassAssignment>,
+    /// Electrical rules check settings (changes from the defaults).
+    pub erc: ErcSettings,
+    /// Number of ERC findings marked as excluded (not imported).
+    pub erc_exclusions: usize,
+}
+
+/// KiCad's ERC checks and the checks of ElectronicWerk they set.
+const KICAD_ERC: &[(&str, &[&str])] = &[
+    ("power_pin_not_driven", &["power-not-driven"]),
+    ("pin_not_driven", &["input-not-driven"]),
+    ("pin_not_connected", &["unconnected-pin"]),
+    ("no_connect_connected", &["no-connect-connected"]),
+    ("no_connect_dangling", &["no-connect-dangling"]),
+    ("unconnected_wire_endpoint", &["dangling-wire"]),
+    ("label_dangling", &["dangling-label"]),
+    (
+        "hier_label_mismatch",
+        &["hierarchical-label-unmatched", "sheet-pin-unmatched"],
+    ),
+    ("single_global_label", &["single-global-label"]),
+    ("multiple_net_names", &["net-name-conflict"]),
+    ("duplicate_reference", &["duplicate-designator"]),
+    ("unannotated", &["unannotated"]),
+    ("endpoint_off_grid", &["off-grid"]),
+];
+
+fn severity(value: &Value) -> Option<ErcSeverity> {
+    match value.as_str()? {
+        "error" => Some(ErcSeverity::Error),
+        "warning" => Some(ErcSeverity::Warning),
+        "ignore" => Some(ErcSeverity::Ignore),
+        _ => None,
+    }
+}
+
+/// Reads the ERC settings (`erc.rule_severities`, `erc.pin_map`).
+fn erc_settings(erc: &Value) -> ErcSettings {
+    let mut severities = BTreeMap::new();
+    if let Some(rules) = erc.get("rule_severities").and_then(Value::as_object) {
+        for (kicad, codes) in KICAD_ERC {
+            if let Some(value) = rules.get(*kicad).and_then(severity) {
+                for code in *codes {
+                    severities.insert((*code).to_owned(), value);
+                }
+            }
+        }
+        // KiCad's pin_to_pin only switches the matrix findings off.
+        if rules.get("pin_to_pin").and_then(severity) == Some(ErcSeverity::Ignore) {
+            severities.insert("pin-conflict".to_owned(), ErcSeverity::Ignore);
+        }
+    }
+    let mut matrix = ERC_PIN_MATRIX;
+    if let Some(rows) = erc.get("pin_map").and_then(Value::as_array) {
+        for (a, row) in rows.iter().take(12).enumerate() {
+            for (b, cell) in row.as_array().into_iter().flatten().take(12).enumerate() {
+                matrix[a][b] = match cell.as_u64() {
+                    Some(1) => ErcSeverity::Warning,
+                    Some(2) => ErcSeverity::Error,
+                    _ => ErcSeverity::Ignore,
+                };
+            }
+        }
+        // ElectronicWerk's matrix is symmetric; the stricter value wins.
+        let read = matrix;
+        for (a, row) in matrix.iter_mut().enumerate() {
+            for (b, cell) in row.iter_mut().enumerate() {
+                *cell = read[a][b].min(read[b][a]);
+            }
+        }
+    }
+    let mut out = ErcSettings::default();
+    out.set_from(&severities, &matrix);
+    out
 }
 
 fn mm_value(object: &Value, key: &str) -> Option<i64> {
@@ -35,6 +111,13 @@ pub fn settings(json: &Value) -> ProjectSettings {
                 out.variables.insert(key.clone(), text.to_owned());
             }
         }
+    }
+    if let Some(erc) = json.get("erc") {
+        out.erc = erc_settings(erc);
+        out.erc_exclusions = erc
+            .get("erc_exclusions")
+            .and_then(Value::as_array)
+            .map_or(0, Vec::len);
     }
     if let Some(rules) = json.pointer("/board/design_settings/rules") {
         let defaults = Constraints::default();
@@ -171,6 +254,59 @@ mod tests {
             NetClass::default_class().diff_pair_gap
         );
         assert_eq!(settings.assignments[0].pattern, "+*");
+    }
+
+    #[test]
+    fn reads_erc_settings() {
+        let mut pin_map: Vec<Vec<u8>> = ERC_PIN_MATRIX
+            .iter()
+            .map(|row| {
+                row.iter()
+                    .map(|s| match s {
+                        ErcSeverity::Error => 2,
+                        ErcSeverity::Warning => 1,
+                        ErcSeverity::Ignore => 0,
+                    })
+                    .collect()
+            })
+            .collect();
+        // Output to output becomes a warning; passive to unspecified fine.
+        pin_map[1][1] = 1;
+        pin_map[4][6] = 0;
+        pin_map[6][4] = 0;
+        let pro = json!({"erc": {
+            "rule_severities": {
+                "pin_not_connected": "warning", "single_global_label": "ignore",
+                "hier_label_mismatch": "warning", "endpoint_off_grid": "warning",
+                "pin_to_pin": "warning"
+            },
+            "pin_map": pin_map,
+            "erc_exclusions": [["x", "y"]]
+        }});
+        let settings = settings(&pro);
+        let erc = &settings.erc;
+        assert_eq!(settings.erc_exclusions, 1);
+        // Only changes from the defaults are kept.
+        assert_eq!(
+            erc.severities
+                .keys()
+                .map(String::as_str)
+                .collect::<Vec<_>>(),
+            [
+                "hierarchical-label-unmatched",
+                "sheet-pin-unmatched",
+                "unconnected-pin"
+            ]
+        );
+        assert_eq!(erc.severity("unconnected-pin"), ErcSeverity::Warning);
+        assert_eq!(
+            erc.pin_matrix
+                .keys()
+                .map(String::as_str)
+                .collect::<Vec<_>>(),
+            ["output/output", "passive/unspecified"]
+        );
+        assert_eq!(erc.matrix()[6][4], ErcSeverity::Ignore);
     }
 
     #[test]

@@ -1,7 +1,7 @@
 # ElectronicWerk Roadmap
 
-> **Status:** v0.8 (2026-11-08). M0 to M4 are complete (releases v0.1.0 to
-> v0.5.0; M0 and M1 accepted by the maintainer); M5 is next.
+> **Status:** v0.9 (2026-11-09). M0 to M4 are complete (releases v0.1.0 to
+> v0.5.0; M0, M1 and M3 accepted by the maintainer); M5 is in progress.
 > This roadmap is a living document. It **must** be updated with every feature
 > (requirement D5). Every change to it is listed in the
 > [roadmap changelog](#13-roadmap-changelog).
@@ -483,6 +483,7 @@ and matches the original visually and electrically (net comparison).
 - [x] Documentation: Importing KiCad projects, Netlists, CLI and Engine API
       references, file format, benchmarks, architecture, ADR-0004
 - [x] Release v0.4.0
+- [x] Tested and accepted by the maintainer (2026-11-09)
 
 ### M4 — Unified base library and library manager (v0.5.0, 5–8 S)
 
@@ -790,3 +791,4 @@ The CLI grows with every milestone. This milestone completes it.
 | 2026-11-08 | v0.6       | M1 tested and accepted by the maintainer. M3 started.                                                                                                                                                                                                                                                                                                                                                                             |
 | 2026-11-08 | v0.7       | M3 complete: v0.4.0 with the KiCad project and library import, the import report and netlist comparison. Custom `.kicad_dru` rules are reported and follow with the rule editor (M7).                                                                                                                                                                                                                                             |
 | 2026-11-08 | v0.8       | M4 complete: v0.5.0 with the base library, deduplication engine, 3D mesh cache and library manager. KiCad 10 ships STEP models only, so STEP is tessellated with OpenCASCADE (WebAssembly) as planned in ADR-0001; the library is built from the official KiCad repositories on GitLab (the GitHub mirrors stopped in 2020). Symbols with the same pins but another body are not near duplicates (they are different part types). |
+| 2026-11-09 | v0.9       | M3 tested and accepted by the maintainer. M5 started.                                                                                                                                                                                                                                                                                                                                                                             |

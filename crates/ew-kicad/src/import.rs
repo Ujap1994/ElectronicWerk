@@ -356,6 +356,17 @@ pub fn import_project(source: &Path, name: Option<&str>) -> Result<Imported, Kic
         rules.net_classes = settings.net_classes;
     }
     rules.assignments = settings.assignments;
+    rules.erc = settings.erc;
+    if settings.erc_exclusions > 0 {
+        report.info(
+            "erc-exclusions",
+            Some(&format!("{stem}.kicad_pro")),
+            format!(
+                "{} excluded ERC findings are not imported; the checks run again in ElectronicWerk",
+                settings.erc_exclusions
+            ),
+        );
+    }
     if let Ok(text) = fs::read_to_string(folder.join(format!("{stem}.kicad_dru"))) {
         let count = project::custom_rule_count(&text);
         if count > 0 {

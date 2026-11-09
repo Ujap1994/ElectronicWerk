@@ -484,6 +484,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "ew-schematic"
+version = "0.5.0"
+dependencies = [
+ "ew-kicad",
+ "ew-model",
+ "serde",
+ "serde_json",
+]
+
+[[package]]
 name = "ew-synth"
 version = "0.5.0"
 dependencies = [

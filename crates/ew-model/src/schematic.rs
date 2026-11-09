@@ -218,9 +218,36 @@ pub struct PlacedSymbol {
     /// Output flags.
     #[serde(default, skip_serializing_if = "is_default")]
     pub flags: ComponentFlags,
-    /// Designators per sheet instance path, for sheets used more than once.
+    /// Designators per sheet instance, for sheets used more than once. The
+    /// key is the instance path: the ids of the sheet symbols from the top
+    /// sheet down, each after a `/` (see [`instance_key`]).
     #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
     pub instances: BTreeMap<String, String>,
+}
+
+/// The key of a sheet instance in [`PlacedSymbol::instances`]: `/` for the
+/// top sheet, `/<sheet symbol id>/<sheet symbol id>` below.
+#[must_use]
+pub fn instance_key(path: &[Id]) -> String {
+    if path.is_empty() {
+        return "/".to_owned();
+    }
+    let mut out = String::new();
+    for id in path {
+        out.push('/');
+        out.push_str(&id.to_string());
+    }
+    out
+}
+
+impl PlacedSymbol {
+    /// The designator in one sheet instance (see [`instance_key`]).
+    #[must_use]
+    pub fn designator_in(&self, key: &str) -> &str {
+        self.instances
+            .get(key)
+            .map_or(&self.designator, String::as_str)
+    }
 }
 
 const fn first_unit() -> u16 {
