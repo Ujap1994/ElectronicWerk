@@ -1,7 +1,7 @@
 # ElectronicWerk Roadmap
 
 > **Status:** v0.10 (2026-11-09). M0 to M5 are complete (releases v0.1.0 to
-> v0.6.0; M0, M1 and M3 accepted by the maintainer); M6 is next.
+> v0.6.1; M0, M1 and M3 accepted by the maintainer); M6 is next.
 > This roadmap is a living document. It **must** be updated with every feature
 > (requirement D5). Every change to it is listed in the
 > [roadmap changelog](#13-roadmap-changelog).
@@ -605,7 +605,8 @@ dedup report is reproducible.
 - [x] Documentation: Drawing schematics, Electrical rules check, Schematic
       exports, keyboard shortcuts, Engine API and file format references,
       architecture, ADR-0006
-- [x] Release v0.6.0
+- [x] Release v0.6.1 (v0.6.0 was tagged but not published: its Windows
+      packages failed the smoke test, fixed in 0.6.1)
 
 ### M6 — Symbol editor and footprint editor (v0.7.0, 8–12 S)
 
@@ -831,4 +832,4 @@ The CLI grows with every milestone. This milestone completes it.
 | 2026-11-08 | v0.7       | M3 complete: v0.4.0 with the KiCad project and library import, the import report and netlist comparison. Custom `.kicad_dru` rules are reported and follow with the rule editor (M7).                                                                                                                                                                                                                                             |
 | 2026-11-08 | v0.8       | M4 complete: v0.5.0 with the base library, deduplication engine, 3D mesh cache and library manager. KiCad 10 ships STEP models only, so STEP is tessellated with OpenCASCADE (WebAssembly) as planned in ADR-0001; the library is built from the official KiCad repositories on GitLab (the GitHub mirrors stopped in 2020). Symbols with the same pins but another body are not near duplicates (they are different part types). |
 | 2026-11-09 | v0.9       | M3 tested and accepted by the maintainer. M5 started.                                                                                                                                                                                                                                                                                                                                                                             |
-| 2026-11-09 | v0.10      | M5 complete: v0.6.0 with the schematic editor, the ERC (same findings as KiCad on imported projects), net highlighting, find and replace, annotation, exports and beginner aids. Starter symbols in new projects were added so the first-schematic guide works without the base library. Buses are drawn only; bus member nets follow later.                                                                                      |
+| 2026-11-09 | v0.10      | M5 complete: v0.6.1 with the schematic editor, the ERC (same findings as KiCad on imported projects), net highlighting, find and replace, annotation, exports and beginner aids. Starter symbols in new projects were added so the first-schematic guide works without the base library. Buses are drawn only; bus member nets follow later.                                                                                      |
