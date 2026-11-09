@@ -114,11 +114,15 @@ test('board view: navigation, selection, inspector and layers', async () => {
   await page.getByTestId('layer-opacity').fill('40');
   await expect(page.locator('.viewer-panel__opacity output')).toContainText('40');
 
-  // Zoom, flip and fit. The reference is a fit of the final layout (the
-  // panels above may have changed the canvas size since the first fit).
+  // Zoom, flip and fit. A fitted view is centred on the board whatever the
+  // canvas size, so the centre is the reference; the zoom depends on the
+  // canvas size (classic scrollbars on Windows change it a little).
+  const view = async (): Promise<number[]> =>
+    ((await canvas.getAttribute('data-view')) ?? '').split(',').map(Number);
   await canvas.focus();
   await page.keyboard.press('Home');
-  await page.waitForTimeout(300);
+  await settle(page);
+  const [fitX = 0, fitY = 0, fitScale = 1] = await view();
   const zoom = await page.getByTestId('viewer-zoom').textContent();
   await page.getByTestId('viewer-zoom-in').click();
   await expect(page.getByTestId('viewer-zoom')).not.toHaveText(zoom ?? '');
@@ -130,15 +134,12 @@ test('board view: navigation, selection, inspector and layers', async () => {
   await page.keyboard.press('b');
   await expect(page.getByTestId('viewer-flip')).toHaveAttribute('aria-pressed', 'false');
   await page.keyboard.press('Home');
-  // Fitting depends on the exact canvas size, which may change by a
-  // scrollbar's width on some systems: compare within 5 %.
-  const percent = (text: string | null): number =>
-    Number(/[\d.,]+/u.exec(text ?? '')?.[0].replace(',', '.') ?? 'NaN');
-  await expect
-    .poll(async () =>
-      Math.abs(percent(await page.getByTestId('viewer-zoom').textContent()) / percent(zoom) - 1),
-    )
-    .toBeLessThan(0.05);
+  await settle(page);
+  const [homeX = 0, homeY = 0, homeScale = 0, flipped = 1] = await view();
+  expect(Math.abs(homeX - fitX)).toBeLessThan(1_000);
+  expect(Math.abs(homeY - fitY)).toBeLessThan(1_000);
+  expect(flipped).toBe(0);
+  expect(Math.abs(homeScale / fitScale - 1)).toBeLessThan(0.15);
 
   // The view is remembered when switching tabs.
   await page.getByTestId('viewer-zoom-in').click();
