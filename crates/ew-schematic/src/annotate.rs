@@ -96,15 +96,7 @@ pub fn annotate(project: &Project, options: &AnnotateOptions) -> Edit {
                             ])
                             .to_owned()
                     },
-                    |d| {
-                        if d.power {
-                            "#PWR".to_owned()
-                        } else if d.prefix.is_empty() {
-                            "U".to_owned()
-                        } else {
-                            d.prefix.clone()
-                        }
-                    },
+                    |d| crate::edit::designator_prefix(&d.prefix, d.power),
                 );
                 candidates.push(Candidate {
                     instance: index,

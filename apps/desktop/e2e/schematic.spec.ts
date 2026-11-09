@@ -166,6 +166,19 @@ test('the guide helps with a first schematic; check settings', async () => {
   await page.getByTestId('action-guide').click();
   await expect(guide).toBeVisible();
 
+  // New projects bring starter symbols: place a resistor, the first step ticks.
+  await viewerCanvas(page).focus();
+  await page.keyboard.press('a');
+  await page.getByTestId('chooser-search').fill('resistor');
+  await page.getByTestId('chooser-item-R').click();
+  await page.getByTestId('chooser-place').click();
+  await clickAt(page, [101.6 * MM, 105.41 * MM]);
+  await expect(page.getByTestId('property-designator')).toHaveValue('R1');
+  await clickAt(page, [127 * MM, 105.41 * MM]);
+  await expect(page.getByTestId('property-designator')).toHaveValue('R2');
+  await expect(page.getByTestId('guide-place')).toHaveAttribute('data-done', 'true');
+  await page.keyboard.press('Escape');
+
   // The grid assistant.
   await page.getByTestId('action-grid').click();
   await expect(page.getByTestId('grid-status')).toHaveText('All wire ends are on the grid.');
@@ -178,7 +191,8 @@ test('the guide helps with a first schematic; check settings', async () => {
   await page.getByTestId('open-palette').click();
   await page.getByTestId('command-input').fill('electrical rules');
   await page.getByTestId('command-run-erc').click();
-  await expect(page.getByTestId('erc-clean')).toBeVisible();
+  // The two resistors are not connected yet: four open pins.
+  await expect(page.getByTestId('erc-summary')).toHaveText('4 errors, 0 warnings');
   await page.getByTestId('erc-settings').click();
   const dialog = page.getByTestId('erc-settings-dialog');
   await expect(dialog).toBeVisible();

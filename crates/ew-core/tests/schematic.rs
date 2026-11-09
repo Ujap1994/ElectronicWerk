@@ -185,8 +185,8 @@ fn editing_with_undo() {
         "schematic.dragInfo",
         json!({"doc": doc, "ids": [r]}),
     );
-    assert_eq!(info[0]["startMoves"], true);
-    assert_eq!(info[0]["endMoves"], false);
+    assert_eq!(info["wires"][0]["startMoves"], true);
+    assert_eq!(info["wires"][0]["endMoves"], false);
     let moved = call(
         &mut engine,
         "schematic.move",

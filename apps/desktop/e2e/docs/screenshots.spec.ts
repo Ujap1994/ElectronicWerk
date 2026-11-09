@@ -738,3 +738,213 @@ test('library manager', async () => {
   await shoot(page, 'library-add');
   await close();
 });
+
+// --- Schematic editor ---------------------------------------------------------
+
+const MM = 1_000_000;
+
+/** Moves the mouse to a design point (nanometres). */
+async function pointAt(page: Page, at: Point): Promise<Point> {
+  const [x, y] = await toScreen(viewerCanvas(page), at);
+  await page.mouse.move(x, y);
+  return [x, y];
+}
+
+async function clickPoint(page: Page, at: Point): Promise<void> {
+  const [x, y] = await pointAt(page, at);
+  await page.mouse.click(x, y);
+}
+
+/** Waits until the last edit is drawn (the undo button names it). */
+async function edited(page: Page, label: RegExp): Promise<void> {
+  await expect(page.getByTestId('toolbar-undo')).toHaveAttribute('title', label);
+  await settle(page);
+}
+
+async function placeSymbol(page: Page, name: string, at: Point): Promise<void> {
+  await viewerCanvas(page).focus();
+  await page.keyboard.press('a');
+  await page.getByTestId('chooser-search').fill(name);
+  await page.getByTestId(`chooser-item-${name}`).click();
+  await page.getByTestId('chooser-place').click();
+  await clickPoint(page, at);
+  await expect(page.getByTestId('property-designator')).toBeVisible();
+  await page.keyboard.press('Escape');
+}
+
+/** Pans so that a design point is in the middle of the drawing area. */
+async function centerOn(page: Page, at: Point): Promise<void> {
+  const box = await viewerCanvas(page).boundingBox();
+  await pointAt(page, at);
+  await page.mouse.down({ button: 'middle' });
+  await page.mouse.move(
+    (box?.x ?? 0) + (box?.width ?? 0) / 2,
+    (box?.y ?? 0) + (box?.height ?? 0) / 2,
+    {
+      steps: 6,
+    },
+  );
+  await page.mouse.up({ button: 'middle' });
+  await settle(page);
+}
+
+async function answer(page: Page, text: string): Promise<void> {
+  await page.getByTestId('editor-prompt-input').fill(text);
+  await page.getByTestId('editor-prompt-input').press('Enter');
+}
+
+test('schematic editor', async () => {
+  test.setTimeout(180_000);
+  freshProjects();
+  const kicad = '/tmp/ElectronicWerk/KiCad/blinky';
+  rmSync(kicad, { recursive: true, force: true });
+  cpSync(KICAD_FIXTURE, kicad, { recursive: true });
+  const { app, page, close } = await start({ settings: { theme: 'light' } });
+  await page.setViewportSize({ width: 1400, height: 860 });
+  await queueDialogAnswer(app, join(kicad, 'blinky.kicad_pro'));
+  await page.getByTestId('import-kicad').click();
+  await page.getByTestId('kicad-import-name').fill('Blinky');
+  await page.getByTestId('kicad-import-start').click();
+  await page
+    .getByTestId('import-report')
+    .getByRole('button', { name: 'Close', exact: true })
+    .last()
+    .click();
+  await page.locator('[data-testid^="tree-doc:"]').filter({ hasText: 'Top sheet' }).dblclick();
+  await expect(page.getByTestId('viewer')).toHaveAttribute('data-kind', 'schematic');
+  await settle(page);
+  await page.mouse.move(700, 840);
+  await shoot(page, 'schematic-editor');
+  await shoot(page.getByTestId('tool-palette'), 'schematic-tools');
+
+  // The symbol chooser.
+  await viewerCanvas(page).focus();
+  await page.keyboard.press('a');
+  await page.getByTestId('chooser-search').fill('Device');
+  await page.getByTestId('chooser-item-Device:R').click();
+  await expect(page.getByTestId('symbol-preview')).toBeVisible();
+  await shoot(page.getByTestId('symbol-chooser'), 'schematic-chooser');
+  await page.keyboard.press('Escape');
+
+  // A small circuit in the empty top-left corner, zoomed in.
+  await zoomAt(page, [55 * MM, 182 * MM], 5);
+  await centerOn(page, [52 * MM, 183 * MM]);
+  await viewerCanvas(page).focus();
+  await page.keyboard.press('a');
+  await page.getByTestId('chooser-search').fill('Device:R');
+  await page.getByTestId('chooser-item-Device:R').click();
+  await page.getByTestId('chooser-place').click();
+  await pointAt(page, [40.64 * MM, 180.34 * MM]);
+  await expect(page.getByTestId('preview-symbol')).toBeVisible();
+  await shoot(page, 'schematic-place');
+  await clickPoint(page, [40.64 * MM, 180.34 * MM]);
+  await expect(page.getByTestId('property-designator')).toBeVisible();
+  await page.keyboard.press('Escape');
+  await placeSymbol(page, 'Device:C', [60.96 * MM, 180.34 * MM]);
+  await settle(page);
+
+  // Wires: from R4 pin 1 up, across and down to C3 pin 1.
+  await viewerCanvas(page).focus();
+  await page.keyboard.press('w');
+  await clickPoint(page, [40.64 * MM, 184.15 * MM]);
+  await clickPoint(page, [40.64 * MM, 189.23 * MM]);
+  await pointAt(page, [60.96 * MM, 184.15 * MM]);
+  await expect(page.getByTestId('preview-wire')).toBeAttached();
+  await shoot(page, 'schematic-wire');
+  await clickPoint(page, [60.96 * MM, 184.15 * MM]);
+  await edited(page, /Draw wire/u);
+  await page.keyboard.press('Escape');
+
+  // A label on the wire, ground on both lower pins.
+  await page.keyboard.press('l');
+  await clickPoint(page, [50.8 * MM, 189.23 * MM]);
+  await page.getByTestId('editor-prompt-input').fill('LED_CTRL');
+  await shoot(page, 'schematic-label');
+  await page.getByTestId('editor-prompt-input').press('Enter');
+  await edited(page, /Add label/u);
+  await viewerCanvas(page).focus();
+  await page.keyboard.press('p');
+  await clickPoint(page, [40.64 * MM, 176.53 * MM]);
+  await answer(page, 'GND');
+  await edited(page, /Add power port/u);
+  await viewerCanvas(page).focus();
+  await clickPoint(page, [60.96 * MM, 176.53 * MM]);
+  await answer(page, 'GND');
+  await expect(page.getByTestId('toolbar-undo')).toBeEnabled();
+  await settle(page);
+  await viewerCanvas(page).focus();
+  await page.keyboard.press('Escape');
+
+  // The properties of the capacitor (a click on its upper pin selects it).
+  await clickPoint(page, [60.96 * MM, 182.88 * MM]);
+  await expect(page.getByTestId('property-designator')).toBeVisible();
+  await page.getByTestId('property-value').fill('100n');
+  await page.getByTestId('property-value').press('Enter');
+  await expect(page.getByTestId('property-value')).toHaveValue('100n');
+  await page.mouse.move(700, 840);
+  await shoot(page.getByTestId('inspector'), 'schematic-properties');
+
+  // Dragging the capacitor: the wire stretches.
+  const [cx, cy] = await pointAt(page, [60.96 * MM, 182.88 * MM]);
+  await page.mouse.down();
+  await page.mouse.move(cx + 40, cy, { steps: 4 });
+  await page.mouse.move(cx + 80, cy + 20, { steps: 4 });
+  await page.waitForTimeout(300);
+  await shoot(page, 'schematic-drag');
+  await page.mouse.up();
+  await settle(page);
+
+  // Net highlighting.
+  await page.getByTestId('tool-highlight').click();
+  await clickPoint(page, [45.72 * MM, 189.23 * MM]);
+  await expect(page.getByTestId('net-chip')).toBeVisible();
+  await page.mouse.move(700, 840);
+  await shoot(page, 'schematic-net');
+  await page.getByTestId('net-chip').click();
+  await viewerCanvas(page).focus();
+  await page.keyboard.press('Escape');
+
+  // The electrical rules check and its settings.
+  await page.getByTestId('viewer-fit').click();
+  await page.getByTestId('action-erc').click();
+  await expect(page.getByTestId('erc-list')).toBeVisible();
+  await page.mouse.move(700, 840);
+  await settle(page);
+  await shoot(page, 'schematic-erc');
+  await shoot(page.getByTestId('erc-panel'), 'schematic-erc-panel');
+  await page.getByTestId('erc-settings').click();
+  await expect(page.getByTestId('erc-matrix')).toBeVisible();
+  await shoot(page.getByTestId('erc-settings-dialog'), 'schematic-erc-settings');
+  await shoot(page.getByTestId('erc-matrix'), 'schematic-erc-matrix');
+  await page.keyboard.press('Escape');
+  await page.getByTestId('erc-close').click();
+
+  // Find, annotate, export, grid.
+  await page.getByTestId('action-find').click();
+  await page.getByTestId('find-query').fill('GND');
+  await expect(page.getByTestId('find-count')).toContainText('Matches');
+  await shoot(page.getByTestId('find-panel'), 'schematic-find');
+  await page.getByTestId('find-close').click();
+  await page.getByTestId('action-annotate').click();
+  await shoot(page.getByTestId('annotate-dialog'), 'schematic-annotate');
+  await page.keyboard.press('Escape');
+  await page.getByTestId('action-export').click();
+  await shoot(page.getByTestId('export-menu'), 'schematic-export');
+  await page.getByTestId('action-export').click();
+  await page.getByTestId('action-grid').click();
+  await expect(page.getByTestId('grid-status')).toBeVisible();
+  await shoot(page.getByTestId('grid-assistant'), 'schematic-grid');
+  await page.getByTestId('action-grid').click();
+  await close();
+
+  // The guide on the empty sheet of a new project, and the dark theme.
+  const dark = await start({ settings: { theme: 'dark' } });
+  await dark.page.setViewportSize({ width: 1400, height: 860 });
+  await createDemo(dark.page, 'First Schematic', 'empty');
+  await openDocument(dark.page, 'Root');
+  await expect(dark.page.getByTestId('guide')).toBeVisible();
+  await dark.page.mouse.move(900, 840);
+  await shoot(dark.page, 'schematic-guide-dark');
+  await shoot(dark.page.getByTestId('guide'), 'schematic-guide');
+  await dark.close();
+});

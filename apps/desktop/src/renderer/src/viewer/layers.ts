@@ -35,8 +35,8 @@ const SHEET_PALETTES: Readonly<Record<CanvasTheme, Palette>> = {
     select: '#ff7a00',
     selectMix: 0.85,
     hoverMix: 0.45,
-    highlight: '#0a8f3c',
-    highlightMix: 0.85,
+    highlight: '#0057ff',
+    highlightMix: 0.9,
   },
   dark: {
     background: '#121418',
@@ -44,8 +44,8 @@ const SHEET_PALETTES: Readonly<Record<CanvasTheme, Palette>> = {
     select: '#ffcf33',
     selectMix: 0.8,
     hoverMix: 0.4,
-    highlight: '#4be37b',
-    highlightMix: 0.8,
+    highlight: '#5cc8ff',
+    highlightMix: 0.9,
   },
 };
 

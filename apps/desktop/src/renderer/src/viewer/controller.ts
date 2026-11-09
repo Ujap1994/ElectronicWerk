@@ -159,6 +159,8 @@ export class ViewerController {
   private moveOffset: [number, number] | null = null;
   /** Ids drawn by an editing preview instead (stretched wires). */
   private hiddenIds: ReadonlySet<string> = new Set();
+  /** Ids that move along with the selection (labels on dragged pins). */
+  private followerIds: ReadonlySet<string> = new Set();
   /** Objects of a highlighted net: ids and scene keys. */
   private highlight: ReadonlySet<string> = new Set();
   /** Ids to select once the next scene arrives. */
@@ -376,6 +378,7 @@ export class ViewerController {
     });
     this.moveOffset = null;
     this.hiddenIds = new Set();
+    this.followerIds = new Set();
     if (!sameDoc) {
       this.active =
         scene.meta.kind === 'pcb' ? scene.meta.layers.findIndex((l) => l.key === 'cu.top') : null;
@@ -694,9 +697,14 @@ export class ViewerController {
    * Moves the selection on screen by an offset (nm), or ends it. `hidden`
    * objects are left out meanwhile (the preview draws them stretched).
    */
-  setMoveOffset(offset: readonly [number, number] | null, hidden: readonly string[] = []): void {
+  setMoveOffset(
+    offset: readonly [number, number] | null,
+    hidden: readonly string[] = [],
+    followers: readonly string[] = [],
+  ): void {
     this.moveOffset = offset === null ? null : [offset[0], offset[1]];
     this.hiddenIds = new Set(offset === null ? [] : hidden);
+    this.followerIds = new Set(offset === null ? [] : followers);
     this.updateFlags();
     this.requestRender();
   }
@@ -786,10 +794,16 @@ export class ViewerController {
     if (this.hovered !== null) {
       mark(this.hovered, HOVERED);
     }
-    if (this.hiddenIds.size > 0) {
+    if (this.hiddenIds.size > 0 || this.followerIds.size > 0) {
       for (let obj = 0; obj < scene.objectCount; obj += 1) {
-        if (scene.parentOf(obj) === null && this.hiddenIds.has(scene.idOf(obj))) {
+        if (scene.parentOf(obj) !== null) {
+          continue;
+        }
+        const id = scene.idOf(obj);
+        if (this.hiddenIds.has(id)) {
           mark(obj, HIDDEN);
+        } else if (this.followerIds.has(id)) {
+          mark(obj, MOVING);
         }
       }
     }

@@ -16,6 +16,7 @@ pub mod erc;
 pub mod export;
 pub mod find;
 pub mod geometry;
+pub mod starter;
 
 pub use connectivity::{Connectivity, analyze};
 pub use erc::{ErcReport, Issue, check};

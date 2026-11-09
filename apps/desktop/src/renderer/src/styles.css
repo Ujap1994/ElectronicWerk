@@ -1724,7 +1724,8 @@ textarea.field__control {
 }
 
 .viewer__hover {
-  min-width: 0;
+  flex: 0 0 auto;
+  max-width: 35%;
   overflow: hidden;
   color: var(--color-text);
   text-overflow: ellipsis;

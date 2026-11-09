@@ -2,7 +2,7 @@ import { useEffect, useRef, useState, useSyncExternalStore, type ReactNode } fro
 
 import { useAppState } from '../state';
 import type { ViewerController } from '../viewer/controller';
-import { route, type EditorSnapshot, type Point, type SchematicEditor } from './editor';
+import { route, stretch, type EditorSnapshot, type Point, type SchematicEditor } from './editor';
 import { SymbolShapes } from './SymbolShapes';
 
 function PromptInput({
@@ -105,21 +105,18 @@ export function EditorOverlay({
   const move = state.move;
   if (move !== null) {
     for (const wire of move.wires) {
-      const a: Point = wire.startMoves
-        ? [wire.start[0] + move.delta[0], wire.start[1] + move.delta[1]]
-        : wire.start;
-      const b: Point = wire.endMoves
-        ? [wire.end[0] + move.delta[0], wire.end[1] + move.delta[1]]
-        : wire.end;
-      const [sa, sb] = [screen(a), screen(b)];
+      const shift = (p: Point): Point => [p[0] + move.delta[0], p[1] + move.delta[1]];
+      const points =
+        wire.startMoves && wire.endMoves
+          ? [shift(wire.start), shift(wire.end)]
+          : wire.startMoves
+            ? stretch(wire.end, wire.start, move.delta)
+            : stretch(wire.start, wire.end, move.delta);
       elements.push(
-        <line
+        <polyline
           key={`drag-${wire.id}`}
           className="preview"
-          x1={sa[0]}
-          y1={sa[1]}
-          x2={sb[0]}
-          y2={sb[1]}
+          points={points.map((p) => screen(p).join(',')).join(' ')}
         />,
       );
     }

@@ -83,8 +83,12 @@ export interface EditorSnapshot {
   /** Rotation (degrees) and mirror of the next symbol or label. */
   readonly rotation: number;
   readonly mirror: boolean;
-  /** Objects being moved: offset and stretched wires. */
-  readonly move: { readonly delta: Point; readonly wires: readonly DragWire[] } | null;
+  /** Objects being moved: offset, stretched wires and objects moving along. */
+  readonly move: {
+    readonly delta: Point;
+    readonly wires: readonly DragWire[];
+    readonly followers: readonly string[];
+  } | null;
   /** First corner of a new sheet. */
   readonly sheetCorner: Point | null;
   readonly prompt: Prompt | null;
@@ -185,6 +189,32 @@ export function centerOf(objects: readonly unknown[]): Point {
   const xs = points.map((p) => p[0]);
   const ys = points.map((p) => p[1]);
   return [(Math.min(...xs) + Math.max(...xs)) / 2, (Math.min(...ys) + Math.max(...ys)) / 2];
+}
+
+/** What a drag drags along (`schematic.dragInfo`). */
+export interface DragInfo {
+  readonly wires: readonly DragWire[];
+  readonly followers: readonly string[];
+}
+
+/**
+ * The path of a wire whose end `moving` follows a drag by `delta`: straight
+ * wires stay straight and get a corner (as the engine does it).
+ */
+export function stretch(fixed: Point, moving: Point, delta: Point): Point[] {
+  const target: Point = [moving[0] + delta[0], moving[1] + delta[1]];
+  const horizontal = fixed[1] === moving[1] && fixed[0] !== moving[0];
+  const vertical = fixed[0] === moving[0] && fixed[1] !== moving[1];
+  let corner: Point;
+  if (horizontal && delta[1] !== 0) {
+    corner = [target[0], fixed[1]];
+  } else if (vertical && delta[0] !== 0) {
+    corner = [fixed[0], target[1]];
+  } else {
+    return [fixed, target];
+  }
+  const same = (a: Point, b: Point): boolean => a[0] === b[0] && a[1] === b[1];
+  return same(corner, fixed) || same(corner, target) ? [fixed, target] : [fixed, corner, target];
 }
 
 /** The two-segment path from `a` to `b` with a corner (`hv`: across first). */
@@ -411,20 +441,21 @@ export class SchematicEditor implements Interaction {
   private beginMove(ids: string[], drag: boolean): void {
     this.moveIds = ids;
     this.controller.setMoveOffset([0, 0]);
-    this.update({ move: { delta: [0, 0], wires: [] } });
+    this.update({ move: { delta: [0, 0], wires: [], followers: [] } });
     if (!drag) {
       return;
     }
     this.host
-      .call<DragWire[]>('schematic.dragInfo', { doc: this.host.doc, ids })
-      .then((wires) => {
+      .call<DragInfo>('schematic.dragInfo', { doc: this.host.doc, ids })
+      .then(({ wires, followers }) => {
         const move = this.state.move;
         if (move !== null) {
           this.controller.setMoveOffset(
             move.delta,
             wires.map((w) => w.id),
+            followers,
           );
-          this.update({ move: { ...move, wires } });
+          this.update({ move: { ...move, wires, followers } });
         }
       })
       .catch(() => undefined);
@@ -440,6 +471,7 @@ export class SchematicEditor implements Interaction {
       this.controller.setMoveOffset(
         delta,
         move.wires.map((w) => w.id),
+        move.followers,
       );
       this.update({ move: { ...move, delta } });
     }

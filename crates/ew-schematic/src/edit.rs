@@ -363,9 +363,14 @@ pub fn place_symbol(project: &Project, doc: Id, params: &PlaceSymbol) -> Result<
     Ok(work.finish(true))
 }
 
-fn designator_prefix(prefix: &str, power: bool) -> String {
+pub(crate) fn designator_prefix(prefix: &str, power: bool) -> String {
     if power {
-        "#PWR".to_owned()
+        // Power symbols keep a `#` prefix of their own (`#FLG`).
+        if prefix.starts_with('#') {
+            prefix.to_owned()
+        } else {
+            "#PWR".to_owned()
+        }
     } else if prefix.is_empty() {
         "U".to_owned()
     } else {
@@ -770,45 +775,119 @@ pub fn move_items(
                 continue;
             }
             let (start, end) = (anchors.contains(&wire.start), anchors.contains(&wire.end));
-            if start || end {
+            if start && end {
                 let mut wire = wire.clone();
-                if start {
-                    wire.start = wire.start + delta;
-                }
-                if end {
-                    wire.end = wire.end + delta;
-                }
+                wire.start = wire.start + delta;
+                wire.end = wire.end + delta;
                 work.update(Object::Wire(wire));
+            } else if start || end {
+                let (fixed, moving) = if start {
+                    (wire.end, wire.start)
+                } else {
+                    (wire.start, wire.end)
+                };
+                let path = stretch(fixed, moving, delta);
+                // The wire keeps its direction; a corner adds a wire.
+                let mut first = wire.clone();
+                if start {
+                    (first.start, first.end) = (path[1], path[0]);
+                } else {
+                    (first.start, first.end) = (path[0], path[1]);
+                }
+                work.update(Object::Wire(first));
+                if let Some(&last) = path.get(2) {
+                    let id = Id::random();
+                    work.insert(Object::Wire(Wire {
+                        id,
+                        start: path[1],
+                        end: last,
+                    }));
+                }
             }
         }
-        let followers: Vec<Object> = sheet
-            .junctions
-            .iter()
-            .filter(|j| anchors.contains(&j.at))
-            .map(|j| Object::Junction(j.clone()))
-            .chain(
-                sheet
-                    .labels
-                    .iter()
-                    .filter(|l| anchors.contains(&l.at))
-                    .map(|l| Object::Label(l.clone())),
-            )
-            .chain(
-                sheet
-                    .no_connects
-                    .iter()
-                    .filter(|n| anchors.contains(&n.at))
-                    .map(|n| Object::NoConnect(n.clone())),
-            )
-            .filter(|o| !moved_ids.contains(&o.id()))
-            .collect();
-        for mut object in followers {
+        for mut object in followers(&sheet, &anchors, &moved_ids) {
             transform(&mut object, &shift, Turn::None);
             work.update(object);
+        }
+        // Wires that shrank to nothing go.
+        let empty: Vec<Id> = work
+            .sheet()
+            .wires
+            .iter()
+            .filter(|w| w.start == w.end)
+            .map(|w| w.id)
+            .collect();
+        for id in empty {
+            work.delete(id);
         }
     }
     work.select = ids.to_vec();
     Ok(work.finish(true))
+}
+
+/// The new path of a wire whose end `moving` follows a drag by `delta`:
+/// a horizontal or vertical wire stays straight and gets a corner (as in
+/// KiCad), any other wire just stretches.
+#[must_use]
+pub fn stretch(fixed: Point, moving: Point, delta: Point) -> Vec<Point> {
+    let target = moving + delta;
+    let horizontal = fixed.y == moving.y && fixed.x != moving.x;
+    let vertical = fixed.x == moving.x && fixed.y != moving.y;
+    let corner = if horizontal && delta.y != 0 {
+        Point::new(target.x, fixed.y)
+    } else if vertical && delta.x != 0 {
+        Point::new(fixed.x, target.y)
+    } else {
+        return vec![fixed, target];
+    };
+    if corner == fixed || corner == target {
+        vec![fixed, target]
+    } else {
+        vec![fixed, corner, target]
+    }
+}
+
+/// Junctions, labels, power ports and flags that sit on a dragged
+/// connection point (they move along).
+fn followers(sheet: &Schematic, anchors: &BTreeSet<Point>, moved: &BTreeSet<Id>) -> Vec<Object> {
+    sheet
+        .junctions
+        .iter()
+        .filter(|j| anchors.contains(&j.at))
+        .map(|j| Object::Junction(j.clone()))
+        .chain(
+            sheet
+                .labels
+                .iter()
+                .filter(|l| anchors.contains(&l.at))
+                .map(|l| Object::Label(l.clone())),
+        )
+        .chain(
+            sheet
+                .power_ports
+                .iter()
+                .filter(|p| anchors.contains(&p.at))
+                .map(|p| Object::PowerPort(p.clone())),
+        )
+        .chain(
+            sheet
+                .no_connects
+                .iter()
+                .filter(|n| anchors.contains(&n.at))
+                .map(|n| Object::NoConnect(n.clone())),
+        )
+        .filter(|o| !moved.contains(&o.id()))
+        .collect()
+}
+
+/// What a drag of some objects drags along, for the preview.
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct DragInfo {
+    /// Wires that stretch.
+    pub wires: Vec<DragWire>,
+    /// Junctions, labels, power ports and flags that move along.
+    pub followers: Vec<Id>,
 }
 
 /// A wire that stretches when objects are dragged.
@@ -827,13 +906,13 @@ pub struct DragWire {
     pub end_moves: bool,
 }
 
-/// The wires that stretch (or move along) when `ids` are dragged, for the
-/// preview of [`move_items`] with `drag`.
+/// The wires that stretch and the objects that move along when `ids` are
+/// dragged, for the preview of [`move_items`] with `drag`.
 ///
 /// # Errors
 ///
 /// Fails if the sheet or an object does not exist.
-pub fn drag_info(project: &Project, doc: Id, ids: &[Id]) -> Result<Vec<DragWire>, EditError> {
+pub fn drag_info(project: &Project, doc: Id, ids: &[Id]) -> Result<DragInfo, EditError> {
     let work = Work::new(project, doc)?;
     let moved = objects(&work, ids)?;
     let moved_ids: BTreeSet<Id> = moved.iter().map(Object::id).collect();
@@ -841,8 +920,8 @@ pub fn drag_info(project: &Project, doc: Id, ids: &[Id]) -> Result<Vec<DragWire>
         .iter()
         .flat_map(|o| connection_points(project, o))
         .collect();
-    Ok(work
-        .sheet()
+    let sheet = work.sheet();
+    let wires = sheet
         .wires
         .iter()
         .filter(|w| !moved_ids.contains(&w.id))
@@ -856,7 +935,12 @@ pub fn drag_info(project: &Project, doc: Id, ids: &[Id]) -> Result<Vec<DragWire>
                 end_moves,
             })
         })
-        .collect())
+        .collect();
+    let followers = followers(sheet, &anchors, &moved_ids)
+        .iter()
+        .map(Object::id)
+        .collect();
+    Ok(DragInfo { wires, followers })
 }
 
 /// The direction of a turn or mirror.
@@ -1373,14 +1457,46 @@ pub(crate) mod tests {
         let wire = edit.select[0];
         let edit = move_items(&project, doc, &[r], Point::new(mm(5), 0), true).unwrap();
         apply(&mut project, &edit);
+        // The vertical wire stays vertical; a corner wire reaches the pin.
         let moved = sheet(&project, doc).wires.get(wire).unwrap();
         assert_eq!(
             (moved.start, moved.end),
-            (Point::new(mm(5), mm(5)), Point::new(0, mm(15)))
+            (Point::new(0, mm(5)), Point::new(0, mm(15)))
+        );
+        let wires: BTreeSet<(Point, Point)> = sheet(&project, doc)
+            .wires
+            .iter()
+            .map(|w| (w.start, w.end))
+            .collect();
+        assert!(
+            wires.contains(&(Point::new(0, mm(5)), Point::new(mm(5), mm(5)))),
+            "{wires:?}"
         );
         // Without drag the wire stays.
         let edit = move_items(&project, doc, &[r], Point::new(mm(5), 0), false).unwrap();
         assert_eq!(edit.changes.len(), 1);
+    }
+
+    #[test]
+    fn straight_wires_stay_straight_when_dragged() {
+        let (a, b) = (Point::new(0, 0), Point::new(mm(10), 0));
+        assert_eq!(
+            stretch(a, b, Point::new(mm(2), mm(5))),
+            [a, Point::new(mm(12), 0), Point::new(mm(12), mm(5))]
+        );
+        assert_eq!(
+            stretch(a, b, Point::new(mm(2), 0)),
+            [a, Point::new(mm(12), 0)]
+        );
+        assert_eq!(
+            stretch(a, b, Point::new(-mm(10), mm(5))),
+            [a, Point::new(0, mm(5))]
+        );
+        let diagonal = Point::new(mm(3), mm(4));
+        assert_eq!(
+            stretch(a, diagonal, Point::new(mm(1), mm(1))),
+            [a, Point::new(mm(4), mm(5))]
+        );
     }
 
     #[test]

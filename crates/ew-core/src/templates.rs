@@ -228,6 +228,10 @@ pub fn build(options: &NewProject) -> Result<Project, EngineError> {
     project.manifest.root_schematic = Some(root);
 
     let mut library = Library::new(Id::random(), "Project library");
+    // Common parts, so a first schematic works without the base library.
+    for def in ew_schematic::starter::starter_symbols() {
+        library.symbols.insert(def);
+    }
     let mut pcb_id = None;
     if let Some(defaults) = template.board {
         let mut settings = options.board.unwrap_or(defaults);
