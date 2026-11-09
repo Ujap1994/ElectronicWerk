@@ -6,6 +6,17 @@ project uses [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Fixed
+
+- A long name of the hovered object no longer makes the drawing area wider,
+  so fitting the view gives the same zoom wherever the mouse is.
+
+### Changed
+
+- The smoke test of packaged builds also tessellates a STEP model with the
+  bundled OpenCASCADE, so every release checks the 3D pipeline on every
+  platform.
+
 ## [0.5.0] - 2026-11-08
 
 The library release: the symbols, footprints and 3D models of the KiCad
