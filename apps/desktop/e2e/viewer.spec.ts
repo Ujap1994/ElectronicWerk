@@ -142,7 +142,8 @@ test('board view: navigation, selection, inspector and layers', async () => {
 
   // The view is remembered when switching tabs.
   await page.getByTestId('viewer-zoom-in').click();
-  await page.waitForTimeout(400);
+  // Read the zoom only when the animation has ended (slow runners).
+  await settle(page);
   const zoomed = await page.getByTestId('viewer-zoom').textContent();
   await page.getByTestId('tab-details').click();
   await expect(page.getByTestId('details')).toBeVisible();
