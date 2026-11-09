@@ -207,6 +207,7 @@ export const IMPORT_CODES: ReadonlySet<string> = new Set([
   'chamfered-pad',
   'custom-pad',
   'custom-rules',
+  'erc-exclusions',
   'external-library',
   'footprint-zone',
   'missing-parent',

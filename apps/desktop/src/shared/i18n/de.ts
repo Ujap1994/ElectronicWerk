@@ -806,6 +806,7 @@ export const de: Messages = {
       'chamfered-pad': 'Angefaste Pads werden zu abgerundeten Rechtecken',
       'custom-pad': 'Eigene Pad-Formen werden vereinfacht',
       'custom-rules': 'Eigene Designregeln werden nicht übernommen',
+      'erc-exclusions': 'Ausgeschlossene ERC-Meldungen werden neu geprüft',
       'external-library': 'Bibliothek außerhalb des Projekts',
       'footprint-zone': 'Zonen in Footprints werden nicht übernommen',
       'missing-parent': 'Abgeleitetes Symbol ohne Basis',

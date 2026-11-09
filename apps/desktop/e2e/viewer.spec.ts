@@ -114,7 +114,11 @@ test('board view: navigation, selection, inspector and layers', async () => {
   await page.getByTestId('layer-opacity').fill('40');
   await expect(page.locator('.viewer-panel__opacity output')).toContainText('40');
 
-  // Zoom, flip and fit.
+  // Zoom, flip and fit. The reference is a fit of the final layout (the
+  // panels above may have changed the canvas size since the first fit).
+  await canvas.focus();
+  await page.keyboard.press('Home');
+  await page.waitForTimeout(300);
   const zoom = await page.getByTestId('viewer-zoom').textContent();
   await page.getByTestId('viewer-zoom-in').click();
   await expect(page.getByTestId('viewer-zoom')).not.toHaveText(zoom ?? '');

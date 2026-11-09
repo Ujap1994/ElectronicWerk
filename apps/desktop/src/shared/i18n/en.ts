@@ -799,6 +799,7 @@ export const en = {
       'chamfered-pad': 'Chamfered pads become rounded rectangles',
       'custom-pad': 'Custom pad shapes are simplified',
       'custom-rules': 'Custom design rules are not imported',
+      'erc-exclusions': 'Excluded ERC findings are checked again',
       'external-library': 'Library outside the project',
       'footprint-zone': 'Zones in footprints are not imported',
       'missing-parent': 'Derived symbol without its parent',
