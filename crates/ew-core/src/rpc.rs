@@ -124,7 +124,9 @@ pub const METHODS: &[&str] = &[
     "schematic.bom",
     "schematic.copy",
     "schematic.delete",
+    "schematic.dragInfo",
     "schematic.erc",
+    "schematic.ercSettings",
     "schematic.find",
     "schematic.move",
     "schematic.net",
@@ -133,7 +135,10 @@ pub const METHODS: &[&str] = &[
     "schematic.paste",
     "schematic.place",
     "schematic.replace",
+    "schematic.setErcSettings",
     "schematic.snapToGrid",
+    "schematic.symbol",
+    "schematic.symbols",
     "schematic.syncSheetPins",
     "schematic.wire",
     "view.object",
@@ -227,6 +232,12 @@ struct AddDocumentParams {
     name: String,
     #[serde(default)]
     parent: Option<Id>,
+    /// Top-left corner of the sheet symbol (with `parent`).
+    #[serde(default)]
+    at: Option<Point>,
+    /// Size of the sheet symbol (with `parent`).
+    #[serde(default)]
+    size: Option<ew_model::units::Size>,
 }
 
 #[derive(Deserialize)]
@@ -795,11 +806,16 @@ impl Engine {
                 id: Id::random(),
                 name: name.clone(),
                 schematic: id,
-                at: Point::new(
-                    mm(25) + (index % 6) * mm(40),
-                    page.h - mm(40) - (index / 6) * mm(30),
-                ),
-                size: DEFAULT_SHEET_SYMBOL_SIZE,
+                at: params.at.unwrap_or_else(|| {
+                    Point::new(
+                        mm(25) + (index % 6) * mm(40),
+                        page.h - mm(40) - (index / 6) * mm(30),
+                    )
+                }),
+                size: params
+                    .size
+                    .filter(|size| size.w > 0 && size.h > 0)
+                    .unwrap_or(DEFAULT_SHEET_SYMBOL_SIZE),
                 pins: Vec::new(),
             };
             requests.push(Request::Insert {
@@ -1002,6 +1018,12 @@ impl Engine {
         let outcome = crate::schematic::call(self.open()?.project(), method, params)?;
         match outcome {
             crate::schematic::Outcome::Read(value) => Ok(value),
+            crate::schematic::Outcome::Requests { label, requests } => {
+                let change_set = self.commit(label, requests)?;
+                Ok(
+                    json!({"seq": change_set.seq, "select": [], "changes": 1, "history": change_set.history}),
+                )
+            }
             crate::schematic::Outcome::Edit { label, edit } => {
                 if edit.changes.is_empty() {
                     let history = self.open()?.history_state();

@@ -85,6 +85,28 @@ fn erc_and_exports() {
     );
     let bom = call(&mut engine, "schematic.bom", Value::Null);
     assert!(bom["text"].as_str().unwrap().contains("R1"));
+
+    // Settings: power inputs without a source become warnings.
+    let settings = call(&mut engine, "schematic.ercSettings", Value::Null);
+    assert_eq!(settings["kinds"][0], "input");
+    assert_eq!(settings["matrix"], settings["defaultMatrix"]);
+    let changed = call(
+        &mut engine,
+        "schematic.setErcSettings",
+        json!({"severities": {"power-not-driven": "warning"}, "matrix": settings["matrix"]}),
+    );
+    assert_eq!(changed["history"]["undoLabel"], "erc-settings");
+    let report = call(&mut engine, "schematic.erc", Value::Null);
+    assert_eq!(
+        (report["errors"].clone(), report["warnings"].clone()),
+        (json!(0), json!(2))
+    );
+    let rules = settings["rules"].as_str().unwrap();
+    let props = call(&mut engine, "document.properties", json!({"doc": rules}));
+    assert_eq!(
+        props["erc"],
+        json!({"severities": {"power-not-driven": "warning"}})
+    );
 }
 
 #[test]
@@ -102,6 +124,16 @@ fn editing_with_undo() {
         .as_str()
         .unwrap()
         .to_owned();
+
+    let list = call(&mut engine, "schematic.symbols", Value::Null);
+    assert!(
+        list.as_array()
+            .unwrap()
+            .iter()
+            .any(|s| s["name"] == name.as_str())
+    );
+    let def = call(&mut engine, "schematic.symbol", json!({"name": name}));
+    assert_eq!(def["prefix"], "R");
 
     // Place a resistor: it gets the next free number.
     let placed = call(
@@ -148,6 +180,13 @@ fn editing_with_undo() {
     assert_eq!(members["pins"], json!([format!("{r}/pin/0")]));
 
     // Drag the resistor: the attached wire end follows.
+    let info = call(
+        &mut engine,
+        "schematic.dragInfo",
+        json!({"doc": doc, "ids": [r]}),
+    );
+    assert_eq!(info[0]["startMoves"], true);
+    assert_eq!(info[0]["endMoves"], false);
     let moved = call(
         &mut engine,
         "schematic.move",
@@ -221,4 +260,32 @@ fn editing_with_undo() {
     let renumbered = call(&mut engine, "schematic.annotate", json!({"reset": true}));
     assert!(renumbered["changes"].as_u64().unwrap() > 0);
     assert_eq!(renumbered["history"]["undoLabel"], "annotate");
+}
+
+#[test]
+fn net_of_an_imported_wire() {
+    let dir = tempfile::tempdir().unwrap();
+    let (mut engine, doc) = open(dir.path());
+    let wires = sheet(&mut engine, &doc)["wires"]
+        .as_array()
+        .unwrap()
+        .clone();
+    let wire = wires
+        .iter()
+        .find(|w| {
+            w["start"][0] == 96_520_000
+                && w["end"][0] == 96_520_000
+                && w["start"][1].as_i64().unwrap() > 120_000_000
+                && w["start"][1].as_i64().unwrap() < 135_000_000
+        })
+        .unwrap();
+    let net = call(
+        &mut engine,
+        "schematic.net",
+        json!({"doc": doc, "id": wire["id"], "at": [96_520_000, 126_180_000]}),
+    );
+    assert_eq!(net["net"], "/DIS");
+    let members = &net["sheets"][&doc];
+    assert_eq!(members["items"].as_array().unwrap().len(), 4);
+    assert_eq!(members["pins"].as_array().unwrap().len(), 3);
 }

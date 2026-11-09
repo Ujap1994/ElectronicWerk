@@ -26,6 +26,10 @@ export interface FrameParams {
   readonly palette: Palette;
   /** Grid spacing in scene units (0 = no grid). */
   readonly gridStep: number;
+  /** A grid point (scene units); the grid runs through it. */
+  readonly gridOrigin?: readonly [number, number];
+  /** Offset of objects being moved (scene units). */
+  readonly offset?: readonly [number, number];
 }
 
 interface Program {
@@ -348,7 +352,10 @@ export class SceneRenderer {
     atlas.dirty = null;
   }
 
-  /** Per-object flags (1 selected, 2 hovered), one byte per object. */
+  /**
+   * Per-object flags (1 selected, 2 hovered, 4 moving, 8 highlighted net),
+   * one byte per object.
+   */
   setState(flags: Uint8Array): void {
     const gl = this.gl;
     const height = Math.max(1, Math.ceil(flags.length / STATE_WIDTH));
@@ -393,7 +400,11 @@ export class SceneRenderer {
     gl.uniform1f(u('u_hatch'), 8 * dpr);
     const select = rgba(palette.select);
     gl.uniform4f(u('u_select'), select[0], select[1], select[2], palette.selectMix);
+    const highlight = rgba(palette.highlight);
+    gl.uniform4f(u('u_highlight'), highlight[0], highlight[1], highlight[2], palette.highlightMix);
     gl.uniform1f(u('u_hoverMix'), palette.hoverMix);
+    const offset = frame.offset ?? [0, 0];
+    gl.uniform2f(u('u_offset'), offset[0], offset[1]);
   }
 
   private drawGrid(frame: FrameParams): void {
@@ -411,8 +422,9 @@ export class SceneRenderer {
     gl.bindVertexArray(program.vao);
     const u = (name: string): WebGLUniformLocation | null => program.uniforms.get(name) ?? null;
     // A grid line near the centre, in device pixels (bottom-up).
-    const gx = Math.round(camera.cx / gridStep) * gridStep;
-    const gy = Math.round(camera.cy / gridStep) * gridStep;
+    const [ox, oy] = frame.gridOrigin ?? [0, 0];
+    const gx = ox + Math.round((camera.cx - ox) / gridStep) * gridStep;
+    const gy = oy + Math.round((camera.cy - oy) / gridStep) * gridStep;
     const [sx, sy] = camera.toScreen(gx, gy);
     const step = gridStep * camera.scale * dpr;
     gl.uniform2f(u('u_phase'), sx * dpr + 0.5, (camera.height - sy) * dpr + 0.5);

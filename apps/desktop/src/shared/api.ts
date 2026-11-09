@@ -24,6 +24,7 @@ export const IPC = {
   dialogChooseFolder: 'dialog:choose-folder',
   dialogSaveArchive: 'dialog:save-archive',
   dialogChooseImport: 'dialog:choose-import',
+  exportSave: 'export:save',
   projectsLocation: 'projects:default-location',
   recentGet: 'recent:get',
   recentAdd: 'recent:add',
@@ -89,6 +90,15 @@ export type MenuAction =
 /** Why a folder is chosen (sets the dialog title). */
 export type FolderPurpose = 'location' | 'saveAs' | 'saveCopy' | 'library';
 
+/** What an export writes. */
+export type ExportKind = 'netlist' | 'csv' | 'bom' | 'svg' | 'pdf';
+
+export function isExportKind(value: unknown): value is ExportKind {
+  return (
+    value === 'netlist' || value === 'csv' || value === 'bom' || value === 'svg' || value === 'pdf'
+  );
+}
+
 /** What kind of file an import dialog asks for. */
 export type ImportKind = 'kicadProject' | 'netlist' | 'kicadLibraryFile' | 'kicadLibraryFolder';
 
@@ -152,6 +162,11 @@ export interface EwApi {
     saveArchive: (defaultPath: string) => Promise<string | null>;
     /** Lets the user pick a file (or folder) to import. */
     chooseImport: (kind: ImportKind) => Promise<string | null>;
+    /**
+     * Asks where to save an export and writes it: text as it is, a print
+     * document (HTML) as PDF. Returns the path, or `null` if cancelled.
+     */
+    saveExport: (kind: ExportKind, defaultPath: string, content: string) => Promise<string | null>;
   };
   readonly projects: {
     /** Default folder for new projects. */

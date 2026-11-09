@@ -1,6 +1,6 @@
 import { dialog, type BrowserWindow } from 'electron';
 
-import type { FolderPurpose, ImportKind } from '@shared/api';
+import type { ExportKind, FolderPurpose, ImportKind } from '@shared/api';
 import type { Translate } from '@shared/i18n';
 
 import { testHooksEnabled } from './paths';
@@ -131,6 +131,37 @@ export async function chooseArchiveFile(
     title: t('dialogs.archiveTitle'),
     defaultPath,
     filters: [{ name: t('dialogs.archiveFilter'), extensions: ['zip'] }],
+  };
+  const result =
+    window === null
+      ? await dialog.showSaveDialog(options)
+      : await dialog.showSaveDialog(window, options);
+  return result.canceled || result.filePath === '' ? null : result.filePath;
+}
+
+const EXPORT_FILTERS = {
+  netlist: ['dialogs.exportNetlist', 'net'],
+  csv: ['dialogs.exportCsv', 'csv'],
+  bom: ['dialogs.exportCsv', 'csv'],
+  svg: ['dialogs.exportSvg', 'svg'],
+  pdf: ['dialogs.exportPdf', 'pdf'],
+} as const satisfies Record<ExportKind, readonly [Parameters<Translate>[0], string]>;
+
+export async function chooseExportFile(
+  window: BrowserWindow | null,
+  t: Translate,
+  kind: ExportKind,
+  defaultPath: string,
+): Promise<string | null> {
+  const stub = takeQueued();
+  if (stub !== null) {
+    return stub.answer;
+  }
+  const [filter, extension] = EXPORT_FILTERS[kind];
+  const options: Electron.SaveDialogOptions = {
+    title: t('dialogs.exportTitle'),
+    defaultPath,
+    filters: [{ name: t(filter), extensions: [extension] }],
   };
   const result =
     window === null

@@ -13,6 +13,9 @@ export interface Palette {
   readonly select: string;
   readonly selectMix: number;
   readonly hoverMix: number;
+  /** Colour and mix amount of a highlighted net. */
+  readonly highlight: string;
+  readonly highlightMix: number;
 }
 
 const BOARD_PALETTE: Palette = {
@@ -21,6 +24,8 @@ const BOARD_PALETTE: Palette = {
   select: '#ffffff',
   selectMix: 0.6,
   hoverMix: 0.35,
+  highlight: '#ffe14d',
+  highlightMix: 0.75,
 };
 
 const SHEET_PALETTES: Readonly<Record<CanvasTheme, Palette>> = {
@@ -30,6 +35,8 @@ const SHEET_PALETTES: Readonly<Record<CanvasTheme, Palette>> = {
     select: '#ff7a00',
     selectMix: 0.85,
     hoverMix: 0.45,
+    highlight: '#0a8f3c',
+    highlightMix: 0.85,
   },
   dark: {
     background: '#121418',
@@ -37,6 +44,8 @@ const SHEET_PALETTES: Readonly<Record<CanvasTheme, Palette>> = {
     select: '#ffcf33',
     selectMix: 0.8,
     hoverMix: 0.4,
+    highlight: '#4be37b',
+    highlightMix: 0.8,
   },
 };
 

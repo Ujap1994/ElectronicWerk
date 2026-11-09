@@ -5,6 +5,7 @@ import type { DocumentSummary } from '@shared/project';
 import { historyLabel } from '../project/labels';
 import { useProject } from '../project/ProjectProvider';
 import { selectionKey, type TreeTarget } from '../project/tree';
+import { resetSchematicStores } from '../schematic/stores';
 import { useAppState } from '../state';
 import { OpenDocumentContext } from '../viewer/open-context';
 import { DocumentDetails } from './DocumentDetails';
@@ -68,7 +69,13 @@ export function ProjectWorkspace({
     setActiveTab(null);
   }
   const projectId = project?.id ?? null;
-  useEffect(() => forgetViewMemories, [projectId]);
+  useEffect(
+    () => () => {
+      forgetViewMemories();
+      resetSchematicStores();
+    },
+    [projectId],
+  );
   const openDocument = useCallback((document: DocumentSummary) => {
     setTabs((current) => (current.includes(document.id) ? current : [...current, document.id]));
     setActiveTab(document.id);

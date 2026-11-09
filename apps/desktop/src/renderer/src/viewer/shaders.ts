@@ -18,12 +18,17 @@ uniform vec2 u_scale;
 uniform float u_px;
 uniform float u_depth;
 uniform usampler2D u_state;
+uniform vec2 u_offset;
 flat out uint v_state;
+uint g_state = 0u;
 uint stateOf(uint obj) {
-  if (obj == 0xFFFFFFFFu) { return 0u; }
-  return texelFetch(u_state, ivec2(int(obj & 2047u), int(obj >> 11u)), 0).r;
+  if (obj == 0xFFFFFFFFu) { g_state = 0u; return 0u; }
+  g_state = texelFetch(u_state, ivec2(int(obj & 2047u), int(obj >> 11u)), 0).r;
+  return g_state;
 }
 vec4 clipOf(vec2 p) {
+  // Objects being moved follow the pointer (state bit 4).
+  if ((g_state & 4u) != 0u) { p += u_offset; }
   return vec4((p - u_center) * u_scale, u_depth, 1.0);
 }
 `;
@@ -33,17 +38,20 @@ precision highp float;
 precision highp int;
 uniform vec3 u_color;
 uniform vec4 u_select;
+uniform vec4 u_highlight;
 uniform float u_hoverMix;
 uniform float u_px;
 flat in uint v_state;
 out vec4 o_color;
 vec3 tint(vec3 c) {
   if ((v_state & 1u) != 0u) { return mix(c, u_select.rgb, u_select.a); }
+  if ((v_state & 8u) != 0u) { return mix(c, u_highlight.rgb, u_highlight.a); }
   if ((v_state & 2u) != 0u) { return mix(c, u_select.rgb, u_hoverMix); }
   return c;
 }
 void emit(float coverage) {
-  if (coverage <= 0.004) { discard; }
+  // Hidden while a drag preview draws it elsewhere (state bit 16).
+  if (coverage <= 0.004 || (v_state & 16u) != 0u) { discard; }
   o_color = vec4(tint(u_color), coverage);
 }
 float cover(float dist) {

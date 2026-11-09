@@ -2,6 +2,7 @@ import { useEffect, useState, useSyncExternalStore, type ReactNode } from 'react
 
 import type { Units } from '@shared/project';
 
+import { EDITABLE_TYPES, PropertyEditor } from '../schematic/PropertyEditor';
 import { useAppState } from '../state';
 import type { SelectedObject, ViewerController } from '../viewer/controller';
 import { fieldLabel, formatRow, typeLabel } from '../viewer/labels';
@@ -18,10 +19,13 @@ export function Inspector({
   controller,
   doc,
   units,
+  editable = false,
 }: {
   readonly controller: ViewerController;
   readonly doc: string;
   readonly units: Units;
+  /** Schematic objects can be edited here. */
+  readonly editable?: boolean;
 }): ReactNode {
   const { t, engine, snapshot: settings } = useAppState();
   const snapshot = useSyncExternalStore(controller.subscribe, controller.snapshot);
@@ -95,6 +99,9 @@ export function Inspector({
           <span className="inspector__type">{typeLabel(t, info.type)}</span>
           {info.title !== '' && <span className="inspector__name">{info.title}</span>}
         </p>
+        {editable && single.child === null && EDITABLE_TYPES.has(single.type) && (
+          <PropertyEditor key={single.id} doc={doc} id={single.id} version={version} />
+        )}
         <dl className="inspector__rows" data-testid="inspector-rows">
           {info.rows.map((row) => (
             <div key={row.key} className="inspector__row" data-testid={`inspector-${row.key}`}>
@@ -115,7 +122,7 @@ export function Inspector({
     >
       <header className="viewer-panel__header">
         <h2 className="viewer-panel__title">{t('inspector.title')}</h2>
-        <span className="viewer-panel__note">{t('viewer.readOnly')}</span>
+        {!editable && <span className="viewer-panel__note">{t('viewer.readOnly')}</span>}
       </header>
       {body}
     </section>

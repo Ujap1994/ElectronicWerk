@@ -53,12 +53,21 @@ pub mod labels {
     pub const SYNC_SHEET_PINS: &str = "sync-sheet-pins";
     /// `schematic.snapToGrid`.
     pub const SNAP_TO_GRID: &str = "snap-to-grid";
+    /// `schematic.setErcSettings`.
+    pub const ERC_SETTINGS: &str = "erc-settings";
 }
 
 /// What a method does: answer, or change the project.
 pub enum Outcome {
     /// A reply without changes.
     Read(Value),
+    /// Raw requests to commit (changes that are not object edits).
+    Requests {
+        /// History label.
+        label: &'static str,
+        /// The requests.
+        requests: Vec<Request>,
+    },
     /// Changes to commit as one undo step.
     Edit {
         /// History label.
@@ -130,6 +139,14 @@ struct PlaceParams {
 struct WireParams {
     doc: Id,
     points: Vec<Point>,
+    #[serde(default)]
+    bus: bool,
+}
+
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct SymbolParams {
+    name: String,
 }
 
 #[derive(Deserialize)]
@@ -225,6 +242,14 @@ struct NetParams {
 
 #[derive(Deserialize)]
 #[serde(rename_all = "camelCase")]
+struct ErcSettingsParams {
+    #[serde(default)]
+    severities: std::collections::BTreeMap<String, ew_model::rules::ErcSeverity>,
+    matrix: [[ew_model::rules::ErcSeverity; 12]; 12],
+}
+
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase")]
 struct NetlistParams {
     #[serde(default)]
     format: NetlistFormat,
@@ -263,6 +288,19 @@ pub fn call(project: &Project, method: &str, params: &Value) -> Result<Outcome, 
             let params: NetParams = parse(params)?;
             Ok(Outcome::Read(net(project, &params)))
         }
+        "schematic.symbols" => Ok(Outcome::Read(symbols(project))),
+        "schematic.symbol" => {
+            let params: SymbolParams = parse(params)?;
+            let def = ew_schematic::connectivity::symbol_def(project, &params.name)
+                .ok_or_else(|| EngineError::not_found(format!("no symbol `{}`", params.name)))?;
+            Ok(Outcome::Read(to_value(def)?))
+        }
+        "schematic.dragInfo" => {
+            let params: DocIds = parse(params)?;
+            let wires =
+                edit::drag_info(project, params.doc, &params.ids).map_err(|e| failed(&e))?;
+            Ok(Outcome::Read(to_value(&wires)?))
+        }
         "schematic.copy" => {
             let params: DocIds = parse(params)?;
             let document = project
@@ -286,7 +324,7 @@ pub fn call(project: &Project, method: &str, params: &Value) -> Result<Outcome, 
             let params: WireParams = parse(params)?;
             edit(
                 labels::WIRE,
-                edit::draw_wire(project, params.doc, &params.points),
+                edit::draw_wire(project, params.doc, &params.points, params.bus),
             )
         }
         "schematic.add" => {
@@ -400,6 +438,37 @@ pub fn call(project: &Project, method: &str, params: &Value) -> Result<Outcome, 
                 edit::snap_to_grid(project, params.doc, &params.ids),
             )
         }
+        "schematic.ercSettings" => {
+            let settings = ew_schematic::erc::settings(project);
+            let checks: Vec<Value> = ew_model::rules::ERC_CHECKS
+                .iter()
+                .map(|(code, default)| json!({"code": code, "default": default, "value": settings.severity(code)}))
+                .collect();
+            let kinds: Vec<&str> = ew_model::library::PinKind::ALL
+                .iter()
+                .map(|k| k.name())
+                .collect();
+            Ok(Outcome::Read(json!({
+                "checks": checks,
+                "kinds": kinds,
+                "defaultMatrix": ew_model::rules::ERC_PIN_MATRIX,
+                "matrix": settings.matrix(),
+                "rules": rules_document(project),
+            })))
+        }
+        "schematic.setErcSettings" => {
+            let params: ErcSettingsParams = parse(params)?;
+            let doc = rules_document(project)
+                .ok_or_else(|| EngineError::not_found("the project has no rules document"))?;
+            let mut settings = ew_model::rules::ErcSettings::default();
+            settings.set_from(&params.severities, &params.matrix);
+            let mut props = Map::new();
+            props.insert("erc".to_owned(), to_value(&settings)?);
+            Ok(Outcome::Requests {
+                label: labels::ERC_SETTINGS,
+                requests: vec![Request::SetProps { doc, props }],
+            })
+        }
         "schematic.netlist" => {
             let params: NetlistParams = parse(params)?;
             let connectivity = ew_schematic::analyze(project);
@@ -419,6 +488,51 @@ pub fn call(project: &Project, method: &str, params: &Value) -> Result<Outcome, 
             format!("unknown method `{other}`"),
         )),
     }
+}
+
+/// The first rules document of the project.
+fn rules_document(project: &Project) -> Option<Id> {
+    project
+        .documents_of(ew_model::document::DocumentKind::Rules)
+        .next()
+        .map(|entry| entry.id)
+}
+
+/// The symbols of the project libraries (first library wins for equal
+/// names), sorted by name.
+fn symbols(project: &Project) -> Value {
+    let mut seen = std::collections::BTreeSet::new();
+    let mut list: Vec<Value> = Vec::new();
+    for entry in &project.manifest.documents {
+        let Some(ew_model::document::Document::Library(library)) = project.document(entry.id)
+        else {
+            continue;
+        };
+        for def in &library.symbols {
+            if !seen.insert(def.name.clone()) {
+                continue;
+            }
+            list.push(json!({
+                "name": def.name,
+                "description": def.description,
+                "keywords": def.keywords,
+                "prefix": def.prefix,
+                "value": def.value,
+                "footprint": def.footprint,
+                "power": def.power,
+                "units": def.units.len(),
+                "pins": def.units.iter().map(|u| u.pins.len()).sum::<usize>(),
+                "library": library.name,
+            }));
+        }
+    }
+    list.sort_by(|a, b| {
+        ew_schematic::connectivity::natural_cmp(
+            a["name"].as_str().unwrap_or_default(),
+            b["name"].as_str().unwrap_or_default(),
+        )
+    });
+    Value::Array(list)
 }
 
 /// The net of an object, pin or point of a sheet and its members on every

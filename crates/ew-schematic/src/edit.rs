@@ -507,14 +507,20 @@ pub fn add_item(
     Ok(work.finish(!explicit_junction))
 }
 
-/// Draws a wire through the points (consecutive duplicates and zero-length
-/// segments are dropped, straight runs are merged).
+/// Draws a wire (or, with `bus`, a bus) through the points (consecutive
+/// duplicates and zero-length segments are dropped, straight runs are
+/// merged).
 ///
 /// # Errors
 ///
 /// Fails if the sheet does not exist or fewer than two distinct points are
 /// given.
-pub fn draw_wire(project: &Project, doc: Id, points: &[Point]) -> Result<Edit, EditError> {
+pub fn draw_wire(
+    project: &Project,
+    doc: Id,
+    points: &[Point],
+    bus: bool,
+) -> Result<Edit, EditError> {
     let mut path: Vec<Point> = Vec::new();
     for &p in points {
         if path.last() == Some(&p) {
@@ -541,11 +547,12 @@ pub fn draw_wire(project: &Project, doc: Id, points: &[Point]) -> Result<Edit, E
     let mut work = Work::new(project, doc)?;
     for pair in path.windows(2) {
         let id = Id::random();
-        work.insert(Object::Wire(Wire {
-            id,
-            start: pair[0],
-            end: pair[1],
-        }));
+        let (start, end) = (pair[0], pair[1]);
+        work.insert(if bus {
+            Object::Bus(ew_model::schematic::Bus { id, start, end })
+        } else {
+            Object::Wire(Wire { id, start, end })
+        });
         work.select.push(id);
     }
     // Inner corners are connection points too.
@@ -802,6 +809,54 @@ pub fn move_items(
     }
     work.select = ids.to_vec();
     Ok(work.finish(true))
+}
+
+/// A wire that stretches when objects are dragged.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct DragWire {
+    /// Wire id.
+    pub id: Id,
+    /// Start point.
+    pub start: Point,
+    /// End point.
+    pub end: Point,
+    /// The start follows the dragged objects.
+    pub start_moves: bool,
+    /// The end follows the dragged objects.
+    pub end_moves: bool,
+}
+
+/// The wires that stretch (or move along) when `ids` are dragged, for the
+/// preview of [`move_items`] with `drag`.
+///
+/// # Errors
+///
+/// Fails if the sheet or an object does not exist.
+pub fn drag_info(project: &Project, doc: Id, ids: &[Id]) -> Result<Vec<DragWire>, EditError> {
+    let work = Work::new(project, doc)?;
+    let moved = objects(&work, ids)?;
+    let moved_ids: BTreeSet<Id> = moved.iter().map(Object::id).collect();
+    let anchors: BTreeSet<Point> = moved
+        .iter()
+        .flat_map(|o| connection_points(project, o))
+        .collect();
+    Ok(work
+        .sheet()
+        .wires
+        .iter()
+        .filter(|w| !moved_ids.contains(&w.id))
+        .filter_map(|w| {
+            let (start_moves, end_moves) = (anchors.contains(&w.start), anchors.contains(&w.end));
+            (start_moves || end_moves).then_some(DragWire {
+                id: w.id,
+                start: w.start,
+                end: w.end,
+                start_moves,
+                end_moves,
+            })
+        })
+        .collect())
 }
 
 /// The direction of a turn or mirror.
@@ -1245,12 +1300,19 @@ pub(crate) mod tests {
     fn wires_get_junctions_at_tees_but_not_at_crossings() {
         let (mut project, doc) = project();
         // A horizontal wire and a vertical one crossing it.
-        let edit = draw_wire(&project, doc, &[Point::new(0, 0), Point::new(mm(10), 0)]).unwrap();
+        let edit = draw_wire(
+            &project,
+            doc,
+            &[Point::new(0, 0), Point::new(mm(10), 0)],
+            false,
+        )
+        .unwrap();
         apply(&mut project, &edit);
         let edit = draw_wire(
             &project,
             doc,
             &[Point::new(mm(5), mm(5)), Point::new(mm(5), -mm(5))],
+            false,
         )
         .unwrap();
         apply(&mut project, &edit);
@@ -1260,6 +1322,7 @@ pub(crate) mod tests {
             &project,
             doc,
             &[Point::new(mm(2), mm(5)), Point::new(mm(2), 0)],
+            false,
         )
         .unwrap();
         apply(&mut project, &edit);
@@ -1288,10 +1351,11 @@ pub(crate) mod tests {
                 Point::new(mm(10), 0),
                 Point::new(mm(10), mm(5)),
             ],
+            false,
         )
         .unwrap();
         assert_eq!(edit.changes.len(), 2);
-        assert!(draw_wire(&project, doc, &[Point::new(0, 0), Point::new(0, 0)]).is_err());
+        assert!(draw_wire(&project, doc, &[Point::new(0, 0), Point::new(0, 0)], false).is_err());
     }
 
     #[test]
@@ -1302,6 +1366,7 @@ pub(crate) mod tests {
             &project,
             doc,
             &[Point::new(0, mm(5)), Point::new(0, mm(15))],
+            false,
         )
         .unwrap();
         apply(&mut project, &edit);
@@ -1352,6 +1417,7 @@ pub(crate) mod tests {
                 Point::new(grid + 10, top - grid),
                 Point::new(grid * 5, top - grid + 7),
             ],
+            false,
         )
         .unwrap();
         apply(&mut project, &edit);

@@ -83,7 +83,27 @@ interface LayerSetting {
   opacity: number;
 }
 
+/**
+ * An editing tool that takes over the primary button and keys (the
+ * schematic editor). Points are absolute scene coordinates (nm).
+ */
+export interface Interaction {
+  /** A press of the primary button; `true` takes the drag over. */
+  pointerDown(point: readonly [number, number], event: PointerEvent): boolean;
+  /** Every pointer move (also without a pressed button). */
+  pointerMove(point: readonly [number, number], event: PointerEvent): void;
+  /** The release of a drag taken over by `pointerDown`. */
+  pointerUp(point: readonly [number, number], event: PointerEvent): void;
+  /** A double click of the primary button. */
+  doubleClick?(point: readonly [number, number], event: MouseEvent): void;
+  /** A key press on the canvas; `true` if handled. */
+  keyDown(event: KeyboardEvent): boolean;
+  /** The pointer left the canvas. */
+  pointerLeave?(): void;
+}
+
 type Drag =
+  | { kind: 'tool'; pointer: number }
   | { kind: 'pan'; x: number; y: number }
   | { kind: 'pending'; x: number; y: number; pointer: number }
   | { kind: 'box'; x: number; y: number; pointer: number }
@@ -97,6 +117,9 @@ const HIGH_CONTRAST_DIM = 0.22;
 
 const SELECTED = 1;
 const HOVERED = 2;
+const MOVING = 4;
+const HIGHLIGHTED = 8;
+const HIDDEN = 16;
 
 export class ViewerController {
   readonly camera = new Camera();
@@ -131,6 +154,17 @@ export class ViewerController {
   private zoomAnimation: { x: number; y: number; target: number } | null = null;
   private fitAnimation: { from: CameraState; to: CameraState; start: number } | null = null;
   private spaceDown = false;
+  private interaction: Interaction | null = null;
+  /** Offset of the selection while it is being moved (scene units). */
+  private moveOffset: [number, number] | null = null;
+  /** Ids drawn by an editing preview instead (stretched wires). */
+  private hiddenIds: ReadonlySet<string> = new Set();
+  /** Objects of a highlighted net: ids and scene keys. */
+  private highlight: ReadonlySet<string> = new Set();
+  /** Ids to select once the next scene arrives. */
+  private pendingSelection: ReadonlySet<string> | null = null;
+  /** A point (absolute) to show once the next scene arrives. */
+  private pendingFocus: readonly [number, number] | null = null;
   private readonly cleanup: (() => void)[] = [];
   /** Duration of the last frame on the CPU (ms). */
   lastFrameMs = 0;
@@ -340,6 +374,8 @@ export class ViewerController {
       this.settingsByKey.set(layer.key, setting);
       return setting;
     });
+    this.moveOffset = null;
+    this.hiddenIds = new Set();
     if (!sameDoc) {
       this.active =
         scene.meta.kind === 'pcb' ? scene.meta.layers.findIndex((l) => l.key === 'cu.top') : null;
@@ -354,6 +390,16 @@ export class ViewerController {
       this.selected = new Set();
       for (let obj = 0; obj < scene.objectCount && selectedKeys.size > 0; obj += 1) {
         if (selectedKeys.has(scene.keyOf(obj))) {
+          this.selected.add(obj);
+        }
+      }
+    }
+    if (this.pendingSelection !== null) {
+      const wanted = this.pendingSelection;
+      this.pendingSelection = null;
+      this.selected = new Set();
+      for (let obj = 0; obj < scene.objectCount; obj += 1) {
+        if (scene.parentOf(obj) === null && wanted.has(scene.idOf(obj))) {
           this.selected.add(obj);
         }
       }
@@ -373,6 +419,11 @@ export class ViewerController {
       if (this.camera.width > 1) {
         this.camera.set({ ...this.camera.fitState(this.homeBox()), flipped: false });
       }
+    }
+    if (this.pendingFocus !== null) {
+      const at = this.pendingFocus;
+      this.pendingFocus = null;
+      this.focusOn(at, false);
     }
     this.changed();
     this.viewChanged();
@@ -542,6 +593,173 @@ export class ViewerController {
     this.requestRender();
   }
 
+  // --- Editing support ------------------------------------------------------
+
+  /** Takes over the primary button and keys for an editing tool. */
+  setInteraction(interaction: Interaction | null): void {
+    this.interaction = interaction;
+  }
+
+  /** The object at a screen point, or `null`. */
+  pickAt(sx: number, sy: number): number | null {
+    const scene = this.scene;
+    if (scene === null) {
+      return null;
+    }
+    const [x, y] = this.camera.toScene(sx, sy);
+    return pick(
+      scene,
+      x,
+      y,
+      HIT_TOLERANCE_PX / this.camera.scale,
+      this.isLayerVisible,
+      this.active,
+    );
+  }
+
+  /** The object at an absolute scene point, or `null`. */
+  pickAtPoint(point: readonly [number, number]): number | null {
+    const [sx, sy] = this.screenOf(point);
+    return this.pickAt(sx, sy);
+  }
+
+  /** Selects objects (by index), like a click (`additive`: Shift, `toggle`: Ctrl). */
+  select(objects: readonly number[], additive = false, toggle = false): void {
+    this.applySelection(objects, additive, toggle);
+  }
+
+  /** `true` if an object (or its top-level object) is selected. */
+  isSelected(obj: number): boolean {
+    const scene = this.scene;
+    if (scene === null) {
+      return false;
+    }
+    let current: number | null = obj;
+    while (current !== null) {
+      if (this.selected.has(current)) {
+        return true;
+      }
+      current = scene.parentOf(current);
+    }
+    return false;
+  }
+
+  /** The top-level object of an object (a symbol for its pin or field). */
+  rootOf(obj: number): number {
+    const scene = this.scene;
+    let current = obj;
+    let parent = scene?.parentOf(current) ?? null;
+    while (parent !== null) {
+      current = parent;
+      parent = scene?.parentOf(current) ?? null;
+    }
+    return current;
+  }
+
+  /** The model ids of the selected objects (pins and fields count as their symbol). */
+  selectedIds(): string[] {
+    const scene = this.scene;
+    if (scene === null) {
+      return [];
+    }
+    const ids = new Set<string>();
+    for (const obj of this.selected) {
+      ids.add(scene.idOf(this.rootOf(obj)));
+    }
+    return [...ids];
+  }
+
+  /** Selects the top-level objects with these ids. */
+  selectIds(ids: readonly string[]): void {
+    const scene = this.scene;
+    if (scene === null) {
+      return;
+    }
+    const wanted = new Set(ids);
+    const hits: number[] = [];
+    for (let obj = 0; obj < scene.objectCount; obj += 1) {
+      if (scene.parentOf(obj) === null && wanted.has(scene.idOf(obj))) {
+        hits.push(obj);
+      }
+    }
+    this.applySelection(hits, false, false);
+  }
+
+  /** Selects these ids once the next scene (after an edit) arrives. */
+  selectAfterReload(ids: readonly string[]): void {
+    this.pendingSelection = new Set(ids);
+  }
+
+  /**
+   * Moves the selection on screen by an offset (nm), or ends it. `hidden`
+   * objects are left out meanwhile (the preview draws them stretched).
+   */
+  setMoveOffset(offset: readonly [number, number] | null, hidden: readonly string[] = []): void {
+    this.moveOffset = offset === null ? null : [offset[0], offset[1]];
+    this.hiddenIds = new Set(offset === null ? [] : hidden);
+    this.updateFlags();
+    this.requestRender();
+  }
+
+  /** Highlights a net: object ids and scene keys (`<id>/pin/<n>`). */
+  setHighlight(members: Iterable<string>): void {
+    this.highlight = new Set(members);
+    this.updateFlags();
+    this.requestRender();
+  }
+
+  get highlighted(): boolean {
+    return this.highlight.size > 0;
+  }
+
+  /** Centres the view on an absolute point, zoomed in to read details. */
+  focusOn(point: readonly [number, number], animate = true): void {
+    if (this.scene === null || this.camera.width <= 1) {
+      this.pendingFocus = point;
+      return;
+    }
+    this.navigated();
+    const [ox, oy] = this.scene.meta.origin;
+    const half = 12e6;
+    const x = point[0] - ox;
+    const y = point[1] - oy;
+    this.animateTo(this.camera.fitState([x - half, y - half, x + half, y + half]), animate);
+  }
+
+  /** Shows a point (absolute) once the next scene arrives. */
+  focusAfterReload(point: readonly [number, number]): void {
+    this.pendingFocus = point;
+  }
+
+  /** Screen position (CSS px) of an absolute scene point. */
+  screenOf(point: readonly [number, number]): [number, number] {
+    const [ox, oy] = this.scene?.meta.origin ?? [0, 0];
+    return this.camera.toScreen(point[0] - ox, point[1] - oy);
+  }
+
+  /** The grid origin in scene units: the top-left page corner of a sheet. */
+  private gridOrigin(): [number, number] {
+    const meta = this.scene?.meta;
+    if (meta?.kind !== 'schematic' || meta.page === null) {
+      return [0, 0];
+    }
+    return [-meta.origin[0], meta.page[1] - meta.origin[1]];
+  }
+
+  /** The grid origin as an absolute point (where snapping is anchored). */
+  get absoluteGridOrigin(): [number, number] {
+    const meta = this.scene?.meta;
+    if (meta?.kind !== 'schematic' || meta.page === null) {
+      return [0, 0];
+    }
+    return [0, meta.page[1]];
+  }
+
+  /** The base grid of the document (nm), 0 if none. */
+  get baseGrid(): number {
+    return this.scene?.meta.grid ?? 0;
+  }
+
   // --- Rendering ------------------------------------------------------------
 
   private isLayerVisible = (layer: number): boolean => this.settings[layer]?.visible ?? false;
@@ -563,10 +781,28 @@ export class ViewerController {
       }
     };
     for (const obj of this.selected) {
-      mark(obj, SELECTED);
+      mark(obj, this.moveOffset === null ? SELECTED : SELECTED | MOVING);
     }
     if (this.hovered !== null) {
       mark(this.hovered, HOVERED);
+    }
+    if (this.hiddenIds.size > 0) {
+      for (let obj = 0; obj < scene.objectCount; obj += 1) {
+        if (scene.parentOf(obj) === null && this.hiddenIds.has(scene.idOf(obj))) {
+          mark(obj, HIDDEN);
+        }
+      }
+    }
+    if (this.highlight.size > 0) {
+      for (let obj = 0; obj < scene.objectCount; obj += 1) {
+        const id = scene.idOf(obj);
+        if (
+          (scene.parentOf(obj) === null && this.highlight.has(id)) ||
+          this.highlight.has(scene.keyOf(obj))
+        ) {
+          mark(obj, HIGHLIGHTED);
+        }
+      }
     }
     this.renderer?.setState(this.flags);
   }
@@ -621,6 +857,8 @@ export class ViewerController {
       appearance,
       palette: palette(kind, this.theme),
       gridStep: this.gridStep(),
+      gridOrigin: this.gridOrigin(),
+      offset: this.moveOffset ?? [0, 0],
     });
     this.lastFrameMs = performance.now() - started;
     if (this.canvas !== null) {
@@ -708,6 +946,12 @@ export class ViewerController {
     on('pointercancel', this.onPointerCancel);
     on('pointerleave', this.onPointerLeave);
     on('wheel', this.onWheel, { passive: false });
+    on('dblclick', (event) => {
+      if (event.button === 0) {
+        const [x, y] = this.local(event);
+        this.interaction?.doubleClick?.(this.absolute(x, y), event);
+      }
+    });
     on('keydown', this.onKeyDown);
     on('keyup', this.onKeyUp);
     on('contextmenu', (event) => {
@@ -735,15 +979,30 @@ export class ViewerController {
       return;
     }
     if (event.button === 0) {
+      if (this.interaction?.pointerDown(this.absolute(x, y), event) === true) {
+        this.drag = { kind: 'tool', pointer: event.pointerId };
+        return;
+      }
       this.drag = { kind: 'pending', x, y, pointer: event.pointerId };
     }
   };
+
+  private absolute(x: number, y: number): [number, number] {
+    const [sx, sy] = this.camera.toScene(x, y);
+    const [ox, oy] = this.scene?.meta.origin ?? [0, 0];
+    return [sx + ox, sy + oy];
+  }
 
   private onPointerMove = (event: PointerEvent): void => {
     const [x, y] = this.local(event);
     this.pointer = [x, y];
     this.cursor = this.camera.toScene(x, y);
     const drag = this.drag;
+    this.interaction?.pointerMove(this.absolute(x, y), event);
+    if (drag?.kind === 'tool') {
+      this.viewChanged();
+      return;
+    }
     if (drag?.kind === 'pan') {
       this.navigated();
       this.camera.pan(x - drag.x, y - drag.y);
@@ -787,6 +1046,11 @@ export class ViewerController {
       if (this.canvas.hasPointerCapture(event.pointerId)) {
         this.canvas.releasePointerCapture(event.pointerId);
       }
+    }
+    if (drag?.kind === 'tool') {
+      const [x, y] = this.local(event);
+      this.interaction?.pointerUp(this.absolute(x, y), event);
+      return;
     }
     const scene = this.scene;
     if (drag === null || drag.kind === 'pan' || scene === null) {
@@ -851,6 +1115,7 @@ export class ViewerController {
   };
 
   private onPointerLeave = (): void => {
+    this.interaction?.pointerLeave?.();
     if (this.drag === null) {
       this.cursor = null;
       this.pointer = null;
@@ -916,6 +1181,11 @@ export class ViewerController {
   };
 
   private onKeyDown = (event: KeyboardEvent): void => {
+    if (this.interaction?.keyDown(event) === true) {
+      event.preventDefault();
+      event.stopPropagation();
+      return;
+    }
     const pan = (fx: number, fy: number): void => {
       this.navigated();
       const step = event.shiftKey ? 0.5 : 0.15;

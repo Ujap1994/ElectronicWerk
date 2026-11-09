@@ -13,6 +13,7 @@ import {
 
 import {
   IPC,
+  isExportKind,
   isFolderPurpose,
   isImportKind,
   type AppInfo,
@@ -26,12 +27,14 @@ import type { Settings } from '@shared/settings';
 
 import {
   chooseArchiveFile,
+  chooseExportFile,
   chooseFolder,
   chooseImport,
   chooseProjectFile,
   queueDialogAnswer,
 } from './dialogs';
 import { EngineManager } from './engine';
+import { writeExport } from './export';
 import { buildMenu } from './menu';
 import { projectFromArgv } from './open-path';
 import { LIBRARY_TAG } from '@shared/library';
@@ -325,6 +328,26 @@ function main(): void {
       isTrustedSender(event.senderFrame) && isImportKind(kind)
         ? chooseImport(mainWindow, t, kind)
         : null,
+    );
+
+    ipcMain.handle(
+      IPC.exportSave,
+      async (event, kind: unknown, defaultPath: unknown, content: unknown) => {
+        if (
+          !isTrustedSender(event.senderFrame) ||
+          !isExportKind(kind) ||
+          typeof defaultPath !== 'string' ||
+          typeof content !== 'string'
+        ) {
+          return null;
+        }
+        const path = await chooseExportFile(mainWindow, t, kind, defaultPath);
+        if (path === null) {
+          return null;
+        }
+        await writeExport(kind, path, content);
+        return path;
+      },
     );
 
     ipcMain.handle(IPC.dialogSaveArchive, (event, defaultPath: unknown) =>

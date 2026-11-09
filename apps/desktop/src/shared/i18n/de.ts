@@ -1,3 +1,4 @@
+import { schematicDe } from './schematic.de';
 import type { Messages } from './types';
 
 /** German UI strings. Must contain exactly the keys of the English source. */
@@ -143,6 +144,25 @@ export const de: Messages = {
     importNetlist: 'Netzliste importieren',
     importLibrary: 'Bibliothek importieren',
     addFromLibrary: 'Aus Bibliothek hinzufügen',
+    placeSymbol: 'Symbol platzieren',
+    drawWire: 'Leitung zeichnen',
+    addLabel: 'Label hinzufügen',
+    addPowerPort: 'Versorgungssymbol hinzufügen',
+    addNoConnect: 'Nicht-verbunden-Markierung setzen',
+    addJunction: 'Verbindungspunkt setzen',
+    addText: 'Text hinzufügen',
+    move: 'Verschieben',
+    drag: 'Ziehen',
+    rotate: 'Drehen',
+    mirror: 'Spiegeln',
+    delete: 'Löschen',
+    paste: 'Einfügen',
+    annotate: 'Annotieren',
+    replace: 'Ersetzen',
+    syncSheetPins: 'Unterplan-Pins übernehmen',
+    snapToGrid: 'Auf das Raster setzen',
+    editProperties: 'Eigenschaften ändern',
+    ercSettings: 'Prüfeinstellungen ändern',
   },
   kinds: {
     schematic: 'Schaltplan',
@@ -276,7 +296,7 @@ export const de: Messages = {
     generatedFile: 'Erzeugte Datei',
     otherFile: 'Datei im Projektordner',
     comingSchematic:
-      'Doppelklicke das Blatt im Projektbaum, um es anzusehen. Der Schaltplaneditor kommt mit Version 0.6; bis dahin verwaltest du hier Blätter, Papier und Schriftfeld.',
+      'Doppelklicke das Blatt im Projektbaum, um es zu bearbeiten. Hier verwaltest du Blätter, Papier und Schriftfeld.',
     comingPcb:
       'Doppelklicke die Platine im Projektbaum, um sie anzusehen. Der Layout-Editor kommt mit Version 0.8, die Live-3D-Ansicht mit Version 0.10.',
     comingLibrary: 'Die Bibliotheksverwaltung kommt mit Version 0.5.',
@@ -473,6 +493,11 @@ export const de: Messages = {
     saveCopyTitle: 'Speicherort für die Kopie wählen',
     archiveTitle: 'Projektarchiv speichern',
     archiveFilter: 'ZIP-Archive',
+    exportTitle: 'Exportieren',
+    exportNetlist: 'KiCad-Netzlisten',
+    exportCsv: 'CSV-Dateien',
+    exportSvg: 'SVG-Grafiken',
+    exportPdf: 'PDF-Dokumente',
     importKicadTitle: 'KiCad-Projekt importieren',
     kicadProjectFilter: 'KiCad-Projekte',
     importNetlistTitle: 'Netzliste importieren',
@@ -1009,4 +1034,5 @@ export const de: Messages = {
     project: 'Projekt: {path}',
     unsaved: 'Ungesicherte Änderungen',
   },
+  schematic: schematicDe,
 };

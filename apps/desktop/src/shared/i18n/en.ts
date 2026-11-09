@@ -4,6 +4,8 @@
  *
  * Placeholders use `{name}` syntax and must be identical in every language.
  */
+import { schematicEn } from './schematic.en';
+
 export const en = {
   app: {
     name: 'ElectronicWerk',
@@ -145,6 +147,25 @@ export const en = {
     importNetlist: 'Import netlist',
     importLibrary: 'Import library',
     addFromLibrary: 'Add from library',
+    placeSymbol: 'Place symbol',
+    drawWire: 'Draw wire',
+    addLabel: 'Add label',
+    addPowerPort: 'Add power port',
+    addNoConnect: 'Add no-connect flag',
+    addJunction: 'Add junction',
+    addText: 'Add text',
+    move: 'Move',
+    drag: 'Drag',
+    rotate: 'Rotate',
+    mirror: 'Mirror',
+    delete: 'Delete',
+    paste: 'Paste',
+    annotate: 'Annotate',
+    replace: 'Replace',
+    syncSheetPins: 'Add sheet pins',
+    snapToGrid: 'Snap to grid',
+    editProperties: 'Change properties',
+    ercSettings: 'Change check settings',
   },
   kinds: {
     schematic: 'Schematic',
@@ -278,7 +299,7 @@ export const en = {
     generatedFile: 'Generated file',
     otherFile: 'File in the project folder',
     comingSchematic:
-      'Double-click the sheet in the project tree to view it. The schematic editor arrives in version 0.6; until then, manage sheets, paper and title block here.',
+      'Double-click the sheet in the project tree to edit it. Here you manage sheets, paper and title block.',
     comingPcb:
       'Double-click the board in the project tree to view it. The layout editor arrives in version 0.8 and the live 3D view in version 0.10.',
     comingLibrary: 'The library manager arrives in version 0.5.',
@@ -467,6 +488,11 @@ export const en = {
     saveCopyTitle: 'Choose where to save the copy',
     archiveTitle: 'Save project archive',
     archiveFilter: 'ZIP archives',
+    exportTitle: 'Export',
+    exportNetlist: 'KiCad netlists',
+    exportCsv: 'CSV files',
+    exportSvg: 'SVG images',
+    exportPdf: 'PDF documents',
     importKicadTitle: 'Import a KiCad project',
     kicadProjectFilter: 'KiCad projects',
     importNetlistTitle: 'Import a netlist',
@@ -1000,4 +1026,5 @@ export const en = {
     project: 'Project: {path}',
     unsaved: 'Unsaved changes',
   },
+  schematic: schematicEn,
 } as const;

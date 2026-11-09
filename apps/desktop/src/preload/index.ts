@@ -53,6 +53,8 @@ const api: EwApi = {
       ipcRenderer.invoke(IPC.dialogChooseFolder, defaultPath, purpose),
     saveArchive: (defaultPath) => ipcRenderer.invoke(IPC.dialogSaveArchive, defaultPath),
     chooseImport: (kind) => ipcRenderer.invoke(IPC.dialogChooseImport, kind),
+    saveExport: (kind, defaultPath, content) =>
+      ipcRenderer.invoke(IPC.exportSave, kind, defaultPath, content),
   },
   projects: {
     defaultLocation: () => ipcRenderer.invoke(IPC.projectsLocation),
