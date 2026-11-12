@@ -216,3 +216,191 @@ fn design_rules_round_trip() {
             .any(|f| f["args"]["source"] == "rule wide")
     );
 }
+
+fn doc_of(snapshot: &Value, kind: &str) -> String {
+    snapshot["documents"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|d| d["kind"] == kind)
+        .unwrap()["id"]
+        .as_str()
+        .unwrap()
+        .to_owned()
+}
+
+fn kinds(preview: &Value) -> Vec<String> {
+    preview["changes"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|c| c["kind"].as_str().unwrap().to_owned())
+        .collect()
+}
+
+#[test]
+#[allow(
+    clippy::too_many_lines,
+    reason = "one round trip between schematic and board"
+)]
+fn schematic_and_board_stay_in_sync() {
+    let dir = tempfile::tempdir().unwrap();
+    let mut engine = Engine::without_journal();
+    let snapshot = call(
+        &mut engine,
+        "project.create",
+        json!({"path": dir.path().join("Sync"), "name": "Sync", "template": "board-2l"}),
+    );
+    let (lib, board) = (doc_of(&snapshot, "library"), doc_of(&snapshot, "pcb"));
+    let root = snapshot["rootSchematic"].as_str().unwrap().to_owned();
+
+    // A footprint and a resistor symbol that uses it.
+    let presets = call(&mut engine, "libedit.presets", Value::Null);
+    let soic = presets
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|p| p["name"] == "SOIC-8")
+        .unwrap()["wizard"]
+        .clone();
+    call(
+        &mut engine,
+        "libedit.create",
+        json!({"doc": lib, "kind": "footprint", "name": "SOIC-8", "wizard": soic}),
+    );
+    call(
+        &mut engine,
+        "libedit.setProps",
+        json!({"doc": lib, "kind": "symbol", "name": "R", "props": {"footprint": "SOIC-8"}}),
+    );
+    // R1 and R2 side by side, pin 1 to pin 1 and pin 2 to pin 2.
+    let grid = 1_270_000;
+    for x in [0, 8 * grid] {
+        call(
+            &mut engine,
+            "schematic.place",
+            json!({"doc": root, "symbol": "R", "at": [x, 40 * grid], "annotate": true}),
+        );
+    }
+    for y in [37 * grid, 43 * grid] {
+        call(
+            &mut engine,
+            "schematic.wire",
+            json!({"doc": root, "points": [[0, y], [8 * grid, y]]}),
+        );
+    }
+
+    // Forward annotation: two nets, two footprints.
+    let preview = call(&mut engine, "pcb.syncPreview", json!({"doc": board}));
+    let k = kinds(&preview);
+    assert_eq!(k.iter().filter(|k| *k == "addNet").count(), 2, "{preview}");
+    assert_eq!(
+        k.iter().filter(|k| *k == "addFootprint").count(),
+        2,
+        "{preview}"
+    );
+    let report = call(&mut engine, "pcb.drc", json!({"doc": board}));
+    assert!(codes(&report).contains(&"missing-footprint".to_owned()));
+    let applied = call(&mut engine, "pcb.syncApply", json!({"doc": board}));
+    assert_eq!(applied["select"].as_array().unwrap().len(), 2);
+    assert_eq!(applied["history"]["undoLabel"], "update-board");
+    let again = call(&mut engine, "pcb.syncPreview", json!({"doc": board}));
+    assert_eq!(kinds(&again), Vec::<String>::new(), "{again}");
+    let pcb = call(&mut engine, "document.get", json!({"doc": board}));
+    assert_eq!(pcb["nets"].as_array().unwrap().len(), 2);
+    let footprints = pcb["footprints"].as_array().unwrap();
+    assert_eq!(footprints.len(), 2);
+    for fp in footprints {
+        let pads = fp["pads"].as_array().unwrap();
+        assert!(pads[0]["net"].is_string() && pads[1]["net"].is_string());
+        assert!(pads[2].get("net").is_none(), "pad 3 has no pin");
+    }
+    // The two pad 1s share a net: one airwire per net.
+    let ratsnest = call(&mut engine, "pcb.ratsnest", json!({"doc": board}));
+    assert_eq!(ratsnest["unrouted"], 2);
+    let report = call(&mut engine, "pcb.drc", json!({"doc": board}));
+    assert!(!codes(&report).contains(&"missing-footprint".to_owned()));
+
+    // Cross-probing both ways.
+    let sheet = call(&mut engine, "document.get", json!({"doc": root}));
+    let r1 = sheet["symbols"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|s| s["designator"] == "R1")
+        .unwrap()["id"]
+        .clone();
+    let probe = call(
+        &mut engine,
+        "pcb.crossProbe",
+        json!({"doc": board, "symbols": [r1]}),
+    );
+    let fp_r1 = probe["footprints"][0].clone();
+    let fp = footprints.iter().find(|f| f["id"] == fp_r1).unwrap();
+    assert_eq!(fp["designator"], "R1");
+    let back = call(
+        &mut engine,
+        "pcb.crossProbe",
+        json!({"doc": board, "footprints": [fp_r1]}),
+    );
+    assert_eq!(back["symbols"][0]["id"], r1);
+
+    // Renaming on the board goes back to the schematic.
+    let mut renamed = fp.clone();
+    renamed["designator"] = json!("R10");
+    renamed["value"] = json!("4k7");
+    renamed["type"] = json!("footprint");
+    call(
+        &mut engine,
+        "edit.apply",
+        json!({"changes": [{"op": "update", "doc": board, "object": renamed}]}),
+    );
+    let back = call(&mut engine, "pcb.backPreview", json!({"doc": board}));
+    assert_eq!(kinds(&back), vec!["setDesignator", "setValue"]);
+    call(&mut engine, "pcb.backApply", json!({"doc": board}));
+    let sheet = call(&mut engine, "document.get", json!({"doc": root}));
+    assert!(
+        sheet["symbols"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|s| s["designator"] == "R10" && s["value"] == "4k7")
+    );
+    // The automatic net names follow the lowest designator, so the nets
+    // are renamed (tracks keep them).
+    let preview = call(&mut engine, "pcb.syncPreview", json!({"doc": board}));
+    assert_eq!(kinds(&preview), vec!["renameNet", "renameNet"], "{preview}");
+    call(&mut engine, "pcb.syncApply", json!({"doc": board}));
+    let preview = call(&mut engine, "pcb.syncPreview", json!({"doc": board}));
+    assert_eq!(kinds(&preview), Vec::<String>::new(), "{preview}");
+
+    // Deleting R2 in the schematic removes its footprint and nothing else.
+    let r2 = sheet["symbols"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|s| s["designator"] == "R2")
+        .unwrap()["id"]
+        .clone();
+    call(
+        &mut engine,
+        "schematic.delete",
+        json!({"doc": root, "ids": [r2]}),
+    );
+    let preview = call(&mut engine, "pcb.syncPreview", json!({"doc": board}));
+    let k = kinds(&preview);
+    assert!(k.contains(&"removeFootprint".to_owned()), "{preview}");
+    // Both nets now have a single pin: they disappear, and R10's pads lose
+    // them.
+    assert_eq!(
+        k.iter().filter(|k| *k == "removeNet").count(),
+        2,
+        "{preview}"
+    );
+    let report = call(&mut engine, "pcb.drc", json!({"doc": board}));
+    assert!(codes(&report).contains(&"extra-footprint".to_owned()));
+    call(&mut engine, "pcb.syncApply", json!({"doc": board}));
+    let pcb = call(&mut engine, "document.get", json!({"doc": board}));
+    assert_eq!(pcb["footprints"].as_array().unwrap().len(), 1);
+    assert!(pcb.get("nets").is_none() || pcb["nets"].as_array().unwrap().is_empty());
+}

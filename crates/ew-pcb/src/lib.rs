@@ -8,6 +8,7 @@
 //!   language.
 //! - [`drc`]: the design rules check.
 //! - [`fill`]: the zone filler.
+//! - [`sync`]: schematic ↔ board updates and cross-probing.
 
 #![allow(
     clippy::cast_precision_loss,
@@ -23,3 +24,4 @@ pub mod geom;
 pub mod items;
 pub mod poly;
 pub mod rules;
+pub mod sync;

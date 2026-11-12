@@ -48,6 +48,25 @@ impl Id {
     pub const fn is_nil(self) -> bool {
         self.0.is_nil()
     }
+
+    /// A stable id derived from text (FNV-1a, formatted as a UUID version
+    /// 8): the same parts always give the same id.
+    #[must_use]
+    pub fn derived(parts: &[&str]) -> Self {
+        let mut a: u64 = 0xcbf2_9ce4_8422_2325;
+        let mut b: u64 = 0x8422_2325_cbf2_9ce4;
+        for part in parts {
+            for byte in part.bytes().chain(std::iter::once(0)) {
+                a = (a ^ u64::from(byte)).wrapping_mul(0x0100_0000_01b3);
+                b = (b ^ u64::from(byte.rotate_left(3))).wrapping_mul(0x0000_0100_0000_01b3);
+            }
+        }
+        let mut value = (u128::from(a) << 64) | u128::from(b);
+        // Version 8 (custom) and the RFC 4122 variant.
+        value = (value & !(0xF_u128 << 76)) | (0x8_u128 << 76);
+        value = (value & !(0x3_u128 << 62)) | (0x2_u128 << 62);
+        Self::from_u128(value)
+    }
 }
 
 impl fmt::Display for Id {

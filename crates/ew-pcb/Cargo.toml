@@ -11,6 +11,7 @@ publish = false
 
 [dependencies]
 ew-model.workspace = true
+ew-schematic.workspace = true
 i_overlay.workspace = true
 rayon.workspace = true
 rstar.workspace = true

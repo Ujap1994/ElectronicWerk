@@ -29,6 +29,10 @@ pub mod labels {
     pub const RULES: &str = "design-rules";
     /// `pcb.exclude`.
     pub const EXCLUDE: &str = "drc-exclusions";
+    /// `pcb.syncApply`.
+    pub const UPDATE_BOARD: &str = "update-board";
+    /// `pcb.backApply`.
+    pub const UPDATE_SCHEMATIC: &str = "update-schematic";
 }
 
 /// What a method does.
@@ -131,6 +135,25 @@ struct ValidateParams {
 
 #[derive(Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
+struct SyncParams {
+    doc: Id,
+    /// Indices of the changes to apply (all if missing).
+    #[serde(default)]
+    changes: Option<Vec<usize>>,
+}
+
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+struct ProbeParams {
+    doc: Id,
+    #[serde(default)]
+    symbols: Vec<Id>,
+    #[serde(default)]
+    footprints: Vec<Id>,
+}
+
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
 struct ExcludeParams {
     doc: Id,
     keys: Vec<String>,
@@ -163,6 +186,7 @@ pub fn call(
             let region = params.region.map(|[x0, y0, x1, y1]| {
                 BBox::of(V::new(x0 as f64, y0 as f64)).with(V::new(x1 as f64, y1 as f64))
             });
+            let extra = parity(project, pcb, rules);
             let report = match (region, cache.reports.get(&params.doc)) {
                 (Some(region), Some(previous)) => {
                     let fresh = drc::check(
@@ -170,13 +194,20 @@ pub fn call(
                         rules,
                         &drc::Options {
                             region: Some(region),
-                            ..drc::Options::default()
+                            extra,
                         },
                     );
                     let reach = ew_pcb::rules::RuleSet::new(rules).max_clearance();
                     drc::merge(previous, fresh, region, reach)
                 }
-                _ => drc::check(pcb, rules, &drc::Options::default()),
+                _ => drc::check(
+                    pcb,
+                    rules,
+                    &drc::Options {
+                        region: None,
+                        extra,
+                    },
+                ),
             };
             let value = to_value(&report)?;
             cache.reports.insert(params.doc, report);
@@ -237,6 +268,108 @@ pub fn call(
                 requests,
                 reply: json!({"zones": zones, "areas": areas}),
             })
+        }
+        "pcb.syncPreview" => {
+            let params: DocParams = parse(params)?;
+            let doc = params
+                .doc
+                .ok_or_else(|| EngineError::invalid_params("missing doc"))?;
+            let pcb = board(project, doc)?;
+            let connectivity = ew_schematic::analyze(project);
+            let diff = ew_pcb::sync::diff(project, &connectivity, pcb);
+            let changes: Vec<Value> = diff
+                .changes
+                .iter()
+                .enumerate()
+                .map(|(index, change)| {
+                    let mut value = serde_json::to_value(change).unwrap_or(Value::Null);
+                    if let Some(map) = value.as_object_mut() {
+                        map.insert("index".into(), json!(index));
+                        map.insert("description".into(), json!(change.describe()));
+                    }
+                    value
+                })
+                .collect();
+            Ok(Outcome::Read(
+                json!({"changes": changes, "problems": diff.problems}),
+            ))
+        }
+        "pcb.syncApply" => {
+            let params: SyncParams = parse(params)?;
+            let pcb = board(project, params.doc)?;
+            let connectivity = ew_schematic::analyze(project);
+            let diff = ew_pcb::sync::diff(project, &connectivity, pcb);
+            let selected: Vec<usize> = params
+                .changes
+                .unwrap_or_else(|| (0..diff.changes.len()).collect());
+            let edit =
+                ew_pcb::sync::apply(project, &connectivity, params.doc, pcb, &diff, &selected);
+            if edit.changes.is_empty() {
+                return Ok(Outcome::Read(
+                    json!({"seq": null, "select": [], "changes": 0}),
+                ));
+            }
+            let count = edit.changes.len();
+            Ok(Outcome::Commit {
+                label: labels::UPDATE_BOARD,
+                requests: crate::schematic::requests(&edit),
+                reply: json!({"select": edit.select, "changes": count}),
+            })
+        }
+        "pcb.backPreview" => {
+            let params: DocParams = parse(params)?;
+            let doc = params
+                .doc
+                .ok_or_else(|| EngineError::invalid_params("missing doc"))?;
+            let pcb = board(project, doc)?;
+            let connectivity = ew_schematic::analyze(project);
+            let changes: Vec<Value> = ew_pcb::sync::back_diff(project, &connectivity, pcb)
+                .iter()
+                .enumerate()
+                .map(|(index, change)| {
+                    let mut value = serde_json::to_value(change).unwrap_or(Value::Null);
+                    if let Some(map) = value.as_object_mut() {
+                        map.insert("index".into(), json!(index));
+                        map.insert("description".into(), json!(change.describe()));
+                    }
+                    value
+                })
+                .collect();
+            Ok(Outcome::Read(json!({"changes": changes})))
+        }
+        "pcb.backApply" => {
+            let params: SyncParams = parse(params)?;
+            let pcb = board(project, params.doc)?;
+            let connectivity = ew_schematic::analyze(project);
+            let changes = ew_pcb::sync::back_diff(project, &connectivity, pcb);
+            let selected: Vec<usize> = params
+                .changes
+                .unwrap_or_else(|| (0..changes.len()).collect());
+            let edit = ew_pcb::sync::back_apply(project, &connectivity, &changes, &selected);
+            if edit.changes.is_empty() {
+                return Ok(Outcome::Read(json!({"seq": null, "changes": 0})));
+            }
+            let count = edit.changes.len();
+            Ok(Outcome::Commit {
+                label: labels::UPDATE_SCHEMATIC,
+                requests: crate::schematic::requests(&edit),
+                reply: json!({"changes": count}),
+            })
+        }
+        "pcb.crossProbe" => {
+            let params: ProbeParams = parse(params)?;
+            let pcb = board(project, params.doc)?;
+            let connectivity = ew_schematic::analyze(project);
+            let footprints =
+                ew_pcb::sync::footprints_of(project, &connectivity, pcb, &params.symbols);
+            let symbols: Vec<Value> =
+                ew_pcb::sync::symbols_of(project, &connectivity, pcb, &params.footprints)
+                    .into_iter()
+                    .map(|(sheet, id)| json!({"doc": sheet, "id": id}))
+                    .collect();
+            Ok(Outcome::Read(
+                json!({"footprints": footprints, "symbols": symbols}),
+            ))
         }
         "pcb.rules" => {
             let params: DocParams = parse(params)?;
@@ -311,6 +444,117 @@ pub fn call(
             format!("unknown method `{other}`"),
         )),
     }
+}
+
+/// Findings for the differences between schematic and board.
+#[allow(clippy::too_many_lines, reason = "one arm per kind of difference")]
+fn parity(project: &Project, pcb: &Pcb, rules: Option<&Rules>) -> Vec<drc::Finding> {
+    use ew_pcb::sync::Change;
+    let connectivity = ew_schematic::analyze(project);
+    let has_parts = !ew_pcb::sync::parts(project, &connectivity).0.is_empty();
+    if !has_parts {
+        return Vec::new();
+    }
+    let defaults = DrcSettings::default();
+    let settings = rules.map_or(&defaults, |r| &r.drc);
+    let diff = ew_pcb::sync::diff(project, &connectivity, pcb);
+    let mut out = Vec::new();
+    for change in &diff.changes {
+        let (code, at, targets, args): (
+            &str,
+            ew_model::units::Point,
+            Vec<drc::Target>,
+            Vec<(&str, String)>,
+        ) = match change {
+            Change::AddFootprint { designator, .. } => (
+                "missing-footprint",
+                ew_model::units::Point::ORIGIN,
+                Vec::new(),
+                vec![("designator", designator.clone())],
+            ),
+            Change::RemoveFootprint { id, designator } => (
+                "extra-footprint",
+                pcb.footprints
+                    .get(*id)
+                    .map_or(ew_model::units::Point::ORIGIN, |fp| fp.at),
+                vec![drc::Target { id: *id, pad: None }],
+                vec![("designator", designator.clone())],
+            ),
+            Change::SetPadNet {
+                id,
+                designator,
+                pad,
+                from,
+                to,
+            } => {
+                let fp = pcb.footprints.get(*id);
+                let index = fp.and_then(|fp| fp.pads.iter().position(|p| p.number == *pad));
+                let at = fp.map_or(ew_model::units::Point::ORIGIN, |fp| {
+                    let xf = ew_pcb::items::footprint_xform(fp);
+                    index
+                        .and_then(|i| fp.pads.get(i))
+                        .map_or(fp.at, |p| xf.apply(V::of(p.at)).point())
+                });
+                (
+                    "net-mismatch",
+                    at,
+                    vec![drc::Target {
+                        id: *id,
+                        pad: index,
+                    }],
+                    vec![
+                        ("pad", format!("{designator}-{pad}")),
+                        ("board", from.clone().unwrap_or_default()),
+                        ("schematic", to.clone().unwrap_or_default()),
+                    ],
+                )
+            }
+            _ => continue,
+        };
+        let severity = settings.severity(code);
+        if severity == ErcSeverity::Ignore {
+            continue;
+        }
+        let message = match code {
+            "missing-footprint" => {
+                format!("{} is in the schematic but not on the board", args[0].1)
+            }
+            "extra-footprint" => format!("{} is on the board but not in the schematic", args[0].1),
+            _ => format!(
+                "Pad {} is on net {} on the board but on {} in the schematic",
+                args[0].1,
+                if args[1].1.is_empty() {
+                    "(none)"
+                } else {
+                    &args[1].1
+                },
+                if args[2].1.is_empty() {
+                    "(none)"
+                } else {
+                    &args[2].1
+                }
+            ),
+        };
+        let key = format!(
+            "{code}:{}",
+            args.iter()
+                .map(|(_, v)| v.as_str())
+                .collect::<Vec<_>>()
+                .join("/")
+        );
+        out.push(drc::Finding {
+            code: code.to_owned(),
+            severity,
+            message,
+            args: args.into_iter().map(|(k, v)| (k.to_owned(), v)).collect(),
+            at,
+            layer: None,
+            targets,
+            key,
+            excluded: false,
+        });
+    }
+    out
 }
 
 /// The design rules with what the editors need around them: the checks
