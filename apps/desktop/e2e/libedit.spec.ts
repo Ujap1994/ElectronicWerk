@@ -39,6 +39,19 @@ async function clickAt(page: Page, at: Point): Promise<void> {
   await page.mouse.click(x, y);
 }
 
+/** Clicks a table row beside its check box (a click on the row selects it). */
+async function selectRow(
+  page: Page,
+  row: string,
+  modifiers: ('Shift' | 'ControlOrMeta')[] = [],
+): Promise<void> {
+  await page
+    .getByTestId(row)
+    .locator('td')
+    .first()
+    .click({ position: { x: 1, y: 1 }, modifiers });
+}
+
 async function shot(page: Page, name: string): Promise<void> {
   if (SHOTS !== undefined) {
     await page.screenshot({ path: `${SHOTS}/${name}.png` });
@@ -54,6 +67,8 @@ async function openLibrary(page: Page): Promise<void> {
 test('edits symbols, footprints and components', async () => {
   launched = await launchApp();
   const { page } = launched;
+  // The smallest window the app allows (CI screens are small).
+  await page.setViewportSize({ width: 960, height: 600 });
   await createProjectWithWizard(page, 'Parts');
   await openLibrary(page);
   // The starter symbols of a new project.
@@ -93,8 +108,8 @@ test('edits symbols, footprints and components', async () => {
   await page.getByTestId('tab-checks').click();
   await page.getByTestId('tab-table').click();
   await expect(page.getByTestId('pin-name-1')).toHaveValue('EN');
-  await page.getByTestId('pin-row-0').click({ position: { x: 4, y: 4 } });
-  await page.getByTestId('pin-row-1').click({ position: { x: 4, y: 4 }, modifiers: ['Shift'] });
+  await selectRow(page, 'pin-row-0');
+  await selectRow(page, 'pin-row-1', ['Shift']);
   await expect(page.getByTestId('pin-table')).toContainText('2 selected');
   await page.getByTestId('pin-kind-1').selectOption('input');
   await expect(page.getByTestId('pin-kind-0')).toHaveValue('input');
@@ -188,6 +203,8 @@ test('edits symbols, footprints and components', async () => {
 
   // The component is placed on the sheet with its footprint and order data.
   const canvas = await openDocument(page, 'Root');
+  // The guide of an empty sheet would cover the small drawing.
+  await page.getByTestId('guide-close').click();
   await canvas.focus();
   await page.keyboard.press('a');
   await page.getByTestId('chooser-search').fill('DRV');
