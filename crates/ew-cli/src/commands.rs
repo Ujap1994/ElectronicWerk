@@ -833,7 +833,7 @@ mod tests {
     fn archive_and_upgrade() {
         let dir = tempfile::tempdir().unwrap();
         let target = dir.path().join("Arch");
-        run_to_string(Command::Project(ProjectCommand::New(NewArgs {
+        let _ = run_to_string(Command::Project(ProjectCommand::New(NewArgs {
             dir: target.clone(),
             name: Some("Arch".into()),
             template: "empty".into(),
@@ -900,7 +900,7 @@ mod tests {
             json!({"id": "x", "method": "project.info"}),
         );
         let mut buffer = Vec::new();
-        rpc(input.as_bytes(), &mut buffer, true, false).unwrap();
+        let _ = rpc(input.as_bytes(), &mut buffer, true, false).unwrap();
         let lines: Vec<Value> = String::from_utf8(buffer)
             .unwrap()
             .lines()
