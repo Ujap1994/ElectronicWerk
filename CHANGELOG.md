@@ -6,14 +6,85 @@ project uses [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.7.0] - 2026-11-12
+
+The library release: symbols, footprints and components are drawn and
+maintained in ElectronicWerk itself, with footprint wizards after IPC-7351
+and library checks in the spirit of KiCad's library conventions. The
+schematic editor gains a net navigator.
+
 ### Added
 
-- Alternate body styles (De Morgan): a symbol unit can have a second body,
-  and a placed symbol chooses it (`alternate`). The KiCad import now reads
-  body style 2 of symbols and placed symbols instead of dropping it.
-- Library components (`components` in a library): a symbol together with
-  its footprint, value, manufacturer, part number, datasheet, parameters and
-  supplier part numbers.
+- **Library editor**: a project library opens in a tab next to sheets and
+  boards, with **Symbols**, **Footprints** and **Components**, a search,
+  **New**, **Duplicate**, **Rename** (every reference in the project follows)
+  and **Delete** (it tells you where the item is still used). Every change is
+  one undo step.
+- **Symbol editor**:
+  - drawing tools for pins, lines, rectangles, circles, polylines and texts,
+    with snapping, moving, rotating, mirroring, duplicating and deleting;
+  - pins with number, name, all twelve electrical types, nine graphic styles,
+    direction, length and a hidden state; new pins count up by themselves
+    and <kbd>R</kbd> turns the next pin;
+  - a **pin table** that shares the selection with the drawing: edit cells in
+    place, change type, style, direction, length or visibility of all
+    selected pins at once, renumber them (`1, 2, 3 …`, `A1, A2 …`, with a
+    step), delete them;
+  - **Paste pin list**: pins from a datasheet table or a spreadsheet (number,
+    name, type; KiCad's type letters work too);
+  - **units** (add a copy, remove, choose) and **De Morgan bodies** per unit;
+  - symbol properties: description, keywords, prefix, default value and
+    footprint, datasheet, power symbol, pin number and name visibility, pin
+    name offset, custom fields.
+- **Footprint editor**:
+  - pads of every kind (SMD, through-hole, non-plated hole, edge connector)
+    and shape (circle, rectangle, oval, rounded rectangle, trapezoid,
+    custom), with size, rotation, drill and slot, layers, mask and paste
+    margins; a new pad copies the selected one;
+  - a **pad table** with bulk edits and renumbering, and **pad arrays**
+    (rows × columns with pitches and the first number);
+  - graphics and texts on the silkscreen, fabrication, courtyard and copper
+    layers with the usual line widths;
+  - **Draw a courtyard around pads and body** with a margin;
+  - **3D models**: path, offset, rotation, scale, hidden, and a **3D preview**
+    for models of the base library that follows every change of the values;
+  - footprint attributes (mounting, BOM, placement file, do not populate).
+- **Footprint wizard** after the IPC-7351 land equations with three density
+  levels (least, nominal, most) and a live preview: chips (0402 to 2512),
+  gull-wing packages (SOIC, SSOP, TSSOP, LQFP), no-lead packages (DFN, QFN
+  with exposed pad and reduced paste), BGAs (JEDEC row letters) and pin
+  headers; 23 presets and KiCad-style names.
+- **Component editor**: symbol, footprint, value, manufacturer, part number,
+  datasheet, suppliers with order numbers and links, custom fields, a
+  preview of symbol and footprint and a pin-to-pad table. Components appear
+  in the schematic's symbol chooser and are placed with their value,
+  footprint and order data as fields.
+- **Library checks**: 30 checks for symbols, footprints and components
+  (pins off the grid, duplicate pin numbers, hidden power pins, pads outside
+  the courtyard, silkscreen over pads, SMD pads without paste, pins without
+  pads, …) as errors, warnings and notes, in the item list, a **Checks** tab
+  with **Show**, the wizard and the component editor, and for the whole
+  library.
+- **Net navigator** in the schematic editor: <kbd>Ctrl</kbd>/<kbd>⌘</kbd> +
+  double-click on a label, power port, wire or pin lists every place of its
+  net on every sheet (labels, power ports and symbols, sheet pins, component
+  pins), grouped by sheet; a click jumps there, also to another sheet, and
+  previous/next step through the list. **Show all places** in the status
+  line reopens it for the highlighted net.
+- Alternate body styles (De Morgan) in the data model: a symbol unit can have
+  a second body, and a placed symbol chooses it (`alternate`). The KiCad
+  import reads body style 2 of symbols and placed symbols instead of
+  dropping it.
+- Library components in the data model (`components` in a library).
+- Engine API: `libedit.list`, `libedit.item`, `libedit.create`,
+  `libedit.delete`, `libedit.rename`, `libedit.setProps`, `libedit.symbol`,
+  `libedit.footprint`, `libedit.check`, `libedit.wizard`, `libedit.presets`,
+  `view.item`, `library.model`, `schematic.components`; `schematic.place`
+  takes a `component`, and `schematic.net` replies with the net's `places`.
+- Documentation: new guide pages for the library editor, symbols,
+  footprints, the footprint wizard, components and library checks, the net
+  navigator, new keyboard shortcuts, the engine API and the file format, and
+  ADR-0007.
 
 ## [0.6.2] - 2026-11-09
 
@@ -358,7 +429,8 @@ quality gates and the delivery pipeline that every later feature builds on.
   process ([ujap1994.github.io/ElectronicWerk](https://ujap1994.github.io/ElectronicWerk/)).
   **Help → Documentation** opens it.
 
-[Unreleased]: https://github.com/Ujap1994/ElectronicWerk/compare/v0.6.2...HEAD
+[Unreleased]: https://github.com/Ujap1994/ElectronicWerk/compare/v0.7.0...HEAD
+[0.7.0]: https://github.com/Ujap1994/ElectronicWerk/compare/v0.6.2...v0.7.0
 [0.6.2]: https://github.com/Ujap1994/ElectronicWerk/compare/v0.5.0...v0.6.2
 [0.5.0]: https://github.com/Ujap1994/ElectronicWerk/compare/v0.4.0...v0.5.0
 [0.4.0]: https://github.com/Ujap1994/ElectronicWerk/compare/v0.3.0...v0.4.0
