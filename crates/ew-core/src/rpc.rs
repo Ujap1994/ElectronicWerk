@@ -115,6 +115,14 @@ pub const METHODS: &[&str] = &[
     "library.report",
     "library.search",
     "library.status",
+    "pcb.drc",
+    "pcb.exclude",
+    "pcb.fillZones",
+    "pcb.ratsnest",
+    "pcb.rules",
+    "pcb.setRules",
+    "pcb.unfillZones",
+    "pcb.validateRule",
     "project.archive",
     "project.close",
     "project.create",
@@ -191,6 +199,7 @@ pub struct Engine {
     events: Vec<Value>,
     journaling: bool,
     library: LibraryState,
+    drc: crate::pcb::DrcCache,
 }
 
 impl Default for Engine {
@@ -401,6 +410,7 @@ impl Engine {
             events: Vec::new(),
             journaling: true,
             library: LibraryState::default(),
+            drc: crate::pcb::DrcCache::default(),
         }
     }
 
@@ -412,6 +422,7 @@ impl Engine {
             events: Vec::new(),
             journaling: false,
             library: LibraryState::default(),
+            drc: crate::pcb::DrcCache::default(),
         }
     }
 
@@ -579,6 +590,7 @@ impl Engine {
             _ if method.starts_with("import.") => self.call_import(method, params),
             _ if method.starts_with("schematic.") => self.call_schematic(method, params),
             _ if method.starts_with("libedit.") => self.call_libedit(method, params),
+            _ if method.starts_with("pcb.") => self.call_pcb(method, params),
             "library.preview" => {
                 let params: PreviewParams = parse(params)?;
                 let (mut meta, data) = self.library_preview(&params)?;
@@ -657,6 +669,7 @@ impl Engine {
                     names: params.names.unwrap_or_default(),
                 })?;
                 self.session = Some(Session::create(&params.path, &project, self.journaling)?);
+                self.drc.clear();
                 self.project_event("opened");
                 self.snapshot()
             }
@@ -664,6 +677,7 @@ impl Engine {
                 self.ensure_closed()?;
                 let params: PathParams = parse(params)?;
                 self.session = Some(Session::open(&params.path, self.journaling)?);
+                self.drc.clear();
                 self.project_event("opened");
                 self.snapshot()
             }
@@ -688,6 +702,7 @@ impl Engine {
                 self.open_mut()?.close(params.discard)?;
                 self.project_event("closed");
                 self.session = None;
+                self.drc.clear();
                 Ok(json!({"closed": true}))
             }
             other => Err(EngineError::new(
@@ -1028,6 +1043,7 @@ impl Engine {
                 // write it does not fail the import.
                 let _ = std::fs::write(session.root().join(import::REPORT_FILE), markdown);
                 self.session = Some(session);
+                self.drc.clear();
                 self.project_event("opened");
                 Ok(json!({
                     "project": self.snapshot()?,
@@ -1095,6 +1111,25 @@ impl Engine {
         match crate::libedit::call(self.open()?.project(), method, params)? {
             crate::libedit::Outcome::Read(value) => Ok(value),
             crate::libedit::Outcome::Commit {
+                label,
+                requests,
+                reply,
+            } => {
+                let change_set = self.commit(label, requests)?;
+                let mut out = json!({"seq": change_set.seq, "history": change_set.history});
+                if let (Some(out), Value::Object(extra)) = (out.as_object_mut(), reply) {
+                    out.extend(extra);
+                }
+                Ok(out)
+            }
+        }
+    }
+
+    fn call_pcb(&mut self, method: &str, params: &Value) -> Result<Value, EngineError> {
+        let session = self.session.as_ref().ok_or_else(EngineError::no_project)?;
+        match crate::pcb::call(session.project(), method, params, &mut self.drc)? {
+            crate::pcb::Outcome::Read(value) => Ok(value),
+            crate::pcb::Outcome::Commit {
                 label,
                 requests,
                 reply,

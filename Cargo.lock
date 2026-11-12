@@ -403,6 +403,7 @@ dependencies = [
  "ew-libedit",
  "ew-library",
  "ew-model",
+ "ew-pcb",
  "ew-scene",
  "ew-schematic",
  "ew-synth",

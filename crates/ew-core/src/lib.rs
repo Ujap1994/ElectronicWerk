@@ -24,6 +24,7 @@ pub mod info;
 pub mod journal;
 pub mod libedit;
 pub mod library;
+pub mod pcb;
 pub mod rpc;
 pub mod schematic;
 pub mod session;

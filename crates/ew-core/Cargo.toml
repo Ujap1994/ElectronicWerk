@@ -15,6 +15,7 @@ ew-kicad.workspace = true
 ew-libedit.workspace = true
 ew-library.workspace = true
 ew-model.workspace = true
+ew-pcb.workspace = true
 ew-scene.workspace = true
 ew-schematic.workspace = true
 ew-synth.workspace = true
