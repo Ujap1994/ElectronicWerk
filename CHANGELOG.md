@@ -6,12 +6,15 @@ project uses [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
-## [0.7.0] - 2026-11-12
+## [0.7.1] - 2026-11-12
 
 The library release: symbols, footprints and components are drawn and
 maintained in ElectronicWerk itself, with footprint wizards after IPC-7351
 and library checks in the spirit of KiCad's library conventions. The
 schematic editor gains a net navigator.
+
+Version 0.7.0 was tagged but never published: its Linux builds could not
+reach the Snap Store (see **Fixed**). 0.7.1 is the same release.
 
 ### Added
 
@@ -85,6 +88,12 @@ schematic editor gains a net navigator.
   footprints, the footprint wizard, components and library checks, the net
   navigator, new keyboard shortcuts, the engine API and the file format, and
   ADR-0007.
+
+### Fixed
+
+- Release builds: the Linux builds wait up to about ten minutes for the Snap
+  Store and, if it stays unreachable, publish every other Linux package
+  without the snap instead of stopping the whole release.
 
 ## [0.6.2] - 2026-11-09
 
@@ -429,8 +438,8 @@ quality gates and the delivery pipeline that every later feature builds on.
   process ([ujap1994.github.io/ElectronicWerk](https://ujap1994.github.io/ElectronicWerk/)).
   **Help → Documentation** opens it.
 
-[Unreleased]: https://github.com/Ujap1994/ElectronicWerk/compare/v0.7.0...HEAD
-[0.7.0]: https://github.com/Ujap1994/ElectronicWerk/compare/v0.6.2...v0.7.0
+[Unreleased]: https://github.com/Ujap1994/ElectronicWerk/compare/v0.7.1...HEAD
+[0.7.1]: https://github.com/Ujap1994/ElectronicWerk/compare/v0.6.2...v0.7.1
 [0.6.2]: https://github.com/Ujap1994/ElectronicWerk/compare/v0.5.0...v0.6.2
 [0.5.0]: https://github.com/Ujap1994/ElectronicWerk/compare/v0.4.0...v0.5.0
 [0.4.0]: https://github.com/Ujap1994/ElectronicWerk/compare/v0.3.0...v0.4.0

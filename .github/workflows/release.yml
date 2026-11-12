@@ -80,11 +80,13 @@ jobs:
             os: ubuntu-24.04
             target: x86_64-unknown-linux-gnu
             builder: --linux --x64
+            arch: x64
             app: release/linux-unpacked/electronicwerk
           - name: linux-arm64
             os: ubuntu-24.04-arm
             target: aarch64-unknown-linux-gnu
             builder: --linux --arm64
+            arch: arm64
             app: release/linux-arm64-unpacked/electronicwerk
     runs-on: ${{ matrix.os }}
     defaults:
@@ -111,14 +113,22 @@ jobs:
           sudo apt-get install -y rpm libarchive-tools ruby ruby-dev build-essential xvfb flatpak flatpak-builder squashfs-tools
           sudo gem install --no-document fpm
           # electron-builder's core24 snaps need snapcraft 8 (9 cannot find the desktop file).
-          # The Snap Store is sometimes unreachable from the runners for a
-          # while (v0.7.0): retry for up to about 15 minutes.
-          for attempt in $(seq 1 15); do
-            sudo snap install core24 && sudo snap install snapcraft --classic --channel=8.x/stable && break
-            if [ "$attempt" = 15 ]; then exit 1; fi
+          # The Snap Store is sometimes unreachable from the runners for
+          # hours (v0.7.0). Try for about ten minutes; if it stays away, the
+          # other Linux packages are built without the snap.
+          snap_ok=false
+          for attempt in $(seq 1 10); do
+            if sudo snap install core24 && sudo snap install snapcraft --classic --channel=8.x/stable; then
+              snap_ok=true
+              break
+            fi
             echo "Snap Store not reachable (attempt $attempt); retrying in 60 s."
             sleep 60
           done
+          echo "SNAP_AVAILABLE=$snap_ok" >> "$GITHUB_ENV"
+          if [ "$snap_ok" = false ]; then
+            echo "::warning::The Snap Store is unreachable: this build has no snap package."
+          fi
           flatpak remote-add --user --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo
           flatpak remote-ls --user flathub --all --columns=ref | grep -E 'Electron2.BaseApp|org.freedesktop.(Platform|Sdk)/' | grep -v -E 'Locale|Debug|Sources' | tail -n 12 || true
           flatpak install --user -y --noninteractive flathub \
@@ -139,7 +149,12 @@ jobs:
         working-directory: apps/desktop
         env:
           USE_SYSTEM_FPM: 'true'
-        run: npx electron-builder ${{ matrix.builder }} --publish never
+        run: |
+          if [ "${SNAP_AVAILABLE:-true}" = false ]; then
+            npx electron-builder --linux AppImage deb rpm pacman tar.gz flatpak --${{ matrix.arch }} --publish never
+          else
+            npx electron-builder ${{ matrix.builder }} --publish never
+          fi
 
       - name: Smoke test (Linux)
         if: runner.os == 'Linux'
