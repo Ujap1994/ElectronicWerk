@@ -96,6 +96,11 @@ struct IdParams {
 }
 
 #[derive(Deserialize)]
+struct ModelParams {
+    path: String,
+}
+
+#[derive(Deserialize)]
 #[serde(deny_unknown_fields)]
 struct KindParams {
     kind: Kind,
@@ -396,6 +401,17 @@ impl LibraryState {
             "library.get" => {
                 let params: IdParams = parse(params)?;
                 to_value(&self.index()?.get(params.id).map_err(library_error)?)
+            }
+            "library.model" => {
+                // The base library's entry of a footprint's model path (for
+                // the 3D preview of the footprint editor).
+                let params: ModelParams = parse(params)?;
+                let key = ew_library::entry::model_key(&params.path);
+                let id = match (&key, self.index()) {
+                    (Some(key), Ok(index)) => index.model_id(key).map_err(library_error)?,
+                    _ => None,
+                };
+                Ok(json!({"key": key, "id": id}))
             }
             "library.groups" => {
                 let params: GroupParams = parse(params)?;

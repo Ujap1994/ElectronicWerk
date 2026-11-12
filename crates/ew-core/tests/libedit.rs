@@ -277,4 +277,22 @@ fn symbols_footprints_and_components() {
     );
     assert_eq!(deleted["usage"]["placed"], 1);
     assert_eq!(deleted["history"]["undoLabel"], "delete-library-item");
+
+    // A pad array (camelCase fields) and the model lookup of the 3D preview.
+    let array = call(
+        &mut engine,
+        "libedit.footprint",
+        json!({"doc": lib, "name": "SO-8", "edit": {"op": "addPadArray",
+            "pad": {"id": "00000000-0000-0000-0000-000000000000", "number": "", "shape": "circle",
+                "at": [0, 10 * MM], "size": [MM, MM], "layers": ["cu.top"]},
+            "columns": 2, "rows": 2, "pitchX": 2 * MM, "pitchY": 2 * MM, "start": "A1"}}),
+    );
+    assert_eq!(array["select"].as_array().unwrap().len(), 4);
+    let model = call(
+        &mut engine,
+        "library.model",
+        json!({"path": "${KICAD9_3DMODEL_DIR}/Package_SO.3dshapes/SOIC-8_3.9x4.9mm_P1.27mm.step"}),
+    );
+    assert_eq!(model["key"], "Package_SO/SOIC-8_3.9x4.9mm_P1.27mm");
+    assert!(model["id"].is_null(), "no base library in tests");
 }

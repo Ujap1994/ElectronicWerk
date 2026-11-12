@@ -48,7 +48,7 @@ pub struct PinPatch {
 
 /// One symbol edit.
 #[derive(Debug, Clone, PartialEq, Deserialize)]
-#[serde(rename_all = "camelCase", tag = "op")]
+#[serde(rename_all = "camelCase", rename_all_fields = "camelCase", tag = "op")]
 pub enum SymbolEdit {
     /// Moves items.
     Move {
@@ -83,6 +83,12 @@ pub enum SymbolEdit {
     AddPin {
         /// The pin.
         pin: Pin,
+    },
+    /// Adds several pins at once (a pasted pin list); empty numbers get
+    /// the next free ones.
+    AddPins {
+        /// The pins.
+        pins: Vec<Pin>,
     },
     /// Adds a graphic.
     AddGraphic {
@@ -392,6 +398,23 @@ pub fn apply(
             l.pins.push(pin);
             select.push(ItemRef::new(ItemKind::Pin, l.pins.len() - 1));
         }
+        SymbolEdit::AddPins { pins } => {
+            let mut used = used_numbers(&def);
+            let mut next = free_number(&def);
+            let l = lists(&mut def, body)?;
+            for pin in pins {
+                let mut pin = pin.clone();
+                if pin.number.trim().is_empty() {
+                    while used.contains(&next) {
+                        next = next_number(&next, 1);
+                    }
+                    pin.number.clone_from(&next);
+                }
+                used.insert(pin.number.clone());
+                l.pins.push(pin);
+                select.push(ItemRef::new(ItemKind::Pin, l.pins.len() - 1));
+            }
+        }
         SymbolEdit::AddGraphic { graphic } => {
             let l = lists(&mut def, body)?;
             l.graphics.push(graphic.clone());
@@ -686,6 +709,31 @@ mod tests {
             .map(|p| p.number.as_str())
             .collect();
         assert_eq!(numbers, ["1", "2", "3", "4"]);
+    }
+
+    #[test]
+    fn pasted_pin_lists_get_free_numbers() {
+        let d = def();
+        let added = apply(
+            &d,
+            BODY,
+            &SymbolEdit::AddPins {
+                pins: vec![
+                    pin("", 0, -5_080_000),
+                    pin("9", 0, -7_620_000),
+                    pin("", 0, -10_160_000),
+                ],
+            },
+            GRID,
+        )
+        .unwrap();
+        let numbers: Vec<&str> = added.def.units[0]
+            .pins
+            .iter()
+            .map(|p| p.number.as_str())
+            .collect();
+        assert_eq!(numbers, ["1", "2", "3", "9", "4"]);
+        assert_eq!(added.select.len(), 3);
     }
 
     #[test]

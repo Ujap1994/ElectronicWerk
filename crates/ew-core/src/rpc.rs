@@ -109,6 +109,7 @@ pub const METHODS: &[&str] = &[
     "library.groups",
     "library.install",
     "library.mesh",
+    "library.model",
     "library.open",
     "library.preview",
     "library.report",

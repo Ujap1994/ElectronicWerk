@@ -42,7 +42,7 @@ pub struct PadPatch {
 
 /// One footprint edit.
 #[derive(Debug, Clone, PartialEq, Deserialize)]
-#[serde(rename_all = "camelCase", tag = "op")]
+#[serde(rename_all = "camelCase", rename_all_fields = "camelCase", tag = "op")]
 pub enum FootprintEdit {
     /// Moves items.
     Move {
