@@ -5,7 +5,9 @@
 #![allow(
     clippy::unwrap_used,
     clippy::needless_pass_by_value,
-    reason = "test helpers may panic and take owned JSON for brevity"
+    clippy::cast_precision_loss,
+    clippy::cast_possible_truncation,
+    reason = "test helpers may panic and take owned JSON for brevity; board coordinates fit f64"
 )]
 
 use ew_core::Engine;
@@ -403,4 +405,194 @@ fn schematic_and_board_stay_in_sync() {
     let pcb = call(&mut engine, "document.get", json!({"doc": board}));
     assert_eq!(pcb["footprints"].as_array().unwrap().len(), 1);
     assert!(pcb.get("nets").is_none() || pcb["nets"].as_array().unwrap().is_empty());
+}
+
+#[test]
+#[allow(clippy::too_many_lines, reason = "one layout session")]
+fn placing_editing_routing_presets_and_dxf() {
+    let dir = tempfile::tempdir().unwrap();
+    let mut engine = Engine::without_journal();
+    let snapshot = call(
+        &mut engine,
+        "project.create",
+        json!({"path": dir.path().join("Layout"), "name": "Layout", "template": "board-2l"}),
+    );
+    let (lib, board) = (doc_of(&snapshot, "library"), doc_of(&snapshot, "pcb"));
+    let presets = call(&mut engine, "libedit.presets", Value::Null);
+    let soic = presets
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|p| p["name"] == "SOIC-8")
+        .unwrap()["wizard"]
+        .clone();
+    call(
+        &mut engine,
+        "libedit.create",
+        json!({"doc": lib, "kind": "footprint", "name": "SOIC-8", "wizard": soic}),
+    );
+    // Two footprints, placed and turned.
+    let placed = call(
+        &mut engine,
+        "pcb.place",
+        json!({"doc": board, "footprint": "SOIC-8", "at": [20 * MM, 20 * MM]}),
+    );
+    assert_eq!(placed["designator"], "X1");
+    assert_eq!(placed["history"]["undoLabel"], "place-footprint");
+    let u1 = placed["select"][0].clone();
+    let u2 = call(
+        &mut engine,
+        "pcb.place",
+        json!({"doc": board, "footprint": "SOIC-8", "at": [40 * MM, 20 * MM], "designator": "U2"}),
+    )["select"][0]
+        .clone();
+    let turned = call(
+        &mut engine,
+        "pcb.edit",
+        json!({"doc": board, "op": "rotate", "ids": [u2], "angle": 90}),
+    );
+    assert_eq!(turned["history"]["undoLabel"], "rotate");
+    call(
+        &mut engine,
+        "pcb.edit",
+        json!({"doc": board, "op": "align", "ids": [u1, u2], "mode": "top"}),
+    );
+    call(&mut engine, "edit.undo", Value::Null);
+    call(
+        &mut engine,
+        "pcb.edit",
+        json!({"doc": board, "op": "move", "ids": [u2], "offset": [0, 5 * MM]}),
+    );
+    let pcb = call(&mut engine, "document.get", json!({"doc": board}));
+    let fp2 = pcb["footprints"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|f| f["id"] == u2)
+        .unwrap();
+    assert_eq!(fp2["at"], json!([40 * MM, 25 * MM]));
+    assert_eq!(fp2["rotation"], 90);
+
+    // A net on pad 1 of both, then a route from one to the other.
+    let net = "00000000-0000-4000-8000-0000000000cc";
+    let mut changes = vec![json!({"op": "insert", "doc": board,
+        "object": {"type": "net", "id": net, "name": "SIG"}})];
+    for fp in pcb["footprints"].as_array().unwrap() {
+        let mut fp = fp.clone();
+        fp["type"] = json!("footprint");
+        fp["pads"][0]["net"] = json!(net);
+        changes.push(json!({"op": "update", "doc": board, "object": fp}));
+    }
+    call(&mut engine, "edit.apply", json!({"changes": changes}));
+    let pcb = call(&mut engine, "document.get", json!({"doc": board}));
+    let pad_center = |fp: &Value| -> [f64; 2] {
+        // Pad 1 of the SOIC: its centre on the board (no rotation for X1).
+        let at = &fp["at"];
+        let pad = &fp["pads"][0]["at"];
+        [
+            (at[0].as_i64().unwrap() + pad[0].as_i64().unwrap()) as f64,
+            (at[1].as_i64().unwrap() + pad[1].as_i64().unwrap()) as f64,
+        ]
+    };
+    let fp1 = pcb["footprints"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|f| f["id"] == u1)
+        .unwrap();
+    let start = call(
+        &mut engine,
+        "pcb.routeStart",
+        json!({"doc": board, "at": pad_center(fp1), "layer": "cu.top"}),
+    );
+    assert_eq!(start["net"], net);
+    assert_eq!(start["width"], 250_000.0);
+    let route = call(
+        &mut engine,
+        "pcb.route",
+        json!({"doc": board, "layer": "cu.top", "net": net, "width": 250_000,
+            "start": start["at"], "target": [30.0e6, 40.0e6], "via": 600_000}),
+    );
+    assert_eq!(route["reached"], true);
+    assert_eq!(route["viaFits"], true);
+    let points: Vec<Value> = route["points"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|p| {
+            json!([
+                p[0].as_f64().unwrap().round() as i64,
+                p[1].as_f64().unwrap().round() as i64
+            ])
+        })
+        .collect();
+    let end = points.last().unwrap().clone();
+    let added = call(
+        &mut engine,
+        "pcb.addTracks",
+        json!({"doc": board, "net": net, "width": 250_000,
+            "segments": [{"layer": "cu.top", "points": points}],
+            "vias": [{"at": end, "diameter": 600_000, "drill": 300_000}]}),
+    );
+    assert_eq!(added["history"]["undoLabel"], "route");
+    assert!(added["select"].as_array().unwrap().len() >= 2);
+
+    // Presets change the stack-up and the rules.
+    let presets = call(&mut engine, "pcb.presets", Value::Null);
+    assert!(
+        presets
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|p| p["id"] == "standard-4l")
+    );
+    call(
+        &mut engine,
+        "pcb.applyPreset",
+        json!({"doc": board, "preset": "standard-4l"}),
+    );
+    let props = call(&mut engine, "document.properties", json!({"doc": board}));
+    let copper = props["stackup"]["layers"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .filter(|l| l["type"] == "copper")
+        .count();
+    assert_eq!(copper, 4);
+    let info = call(&mut engine, "pcb.rules", json!({"doc": board}));
+    assert_eq!(info["rules"]["constraints"]["minClearance"], 127_000);
+
+    // A DXF outline replaces the drawn one.
+    let path = dir.path().join("outline.dxf");
+    std::fs::write(
+        &path,
+        "0\nSECTION\n2\nHEADER\n9\n$INSUNITS\n70\n4\n0\nENDSEC\n0\nSECTION\n2\nENTITIES\n\
+0\nLWPOLYLINE\n8\nEDGE\n90\n4\n70\n1\n10\n0\n20\n0\n10\n60\n20\n0\n10\n60\n20\n40\n10\n0\n20\n40\n\
+0\nCIRCLE\n8\nHOLES\n10\n5\n20\n5\n40\n1.6\n0\nENDSEC\n0\nEOF\n",
+    )
+    .unwrap();
+    let preview = call(&mut engine, "pcb.dxfPreview", json!({"path": path}));
+    assert_eq!(preview["count"], 2);
+    assert_eq!(preview["layers"], json!(["EDGE", "HOLES"]));
+    let imported = call(
+        &mut engine,
+        "pcb.importDxf",
+        json!({"doc": board, "path": path, "layer": "outline", "layers": ["EDGE"],
+            "replace": true, "origin": [0, 0]}),
+    );
+    assert_eq!(imported["shapes"], 1);
+    let pcb = call(&mut engine, "document.get", json!({"doc": board}));
+    let outlines: Vec<&Value> = pcb["shapes"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .filter(|s| s["layer"] == "outline")
+        .collect();
+    assert_eq!(outlines.len(), 1);
+    // The lower left corner lies at the origin: y runs from -40 mm to 0.
+    let points = outlines[0]["geometry"]["polygon"]["points"]
+        .as_array()
+        .unwrap();
+    assert!(points.contains(&json!([0, 0])));
+    assert!(points.contains(&json!([60 * MM, -40 * MM])));
 }

@@ -7,7 +7,10 @@
 //! - [`rules`]: net classes, constraints and custom rules with a small query
 //!   language.
 //! - [`drc`]: the design rules check.
+//! - [`edit`]: moving, turning, flipping, aligning and dragging.
 //! - [`fill`]: the zone filler.
+//! - [`route`]: interactive routing around obstacles.
+//! - [`presets`]: board presets; [`dxf`]: DXF import.
 //! - [`sync`]: schematic ↔ board updates and cross-probing.
 
 #![allow(
@@ -19,9 +22,13 @@
 
 pub mod connectivity;
 pub mod drc;
+pub mod dxf;
+pub mod edit;
 pub mod fill;
 pub mod geom;
 pub mod items;
 pub mod poly;
+pub mod presets;
+pub mod route;
 pub mod rules;
 pub mod sync;

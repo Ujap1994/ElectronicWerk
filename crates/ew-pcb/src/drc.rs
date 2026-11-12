@@ -148,9 +148,68 @@ pub fn mm(value: f64) -> String {
     format!("{text} mm")
 }
 
-struct NetInfo {
-    name: String,
-    class: String,
+/// The name and net class of a net.
+pub(crate) struct NetInfo {
+    pub(crate) name: String,
+    pub(crate) class: String,
+}
+
+/// The name and class of every net of a board.
+pub(crate) fn net_table(pcb: &Pcb, set: &RuleSet) -> HashMap<Id, NetInfo> {
+    pcb.nets
+        .iter()
+        .map(|net| {
+            (
+                net.id,
+                NetInfo {
+                    name: net.name.clone(),
+                    class: set.class_name(&net.name, &net.class),
+                },
+            )
+        })
+        .collect()
+}
+
+/// The rule properties of a copper item on a layer.
+pub(crate) fn item_props<'a>(
+    board: &'a Board<'a>,
+    net: &'a NetInfo,
+    item: &CopperItem,
+    layer: Option<CopperLayer>,
+) -> Props<'a> {
+    let mut props = Props {
+        kind: item.item.kind(),
+        net: &net.name,
+        netclass: &net.class,
+        layer,
+        at: item.shape.anchor(),
+        ..Props::default()
+    };
+    match item.item {
+        ItemRef::Pad { footprint, index } => {
+            if let Some(fp) = board.footprint(footprint) {
+                props.designator = &fp.designator;
+                props.footprint = &fp.footprint;
+                props.side = fp.side.as_str();
+                if let Some(pad) = fp.pads.get(index) {
+                    props.pad = &pad.number;
+                    props.diameter = Some(pad.size.w.min(pad.size.h) as f64);
+                    props.drill = pad.drill.map(|d| d.diameter as f64);
+                }
+            }
+        }
+        ItemRef::Track { id } => {
+            props.width = board.pcb.tracks.get(id).map(|t| t.width as f64);
+        }
+        ItemRef::Via { id } => {
+            if let Some(via) = board.pcb.vias.get(id) {
+                props.diameter = Some(via.diameter as f64);
+                props.drill = Some(via.drill as f64);
+            }
+        }
+        ItemRef::Zone { .. } => {}
+    }
+    props
 }
 
 struct Zones<'a> {
@@ -212,40 +271,7 @@ impl Context<'_> {
     }
 
     fn props(&self, item: &CopperItem, layer: Option<CopperLayer>) -> Props<'_> {
-        let net = self.net(item.net);
-        let mut props = Props {
-            kind: item.item.kind(),
-            net: &net.name,
-            netclass: &net.class,
-            layer,
-            at: item.shape.anchor(),
-            ..Props::default()
-        };
-        match item.item {
-            ItemRef::Pad { footprint, index } => {
-                if let Some(fp) = self.board.footprint(footprint) {
-                    props.designator = &fp.designator;
-                    props.footprint = &fp.footprint;
-                    props.side = fp.side.as_str();
-                    if let Some(pad) = fp.pads.get(index) {
-                        props.pad = &pad.number;
-                        props.diameter = Some(pad.size.w.min(pad.size.h) as f64);
-                        props.drill = pad.drill.map(|d| d.diameter as f64);
-                    }
-                }
-            }
-            ItemRef::Track { id } => {
-                props.width = self.board.pcb.tracks.get(id).map(|t| t.width as f64);
-            }
-            ItemRef::Via { id } => {
-                if let Some(via) = self.board.pcb.vias.get(id) {
-                    props.diameter = Some(via.diameter as f64);
-                    props.drill = Some(via.drill as f64);
-                }
-            }
-            ItemRef::Zone { .. } => {}
-        }
-        props
+        item_props(&self.board, self.net(item.net), item, layer)
     }
 
     fn describe(&self, item: ItemRef) -> String {
@@ -351,19 +377,7 @@ pub fn check(pcb: &Pcb, rules: Option<&Rules>, options: &Options) -> Report {
     let defaults = ew_model::rules::DrcSettings::default();
     let mut set = RuleSet::new(rules);
     set.cache_classes(pcb.nets.iter().map(|n| (n.name.clone(), n.class.clone())));
-    let nets = pcb
-        .nets
-        .iter()
-        .map(|net| {
-            (
-                net.id,
-                NetInfo {
-                    name: net.name.clone(),
-                    class: set.class_name(&net.name, &net.class),
-                },
-            )
-        })
-        .collect();
+    let nets = net_table(pcb, &set);
     let mut ctx = Context {
         board: Board::new(pcb),
         rules: set,

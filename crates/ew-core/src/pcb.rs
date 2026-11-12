@@ -33,6 +33,33 @@ pub mod labels {
     pub const UPDATE_BOARD: &str = "update-board";
     /// `pcb.backApply`.
     pub const UPDATE_SCHEMATIC: &str = "update-schematic";
+    /// `pcb.place`.
+    pub const PLACE: &str = "place-footprint";
+    /// `pcb.addTracks`.
+    pub const ROUTE: &str = "route";
+    /// `pcb.applyPreset`.
+    pub const PRESET: &str = "board-preset";
+    /// `pcb.importDxf`.
+    pub const DXF: &str = "import-dxf";
+
+    /// The label of a `pcb.edit` operation.
+    #[must_use]
+    pub const fn edit(op: &ew_pcb::edit::BoardEdit) -> &'static str {
+        use ew_pcb::edit::BoardEdit;
+        match op {
+            BoardEdit::Move { .. } => "move",
+            BoardEdit::Rotate { .. } => "rotate",
+            BoardEdit::Flip { .. } => "flip",
+            BoardEdit::Delete { .. } => "delete",
+            BoardEdit::Lock { .. } => "lock",
+            BoardEdit::Align { .. } => "align",
+            BoardEdit::Distribute { .. } => "distribute",
+            BoardEdit::SetLayer { .. } => "set-layer",
+            BoardEdit::SetWidth { .. } => "set-width",
+            BoardEdit::SetNet { .. } => "set-net",
+            BoardEdit::DragTrack { .. } => "drag-track",
+        }
+    }
 }
 
 /// What a method does.
@@ -150,6 +177,139 @@ struct ProbeParams {
     symbols: Vec<Id>,
     #[serde(default)]
     footprints: Vec<Id>,
+}
+
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct EditParams {
+    doc: Id,
+    #[serde(flatten)]
+    edit: ew_pcb::edit::BoardEdit,
+}
+
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+struct PlaceParams {
+    doc: Id,
+    footprint: String,
+    at: ew_model::units::Point,
+    #[serde(default)]
+    rotation: ew_model::units::Angle,
+    #[serde(default)]
+    side: ew_model::layer::Side,
+    #[serde(default)]
+    designator: Option<String>,
+    #[serde(default)]
+    value: String,
+}
+
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+struct RouteStartParams {
+    doc: Id,
+    at: [f64; 2],
+    layer: ew_model::layer::CopperLayer,
+}
+
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+struct RouteParams {
+    doc: Id,
+    layer: ew_model::layer::CopperLayer,
+    #[serde(default)]
+    net: Option<Id>,
+    width: f64,
+    start: [f64; 2],
+    target: [f64; 2],
+    #[serde(default)]
+    diagonal_first: bool,
+    /// Check whether a via of this diameter fits at the end.
+    #[serde(default)]
+    via: Option<f64>,
+}
+
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+struct Segment {
+    layer: ew_model::layer::CopperLayer,
+    points: Vec<ew_model::units::Point>,
+}
+
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+struct NewVia {
+    at: ew_model::units::Point,
+    diameter: ew_model::units::Nm,
+    drill: ew_model::units::Nm,
+    #[serde(default)]
+    from: Option<ew_model::layer::CopperLayer>,
+    #[serde(default)]
+    to: Option<ew_model::layer::CopperLayer>,
+}
+
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+struct AddTracksParams {
+    doc: Id,
+    #[serde(default)]
+    net: Option<Id>,
+    width: ew_model::units::Nm,
+    #[serde(default)]
+    segments: Vec<Segment>,
+    #[serde(default)]
+    vias: Vec<NewVia>,
+}
+
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+struct PresetParams {
+    doc: Id,
+    preset: String,
+}
+
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+struct DxfPreviewParams {
+    path: String,
+    #[serde(default)]
+    scale: Option<f64>,
+}
+
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+struct DxfParams {
+    doc: Id,
+    path: String,
+    /// Board layer, for example `outline` or `mech.1`.
+    layer: ew_model::layer::Layer,
+    /// Only these DXF layers (all if missing).
+    #[serde(default)]
+    layers: Option<Vec<String>>,
+    /// Remove the shapes on the target layer first.
+    #[serde(default)]
+    replace: bool,
+    /// nm per drawing unit (the file's units if missing).
+    #[serde(default)]
+    scale: Option<f64>,
+    /// Move the drawing so that its lower left corner lies here.
+    #[serde(default)]
+    origin: Option<ew_model::units::Point>,
+    /// Line width.
+    #[serde(default)]
+    width: Option<ew_model::units::Nm>,
+}
+
+fn edit_failed(error: &ew_pcb::edit::EditError) -> EngineError {
+    match error {
+        ew_pcb::edit::EditError::Unknown(_) => EngineError::not_found(error.to_string()),
+        ew_pcb::edit::EditError::Invalid(_) => EngineError::invalid_params(error.to_string()),
+    }
+}
+
+fn read_dxf(path: &str, scale: Option<f64>) -> Result<ew_pcb::dxf::Drawing, EngineError> {
+    let bytes = std::fs::read(path).map_err(|error| EngineError::io(path, &error))?;
+    let text = String::from_utf8_lossy(&bytes);
+    ew_pcb::dxf::read(&text, scale).map_err(|error| EngineError::invalid_params(error.0))
 }
 
 #[derive(Deserialize)]
@@ -398,6 +558,259 @@ pub fn call(
                 label: labels::RULES,
                 requests,
                 reply: json!({}),
+            })
+        }
+        "pcb.edit" => {
+            let params: EditParams = parse(params)?;
+            let pcb = board(project, params.doc)?;
+            let edit = ew_pcb::edit::apply(params.doc, pcb, &params.edit)
+                .map_err(|error| edit_failed(&error))?;
+            if edit.changes.is_empty() {
+                return Ok(Outcome::Read(
+                    json!({"seq": null, "select": edit.select, "changes": 0}),
+                ));
+            }
+            let count = edit.changes.len();
+            Ok(Outcome::Commit {
+                label: labels::edit(&params.edit),
+                requests: crate::schematic::requests(&edit),
+                reply: json!({"select": edit.select, "changes": count}),
+            })
+        }
+        "pcb.place" => {
+            let params: PlaceParams = parse(params)?;
+            let pcb = board(project, params.doc)?;
+            let def = ew_pcb::sync::footprint_def(project, &params.footprint).ok_or_else(|| {
+                EngineError::not_found(format!("no footprint {}", params.footprint))
+            })?;
+            let designator = params.designator.unwrap_or_else(|| {
+                let taken: std::collections::HashSet<&str> = pcb
+                    .footprints
+                    .iter()
+                    .map(|f| f.designator.as_str())
+                    .collect();
+                (1..=taken.len() + 1)
+                    .map(|n| format!("X{n}"))
+                    .find(|d| !taken.contains(d.as_str()))
+                    .unwrap_or_default()
+            });
+            let mut fp = ew_pcb::sync::instance(def, &designator, &params.value, params.at);
+            fp.rotation = params.rotation;
+            fp.side = params.side;
+            let id = fp.id;
+            Ok(Outcome::Commit {
+                label: labels::PLACE,
+                requests: vec![Request::Insert {
+                    doc: params.doc,
+                    object: Object::Footprint(fp),
+                }],
+                reply: json!({"select": [id], "designator": designator}),
+            })
+        }
+        "pcb.routeStart" => {
+            let params: RouteStartParams = parse(params)?;
+            let pcb = board(project, params.doc)?;
+            let router = ew_pcb::route::Router::new(pcb, rules(project).map(|(_, r)| r));
+            let start = router.start(V::new(params.at[0], params.at[1]), params.layer);
+            Ok(Outcome::Read(to_value(&start)?))
+        }
+        "pcb.route" => {
+            let params: RouteParams = parse(params)?;
+            let pcb = board(project, params.doc)?;
+            let router = ew_pcb::route::Router::new(pcb, rules(project).map(|(_, r)| r));
+            let request = ew_pcb::route::Request {
+                layer: params.layer,
+                net: params.net,
+                width: params.width,
+                start: V::new(params.start[0], params.start[1]),
+                target: V::new(params.target[0], params.target[1]),
+                diagonal_first: params.diagonal_first,
+            };
+            let route = router.route(&request);
+            let mut value = to_value(&route)?;
+            if let (Some(diameter), Some(end)) = (params.via, route.points.last()) {
+                let fits = router.via_fits(params.net, V::new(end[0], end[1]), diameter);
+                if let Some(map) = value.as_object_mut() {
+                    map.insert("viaFits".into(), json!(fits));
+                }
+            }
+            Ok(Outcome::Read(value))
+        }
+        "pcb.addTracks" => {
+            let params: AddTracksParams = parse(params)?;
+            let pcb = board(project, params.doc)?;
+            if params.width <= 0 {
+                return Err(EngineError::invalid_params("the width must be positive"));
+            }
+            if let Some(net) = params.net
+                && pcb.nets.get(net).is_none()
+            {
+                return Err(EngineError::not_found(format!("no net {net}")));
+            }
+            let mut requests = Vec::new();
+            let mut select = Vec::new();
+            for segment in &params.segments {
+                if !pcb
+                    .stackup
+                    .has_layer(ew_model::layer::Layer::Copper(segment.layer))
+                {
+                    return Err(EngineError::invalid_params(format!(
+                        "the board has no layer {}",
+                        segment.layer
+                    )));
+                }
+                for pair in segment.points.windows(2) {
+                    if pair[0] == pair[1] {
+                        continue;
+                    }
+                    let track = ew_model::pcb::Track {
+                        id: Id::random(),
+                        layer: segment.layer,
+                        net: params.net,
+                        width: params.width,
+                        start: pair[0],
+                        end: pair[1],
+                        mid: None,
+                        locked: false,
+                    };
+                    select.push(track.id);
+                    requests.push(Request::Insert {
+                        doc: params.doc,
+                        object: Object::Track(track),
+                    });
+                }
+            }
+            let stack: Vec<ew_model::layer::CopperLayer> = pcb.stackup.copper_layers().collect();
+            for via in &params.vias {
+                let via = ew_model::pcb::Via {
+                    id: Id::random(),
+                    at: via.at,
+                    diameter: via.diameter,
+                    drill: via.drill,
+                    net: params.net,
+                    from: via.from.unwrap_or(stack[0]),
+                    to: via.to.unwrap_or(stack[stack.len() - 1]),
+                    micro: false,
+                    locked: false,
+                };
+                select.push(via.id);
+                requests.push(Request::Insert {
+                    doc: params.doc,
+                    object: Object::Via(via),
+                });
+            }
+            if requests.is_empty() {
+                return Ok(Outcome::Read(
+                    json!({"seq": null, "select": [], "changes": 0}),
+                ));
+            }
+            let count = requests.len();
+            Ok(Outcome::Commit {
+                label: labels::ROUTE,
+                requests,
+                reply: json!({"select": select, "changes": count}),
+            })
+        }
+        "pcb.presets" => Ok(Outcome::Read(to_value(&ew_pcb::presets::presets())?)),
+        "pcb.applyPreset" => {
+            let params: PresetParams = parse(params)?;
+            board(project, params.doc)?;
+            let preset = ew_pcb::presets::preset(&params.preset)
+                .ok_or_else(|| EngineError::not_found(format!("no preset {}", params.preset)))?;
+            let defaults = Rules::new(Id::from_u128(0), "Design rules");
+            let current = rules(project).map_or(&defaults, |(_, r)| r);
+            let new_rules = preset.apply_to(current);
+            let Value::Object(rules_props) = to_value(&new_rules.props())? else {
+                return Err(EngineError::internal("rules are not an object"));
+            };
+            let mut requests = vec![Request::SetProps {
+                doc: params.doc,
+                props: Map::from_iter([("stackup".to_owned(), to_value(&preset.stackup())?)]),
+            }];
+            if let Some((doc, _)) = rules(project) {
+                requests.push(Request::SetProps {
+                    doc,
+                    props: rules_props,
+                });
+            } else {
+                let doc = Id::random();
+                requests.push(Request::AddDocument {
+                    kind: DocumentKind::Rules,
+                    name: "Design rules".into(),
+                    path: None,
+                    id: Some(doc),
+                });
+                requests.push(Request::SetProps {
+                    doc,
+                    props: rules_props,
+                });
+            }
+            Ok(Outcome::Commit {
+                label: labels::PRESET,
+                requests,
+                reply: json!({}),
+            })
+        }
+        "pcb.dxfPreview" => {
+            let params: DxfPreviewParams = parse(params)?;
+            Ok(Outcome::Read(to_value(&read_dxf(
+                &params.path,
+                params.scale,
+            )?)?))
+        }
+        "pcb.importDxf" => {
+            let params: DxfParams = parse(params)?;
+            let pcb = board(project, params.doc)?;
+            let drawing = read_dxf(&params.path, params.scale)?;
+            let shapes: Vec<&ew_model::shape::Geometry> = drawing
+                .shapes
+                .iter()
+                .filter(|(layer, _)| params.layers.as_ref().is_none_or(|l| l.contains(layer)))
+                .map(|(_, g)| g)
+                .collect();
+            if shapes.is_empty() {
+                return Err(EngineError::invalid_params(
+                    "the drawing has no shapes to import",
+                ));
+            }
+            let bounds = ew_model::units::Rect::from_points(shapes.iter().flat_map(|g| g.points()));
+            let shift = match (params.origin, bounds) {
+                (Some(origin), Some(b)) => {
+                    ew_model::units::Point::new(origin.x - b.min.x, origin.y - b.max.y)
+                }
+                _ => ew_model::units::Point::ORIGIN,
+            };
+            let mut requests = Vec::new();
+            if params.replace {
+                for shape in pcb.shapes.iter().filter(|s| s.layer == params.layer) {
+                    requests.push(Request::Delete {
+                        doc: params.doc,
+                        id: shape.id,
+                    });
+                }
+            }
+            let width = params.width.unwrap_or(100_000);
+            let mut select = Vec::new();
+            for geometry in shapes {
+                let moved = ew_pcb::edit::shifted(geometry, shift);
+                let shape = ew_model::pcb::BoardShape {
+                    id: Id::random(),
+                    layer: params.layer,
+                    geometry: moved,
+                    width,
+                    filled: false,
+                };
+                select.push(shape.id);
+                requests.push(Request::Insert {
+                    doc: params.doc,
+                    object: Object::BoardShape(shape),
+                });
+            }
+            let count = select.len();
+            Ok(Outcome::Commit {
+                label: labels::DXF,
+                requests,
+                reply: json!({"select": select, "shapes": count}),
             })
         }
         "pcb.validateRule" => {
