@@ -2934,6 +2934,59 @@ textarea.field__control {
   min-width: 0;
 }
 
+.net-navigator {
+  width: 320px;
+}
+
+.net-navigator__bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+}
+
+.net-navigator__steps {
+  display: inline-flex;
+  gap: var(--space-1);
+}
+
+.net-navigator__list {
+  display: grid;
+  align-content: start;
+  gap: var(--space-2);
+}
+
+.net-navigator__sheet-name {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  margin: 0 0 2px;
+  font-weight: 600;
+}
+
+.net-navigator__places {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.net-navigator__place {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.net-navigator__place[aria-current='true'] {
+  background: var(--color-accent-soft);
+}
+
+.net-navigator__hint {
+  margin: 0;
+  color: var(--color-text-muted);
+  font-size: var(--font-size-s);
+}
+
 .erc {
   display: flex;
   flex: none;

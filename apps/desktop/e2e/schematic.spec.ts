@@ -209,3 +209,53 @@ test('the guide helps with a first schematic; check settings', async () => {
   await expect(dialog).toBeHidden();
   await expect(page.getByTestId('toolbar-undo')).toHaveAttribute('title', /Change check settings/u);
 });
+
+test('the net navigator lists a net on every sheet and jumps there', async () => {
+  launched = await launchApp();
+  const { page } = launched;
+  // Blinky has GND power symbols on both of its sheets.
+  await importBlinky(launched);
+  await openDocument(page, 'Blinky');
+  // Find a GND symbol: showing a hit centres it in the view.
+  await page.getByTestId('action-find').click();
+  await page.getByTestId('find-query').fill('GND');
+  await page.getByTestId('find-hits').getByRole('button').first().click();
+  await page.getByTestId('find-query').press('Escape');
+  await settle(page);
+  const canvas = viewerCanvas(page);
+  const box = await canvas.boundingBox();
+  const centre = { x: (box?.width ?? 0) / 2, y: (box?.height ?? 0) / 2 };
+
+  // Ctrl/⌘ + double-click on the label opens the navigator.
+  await canvas.dblclick({ position: centre, modifiers: ['ControlOrMeta'] });
+  const navigator = page.getByTestId('net-navigator');
+  await expect(navigator).toBeVisible();
+  await expect(navigator).toContainText('Net GND');
+  await expect(page.getByTestId('net-chip')).toHaveText('Net GND ×');
+  const current = navigator.locator('[aria-current="true"]');
+  await expect(current).toContainText('GND');
+
+  // A place on another sheet: its tab opens with the place selected.
+  const places = navigator.locator('.net-navigator__sheet');
+  const sheets = await places.count();
+  expect(sheets).toBeGreaterThan(1);
+  const other = places.nth(sheets - 1);
+  const name = (await other.locator('.net-navigator__sheet-name span').first().innerText()).trim();
+  await other.getByRole('button').first().click();
+  await expect(page.locator('[role="tab"][aria-selected="true"]')).toContainText(name);
+  await expect(page.getByTestId('net-navigator')).toBeVisible();
+  await expect(page.getByTestId('inspector')).not.toContainText('Nothing selected');
+
+  // Next and previous step through the list.
+  const currentPlace = page.getByTestId('net-navigator').locator('[aria-current="true"]');
+  const before = (await currentPlace.getAttribute('data-testid')) ?? '';
+  await page.getByTestId('net-navigator-next').click();
+  await expect(currentPlace).not.toHaveAttribute('data-testid', before);
+  await page.getByTestId('net-navigator-previous').click();
+  await expect(currentPlace).toHaveAttribute('data-testid', before);
+  await page.getByTestId('net-navigator-close').click();
+  await expect(page.getByTestId('net-navigator')).toBeHidden();
+  // The chip opens it again for the highlighted net.
+  await page.getByTestId('net-places').click();
+  await expect(page.getByTestId('net-navigator')).toContainText('Net GND');
+});

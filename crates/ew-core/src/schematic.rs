@@ -596,5 +596,109 @@ fn net(project: &Project, params: &NetParams) -> Value {
             )
         })
         .collect();
-    json!({"net": connectivity.nets[net].name, "sheets": sheets})
+    json!({
+        "net": connectivity.nets[net].name,
+        "sheets": sheets,
+        "places": net_places(project, &connectivity, net),
+    })
+}
+
+/// Order of the places of a net within one sheet: names first, pins last.
+fn place_rank(kind: &str) -> u8 {
+    match kind {
+        "globalLabel" => 0,
+        "hierarchicalLabel" => 1,
+        "label" => 2,
+        "powerPort" => 3,
+        "powerSymbol" => 4,
+        "sheetPin" => 5,
+        _ => 6,
+    }
+}
+
+/// Where a net shows up: labels, power ports and symbols, sheet pins and
+/// component pins, per sheet instance (top sheet first), for the net
+/// navigator. Wires and junctions are left out.
+fn net_places(
+    project: &Project,
+    connectivity: &ew_schematic::connectivity::Connectivity,
+    net: usize,
+) -> Vec<Value> {
+    use ew_model::schematic::LabelKind;
+    use ew_schematic::connectivity::ItemKind;
+    let Some(entry) = connectivity.nets.get(net) else {
+        return Vec::new();
+    };
+    let mut out: Vec<(usize, u8, String, Value)> = Vec::new();
+    for &piece in &entry.pieces {
+        let piece = &connectivity.pieces[piece];
+        let instance = &connectivity.instances[piece.instance];
+        let Some(ew_model::document::Document::Schematic(sheet)) = project.document(instance.sheet)
+        else {
+            continue;
+        };
+        let base = |kind: &str, id: Id, at: Point, text: &str| {
+            json!({
+                "doc": instance.sheet,
+                "sheet": sheet.name,
+                "path": instance.name,
+                "kind": kind,
+                "id": id,
+                "at": at,
+                "text": text,
+            })
+        };
+        for item in &piece.items {
+            let place = match item.kind {
+                ItemKind::Label | ItemKind::GlobalLabel | ItemKind::HierarchicalLabel => {
+                    sheet.labels.get(item.id).map(|label| {
+                        let kind = match label.kind {
+                            LabelKind::Local => "label",
+                            LabelKind::Global => "globalLabel",
+                            LabelKind::Hierarchical => "hierarchicalLabel",
+                        };
+                        (kind, label.text.clone())
+                    })
+                }
+                ItemKind::PowerPort => sheet
+                    .power_ports
+                    .get(item.id)
+                    .map(|port| ("powerPort", port.net.clone())),
+                ItemKind::SheetPin => sheet.sheets.get(item.id).and_then(|symbol| {
+                    let pin = symbol.pins.get(item.index?)?;
+                    Some(("sheetPin", format!("{}: {}", symbol.name, pin.name)))
+                }),
+                _ => None,
+            };
+            if let Some((kind, text)) = place {
+                out.push((
+                    piece.instance,
+                    place_rank(kind),
+                    text.clone(),
+                    base(kind, item.id, item.at, &text),
+                ));
+            }
+        }
+        for &pin in &piece.pins {
+            let pin = &connectivity.pins[pin];
+            let (kind, text) = if pin.power_symbol {
+                ("powerSymbol", pin.value.clone())
+            } else {
+                ("pin", format!("{}.{}", pin.designator, pin.number))
+            };
+            let mut value = base(kind, pin.symbol, pin.at, &text);
+            if let Some(map) = value.as_object_mut() {
+                map.insert("pin".to_owned(), json!(pin.number));
+                map.insert("name".to_owned(), json!(pin.name));
+                map.insert("designator".to_owned(), json!(pin.designator));
+            }
+            out.push((piece.instance, place_rank(kind), text, value));
+        }
+    }
+    out.sort_by(|a, b| {
+        (a.0, a.1)
+            .cmp(&(b.0, b.1))
+            .then_with(|| ew_schematic::connectivity::natural_cmp(&a.2, &b.2))
+    });
+    out.into_iter().map(|(_, _, _, value)| value).collect()
 }

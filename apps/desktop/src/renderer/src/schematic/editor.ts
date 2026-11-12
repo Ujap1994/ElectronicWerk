@@ -9,6 +9,7 @@
 import type { MessageKey } from '@shared/i18n';
 
 import type { Interaction, ViewerController } from '../viewer/controller';
+import type { NetPlace } from './stores';
 
 export type Point = readonly [number, number];
 
@@ -110,12 +111,25 @@ export interface EditorHost {
   /** Opens the find panel. */
   find(): void;
   /** A net was highlighted (or cleared): its members per sheet. */
-  highlight(net: string | null, sheets: Readonly<Record<string, NetMembers>>): void;
+  highlight(
+    net: string | null,
+    sheets: Readonly<Record<string, NetMembers>>,
+    places: readonly NetPlace[],
+  ): void;
+  /** Opens the net navigator on a place. */
+  navigate(net: string, places: readonly NetPlace[], current: number): void;
 }
 
 export interface NetMembers {
   readonly items: readonly string[];
   readonly pins: readonly string[];
+}
+
+/** The reply of `schematic.net`. */
+interface NetReply {
+  readonly net: string | null;
+  readonly sheets: Record<string, NetMembers>;
+  readonly places: readonly NetPlace[];
 }
 
 interface EditResult {
@@ -504,13 +518,12 @@ export class SchematicEditor implements Interaction {
     });
   }
 
-  /** Highlights the net at a point (or clears the highlight). */
-  highlightAt(point: Point): void {
+  /** The `schematic.net` parameters of the object at a point, if any. */
+  private netParamsAt(point: Point): Record<string, unknown> | null {
     const obj = this.controller.pickAtPoint(point);
     const scene = this.controller.currentScene;
     if (obj === null || scene === null) {
-      this.clearHighlight();
-      return;
+      return null;
     }
     const type = scene.typeOf(obj);
     const parent = scene.parentOf(obj);
@@ -521,11 +534,55 @@ export class SchematicEditor implements Interaction {
       params['id'] = scene.idOf(this.controller.rootOf(obj));
       params['at'] = this.snapPoint(point);
     }
+    return params;
+  }
+
+  /** Highlights the net at a point (or clears the highlight). */
+  highlightAt(point: Point): void {
+    const params = this.netParamsAt(point);
+    if (params === null) {
+      this.clearHighlight();
+      return;
+    }
     this.host
-      .call<{ net: string | null; sheets: Record<string, NetMembers> }>('schematic.net', params)
+      .call<NetReply>('schematic.net', params)
       .then((reply) => {
         this.showNet(reply.net, reply.sheets);
-        this.host.highlight(reply.net, reply.sheets);
+        this.host.highlight(reply.net, reply.sheets, reply.places);
+      })
+      .catch((error: unknown) => {
+        this.host.error(error);
+      });
+  }
+
+  /**
+   * Highlights the net at a point and lists every place it shows up on
+   * any sheet (Ctrl/⌘ + double-click), starting at the clicked one.
+   */
+  navigateAt(point: Point): void {
+    const params = this.netParamsAt(point);
+    if (params === null) {
+      return;
+    }
+    this.host
+      .call<NetReply>('schematic.net', params)
+      .then((reply) => {
+        if (reply.net === null) {
+          return;
+        }
+        this.showNet(reply.net, reply.sheets);
+        this.host.highlight(reply.net, reply.sheets, reply.places);
+        // The place nearest to the click on this sheet.
+        let current = 0;
+        let best = Number.POSITIVE_INFINITY;
+        reply.places.forEach((place, index) => {
+          const d = Math.hypot(place.at[0] - point[0], place.at[1] - point[1]);
+          if (place.doc === this.host.doc && d < best) {
+            best = d;
+            current = index;
+          }
+        });
+        this.host.navigate(reply.net, reply.places, current);
       })
       .catch((error: unknown) => {
         this.host.error(error);
@@ -542,7 +599,7 @@ export class SchematicEditor implements Interaction {
   clearHighlight(): void {
     this.controller.setHighlight([]);
     this.update({ net: null });
-    this.host.highlight(null, {});
+    this.host.highlight(null, {}, []);
   }
 
   // --- Prompts --------------------------------------------------------------
@@ -814,12 +871,16 @@ export class SchematicEditor implements Interaction {
     this.press = null;
   }
 
-  doubleClick(point: Point): void {
+  doubleClick(point: Point, event?: MouseEvent): void {
     const tool = this.state.tool;
     if (tool === 'wire' || tool === 'bus') {
       this.finishWire();
-    } else if (tool === 'select') {
-      this.renameAt(point);
+    } else if (tool === 'select' || tool === 'highlight') {
+      if (event?.metaKey === true || event?.ctrlKey === true) {
+        this.navigateAt(point);
+      } else if (tool === 'select') {
+        this.renameAt(point);
+      }
     }
   }
 

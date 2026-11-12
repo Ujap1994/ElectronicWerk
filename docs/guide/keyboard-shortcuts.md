@@ -71,30 +71,31 @@ Click the drawing area first; see [Viewing sheets and boards](./viewer#navigatin
 Click the drawing area of a sheet first; see
 [Drawing schematics](./schematic-editor).
 
-| Key                                                                     | Action                                           |
-| ----------------------------------------------------------------------- | ------------------------------------------------ |
-| <kbd>A</kbd>                                                            | Add a symbol                                     |
-| <kbd>W</kbd>                                                            | Draw a wire                                      |
-| <kbd>B</kbd>                                                            | Draw a bus                                       |
-| <kbd>L</kbd>                                                            | Place a net label                                |
-| <kbd>Shift</kbd>+<kbd>L</kbd>                                           | Place a global label                             |
-| <kbd>H</kbd>                                                            | Place a hierarchical label                       |
-| <kbd>P</kbd>                                                            | Place a power port                               |
-| <kbd>Q</kbd>                                                            | Place a no-connect flag                          |
-| <kbd>J</kbd>                                                            | Place a junction                                 |
-| <kbd>T</kbd>                                                            | Place a text                                     |
-| <kbd>S</kbd>                                                            | Draw a sheet symbol                              |
-| <kbd>N</kbd>                                                            | Highlight a net (tool)                           |
-| <kbd>`</kbd>                                                            | Highlight the net under the cursor               |
-| <kbd>R</kbd> / <kbd>Shift</kbd>+<kbd>R</kbd>                            | Rotate counterclockwise / clockwise              |
-| <kbd>Y</kbd> / <kbd>X</kbd>                                             | Mirror left to right / top to bottom             |
-| <kbd>G</kbd>                                                            | Drag the selection with its wires                |
-| <kbd>M</kbd>                                                            | Move the selection without its wires             |
-| <kbd>Delete</kbd>, <kbd>Backspace</kbd>                                 | Delete the selection                             |
-| <kbd>Ctrl</kbd>/<kbd>⌘</kbd>+<kbd>C</kbd> / <kbd>X</kbd> / <kbd>V</kbd> | Copy / cut / paste at the cursor                 |
-| <kbd>Ctrl</kbd>/<kbd>⌘</kbd>+<kbd>D</kbd>                               | Duplicate the selection                          |
-| <kbd>Ctrl</kbd>/<kbd>⌘</kbd>+<kbd>F</kbd>                               | Find and replace                                 |
-| <kbd>Esc</kbd>                                                          | End the action, then back to **Select and move** |
+| Key                                                                     | Action                                                                                    |
+| ----------------------------------------------------------------------- | ----------------------------------------------------------------------------------------- |
+| <kbd>A</kbd>                                                            | Add a symbol                                                                              |
+| <kbd>W</kbd>                                                            | Draw a wire                                                                               |
+| <kbd>B</kbd>                                                            | Draw a bus                                                                                |
+| <kbd>L</kbd>                                                            | Place a net label                                                                         |
+| <kbd>Shift</kbd>+<kbd>L</kbd>                                           | Place a global label                                                                      |
+| <kbd>H</kbd>                                                            | Place a hierarchical label                                                                |
+| <kbd>P</kbd>                                                            | Place a power port                                                                        |
+| <kbd>Q</kbd>                                                            | Place a no-connect flag                                                                   |
+| <kbd>J</kbd>                                                            | Place a junction                                                                          |
+| <kbd>T</kbd>                                                            | Place a text                                                                              |
+| <kbd>S</kbd>                                                            | Draw a sheet symbol                                                                       |
+| <kbd>N</kbd>                                                            | Highlight a net (tool)                                                                    |
+| <kbd>`</kbd>                                                            | Highlight the net under the cursor                                                        |
+| <kbd>Ctrl</kbd>/<kbd>⌘</kbd>+double-click                               | [Net navigator](./schematic-editor#following-a-net-across-sheets): every place of the net |
+| <kbd>R</kbd> / <kbd>Shift</kbd>+<kbd>R</kbd>                            | Rotate counterclockwise / clockwise                                                       |
+| <kbd>Y</kbd> / <kbd>X</kbd>                                             | Mirror left to right / top to bottom                                                      |
+| <kbd>G</kbd>                                                            | Drag the selection with its wires                                                         |
+| <kbd>M</kbd>                                                            | Move the selection without its wires                                                      |
+| <kbd>Delete</kbd>, <kbd>Backspace</kbd>                                 | Delete the selection                                                                      |
+| <kbd>Ctrl</kbd>/<kbd>⌘</kbd>+<kbd>C</kbd> / <kbd>X</kbd> / <kbd>V</kbd> | Copy / cut / paste at the cursor                                                          |
+| <kbd>Ctrl</kbd>/<kbd>⌘</kbd>+<kbd>D</kbd>                               | Duplicate the selection                                                                   |
+| <kbd>Ctrl</kbd>/<kbd>⌘</kbd>+<kbd>F</kbd>                               | Find and replace                                                                          |
+| <kbd>Esc</kbd>                                                          | End the action, then back to **Select and move**                                          |
 
 While drawing a wire:
 
@@ -104,5 +105,28 @@ While drawing a wire:
 | <kbd>Backspace</kbd>           | Remove the last corner   |
 | <kbd>Enter</kbd>, double-click | Finish the wire          |
 | <kbd>Esc</kbd>                 | Throw the wire away      |
+
+## Library editor
+
+In the [symbol and footprint editors](./library-editor#keyboard) (click the
+drawing first):
+
+| Key                                          | Action                                                     |
+| -------------------------------------------- | ---------------------------------------------------------- |
+| <kbd>P</kbd>                                 | Pin tool (symbols), pad tool (footprints)                  |
+| <kbd>L</kbd>                                 | Line                                                       |
+| <kbd>B</kbd>                                 | Rectangle                                                  |
+| <kbd>C</kbd>                                 | Circle                                                     |
+| <kbd>K</kbd>                                 | Polyline                                                   |
+| <kbd>T</kbd>                                 | Text                                                       |
+| <kbd>R</kbd> / <kbd>Shift</kbd>+<kbd>R</kbd> | Rotate the selection; with the pin tool, turn the next pin |
+| <kbd>Y</kbd> / <kbd>X</kbd>                  | Mirror left to right / top to bottom                       |
+| <kbd>Ctrl</kbd>/<kbd>⌘</kbd>+<kbd>D</kbd>    | Duplicate the selection                                    |
+| <kbd>Delete</kbd>, <kbd>Backspace</kbd>      | Delete the selection                                       |
+| <kbd>Enter</kbd>                             | Finish a polyline                                          |
+| <kbd>Esc</kbd>                               | End the shape, then back to **Select and move**            |
+
+In the pin and pad tables, <kbd>Ctrl</kbd>/<kbd>⌘</kbd>-click and
+<kbd>Shift</kbd>-click select several rows.
 
 Layout editor shortcuts will be added here together with the layout editor.

@@ -18,10 +18,12 @@ import { EditorOverlay } from '../schematic/EditorOverlay';
 import { ErcPanel, ErcSettingsDialog, runErc, useErcUpdates } from '../schematic/ErcPanel';
 import { AnnotateDialog, FindPanel } from '../schematic/FindPanel';
 import { ExportMenu, Guide, GridAssistant } from '../schematic/Panels';
+import { NetNavigator } from '../schematic/NetNavigator';
 import {
   activeSheet,
   ercState,
   highlightedNet,
+  netNavigation,
   requestFocus,
   takeFocus,
 } from '../schematic/stores';
@@ -115,17 +117,33 @@ function EditorStatus({ editor }: { readonly editor: SchematicEditor }): ReactNo
         </span>
       )}
       {state.net !== null && (
-        <button
-          type="button"
-          className="net-chip"
-          title={t('schematic.clearNet')}
-          data-testid="net-chip"
-          onClick={() => {
-            editor.clearHighlight();
-          }}
-        >
-          {t('schematic.net', { name: state.net })} ×
-        </button>
+        <>
+          <button
+            type="button"
+            className="net-chip"
+            title={t('schematic.clearNet')}
+            data-testid="net-chip"
+            onClick={() => {
+              editor.clearHighlight();
+            }}
+          >
+            {t('schematic.net', { name: state.net })} ×
+          </button>
+          <button
+            type="button"
+            className="link-button"
+            title={t('schematic.navigator.hint')}
+            data-testid="net-places"
+            onClick={() => {
+              const { net, places } = highlightedNet.get();
+              if (net !== null) {
+                netNavigation.set({ net, places, current: 0 });
+              }
+            }}
+          >
+            {t('schematic.navigator.open')}
+          </button>
+        </>
       )}
     </>
   );
@@ -213,8 +231,11 @@ export function DocumentViewer({
             find: () => {
               setFinding(true);
             },
-            highlight: (net, sheets) => {
-              highlightedNet.set({ net, sheets });
+            highlight: (net, sheets, places) => {
+              highlightedNet.set({ net, sheets, places });
+            },
+            navigate: (net, places, current) => {
+              netNavigation.set({ net, places, current });
             },
           })
         : null,
@@ -518,6 +539,13 @@ export function DocumentViewer({
               onClose={() => {
                 guideDismissed.add(doc);
                 setGuide(false);
+              }}
+            />
+          )}
+          {editor !== null && !finding && (
+            <NetNavigator
+              onShow={(place) => {
+                showTarget({ doc: place.doc, at: place.at, ids: [place.id] });
               }}
             />
           )}

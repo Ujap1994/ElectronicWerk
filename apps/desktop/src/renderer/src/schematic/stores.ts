@@ -32,10 +32,46 @@ export const activeSheet = new Store<EditorCommands | null>(null);
 export interface HighlightedNet {
   readonly net: string | null;
   readonly sheets: Readonly<Record<string, NetMembers>>;
+  /** Where the net shows up (labels, ports, sheet pins, pins). */
+  readonly places: readonly NetPlace[];
 }
 
+/** One place of a net (`schematic.net`), for the net navigator. */
+export interface NetPlace {
+  readonly doc: string;
+  /** Name of the sheet document. */
+  readonly sheet: string;
+  /** Hierarchy path of the sheet instance (`/`, `/Power/`). */
+  readonly path: string;
+  readonly kind:
+    | 'globalLabel'
+    | 'hierarchicalLabel'
+    | 'label'
+    | 'powerPort'
+    | 'powerSymbol'
+    | 'sheetPin'
+    | 'pin';
+  /** The object to select (the placed symbol for pins). */
+  readonly id: string;
+  readonly at: Point;
+  readonly text: string;
+  /** Pin number and name (pins). */
+  readonly pin?: string;
+  readonly name?: string;
+}
+
+export interface NetNavigation {
+  readonly net: string;
+  readonly places: readonly NetPlace[];
+  /** The place shown last. */
+  readonly current: number;
+}
+
+/** The open net navigator (shared by the sheets, so it stays open across them). */
+export const netNavigation = new Store<NetNavigation | null>(null);
+
 /** The net highlighted on every sheet. */
-export const highlightedNet = new Store<HighlightedNet>({ net: null, sheets: {} });
+export const highlightedNet = new Store<HighlightedNet>({ net: null, sheets: {}, places: [] });
 
 export interface FocusRequest {
   readonly doc: string;
@@ -100,7 +136,8 @@ export const ercState = new Store<ErcState>({
 
 /** Forgets everything (when a project closes). */
 export function resetSchematicStores(): void {
-  highlightedNet.set({ net: null, sheets: {} });
+  highlightedNet.set({ net: null, sheets: {}, places: [] });
+  netNavigation.set(null);
   ercState.set({ open: false, report: null, running: false, time: null });
   pendingFocus = null;
 }

@@ -288,4 +288,30 @@ fn net_of_an_imported_wire() {
     let members = &net["sheets"][&doc];
     assert_eq!(members["items"].as_array().unwrap().len(), 4);
     assert_eq!(members["pins"].as_array().unwrap().len(), 3);
+    // The places of the net navigator: names first, then the pins.
+    let places = net["places"].as_array().unwrap();
+    let kinds: Vec<&str> = places.iter().map(|p| p["kind"].as_str().unwrap()).collect();
+    assert_eq!(
+        kinds.iter().filter(|k| **k == "pin").count(),
+        3,
+        "{places:?}"
+    );
+    assert!(kinds.iter().any(|k| k.ends_with("abel")), "{places:?}");
+    let last_label = kinds.iter().rposition(|k| *k != "pin").unwrap();
+    let first_pin = kinds.iter().position(|k| *k == "pin").unwrap();
+    assert!(last_label < first_pin, "{kinds:?}");
+    assert!(
+        places
+            .iter()
+            .all(|p| p["doc"] == doc.as_str() && p["path"] == "/")
+    );
+    let pin = places.iter().find(|p| p["kind"] == "pin").unwrap();
+    assert_eq!(
+        pin["text"].as_str().unwrap(),
+        format!(
+            "{}.{}",
+            pin["designator"].as_str().unwrap(),
+            pin["pin"].as_str().unwrap()
+        )
+    );
 }

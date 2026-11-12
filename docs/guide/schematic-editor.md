@@ -234,6 +234,45 @@ highlights the net under the cursor.
 
 ![The highlighted net LED_CTRL](/screenshots/schematic-net.png)
 
+## Following a net across sheets
+
+Where else does `SDA` go? Hold <kbd>Ctrl</kbd> (<kbd>⌘</kbd> on macOS) and
+double-click a label, power port, wire or pin. The net is highlighted and the
+**net navigator** opens at the top right of the drawing. It lists every
+place of the net on every sheet:
+
+![The net navigator for GND: places on the top sheet and on the Power sheet](/screenshots/schematic-net-navigator.png)
+
+| Entry              | What it is                                                                        |
+| ------------------ | --------------------------------------------------------------------------------- |
+| Global label       | A global label with the net's name                                                |
+| Hierarchical label | The hierarchical label that leads up to the parent sheet                          |
+| Net label          | A local label                                                                     |
+| Power port         | A power port such as `GND`                                                        |
+| Power symbol       | A power symbol from a library (KiCad's `power:GND`)                               |
+| Sheet pin          | The pin of a sheet symbol, shown as `Sheet: Pin`, where the net goes down a level |
+| Pin                | A component pin, shown as `R4.1` with the pin name next to it                     |
+
+The places are grouped by sheet, top sheet first. Sub-sheets show their
+hierarchy path (`/Power/`); a sheet used twice appears once per use. Within a
+sheet, the names come first and the pins last.
+
+![The net navigator](/screenshots/schematic-net-navigator-panel.png){width=320}
+
+- **Click a place** to jump there: the view opens its sheet (in a new tab if
+  needed), centres the place and selects the object. The navigator stays
+  open on the new sheet, so you can go on from there.
+- **‹** and **›**, or <kbd>↑</kbd> and <kbd>↓</kbd> while the navigator has the
+  focus, step to the previous or next place and jump there. After the last
+  place comes the first one again.
+- The place you started from is marked when the navigator opens.
+- **×** or <kbd>Esc</kbd> closes the navigator. The net stays highlighted; to
+  open the list again, click **Show all places** next to the net name in the
+  status line.
+
+This works with the highlight tool too: <kbd>Ctrl</kbd>/<kbd>⌘</kbd> +
+double-click instead of a single click.
+
 ## Find and replace
 
 Press <kbd>Ctrl</kbd>/<kbd>⌘</kbd>+<kbd>F</kbd> or click the magnifier. The search

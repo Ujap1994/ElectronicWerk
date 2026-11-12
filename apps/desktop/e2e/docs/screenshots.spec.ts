@@ -949,6 +949,43 @@ test('schematic editor', async () => {
   await dark.close();
 });
 
+test('net navigator', async () => {
+  freshProjects();
+  const kicad = '/tmp/ElectronicWerk/KiCad/blinky';
+  rmSync(kicad, { recursive: true, force: true });
+  cpSync(KICAD_FIXTURE, kicad, { recursive: true });
+  const { app, page, close } = await start({ settings: { theme: 'light' } });
+  await page.setViewportSize({ width: 1400, height: 860 });
+  await queueDialogAnswer(app, join(kicad, 'blinky.kicad_pro'));
+  await page.getByTestId('import-kicad').click();
+  await page.getByTestId('kicad-import-name').fill('Blinky');
+  await page.getByTestId('kicad-import-start').click();
+  await page
+    .getByTestId('import-report')
+    .getByRole('button', { name: 'Close', exact: true })
+    .last()
+    .click();
+  await page.locator('[data-testid^="tree-doc:"]').filter({ hasText: 'Top sheet' }).dblclick();
+  await settle(page);
+  await page.getByTestId('action-find').click();
+  await page.getByTestId('find-query').fill('GND');
+  await page.getByTestId('find-hits').getByRole('button').first().click();
+  await page.getByTestId('find-query').press('Escape');
+  await settle(page);
+  const canvas = viewerCanvas(page);
+  const box = await canvas.boundingBox();
+  await canvas.dblclick({
+    position: { x: (box?.width ?? 0) / 2, y: (box?.height ?? 0) / 2 },
+    modifiers: ['ControlOrMeta'],
+  });
+  await expect(page.getByTestId('net-navigator')).toContainText('Net GND');
+  await settle(page);
+  await page.mouse.move(700, 840);
+  await shoot(page, 'schematic-net-navigator');
+  await shoot(page.getByTestId('net-navigator'), 'schematic-net-navigator-panel');
+  await close();
+});
+
 /** The drawn canvas of the symbol or footprint editor. */
 function itemCanvas(page: Page): Locator {
   return page.locator('[data-testid="item-canvas-area"][data-ready="true"]');
