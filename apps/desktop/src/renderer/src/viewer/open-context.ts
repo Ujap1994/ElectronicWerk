@@ -2,7 +2,7 @@ import { createContext, use } from 'react';
 
 import type { DocumentSummary } from '@shared/project';
 
-/** Opens a sheet or board in a viewer tab (provided by the workspace). */
+/** Opens a sheet, board or library in a tab (provided by the workspace). */
 export const OpenDocumentContext = createContext<((document: DocumentSummary) => void) | null>(
   null,
 );
@@ -11,7 +11,7 @@ export function useOpenDocument(): ((document: DocumentSummary) => void) | null 
   return use(OpenDocumentContext);
 }
 
-/** Documents that the 2D viewer can show. */
+/** Documents that open in a tab: sheets and boards in the viewer, libraries in the library editor. */
 export function isViewable(document: DocumentSummary): boolean {
-  return document.kind === 'schematic' || document.kind === 'pcb';
+  return document.kind === 'schematic' || document.kind === 'pcb' || document.kind === 'library';
 }

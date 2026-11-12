@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState, type ReactNode } from 'react';
 
 import type { DocumentSummary } from '@shared/project';
 
+import { LibraryEditor } from '../libedit/LibraryEditor';
 import { historyLabel } from '../project/labels';
 import { useProject } from '../project/ProjectProvider';
 import { selectionKey, type TreeTarget } from '../project/tree';
@@ -229,7 +230,16 @@ export function ProjectWorkspace({
                         setActiveTab(document.id);
                       }}
                     >
-                      <Icon name={document.kind === 'pcb' ? 'board' : 'schematic'} size={16} />
+                      <Icon
+                        name={
+                          document.kind === 'pcb'
+                            ? 'board'
+                            : document.kind === 'library'
+                              ? 'library'
+                              : 'schematic'
+                        }
+                        size={16}
+                      />
                       <span>{document.name}</span>
                     </button>
                     <button
@@ -254,7 +264,15 @@ export function ProjectWorkspace({
               </main>
             ) : (
               <main className="workspace__viewer">
-                <DocumentViewer key={active.id} document={active} units={project.settings.units} />
+                {active.kind === 'library' ? (
+                  <LibraryEditor key={active.id} document={active} units={project.settings.units} />
+                ) : (
+                  <DocumentViewer
+                    key={active.id}
+                    document={active}
+                    units={project.settings.units}
+                  />
+                )}
               </main>
             )}
           </div>

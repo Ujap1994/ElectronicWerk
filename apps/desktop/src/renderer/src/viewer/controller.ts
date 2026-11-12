@@ -141,6 +141,8 @@ export class ViewerController {
   private restoredCamera = false;
   /** The view shows the whole document and follows size changes. */
   private autoFit = true;
+  /** A box the home view always includes (editor scenes: around the origin). */
+  private homeMinimum: Box | null = null;
   private snapshotCache: ViewerSnapshot | null = null;
   private viewCache: ViewState | null = null;
   private readonly listeners = new Set<() => void>();
@@ -161,6 +163,8 @@ export class ViewerController {
   private hiddenIds: ReadonlySet<string> = new Set();
   /** Ids that move along with the selection (labels on dragged pins). */
   private followerIds: ReadonlySet<string> = new Set();
+  /** A grid chosen in an editor instead of the document's (nm). */
+  private gridOverride: number | null = null;
   /** Objects of a highlighted net: ids and scene keys. */
   private highlight: ReadonlySet<string> = new Set();
   /** Ids to select once the next scene arrives. */
@@ -457,9 +461,32 @@ export class ViewerController {
 
   private homeBox(): Box {
     const meta = this.scene?.meta;
+    const empty = (meta?.home ?? null) === null && (meta?.bounds ?? null) === null;
+    if (empty && this.homeMinimum !== null) {
+      return this.homeMinimum;
+    }
     const box = meta?.home ?? meta?.bounds ?? [-50e6, -50e6, 50e6, 50e6];
     const [ox, oy] = meta?.origin ?? [0, 0];
-    return [box[0] - ox, box[1] - oy, box[2] - ox, box[3] - oy];
+    const home: Box = [box[0] - ox, box[1] - oy, box[2] - ox, box[3] - oy];
+    const min = this.homeMinimum;
+    return min === null
+      ? home
+      : [
+          Math.min(home[0], min[0]),
+          Math.min(home[1], min[1]),
+          Math.max(home[2], min[2]),
+          Math.max(home[3], min[3]),
+        ];
+  }
+
+  /** Sets a box that the home view always includes (`null`: none). */
+  setHomeMinimum(box: Box | null): void {
+    this.homeMinimum = box;
+  }
+
+  /** Keeps the view where it is when the size changes (after an edit). */
+  keepView(): void {
+    this.autoFit = false;
   }
 
   // --- Commands -------------------------------------------------------------
@@ -765,7 +792,7 @@ export class ViewerController {
 
   /** The base grid of the document (nm), 0 if none. */
   get baseGrid(): number {
-    return this.scene?.meta.grid ?? 0;
+    return this.gridOverride ?? this.scene?.meta.grid ?? 0;
   }
 
   // --- Rendering ------------------------------------------------------------
@@ -828,8 +855,15 @@ export class ViewerController {
   }
 
   private gridStep(): number {
-    const base = this.scene?.meta.grid ?? 0;
+    const base = this.gridOverride ?? this.scene?.meta.grid ?? 0;
     return gridStep(base, this.camera.scale);
+  }
+
+  /** Uses another grid than the document's (`null`: the document's). */
+  setGrid(grid: number | null): void {
+    this.gridOverride = grid;
+    this.requestRender();
+    this.viewChanged();
   }
 
   private onFrame = (time: number): void => {

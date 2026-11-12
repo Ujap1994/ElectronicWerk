@@ -579,9 +579,9 @@ export function DocumentViewer({
       </aside>
       {chooser && editor !== null && (
         <SymbolChooser
-          onPick={(name) => {
+          onPick={(name, component) => {
             setChooser(false);
-            editor.placeSymbol(name);
+            editor.placeSymbol(name, component ?? null);
             canvasRef.current?.focus();
           }}
           onClose={() => {

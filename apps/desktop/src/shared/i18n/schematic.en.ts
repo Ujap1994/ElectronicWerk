@@ -85,6 +85,8 @@ export const schematicEn = {
     units: '{count} units',
     power: 'Power symbol',
     preview: 'Preview of {name}',
+    components: 'Components',
+    component: 'Component with {symbol} and {footprint}',
   },
   properties: {
     title: 'Edit',

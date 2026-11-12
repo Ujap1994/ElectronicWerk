@@ -251,6 +251,8 @@ export class SchematicEditor implements Interaction {
   private keyMove: { start: Point; drag: boolean } | null = null;
   private moveIds: string[] = [];
   private symbolName: string | null = null;
+  /** The component being placed (its symbol is `symbolName`). */
+  private componentName: string | null = null;
   private lastLabel = '';
   private lastPower = 'GND';
   private busy = false;
@@ -302,10 +304,14 @@ export class SchematicEditor implements Interaction {
     }
   }
 
-  /** Starts placing a symbol of the project library. */
-  placeSymbol(name: string): void {
+  /**
+   * Starts placing a symbol of the project library, or a component (its
+   * symbol with footprint, value and order data).
+   */
+  placeSymbol(name: string, component: string | null = null): void {
     this.cancel();
     this.symbolName = name;
+    this.componentName = component;
     this.update({ tool: 'symbol', hint: HINTS.symbol, rotation: 0, mirror: false, ghost: null });
     this.controller.clearSelection();
     this.host
@@ -748,7 +754,9 @@ export class SchematicEditor implements Interaction {
       case 'symbol':
         if (this.symbolName !== null) {
           this.run('schematic.place', {
-            symbol: this.symbolName,
+            ...(this.componentName === null
+              ? { symbol: this.symbolName }
+              : { component: this.componentName }),
             at: p,
             rotation: this.state.rotation,
             mirror: this.state.mirror,
@@ -977,6 +985,7 @@ export class SchematicEditor implements Interaction {
     if (this.state.tool !== 'select') {
       this.setTool('select');
       this.symbolName = null;
+      this.componentName = null;
       this.update({ ghost: null });
       return true;
     }

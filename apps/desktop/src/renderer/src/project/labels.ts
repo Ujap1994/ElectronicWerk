@@ -37,6 +37,12 @@ const HISTORY_LABELS: Readonly<Record<string, MessageKey>> = {
   'snap-to-grid': 'history.snapToGrid',
   'edit-properties': 'history.editProperties',
   'erc-settings': 'history.ercSettings',
+  'create-library-item': 'history.createLibraryItem',
+  'delete-library-item': 'history.deleteLibraryItem',
+  'rename-library-item': 'history.renameLibraryItem',
+  'edit-library-item': 'history.editLibraryItem',
+  'edit-symbol': 'history.editSymbol',
+  'edit-footprint': 'history.editFootprint',
 };
 
 /** A readable name for an undo/redo step (scripts may use their own labels). */

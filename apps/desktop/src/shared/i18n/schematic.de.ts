@@ -90,6 +90,8 @@ export const schematicDe: Messages['schematic'] = {
     units: '{count} Einheiten',
     power: 'Versorgungssymbol',
     preview: 'Vorschau von {name}',
+    components: 'Bauteile',
+    component: 'Bauteil mit {symbol} und {footprint}',
   },
   properties: {
     title: 'Bearbeiten',

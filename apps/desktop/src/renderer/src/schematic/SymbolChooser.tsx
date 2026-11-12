@@ -19,13 +19,33 @@ export interface ProjectSymbol {
   readonly library: string;
 }
 
+/** A component of the project libraries (`schematic.components`). */
+export interface ProjectComponent {
+  readonly name: string;
+  readonly description: string;
+  readonly keywords: string;
+  readonly symbol: string;
+  readonly footprint: string | null;
+  readonly value: string;
+  readonly manufacturer: string;
+  readonly mpn: string;
+  readonly library: string;
+}
+
 type Choice =
+  | { readonly source: 'component'; readonly component: ProjectComponent }
   | { readonly source: 'project'; readonly symbol: ProjectSymbol }
   | { readonly source: 'base'; readonly entry: EntrySummary };
 
 function matches(symbol: ProjectSymbol, words: readonly string[]): boolean {
   const text =
     `${symbol.name} ${symbol.description} ${symbol.keywords} ${symbol.value}`.toLowerCase();
+  return words.every((word) => text.includes(word));
+}
+
+function componentMatches(component: ProjectComponent, words: readonly string[]): boolean {
+  const text =
+    `${component.name} ${component.description} ${component.keywords} ${component.value} ${component.manufacturer} ${component.mpn}`.toLowerCase();
   return words.every((word) => text.includes(word));
 }
 
@@ -37,13 +57,14 @@ export function SymbolChooser({
   onPick,
   onClose,
 }: {
-  /** The chosen symbol's name in the project library. */
-  readonly onPick: (name: string) => void;
+  /** The chosen symbol's name in the project library (and the component placed with it). */
+  readonly onPick: (name: string, component?: string) => void;
   readonly onClose: () => void;
 }): ReactNode {
   const { t, engine } = useAppState();
   const [query, setQuery] = useState('');
   const [project, setProject] = useState<readonly ProjectSymbol[]>([]);
+  const [components, setComponents] = useState<readonly ProjectComponent[]>([]);
   const [base, setBase] = useState<{ query: string; items: readonly EntrySummary[] } | null>(null);
   const [baseReady, setBaseReady] = useState(false);
   const [choice, setChoice] = useState<Choice | null>(null);
@@ -57,6 +78,14 @@ export function SymbolChooser({
       (list) => {
         if (!cancelled) {
           setProject(list);
+        }
+      },
+      () => undefined,
+    );
+    void engine.call<ProjectComponent[]>('schematic.components').then(
+      (list) => {
+        if (!cancelled) {
+          setComponents(list);
         }
       },
       () => undefined,
@@ -86,6 +115,10 @@ export function SymbolChooser({
     () => project.filter((symbol) => matches(symbol, words)).slice(0, 200),
     [project, words],
   );
+  const shownComponents = useMemo(
+    () => components.filter((component) => componentMatches(component, words)).slice(0, 200),
+    [components, words],
+  );
 
   // The base library answers searches of two characters or more.
   useEffect(() => {
@@ -114,7 +147,12 @@ export function SymbolChooser({
     base !== null && base.query === query && query.trim().length >= 2 ? base.items : [];
 
   // Preview of a project symbol.
-  const previewName = choice?.source === 'project' ? choice.symbol.name : null;
+  const previewName =
+    choice?.source === 'project'
+      ? choice.symbol.name
+      : choice?.source === 'component'
+        ? choice.component.symbol
+        : null;
   useEffect(() => {
     if (previewName === null) {
       return undefined;
@@ -141,6 +179,10 @@ export function SymbolChooser({
       onPick(picked.symbol.name);
       return;
     }
+    if (picked.source === 'component') {
+      onPick(picked.component.symbol, picked.component.name);
+      return;
+    }
     setBusy(true);
     setError(null);
     try {
@@ -154,11 +196,13 @@ export function SymbolChooser({
   };
 
   const first: Choice | null =
-    shown[0] !== undefined
-      ? { source: 'project', symbol: shown[0] }
-      : baseItems[0] !== undefined
-        ? { source: 'base', entry: baseItems[0] }
-        : null;
+    shownComponents[0] !== undefined && words.length > 0
+      ? { source: 'component', component: shownComponents[0] }
+      : shown[0] !== undefined
+        ? { source: 'project', symbol: shown[0] }
+        : baseItems[0] !== undefined
+          ? { source: 'base', entry: baseItems[0] }
+          : null;
   const current = choice ?? first;
 
   return (
@@ -204,6 +248,34 @@ export function SymbolChooser({
               }
             }}
           />
+          {shownComponents.length > 0 && (
+            <>
+              <h3 className="chooser__heading">{t('schematic.chooser.components')}</h3>
+              <ul className="chooser__items" data-testid="chooser-components">
+                {shownComponents.map((component) => (
+                  <li key={component.name}>
+                    <button
+                      type="button"
+                      className="chooser__item"
+                      aria-pressed={
+                        current?.source === 'component' && current.component.name === component.name
+                      }
+                      data-testid={`chooser-component-${component.name}`}
+                      onClick={() => {
+                        setChoice({ source: 'component', component });
+                      }}
+                      onDoubleClick={() => {
+                        void pick({ source: 'component', component });
+                      }}
+                    >
+                      <span className="chooser__name">{component.name}</span>
+                      <span className="chooser__meta">{component.mpn}</span>
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </>
+          )}
           <h3 className="chooser__heading">{t('schematic.chooser.project')}</h3>
           {shown.length === 0 && <p className="chooser__empty">{t('schematic.chooser.empty')}</p>}
           <ul className="chooser__items" data-testid="chooser-project">
@@ -272,6 +344,32 @@ export function SymbolChooser({
               )}
               <p className="chooser__title">{current.symbol.name}</p>
               <p className="chooser__description">{current.symbol.description}</p>
+            </>
+          )}
+          {current?.source === 'component' && (
+            <>
+              {preview?.name === current.component.symbol && (
+                <SymbolPreview
+                  def={preview.def}
+                  label={t('schematic.chooser.preview', { name: current.component.name })}
+                />
+              )}
+              <p className="chooser__title">{current.component.name}</p>
+              <p className="chooser__meta">
+                {t('schematic.chooser.component', {
+                  symbol: current.component.symbol,
+                  footprint: current.component.footprint ?? '–',
+                })}
+              </p>
+              <p className="chooser__description">
+                {[
+                  current.component.manufacturer,
+                  current.component.mpn,
+                  current.component.description,
+                ]
+                  .filter((part) => part !== '')
+                  .join(' · ')}
+              </p>
             </>
           )}
           {current?.source === 'base' && (

@@ -73,6 +73,15 @@ const PATHS = {
   cut: 'M6 9a3 3 0 1 0 0-6 3 3 0 0 0 0 6zM6 21a3 3 0 1 0 0-6 3 3 0 0 0 0 6zM8.1 7.9 20 20M8.1 16.1 20 4',
   paste: 'M9 4h6v3H9zM7 5H5v16h14V5h-2M9 12h6M9 16h6',
   move: 'M12 3v18M3 12h18M12 3l-3 3M12 3l3 3M12 21l-3-3M12 21l3-3M3 12l3-3M3 12l3 3M21 12l-3-3M21 12l-3 3',
+  pin: 'M3 12h10M13 12h.01M14 6h7v12h-7zM6 9v6',
+  pad: 'M6 7h5v10H6zM13 7h5v10h-5zM8.5 12h.01M15.5 12h.01',
+  line: 'M5 19 19 5M5 19h.01M19 5h.01',
+  rectangle: 'M4 6h16v12H4z',
+  circle: 'M12 4a8 8 0 1 0 0 16 8 8 0 0 0 0-16zM12 12h.01',
+  polyline: 'M3 18l5-9 5 6 4-10 4 5',
+  wand: 'M4 20 15 9M15 9l2-2M13 4v2M18 9h2M17 4l-1 1M19 6l-1 1M10 6l1 1',
+  table: 'M4 5h16v14H4zM4 10h16M4 15h16M10 5v14',
+  component: 'M7 6h10v12H7zM3 9h4M3 15h4M17 9h4M17 15h4M10 10h4M10 14h2',
 } as const;
 
 export type IconName = keyof typeof PATHS;

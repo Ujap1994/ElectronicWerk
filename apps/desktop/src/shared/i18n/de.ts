@@ -1,3 +1,4 @@
+import { libeditDe } from './libedit.de';
 import { schematicDe } from './schematic.de';
 import type { Messages } from './types';
 
@@ -170,6 +171,12 @@ export const de: Messages = {
     snapToGrid: 'Auf das Raster setzen',
     editProperties: 'Eigenschaften ändern',
     ercSettings: 'Prüfeinstellungen ändern',
+    createLibraryItem: 'Bibliothekselement anlegen',
+    deleteLibraryItem: 'Bibliothekselement löschen',
+    renameLibraryItem: 'Bibliothekselement umbenennen',
+    editLibraryItem: 'Eigenschaften des Bibliothekselements ändern',
+    editSymbol: 'Symbol bearbeiten',
+    editFootprint: 'Footprint bearbeiten',
   },
   kinds: {
     schematic: 'Schaltplan',
@@ -1042,4 +1049,5 @@ export const de: Messages = {
     unsaved: 'Ungesicherte Änderungen',
   },
   schematic: schematicDe,
+  libedit: libeditDe,
 };

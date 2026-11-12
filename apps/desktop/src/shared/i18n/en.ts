@@ -4,6 +4,7 @@
  *
  * Placeholders use `{name}` syntax and must be identical in every language.
  */
+import { libeditEn } from './libedit.en';
 import { schematicEn } from './schematic.en';
 
 export const en = {
@@ -173,6 +174,12 @@ export const en = {
     snapToGrid: 'Snap to grid',
     editProperties: 'Change properties',
     ercSettings: 'Change check settings',
+    createLibraryItem: 'Create library item',
+    deleteLibraryItem: 'Delete library item',
+    renameLibraryItem: 'Rename library item',
+    editLibraryItem: 'Change library item properties',
+    editSymbol: 'Edit symbol',
+    editFootprint: 'Edit footprint',
   },
   kinds: {
     schematic: 'Schematic',
@@ -1034,4 +1041,5 @@ export const en = {
     unsaved: 'Unsaved changes',
   },
   schematic: schematicEn,
+  libedit: libeditEn,
 } as const;
