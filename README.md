@@ -39,6 +39,14 @@ manufacturing outputs, online part search, GitHub integration and a full CLI.
   rubber-banding, copy and paste across sheets, find and replace, net
   highlighting, annotation and an editable inspector; new projects bring
   starter symbols and a guide for a first schematic
+- **Library editors** for symbols (pins, units, De Morgan bodies, a pin table
+  with bulk edits and pasted pin lists), footprints (all pad kinds and
+  shapes, pad arrays, silkscreen, fabrication and courtyard layers, 3D model
+  alignment) and components (symbol, footprint, manufacturer, part number,
+  suppliers), with **IPC-7351 footprint wizards** (chip, SOIC/QFP, QFN, BGA,
+  headers) and KLC-like **library checks**
+- A **net navigator**: Ctrl/⌘ + double-click on a net lists every place of it
+  on every sheet and jumps there
 - An **electrical rules check** with KiCad's configurable pin type matrix,
   unconnected pins, conflicting drivers, missing power and more, a results
   panel that zooms to each problem, and the same results as KiCad on

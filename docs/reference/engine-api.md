@@ -329,7 +329,17 @@ that stores them.
 label or other object, of a pin (its index in the unit's pin list) or of a
 point, and what belongs to it on each sheet: `{"net": "/DIS", "sheets":
 {"<doc>": {"items": [ids], "pins": ["<symbol id>/pin/<n>", "<sheet
-id>/sheetPin/<n>"]}}}`. `net` is `null` if nothing is there.
+id>/sheetPin/<n>"]}}, "places": […]}`. `net` is `null` if nothing is there.
+
+`places` lists where the net shows up, for the
+[net navigator](../guide/schematic-editor#following-a-net-across-sheets):
+one entry per label, power port, power symbol, sheet pin and component pin,
+sorted by sheet instance (top sheet first), then names before pins. Each has
+`doc`, `sheet` (the document name), `path` (`/`, `/Power/`), `kind`
+(`globalLabel`, `hierarchicalLabel`, `label`, `powerPort`, `powerSymbol`,
+`sheetPin` or `pin`), `id` (the object; the placed symbol for pins), `at` and
+`text` (`SDA`, `Power: VIN`, `U1.5`); pins also have `designator`, `pin` and
+`name`. Wires and junctions are left out.
 
 ### `schematic.symbols` / `schematic.symbol`
 
@@ -338,11 +348,20 @@ id>/sheetPin/<n>"]}}}`. `net` is `null` if nothing is there.
 `pins` and `library`, sorted by name. `schematic.symbol` (`{"name"}`) returns
 one symbol definition.
 
+`schematic.components` lists the [components](../guide/components) of the
+project libraries: `name`, `description`, `keywords`, `symbol`, `footprint`,
+`value`, `manufacturer`, `mpn` and `library`.
+
 ### `schematic.place`
 
 `{"doc", "symbol", "at", "rotation"?, "mirror"?, "unit"?, "annotate"?}`.
 Places a symbol (`place-symbol`). With `annotate`, it gets the next free
 designator of its prefix across the project; otherwise `R?`.
+
+With `"component": "<name>"` instead of `symbol`, the component's symbol is
+placed with the component's value, footprint and fields, plus
+`Manufacturer`, `MPN`, `Datasheet` and `Supplier <n>` / `Supplier <n> PN`
+per supplier.
 
 ### `schematic.wire`
 
@@ -523,6 +542,141 @@ properties shown in the inspector:
 `size`, `angle` (degrees), `bool`, `layer`, `layers`, `net`, `enum` (a
 camelCase name such as `throughHole`) or `count`. Positions of pads and pins
 are absolute. An unknown object fails with `notFound`.
+
+### `view.item`
+
+`{"doc", "kind": "symbol" | "footprint", "name", "unit"?, "alternate"?,
+"encoding"?}`. The scene of the library editor: one body of a symbol (unit,
+1-based, normal or alternate) or a footprint, in the same form as
+`view.scene`. Every pin, pad, graphic and text is an object of its own; its
+id encodes the item: the high 64 bits are the kind (`1` pin, `2` graphic,
+`3` text, `4` pad), the low 64 bits the index in its list
+(`00000000-0000-0004-0000-000000000003` is pad 3). Hidden pins are drawn.
+
+## Library editor
+
+The methods of the [library editor](../guide/library-editor). Items are
+addressed by library document (`doc`), `kind` (`symbol`, `footprint` or
+`component`) and `name`. Edits commit one undo step with the label in
+brackets and return their reply plus `history`.
+
+### `libedit.list`
+
+`{"doc"}`. The items of a library: `{"name", "symbols", "footprints",
+"components"}`, each sorted by name, with `name`, `description` and
+`checks` (`{"errors", "warnings", "infos"}`); symbols also `units`, `pins`,
+`alternate` and `power`, footprints `pads` and `models`, components
+`symbol`, `footprint` and `mpn`.
+
+### `libedit.item`
+
+`{"doc", "kind", "name"}`. `{"def", "usage", "findings"}`: the definition in
+the [file format](./file-format), where it is used (`{"placed", "board",
+"symbols", "components"}`) and the check findings (see `libedit.check`).
+
+### `libedit.create`
+
+`{"doc", "kind", "name", "copyOf"?, "def"?, "wizard"?}` (`create-library-item`).
+An empty item, a copy of another item of the library (`copyOf`), a given
+definition (`def`) or a footprint from a wizard (see `libedit.wizard`). Returns
+`{"name"}`; a name in use fails with `conflict`.
+
+### `libedit.delete`
+
+`{"doc", "kind", "name", "force"?}` (`delete-library-item`). An item in use
+fails with `conflict` unless `force` is set. Returns `{"usage"}`.
+
+### `libedit.rename`
+
+`{"doc", "kind", "name", "new"}` (`rename-library-item`). Renames the item and
+every reference: placed symbols, board footprints, default footprints of
+symbols, symbols and footprints of components. Returns `{"name",
+"changes"}`.
+
+### `libedit.setProps`
+
+`{"doc", "kind", "name", "props"}` (`edit-library-item`). Changes the item's
+own properties as a JSON merge patch: `{"description": "…",
+"pinText": {"hideNumbers": true}, "properties": {"Tolerance": "1%", "Old":
+null}}`. `name`, `id`, `type`, `units`, `pads`, `graphics`, `texts` and
+`models` cannot be set here (`invalidParams`): use `libedit.rename` and the
+edits below.
+
+### `libedit.symbol`
+
+`{"doc", "name", "body"?: {"unit", "alternate"}, "edit"}` (`edit-symbol`).
+One edit of a symbol body (default: unit 1, normal). Returns `{"body",
+"select"}`: the body to show afterwards (a new unit, the alternate body) and
+the items to select (`[{"kind": "pin", "index": 3}]`). Edits (`op`):
+
+| `op`                                       | Fields                            | Effect                                                                                        |
+| ------------------------------------------ | --------------------------------- | --------------------------------------------------------------------------------------------- |
+| `move`                                     | `items`, `delta`                  | Moves items                                                                                   |
+| `duplicate`                                | `items`, `offset`                 | Copies items; pins get the next free numbers                                                  |
+| `delete`                                   | `items`                           | Deletes items                                                                                 |
+| `orient`                                   | `items`, `orientation`, `center`? | `left`/`right` turns by 90°, `horizontal`/`vertical` mirrors                                  |
+| `addPin`                                   | `pin`                             | An empty number gets the next free one                                                        |
+| `addPins`                                  | `pins`                            | Several pins (a pasted list), numbered likewise                                               |
+| `addGraphic`                               | `graphic`                         | A line, rectangle, circle, arc, polyline or polygon                                           |
+| `addText`                                  | `text`                            | A text                                                                                        |
+| `updatePin`, `updateGraphic`, `updateText` | `index`, `pin`/`graphic`/`text`   | Replaces one item                                                                             |
+| `setPins`                                  | `indices`, `patch`                | Sets `name`, `number`, `kind`, `shape`, `direction`, `length`, `hidden`, `at` of several pins |
+| `renumber`                                 | `indices`, `start`, `step`?       | Numbers pins in the given order (`1`, `A1`)                                                   |
+| `addUnit`                                  | `copy`?                           | A new unit, empty or a copy of the shown one                                                  |
+| `removeUnit`                               |                                   | Removes the shown unit (not the last one)                                                     |
+| `nameUnit`                                 | `name`                            | Names the shown unit                                                                          |
+| `addAlternate`                             |                                   | A De Morgan body for the shown unit (a copy of the normal one)                                |
+| `removeAlternate`                          |                                   | Removes it                                                                                    |
+
+Items are `{"kind": "pin" | "graphic" | "text", "index"}`.
+
+### `libedit.footprint`
+
+`{"doc", "name", "edit"}` (`edit-footprint`). One edit of a footprint;
+returns `{"select"}`. Besides `move`, `duplicate`, `delete`, `orient`,
+`addGraphic`, `addText`, `updateGraphic`, `updateText` and `renumber`
+(pads), which work as for symbols:
+
+| `op`          | Fields                                                | Effect                                                                                                                                                             |
+| ------------- | ----------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `addPad`      | `pad`                                                 | An empty number gets the next free one                                                                                                                             |
+| `addPadArray` | `pad`, `columns`, `rows`, `pitchX`, `pitchY`, `start` | A grid of pads like `pad`, numbered row by row from `start`                                                                                                        |
+| `updatePad`   | `index`, `pad`                                        | Replaces one pad                                                                                                                                                   |
+| `setPads`     | `indices`, `patch`                                    | Sets `number`, `kind`, `shape`, `size`, `drill`, `layers`, `rotation`, `at`, `maskMargin`, `pasteMargin` of several pads; a new `kind` also fixes layers and drill |
+| `addModel`    | `model`                                               | A 3D model (`path`, `offset`, `rotation`, `scale`, `hidden`)                                                                                                       |
+| `updateModel` | `index`, `model`                                      | Replaces one model                                                                                                                                                 |
+| `courtyard`   | `margin`                                              | Replaces the top courtyard by a rectangle around pads and fabrication outline                                                                                      |
+
+Items are `{"kind": "pad" | "graphic" | "text" | "model", "index"}`.
+
+### `libedit.check`
+
+`{"doc", "kind"?, "name"?}`. The [library checks](../guide/library-checks) of
+a whole library, one kind or one item: `[{"kind", "name", "findings"}]` for
+the items with findings. A finding has `code`, `severity` (`error`,
+`warning`, `info`), `message` (English), `args` (for translations) and
+`target` (`{"kind": "pin" | "pad" | "unit", "unit"?, "alternate", "index"?}`).
+
+### `libedit.wizard` / `libedit.presets`
+
+`libedit.presets` returns the [wizard](../guide/footprint-wizard) presets:
+`[{"name", "wizard"}]`. `libedit.wizard` (`{"wizard", "name"?}`) computes a
+footprint without adding it: `{"name", "def", "findings"}`, with the
+suggested name unless `name` is given. A wizard is one of:
+
+```json
+{ "kind": "chip", "bodyLength": 1600000, "bodyWidth": 800000, "terminal": 300000, "density": "nominal" }
+{ "kind": "gullWing", "pins": 8, "quad": false, "pitch": 1270000, "leadSpan": 6000000,
+  "leadLength": 835000, "leadWidth": 410000, "bodyWidth": 3900000, "bodyLength": 4900000 }
+{ "kind": "noLead", "pins": 32, "quad": true, "pitch": 500000, "bodyWidth": 5000000,
+  "bodyLength": 5000000, "terminalLength": 400000, "terminalWidth": 250000,
+  "exposedPad": [3450000, 3450000] }
+{ "kind": "bga", "rows": 8, "columns": 8, "pitch": 800000, "ball": 400000,
+  "bodyWidth": 7000000, "bodyLength": 7000000 }
+{ "kind": "header", "rows": 2, "pinsPerRow": 5, "pitch": 2540000, "drill": 1000000, "pad": 1700000 }
+```
+
+`density` is `least`, `nominal` (default) or `most`; lengths are nanometres.
 
 ## Import
 
@@ -728,6 +882,15 @@ stored with an index pack; `remove` deletes the pack afterwards. Returns
 
 `{"hash": "…"}`. Where the GLB file of a mesh hash is cached:
 `{"path", "exists"}`.
+
+### `library.model`
+
+`{"path": "${KICAD9_3DMODEL_DIR}/Package_SO.3dshapes/SOIC-8….step"}`. The
+base library entry of a footprint's 3D model path: `{"key", "id"}`, where
+`key` is `Package_SO/SOIC-8…` (variables and extension ignored) and `id` the
+model entry for `library.get`, or `null` if the model is not in the base
+library (or no library is set up). The footprint editor uses it for its 3D
+preview.
 
 ### `library.add`
 

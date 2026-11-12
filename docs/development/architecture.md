@@ -49,6 +49,7 @@ the files are described in the [file format reference](../reference/file-format)
 | `ew-kicad`     | KiCad import: S-expression parser, projects, libraries, netlists, import report |
 | `ew-library`   | Base library: SQLite/FTS5 index, fingerprints, deduplication, library packs     |
 | `ew-schematic` | Schematic logic: connectivity, ERC, editing operations, annotation, exports     |
+| `ew-libedit`   | Library editing: symbol and footprint operations, wizards, checks, references   |
 | `ew-core`      | Sessions, transactions, undo/redo, journal, events, RPC                         |
 | `ew-node`      | Node-API bridge for the desktop app                                             |
 | `ew-cli`       | The `ewerk` command-line tool                                                   |
@@ -172,3 +173,18 @@ The [schematic editor](../guide/schematic-editor) and the
    interaction: it snaps to the grid, draws previews as SVG over the canvas,
    moves selected objects with a shader offset until the edit is committed,
    and calls the engine.
+
+The [library editor](../guide/library-editor) follows the same pattern and
+is recorded in
+[ADR-0007: Symbol, footprint and component editors](https://github.com/Ujap1994/ElectronicWerk/blob/main/docs/adr/0007-library-editors.md):
+
+1. `ew-libedit` edits one symbol body or one footprint at a time (move,
+   orient, add pins and pads, bulk changes, units, De Morgan bodies,
+   courtyards, 3D models), generates IPC-7351 footprints, runs the library
+   checks and renames items with every reference.
+2. The engine's `libedit.*` methods commit each edit as one undo step;
+   `view.item` builds an editor scene in which every pin, pad, graphic and
+   text is an object with an id that encodes its kind and index.
+3. In the renderer, `ItemEditor` is the viewer interaction of the library
+   editor; the pin and pad tables, the side panel and the wizard call the
+   same engine methods.

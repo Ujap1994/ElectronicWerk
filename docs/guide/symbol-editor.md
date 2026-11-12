@@ -178,7 +178,7 @@ bulk edits.
 | **Datasheet**                            | A link or file name.                                                                                                                                                 |
 | **Power symbol**                         | The symbol is a power port such as `GND`: its power-input pin joins the net named like the placed symbol's value, everywhere in the project.                         |
 | **Hide pin numbers**, **Hide pin names** | For passives, whose pin numbers say nothing on the sheet.                                                                                                            |
-| **Pin name offset**                      | Distance of pin names from the body edge. `0` puts names next to the pin, outside the body.                                                                          |
+| **Pin name offset**                      | Distance of pin names from the body edge. `0` puts names above the pin line, outside the body.                                                                       |
 | **Fields**                               | Extra fields that every placed symbol inherits (`Tolerance`, `Voltage`). Add one by name, change its value, remove it with the trash button.                         |
 
 The line below the name tells you where the symbol is used: on sheets, by
