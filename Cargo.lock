@@ -434,6 +434,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "ew-libedit"
+version = "0.6.2"
+dependencies = [
+ "ew-model",
+ "serde",
+ "serde_json",
+ "thiserror",
+]
+
+[[package]]
 name = "ew-library"
 version = "0.6.2"
 dependencies = [
