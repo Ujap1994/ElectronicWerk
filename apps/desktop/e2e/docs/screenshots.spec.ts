@@ -1195,3 +1195,184 @@ test('library editor', async () => {
   await shoot(dark.page, 'libedit-footprint-dark');
   await dark.close();
 });
+
+interface BoardJson {
+  footprints: {
+    id: string;
+    designator: string;
+    at: Point;
+    rotation?: number;
+    side?: string;
+    pads: { number: string; at: Point; net?: string }[];
+  }[];
+}
+
+function readBoardJson(project: string): BoardJson {
+  const dir = join(PROJECTS, project, 'pcb');
+  const file = readdirSync(dir).find((name) => !name.startsWith('.'));
+  return JSON.parse(readFileSync(join(dir, file ?? ''), 'utf8')) as BoardJson;
+}
+
+test('layout editor', async () => {
+  test.setTimeout(240_000);
+  freshProjects();
+  const kicad = '/tmp/ElectronicWerk/KiCad/blinky';
+  rmSync(kicad, { recursive: true, force: true });
+  cpSync(KICAD_FIXTURE, kicad, { recursive: true });
+  const { app, page, close } = await start({ settings: { theme: 'light' } });
+  await page.setViewportSize({ width: 1500, height: 900 });
+  await queueDialogAnswer(app, join(kicad, 'blinky.kicad_pro'));
+  await page.getByTestId('import-kicad').click();
+  await page.getByTestId('kicad-import-name').fill('Blinky');
+  await page.getByTestId('kicad-import-start').click();
+  await page
+    .getByTestId('import-report')
+    .getByRole('button', { name: 'Close', exact: true })
+    .last()
+    .click();
+  const board = readBoardJson('Blinky');
+  await page
+    .locator('[data-testid^="tree-doc:"]')
+    .filter({ hasText: /^Blinky$/u })
+    .dblclick();
+  await settle(page);
+  await expect(page.getByTestId('viewer')).toHaveAttribute('data-kind', 'pcb');
+
+  // The editor with the online design rules check and the ratsnest.
+  await page.getByTestId('board-fill').click();
+  await edited(page, /fill-zones|Fill/u);
+  await page.getByTestId('board-drc').click();
+  await expect(page.getByTestId('drc-summary')).toBeVisible();
+  await settle(page);
+  await page.mouse.move(10, 10);
+  await shoot(page, 'layout-editor');
+  await shoot(page.getByTestId('drc-panel'), 'layout-drc-panel');
+  await shoot(page.getByTestId('board-tool-palette'), 'layout-tools');
+
+  // A footprint in the inspector.
+  const u1 = board.footprints.find((f) => f.designator === 'U1');
+  if (u1 !== undefined) {
+    await clickPoint(page, u1.at);
+    await expect(page.getByTestId('board-properties')).toBeVisible();
+    await page.mouse.move(10, 10);
+    await shoot(page.getByTestId('inspector'), 'layout-properties');
+    await page.keyboard.press('Escape');
+  }
+
+  // Routing: from a pad of a net towards a free spot.
+  const fp = board.footprints.find(
+    (f) => f.designator === 'R3' || (f.pads.some((p) => p.net !== undefined) && !f.rotation),
+  );
+  const pad = fp?.pads.find((p) => p.net !== undefined);
+  if (fp !== undefined && pad !== undefined) {
+    const start: Point = [fp.at[0] + pad.at[0], fp.at[1] + pad.at[1]];
+    await viewerCanvas(page).focus();
+    await page.keyboard.press('x');
+    await clickPoint(page, start);
+    await expect(page.getByTestId('route-status')).toBeVisible();
+    const [sx, sy] = await toScreen(viewerCanvas(page), start);
+    await page.mouse.move(sx + 40, sy + 90, { steps: 8 });
+    await expect(page.getByTestId('route-preview')).toBeVisible();
+    await settle(page);
+    await shoot(page, 'layout-routing');
+    await page.keyboard.press('Escape');
+    await page.keyboard.press('Escape');
+  }
+
+  // Dialogs.
+  await page.getByTestId('board-rules').click();
+  const rules = page.getByTestId('rules-dialog');
+  await expect(page.getByTestId('class-name-0')).toHaveValue('Default');
+  await shoot(rules, 'layout-rules-classes');
+  await page.getByTestId('rules-tab-constraints').click();
+  await shoot(rules, 'layout-rules-minimums');
+  await page.getByTestId('rules-tab-custom').click();
+  await page.getByTestId('rule-add').click();
+  await page.getByTestId('rule-name-0').fill('HV spacing');
+  await page.getByTestId('rule-name-0').press('Enter');
+  await page.getByTestId('rule-condition-0').fill("A.netclass == 'Power' && B.netclass != 'Power'");
+  await page.getByTestId('rule-condition-0').press('Enter');
+  await page.getByTestId('rule-clearance-0').check();
+  await page.getByTestId('rule-value-clearance-0').fill('0.5');
+  await page.getByTestId('rule-value-clearance-0').press('Enter');
+  await page.getByTestId('rule-add').click();
+  await page.getByTestId('rule-condition-1').fill("A.type == 'via' && A.layer = 'cu.top'");
+  await page.getByTestId('rule-condition-1').press('Enter');
+  await expect(page.getByTestId('rule-error-1')).toBeVisible();
+  await shoot(rules, 'layout-rules-custom');
+  await page.getByTestId('rules-tab-checks').click();
+  await shoot(rules, 'layout-rules-checks');
+  await rules.getByRole('button', { name: 'Cancel' }).click();
+
+  await page.getByTestId('board-setup').click();
+  const setup = page.getByTestId('setup-dialog');
+  await expect(page.getByTestId('preset-standard-2l')).toBeVisible();
+  await shoot(setup, 'layout-setup-presets');
+  await page.getByTestId('setup-tab-stackup').click();
+  await expect(page.getByTestId('stackup-table')).toBeVisible();
+  await shoot(setup, 'layout-setup-stackup');
+  await page.getByTestId('setup-tab-outline').click();
+  await shoot(setup, 'layout-setup-outline');
+  await setup.getByRole('button', { name: 'Cancel' }).click();
+
+  await page.getByTestId('board-update').click();
+  const sync = page.getByTestId('sync-dialog');
+  await expect(page.getByTestId('sync-none').or(page.getByTestId('sync-list'))).toBeVisible();
+  await shoot(sync, 'layout-sync');
+  await sync.getByRole('button', { name: 'Cancel' }).click();
+
+  // A new zone: its settings dialog.
+  await viewerCanvas(page).focus();
+  await page.keyboard.press('z');
+  const box = await viewerCanvas(page).boundingBox();
+  if (box !== null) {
+    for (const [fx, fy] of [
+      [0.62, 0.25],
+      [0.8, 0.25],
+      [0.8, 0.45],
+      [0.62, 0.45],
+    ] as const) {
+      await page.mouse.click(box.x + box.width * fx, box.y + box.height * fy);
+    }
+    await settle(page);
+    await shoot(page.locator('.viewer__area'), 'layout-zone-drawing');
+    await page.keyboard.press('Enter');
+    const zone = page.getByTestId('zone-dialog');
+    await expect(zone).toBeVisible();
+    await page.getByTestId('zone-name').fill('Shield');
+    await page.getByTestId('zone-name').press('Enter');
+    await page.getByTestId('zone-net').selectOption({ label: 'GND' });
+    await shoot(zone, 'layout-zone-dialog');
+    await page.getByTestId('zone-save').click();
+    await expect(zone).toBeHidden();
+    await edited(page, /fill-zones|Fill/u);
+    await page.mouse.move(10, 10);
+    await shoot(page, 'layout-zone-filled');
+  }
+
+  // The DXF import.
+  const dxf = '/tmp/ElectronicWerk/Drawings/enclosure.dxf';
+  mkdirSync('/tmp/ElectronicWerk/Drawings', { recursive: true });
+  writeFileSync(
+    dxf,
+    [
+      ...['0', 'SECTION', '2', 'HEADER', '9', '$INSUNITS', '70', '4', '0', 'ENDSEC'],
+      ...['0', 'SECTION', '2', 'ENTITIES'],
+      ...['0', 'LWPOLYLINE', '8', 'BOARD', '90', '6', '70', '1'],
+      ...['10', '0', '20', '0', '10', '60', '20', '0', '42', '0'],
+      ...['10', '60', '20', '35', '42', '0.4142', '10', '50', '20', '45'],
+      ...['10', '0', '20', '45', '10', '0', '20', '0'],
+      ...['0', 'CIRCLE', '8', 'HOLES', '10', '5', '20', '5', '40', '1.6'],
+      ...['0', 'CIRCLE', '8', 'HOLES', '10', '55', '20', '5', '40', '1.6'],
+      ...['0', 'TEXT', '8', 'NOTES', '1', 'Enclosure rev 2'],
+      ...['0', 'ENDSEC', '0', 'EOF', ''],
+    ].join('\n'),
+  );
+  await queueDialogAnswer(app, dxf);
+  await page.getByTestId('board-dxf').click();
+  await page.getByTestId('dxf-choose').click();
+  await expect(page.getByTestId('dxf-summary')).toBeVisible();
+  await shoot(page.getByTestId('dxf-dialog'), 'layout-dxf');
+  await page.getByTestId('dxf-dialog').getByRole('button', { name: 'Cancel' }).click();
+  await close();
+});

@@ -6,12 +6,118 @@ project uses [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.8.0] - 2026-11-12
+
+The layout release: boards are edited in ElectronicWerk itself. Tracks are
+routed interactively around obstacles, copper zones fill with thermal
+reliefs, the design rules (net classes, board minimums and custom rules in
+a small query language) are checked online while you edit, and schematic
+and board stay in sync in both directions.
+
 ### Added
 
+- **Layout editor**: the board view becomes an editor with a tool column
+  (select, place footprint, route, via, copper zone, keep-out area, board
+  outline, text, highlight net), an **active copper layer** selector (Page
+  Up / Page Down), turning (R), flipping to the other side (Shift+F),
+  locking (L), aligning and distributing footprints, moving (M) and deleting,
+  each as one undo step. Clicking a pad keeps the pad in the inspector while
+  a drag moves its footprint. See [The layout editor](https://ujap1994.github.io/ElectronicWerk/guide/layout-editor).
+- **Inspector editing** of board objects: designator, value, rotation, side
+  and lock of footprints, width and layer of tracks, diameter and drill of
+  vias, the text of board texts.
+- **Interactive routing** in walkaround mode (X): from a pad, track end or
+  via, segments at 0°, 45° and 90° follow the cursor and go around copper
+  of other nets, non-plated holes, keep-out areas and the board edge with
+  the clearances of the rules. Clicks fix segments, V places a via and
+  changes to the opposite layer, / swaps the corner, Backspace takes back a
+  segment; the target pad snaps to its centre. Track width and via sizes
+  come from the net class (or a custom rule). The whole route is one undo
+  step.
+- **Dragging tracks** (drag or D): a segment moves sideways and the tracks
+  and vias at its ends follow.
+- **Copper zones** (Z) with net, layers, priority, clearance, minimum width,
+  thermal reliefs (gap and spoke width) or solid pads, island removal and
+  hatched fill, edited by double-click; **keep-out areas** (K) that forbid
+  tracks, vias, pads, zones or footprints. **Fill all zones** (Shift+B).
+- **Ratsnest**: the shortest connections still to route, as dashed lines,
+  updated after every change.
+- **Board setup**: five **presets** (home etching 1 layer, standard 2 and 4
+  layers, fine pitch 6 layers, thin 0.8 mm) that set the stack-up, the board
+  minimums and the Default net class; a **stack-up editor** (copper layer
+  count, board thickness, layer thickness, material, εr, finish); a
+  rectangular **outline** from width and height. The **outline tool** (O)
+  draws rectangles or polygons.
+- **DXF import** for board outlines and mechanical layers: lines, arcs,
+  circles, polylines with bulges, splines and ellipses, units from the file
+  or chosen, a choice of DXF layers, replacing the old outline and moving
+  the drawing to the origin.
+- **Design rules** dialog: **net classes** (clearance, track width, via
+  size, differential pair sizes) with name **patterns** (`+*V*` → Power),
+  **board minimums** (clearance, track width, via diameter and drill,
+  annular ring, hole, hole to hole, copper to edge, silkscreen width),
+  **custom rules** with conditions such as `A.netclass == 'HV' &&
+B.netclass != 'HV'` (properties of the items A and B, wildcards, units,
+  `insideZone('name')`) checked for syntax as you type, and the
+  **severity** of every check. Later custom rules win; nothing goes below
+  the board minimums.
+- **Design rules check** with an online mode (it runs again after every
+  change), 25 checks — short, clearance, unrouted, track width, via
+  diameter and drill, annular ring, hole size, hole to hole, copper to
+  edge, missing or open outline, outside the board, keep-out, courtyard
+  overlap, silkscreen on pads, silkscreen width, dangling tracks and vias,
+  unfilled zones, duplicate designators, missing and extra footprints,
+  pad nets that differ from the schematic, custom rule errors — markers on
+  the board, a panel that zooms to each finding and **accepted findings**
+  stored with the board. Every finding names where its limit comes from
+  (net class, rule, board minimum).
+- **Update the board from the schematic** (forward annotation): an ECO
+  dialog lists new, removed and changed footprints, designators, values,
+  links, new and removed nets, **renamed nets** (tracks keep their
+  connection) and pad nets; changes can be left out. New footprints are
+  placed in rows below the board. Parts that cannot be placed are listed
+  with the reason.
+- **Back annotation**: designators, values and footprints changed on the
+  board go back to the schematic (also for sheets used more than once).
+- **Cross-probing**: selecting symbols selects their footprints on the
+  board and the other way round, across tabs.
+- Command palette entries for the board commands; the DXF file dialog.
+- **Engine API**: `pcb.drc` (full or by region), `pcb.exclude`,
+  `pcb.ratsnest`, `pcb.fillZones`, `pcb.unfillZones`, `pcb.rules`,
+  `pcb.setRules`, `pcb.validateRule`, `pcb.syncPreview`, `pcb.syncApply`,
+  `pcb.backPreview`, `pcb.backApply`, `pcb.crossProbe`, `pcb.edit`,
+  `pcb.place`, `pcb.routeStart`, `pcb.route`, `pcb.addTracks`,
+  `pcb.presets`, `pcb.applyPreset`, `pcb.dxfPreview`, `pcb.importDxf` and
+  `document.object`.
+- **File format**: custom rules and DRC severities in the rules document,
+  accepted DRC findings in the board, holes in filled zone areas (all
+  optional; older files read unchanged).
+- New crate `ew-pcb` with exact copper geometry (discs, stadiums, rounded
+  polygons), an R-tree of the board, connectivity, the rule engine, the
+  DRC, the zone filler (polygon operations with `i_overlay`), the router,
+  board edits, the schematic diff, presets and the DXF reader; ADR-0008
+  records the design.
+- Performance budgets in CI: the full DRC of a 5,000-part board (200,000
+  track segments) in 1.5 s, the online check of a 500-part board in 20 ms.
 - A **Release snap** workflow adds a missing snap package to a published
   release (built from the tagged source, smoke-tested, with updated
   checksums). The release workflow skips the snap when the Snap Store is
   unreachable, as it was for the Linux x64 build of 0.7.1.
+- Documentation: seven new guide pages (layout editor, schematic and board,
+  board setup and outline, routing, zones, design rules, DRC) with
+  screenshots, keyboard shortcuts of the layout editor, the engine API and
+  file format references.
+
+### Changed
+
+- The view toolbar wraps onto a second row when it does not fit, instead of
+  covering the side panels.
+- Boards are no longer read-only in the inspector.
+
+### Fixed
+
+- Tests of the command-line tool ignore exit codes explicitly (a new lint
+  of Rust 1.100 failed the build).
 
 ## [0.7.1] - 2026-11-12
 

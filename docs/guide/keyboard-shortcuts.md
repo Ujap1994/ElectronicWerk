@@ -129,4 +129,45 @@ drawing first):
 In the pin and pad tables, <kbd>Ctrl</kbd>/<kbd>⌘</kbd>-click and
 <kbd>Shift</kbd>-click select several rows.
 
-Layout editor shortcuts will be added here together with the layout editor.
+## Layout editor
+
+In the [layout editor](./layout-editor) (click the board first):
+
+| Key                                          | Action                                                   |
+| -------------------------------------------- | -------------------------------------------------------- |
+| <kbd>S</kbd>                                 | Select tool                                              |
+| <kbd>A</kbd>                                 | Place a footprint (opens the chooser)                    |
+| <kbd>X</kbd>                                 | Route tracks                                             |
+| <kbd>V</kbd>                                 | Place vias; while routing: via and layer change          |
+| <kbd>Z</kbd>                                 | Copper zone                                              |
+| <kbd>K</kbd>                                 | Keep-out area                                            |
+| <kbd>O</kbd>                                 | Board outline                                            |
+| <kbd>T</kbd>                                 | Text                                                     |
+| <kbd>N</kbd>                                 | Highlight net tool                                       |
+| <kbd>`</kbd>                                 | Highlight the net under the cursor                       |
+| <kbd>Page Up</kbd> / <kbd>Page Down</kbd>    | Previous / next copper layer (while routing: with a via) |
+| <kbd>R</kbd> / <kbd>Shift</kbd>+<kbd>R</kbd> | Turn the selection by 90° (or the next footprint)        |
+| <kbd>Shift</kbd>+<kbd>F</kbd>                | Flip the selection to the other side of the board        |
+| <kbd>M</kbd>                                 | Move the selection with the cursor (click to drop)       |
+| <kbd>D</kbd>                                 | Drag a track with its neighbours (click to drop)         |
+| <kbd>L</kbd> / <kbd>Shift</kbd>+<kbd>L</kbd> | Lock / unlock the selection                              |
+| <kbd>Shift</kbd>+<kbd>B</kbd>                | Fill all zones                                           |
+| <kbd>B</kbd>                                 | View from the bottom (as in the viewer)                  |
+| <kbd>Delete</kbd>, <kbd>Backspace</kbd>      | Delete the selection                                     |
+| <kbd>Esc</kbd>                               | End what is in progress, then back to the select tool    |
+
+While routing:
+
+| Key                            | Action                                               |
+| ------------------------------ | ---------------------------------------------------- |
+| Click                          | Fix the path; on copper of the net: finish           |
+| <kbd>Enter</kbd>, double-click | Finish the route                                     |
+| <kbd>/</kbd>                   | Start with the diagonal or with the straight segment |
+| <kbd>V</kbd>                   | Via at the end, continue on the opposite outer layer |
+| <kbd>Backspace</kbd>           | Take back the last fixed segment                     |
+| <kbd>Esc</kbd>                 | End: fixed segments stay, the live path is dropped   |
+
+While drawing a zone, keep-out area or polygon outline: <kbd>Backspace</kbd>
+removes the last corner, <kbd>Enter</kbd> or a double-click closes the
+shape, <kbd>/</kbd> switches the outline tool between rectangle and
+polygon.

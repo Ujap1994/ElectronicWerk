@@ -172,17 +172,19 @@ function ConditionInput({
 export function RulesDialog({
   doc,
   units,
+  initialTab = 'classes',
   onClose,
 }: {
   readonly doc: string;
   readonly units: Units;
+  readonly initialTab?: Tab;
   readonly onClose: () => void;
 }): ReactNode {
   const { t, engine } = useAppState();
   const { notify } = useProject();
   const [reply, setReply] = useState<RulesReply | null>(null);
   const [rules, setRules] = useState<RulesProps | null>(null);
-  const [tab, setTab] = useState<Tab>('classes');
+  const [tab, setTab] = useState<Tab>(initialTab);
 
   useEffect(() => {
     let cancelled = false;

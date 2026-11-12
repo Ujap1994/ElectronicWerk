@@ -2,9 +2,9 @@
 
 ElectronicWerk draws schematic sheets and boards in a fast 2D view. You can
 pan and zoom smoothly through large designs, select objects, read their
-properties, and choose which layers you see. Sheets are edited right in this
-view (see [Drawing schematics](./schematic-editor)); boards are read-only
-until the layout editor arrives in version 0.8.
+properties, and choose which layers you see. Sheets and boards are edited
+right in this view (see [Drawing schematics](./schematic-editor) and
+[The layout editor](./layout-editor)).
 
 ![A board in the 2D view](/screenshots/viewer-board.png)
 

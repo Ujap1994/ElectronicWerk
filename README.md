@@ -8,14 +8,16 @@ An open-source ECAD suite for beginners and advanced hobbyists. It covers
 schematic, symbol, footprint and layout editing, a live 3D view, ERC/DRC,
 manufacturing outputs, online part search, GitHub integration and a full CLI.
 
-> **Status:** early development. Version 0.5 adds the base library: the
-> KiCad symbols, footprints and 3D models in one searchable place, with 2D and
-> 3D previews and duplicate detection. It builds on the KiCad import (0.4), the
-> fast 2D view (0.3) and projects (0.2). The editors follow milestone by
-> milestone. See the [roadmap](ROADMAP.md) for milestones and progress.
+> **Status:** early development. Version 0.8 adds the layout editor:
+> interactive routing around obstacles, copper zones, design rules with net
+> classes and custom rules, an online design rules check, and updating the
+> board from the schematic and back. It builds on the library editors (0.7),
+> the schematic editor (0.6), the base library (0.5), the KiCad import (0.4),
+> the fast 2D view (0.3) and projects (0.2). Manufacturing outputs come next.
+> See the [roadmap](ROADMAP.md) for milestones and progress.
 
 <p align="center">
-  <img src="docs/public/screenshots/viewer-pad-selected.png" width="800" alt="A board in the ElectronicWerk 2D view with a selected pad and its properties">
+  <img src="docs/public/screenshots/layout-editor.png" width="800" alt="The ElectronicWerk layout editor with a board, the ratsnest and the design rules check">
 </p>
 
 **[Documentation](https://ujap1994.github.io/ElectronicWerk/)** ·
@@ -47,6 +49,23 @@ manufacturing outputs, online part search, GitHub integration and a full CLI.
   headers) and KLC-like **library checks**
 - A **net navigator**: Ctrl/⌘ + double-click on a net lists every place of it
   on every sheet and jumps there
+- A **layout editor**: footprints, **interactive routing** that walks around
+  copper of other nets with the clearances of the rules, vias and layer
+  changes, dragging tracks, copper **zones** with thermal reliefs, priorities
+  and island removal, keep-out areas, board outlines (drawn or **imported
+  from DXF**), board presets and a stack-up editor, turning, flipping,
+  aligning and an editable inspector
+- **Design rules** with net classes, name patterns, board minimums and
+  **custom rules** in a small query language (`A.netclass == 'HV' &&
+B.netclass != 'HV'`)
+- A **design rules check** that runs online while you edit (about 20 ms on a
+  500-part board): clearances, shorts, unrouted connections, widths, vias,
+  annular rings, holes, board edge, keep-outs, courtyards, silkscreen and
+  parity with the schematic, with markers on the board and accepted findings
+- **Schematic ↔ board:** update the board from the schematic (new parts,
+  footprint and value changes, nets, renamed nets), back annotation of
+  designators, values and footprints, and **cross-probing** between sheets
+  and board
 - An **electrical rules check** with KiCad's configurable pin type matrix,
   unconnected pins, conflicting drivers, missing power and more, a results
   panel that zooms to each problem, and the same results as KiCad on
@@ -77,11 +96,11 @@ manufacturing outputs, online part search, GitHub integration and a full CLI.
 
 ## Planned highlights
 
-- Open standard formats (DXF, Gerber, STEP, …)
+- Open standard formats (Gerber, STEP, …)
 - **Online part search** that plugs into the base library and its
   deduplication
 - A **live 3D view**, optionally in its own window
-- **DRC** and a rule system for the layout
+- Push-and-shove routing, differential pairs and length tuning
 - Manufacturing outputs: Gerber X2, Excellon, BOM, pick-and-place, PDF, STEP
 - **GitHub integration**: save a project straight to a new or existing
   repository

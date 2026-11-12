@@ -1,7 +1,7 @@
 # ElectronicWerk Roadmap
 
-> **Status:** v0.11 (2026-11-12). M0 to M6 are complete (releases v0.1.0 to
-> v0.7.1; M0, M1 and M3 accepted by the maintainer); M7 is next.
+> **Status:** v0.12 (2026-11-12). M0 to M7 are complete (releases v0.1.0 to
+> v0.8.0; M0, M1 and M3 accepted by the maintainer); M8 is next.
 > This roadmap is a living document. It **must** be updated with every feature
 > (requirement D5). Every change to it is listed in the
 > [roadmap changelog](#13-roadmap-changelog).
@@ -242,7 +242,7 @@ own work only. Maintainer test cycles and feedback come on top. Status values:
 | M4  | Unified base library and library manager              | v0.5.0  | F2                | 5–8 S           | ✅     |
 | M5  | Schematic editor and ERC                              | v0.6.0  | F4, F10           | 12–18 S         | ✅     |
 | M6  | Symbol editor and footprint editor                    | v0.7.0  | F5, F6            | 8–12 S          | ✅     |
-| M7  | Layout editor, DRC, rules, schematic ↔ PCB sync       | v0.8.0  | F7, F10           | 16–24 S         | ⬜     |
+| M7  | Layout editor, DRC, rules, schematic ↔ PCB sync       | v0.8.0  | F7, F10           | 16–24 S         | ✅     |
 | M8  | Manufacturing outputs and output jobs                 | v0.9.0  | F10               | 7–10 S          | ⬜     |
 | M9  | Live 3D view and STEP export                          | v0.10.0 | F8                | 7–10 S          | ⬜     |
 | M10 | Online component search and provider accounts         | v0.11.0 | F1                | 6–9 S           | ⬜     |
@@ -647,23 +647,40 @@ Delivered in v0.7.1:
       renames, engine methods), Vitest, end-to-end tests of the editors and
       the net navigator; documentation with screenshots.
 
-### M7 — Layout editor, DRC, rules, schematic ↔ PCB sync (v0.8.0, 16–24 S)
+### M7 — Layout editor, DRC, rules, schematic ↔ PCB sync (v0.8.0, 16–24 S) ✅
 
-- Board setup: outline (drawn), layer stack-up editor (copper, dielectric,
-  thickness), board presets.
-- Forward and back annotation (ECO dialog), cross-probing and cross-selection
-  between schematic and PCB.
-- Placement: ratsnest, alignment and distribution tools, rooms (later),
-  component grid.
-- Interactive routing (walkaround), vias, track width from rules,
-  multi-segment editing, track drag.
-- Copper zones and pours (thermal relief, priorities, islands), keep-out areas.
-- **Design rules:** net classes, clearance, width, via and annular ring rules,
-  a rule editor with a query language. Rules are stored in the project.
-- **DRC**, online (incremental, < 100 ms) and batch (full): clearance, shorts,
-  unrouted nets, annular ring, holes, silkscreen over pads, courtyard overlap
-  and more.
-- DXF import for board outlines and mechanical layers.
+Delivered in v0.8.0 (design in ADR-0008):
+
+- [x] Board setup: outline (drawn as rectangle or polygon, or set in the
+      setup dialog), layer stack-up editor (copper, dielectric, thickness,
+      material, εr, finish), five board presets.
+- [x] Forward and back annotation (ECO dialog with selectable changes,
+      net renames that keep tracks), cross-probing and cross-selection
+      between schematic and PCB.
+- [x] Placement: ratsnest (minimum spanning tree per net), alignment and
+      distribution tools, turning, flipping to the other side, locking,
+      placing footprints of the project libraries. Rooms and a component
+      grid follow later.
+- [x] Interactive routing (walkaround: two-segment paths, A\* search around
+      obstacles with rule clearances), vias with layer change, track width
+      from rules, multi-segment editing (width, layer, net), track drag.
+- [x] Copper zones and pours (thermal reliefs, priorities, minimum width,
+      island removal, hatched fill), keep-out areas.
+- [x] **Design rules:** net classes with name patterns, clearance, width,
+      via, annular ring, hole, hole-to-hole and edge rules, custom rules with
+      a query language and live syntax check, check severities. Rules are
+      stored in the project.
+- [x] **DRC**, online (by region, about 20 ms on a 500-part board) and
+      batch (1.5 s on a 5,000-part board): 25 checks including clearance,
+      shorts, unrouted nets, annular ring, holes, board edge, keep-outs,
+      silkscreen over pads, courtyard overlap and schematic parity; accepted
+      findings are stored with the board.
+- [x] DXF import for board outlines and mechanical layers.
+- [x] Board objects editable in the inspector.
+- [x] Tests: Rust unit and integration tests (geometry, polygons,
+      connectivity, rules, DRC, filler, router, edits, sync, DXF, engine
+      methods), performance budgets in CI, Vitest, end-to-end tests of the
+      layout editor and cross-probing; documentation with screenshots.
 
 ### M8 — Manufacturing outputs and output jobs (v0.9.0, 7–10 S)
 
@@ -859,4 +876,5 @@ The CLI grows with every milestone. This milestone completes it.
 | 2026-11-08 | v0.8       | M4 complete: v0.5.0 with the base library, deduplication engine, 3D mesh cache and library manager. KiCad 10 ships STEP models only, so STEP is tessellated with OpenCASCADE (WebAssembly) as planned in ADR-0001; the library is built from the official KiCad repositories on GitLab (the GitHub mirrors stopped in 2020). Symbols with the same pins but another body are not near duplicates (they are different part types).                          |
 | 2026-11-09 | v0.9       | M3 tested and accepted by the maintainer. M5 started.                                                                                                                                                                                                                                                                                                                                                                                                      |
 | 2026-11-09 | v0.10      | M5 complete: v0.6.2 with the schematic editor, the ERC (same findings as KiCad on imported projects), net highlighting, find and replace, annotation, exports and beginner aids. Starter symbols in new projects were added so the first-schematic guide works without the base library. Buses are drawn only; bus member nets follow later.                                                                                                               |
+| 2026-11-12 | v0.12      | M7 complete: v0.8.0 with the layout editor, walkaround routing, zones, design rules with a query language, the online DRC (by region; the incremental index cache for very large boards follows if needed) and schematic ↔ board updates. Push-and-shove stays in M15 as planned.                                                                                                                                                                          |
 | 2026-11-12 | v0.11      | M6 complete: v0.7.1 with the symbol, footprint and component editors, IPC-7351 footprint wizards and library checks (0.7.0 was tagged but not published: the Snap Store was unreachable from the Linux builds). Models outside the base library have no 3D preview until the 3D view (M9) tessellates project models. The net navigator (Ctrl/⌘ + double-click on a net, an Altium feature) was added to the schematic editor at the maintainer's request. |

@@ -21,14 +21,14 @@ with [ADR-0001: Application architecture](https://github.com/Ujap1994/Electronic
                      ewerk CLI ──────────► Rust engine (ew-core)
 ```
 
-| Part           | Technology                | Responsibility                                                                                                                        |
-| -------------- | ------------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
-| Main process   | Electron, TypeScript      | Windows, menus, settings, security policy, update check, starting and restarting the engine                                           |
-| Renderer       | React, TypeScript, WebGL2 | The user interface and the 2D view. It has no access to Node.js or the file system                                                    |
-| Preload script | TypeScript                | The only bridge: a small, typed API (`window.ew`)                                                                                     |
-| Engine host    | Electron `utilityProcess` | Loads the native engine and serves requests                                                                                           |
-| Engine         | Rust (`crates/ew-*`)      | Data model (`ew-model`), file format (`ew-format`), sessions, transactions, undo and journal (`ew-core`); later all design algorithms |
-| CLI            | Rust (`crates/ew-cli`)    | The same engine for terminals, scripts and AI agents                                                                                  |
+| Part           | Technology                | Responsibility                                                                                                                                                                  |
+| -------------- | ------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Main process   | Electron, TypeScript      | Windows, menus, settings, security policy, update check, starting and restarting the engine                                                                                     |
+| Renderer       | React, TypeScript, WebGL2 | The user interface and the 2D view. It has no access to Node.js or the file system                                                                                              |
+| Preload script | TypeScript                | The only bridge: a small, typed API (`window.ew`)                                                                                                                               |
+| Engine host    | Electron `utilityProcess` | Loads the native engine and serves requests                                                                                                                                     |
+| Engine         | Rust (`crates/ew-*`)      | Data model (`ew-model`), file format (`ew-format`), sessions, transactions, undo and journal (`ew-core`), and the design algorithms (`ew-schematic`, `ew-libedit`, `ew-pcb`, …) |
+| CLI            | Rust (`crates/ew-cli`)    | The same engine for terminals, scripts and AI agents                                                                                                                            |
 
 ## Projects, transactions and recovery
 
@@ -188,3 +188,31 @@ is recorded in
 3. In the renderer, `ItemEditor` is the viewer interaction of the library
    editor; the pin and pad tables, the side panel and the wizard call the
    same engine methods.
+
+## Layout editor
+
+The [layout editor](../guide/layout-editor), the [design rules](../guide/design-rules),
+the [design rules check](../guide/drc) and the
+[schematic ↔ board update](../guide/schematic-to-board) are recorded in
+[ADR-0008: Layout editor, design rules and DRC](https://github.com/Ujap1994/ElectronicWerk/blob/main/docs/adr/0008-layout-editor.md):
+
+1. `ew-pcb` turns a board into exact copper shapes (discs, stadiums and
+   rounded polygons) in an R-tree, works out what touches (shorts and the
+   ratsnest as a minimum spanning tree), resolves net classes and custom
+   rules written in a small query language, runs the DRC over the whole
+   board or one region, fills zones with polygon operations (`i_overlay`),
+   routes around obstacles (two-segment paths, then an A\* search on an
+   octilinear grid), diffs the schematic against the board, edits board
+   objects and reads DXF drawings. The pair searches run in parallel
+   (`rayon`).
+2. The engine's `pcb.*` methods commit each edit as one undo step and keep
+   the last DRC report of every board for online checks of a region.
+3. In the renderer, `BoardEditor` is the viewer interaction of boards: it
+   snaps, asks the router for a preview at every pointer move (one request
+   at a time, the latest target wins), draws previews, the ratsnest and DRC
+   markers as SVG over the canvas, and calls the engine. Cross-probing
+   between sheets and boards goes through a small shared store.
+
+Performance budgets (checked on every CI run): a full DRC of the
+synthetic L board (5,000 parts, 200,000 track segments) in under 3 s, an
+online check of a region of the M board (500 parts) in under 100 ms.

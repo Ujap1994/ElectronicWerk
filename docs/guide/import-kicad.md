@@ -102,7 +102,7 @@ and a `.gitignore`, as a [new project](./projects) does.
 
 | KiCad                                          | What happens                                                                                                                          |
 | ---------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
-| Custom design rules (`.kicad_dru`)             | Not imported; the report counts them (`custom-rules`). The rule editor arrives with the layout editor.                                |
+| Custom design rules (`.kicad_dru`)             | Not imported; the report counts them (`custom-rules`). Write them again as [custom rules](./design-rules#custom-rules).               |
 | Dimensions, text boxes, images, tables         | Not imported; the report names each kind (`unsupported-item`).                                                                        |
 | Alternate body styles (De Morgan)              | Only the standard body style is imported (`alternate-body-style`).                                                                    |
 | Custom pads made of several shapes             | Simplified to their first polygon (`custom-pad`).                                                                                     |

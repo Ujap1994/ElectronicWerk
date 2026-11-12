@@ -229,6 +229,11 @@ whole content of rules and output jobs) plus `docKind` and `path`.
 }
 ```
 
+### `document.object`
+
+`{"doc": "…", "id": "…"}`. One object of a document, with its `type`, in the
+same form as `edit.apply` takes it. Unknown objects fail with `notFound`.
+
 ### `document.get`
 
 `{"doc": "…"}`. Returns the complete document, as in its file, plus `path`.
@@ -552,6 +557,171 @@ are absolute. An unknown object fails with `notFound`.
 id encodes the item: the high 64 bits are the kind (`1` pin, `2` graphic,
 `3` text, `4` pad), the low 64 bits the index in its list
 (`00000000-0000-0004-0000-000000000003` is pad 3). Hidden pins are drawn.
+
+## Layout editor
+
+The methods of the [layout editor](../guide/layout-editor). The logic lives
+in the crate `ew-pcb`. Edits commit one undo step with the label in
+brackets and return `{"seq", "history", …}`; `seq` is `null` when nothing
+changed. Coordinates are nanometres; points are `[x, y]`.
+
+### `pcb.drc`
+
+`{"doc", "region"?: [x0, y0, x1, y1]}`. Runs the [design rules
+check](../guide/drc). With `region`, only the items in that area (grown by
+the largest clearance) are checked and the result is merged with the last
+report of the board; without, the whole board is checked. Returns:
+
+```json
+{
+  "findings": [
+    {
+      "code": "clearance",
+      "severity": "error",
+      "message": "Clearance 0.15 mm between track (GND) and pad U1-3 (VCC) is less than 0.2 mm (net class Default)",
+      "args": {
+        "a": "track (GND)",
+        "b": "pad U1-3 (VCC)",
+        "actual": "0.15 mm",
+        "required": "0.2 mm",
+        "source": "net class Default"
+      },
+      "at": [12000000, 8000000],
+      "layer": "cu.top",
+      "targets": [{ "id": "…" }, { "id": "…", "pad": 2 }],
+      "key": "clearance:…/…#2:cu.top",
+      "excluded": false
+    }
+  ],
+  "counts": { "errors": 1, "warnings": 0, "excluded": 0, "unrouted": 3 },
+  "airwires": [
+    {
+      "net": "…",
+      "from": [0, 0],
+      "to": [5000000, 0],
+      "fromItem": { "kind": "pad", "footprint": "…", "index": 0 },
+      "toItem": { "kind": "track", "id": "…" }
+    }
+  ],
+  "ruleErrors": []
+}
+```
+
+`targets` are board objects (a pad: its footprint and pad index). `key`
+identifies the finding for `pcb.exclude`. `airwires` is the ratsnest.
+Differences to the schematic (`missing-footprint`, `extra-footprint`,
+`net-mismatch`) are part of every report.
+
+### `pcb.exclude`
+
+`{"doc", "keys": ["…"], "excluded"?: true}` (`drc-exclusions`). Accepts
+findings (or reports them again with `"excluded": false`). The keys are
+stored in the board.
+
+### `pcb.ratsnest`
+
+`{"doc"}` → `{"airwires": [...], "unrouted": 3}`: the unrouted connections
+without running the checks.
+
+### `pcb.fillZones` / `pcb.unfillZones`
+
+`{"doc", "zones"?: ["…"]}` (`fill-zones` / `unfill-zones`). Fills (or
+empties) all zones of the board, or the given ones. Returns `{"zones",
+"areas"}`: the number of changed zones and of filled areas.
+
+### `pcb.rules` / `pcb.setRules` / `pcb.validateRule`
+
+`pcb.rules {"doc"?}` returns the project's design rules (`rules`: the
+properties of the rules document), the DRC checks with their default and
+current severity (`checks`), the nets of each net class on the board `doc`
+(`nets`) and syntax errors of custom rules (`errors`).
+
+`pcb.setRules {"props": {…}}` (`design-rules`) replaces the rules; it
+creates a rules document if the project has none.
+
+`pcb.validateRule {"condition": "A.net == 'GND'"}` → `{"ok": true}` or
+`{"ok": false, "message", "position"}` (character position of the error).
+
+### `pcb.syncPreview` / `pcb.syncApply`
+
+`pcb.syncPreview {"doc"}` compares the schematic with the board and returns
+`{"changes", "problems"}`. Each change has an `index`, a `kind` (`addNet`,
+`renameNet`, `removeNet`, `addFootprint`, `removeFootprint`,
+`changeFootprint`, `setDesignator`, `setValue`, `link`, `setPadNet`), its
+fields and an English `description`. Problems name parts that cannot be
+placed (`unannotated`, `no-footprint`, `unknown-footprint`,
+`duplicate-designator`, `pin-without-pad`).
+
+`pcb.syncApply {"doc", "changes"?: [0, 2, …]}` (`update-board`) applies the
+given changes (all if missing) and returns the new footprints in `select`.
+
+### `pcb.backPreview` / `pcb.backApply`
+
+The same for back annotation: `setDesignator`, `setValue` and
+`setFootprint` changes from the board to the schematic
+(`update-schematic`).
+
+### `pcb.crossProbe`
+
+`{"doc", "symbols"?: ["…"], "footprints"?: ["…"]}` →
+`{"footprints": ["…"], "symbols": [{"doc", "id"}]}`: the footprints of
+placed symbols and the placed symbols (with their sheets) of footprints.
+
+### `pcb.edit`
+
+`{"doc", "op", …}`. Operations (label in brackets):
+
+| `op`         | Parameters                | What it does                                                      |
+| ------------ | ------------------------- | ----------------------------------------------------------------- |
+| `move`       | `ids`, `offset`           | Moves objects (`move`); locked ones stay.                         |
+| `rotate`     | `ids`, `angle`, `center`? | Turns objects (`rotate`) around the centre of the selection.      |
+| `flip`       | `ids`, `centerX`?         | Puts objects on the other side (`flip`).                          |
+| `delete`     | `ids`                     | Deletes unlocked objects (`delete`).                              |
+| `lock`       | `ids`, `locked`           | Locks or unlocks (`lock`).                                        |
+| `align`      | `ids`, `mode`             | `left`, `right`, `top`, `bottom`, `centerX`, `centerY` (`align`). |
+| `distribute` | `ids`, `axis`             | `x` or `y`, equal gaps (`distribute`).                            |
+| `setLayer`   | `ids`, `layer`            | Tracks to a copper layer (`set-layer`).                           |
+| `setWidth`   | `ids`, `width`            | Track width (`set-width`).                                        |
+| `setNet`     | `ids`, `net`?             | Net of tracks, vias and zones (`set-net`).                        |
+| `dragTrack`  | `id`, `offset`            | Moves a segment, its neighbours follow (`drag-track`).            |
+
+The reply has `select` and `changes`.
+
+### `pcb.place`
+
+`{"doc", "footprint": "SOIC-8", "at", "rotation"?, "side"?, "designator"?,
+"value"?}` (`place-footprint`). Places a footprint of the project
+libraries. Without a designator it gets the next free `X<n>`.
+
+### `pcb.routeStart` / `pcb.route` / `pcb.addTracks`
+
+`pcb.routeStart {"doc", "at", "layer"}` → `{"at", "net", "netName", "width",
+"viaDiameter", "viaDrill", "clearance"}`: where a route that begins at `at`
+starts (snapped to a pad or via centre or a track end) and the sizes from the
+rules.
+
+`pcb.route {"doc", "layer", "net", "width", "start", "target",
+"diagonalFirst"?, "via"?}` → `{"points": [[x, y], …], "reached", "viaFits"?}`:
+the walkaround path. It changes nothing. With `via` (a diameter), `viaFits`
+says whether a via fits at the end.
+
+`pcb.addTracks {"doc", "net", "width", "segments": [{"layer", "points"}],
+"vias": [{"at", "diameter", "drill", "from"?, "to"?}]}` (`route`) adds the
+tracks between consecutive points and the vias.
+
+### `pcb.presets` / `pcb.applyPreset`
+
+`pcb.presets` lists the [board presets](../guide/board-setup#presets).
+`pcb.applyPreset {"doc", "preset": "standard-4l"}` (`board-preset`) sets the
+stack-up of the board and the minimums and `Default` class of the rules.
+
+### `pcb.dxfPreview` / `pcb.importDxf`
+
+`pcb.dxfPreview {"path", "scale"?}` → `{"layers", "units", "count", "bounds",
+"skipped"}`. `pcb.importDxf {"doc", "path", "layer", "layers"?, "replace"?,
+"scale"?, "origin"?, "width"?}` (`import-dxf`) imports the shapes of the
+chosen DXF layers onto a board layer (`outline`, `mech.1`, …); `scale` is
+nanometres per drawing unit, `origin` moves the lower left corner there.
 
 ## Library editor
 

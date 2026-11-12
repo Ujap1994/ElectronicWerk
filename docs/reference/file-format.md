@@ -142,16 +142,20 @@ is relative to the project folder, uses `/` and must not leave the folder.
 
 ## Boards (`.ewpcb`)
 
-| Field             | Content                                                                                                                                                                                                          |
-| ----------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `stackup`         | Physical layers from top to bottom (silkscreen, solder mask, copper, dielectric) and the surface finish                                                                                                          |
-| `origin`          | Drill and placement origin                                                                                                                                                                                       |
-| `nets`            | `name` and net `class`                                                                                                                                                                                           |
-| `footprints`      | Placed footprints with their own copy of pads, graphics, texts and 3D models (as seen from the top; `side: "bottom"` mirrors them), `component`, `designator`, `value`, `at`, `rotation`, `locked`, `attributes` |
-| `tracks`          | `layer`, `net`, `width`, `start`, `end`, and `mid` for arcs                                                                                                                                                      |
-| `vias`            | `at`, `diameter`, `drill`, `net`, `from`/`to` layers (default through), `micro`                                                                                                                                  |
-| `zones`           | Copper pours and keep-outs: `net`, `layers`, `outline`, `holes`, `priority`, `keepout`, `fill` settings, and `filled` (the computed copper per layer: `layer`, `points`; for example from a KiCad import)        |
-| `texts`, `shapes` | Free text and graphics; the board outline is drawn on the `outline` layer                                                                                                                                        |
+| Field             | Content                                                                                                                                                                                                                                     |
+| ----------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `stackup`         | Physical layers from top to bottom (silkscreen, solder mask, copper, dielectric) and the surface finish                                                                                                                                     |
+| `origin`          | Drill and placement origin                                                                                                                                                                                                                  |
+| `nets`            | `name` and net `class`                                                                                                                                                                                                                      |
+| `footprints`      | Placed footprints with their own copy of pads, graphics, texts and 3D models (as seen from the top; `side: "bottom"` mirrors them), `component`, `designator`, `value`, `at`, `rotation`, `locked`, `attributes`                            |
+| `tracks`          | `layer`, `net`, `width`, `start`, `end`, and `mid` for arcs                                                                                                                                                                                 |
+| `vias`            | `at`, `diameter`, `drill`, `net`, `from`/`to` layers (default through), `micro`                                                                                                                                                             |
+| `zones`           | Copper pours and keep-outs: `name`, `net`, `layers`, `outline`, `holes`, `priority`, `keepout` (`tracks`, `vias`, `pads`, `pours`, `footprints`), `fill` settings, and `filled` (the computed copper per layer: `layer`, `points`, `holes`) |
+| `texts`, `shapes` | Free text and graphics; the board outline is drawn on the `outline` layer                                                                                                                                                                   |
+| `drcExclusions`   | Keys of [accepted DRC findings](../guide/drc#accepting-findings) (optional)                                                                                                                                                                 |
+
+The zone filler stores openings of a fill as `holes`; fills imported from
+KiCad cut them in with slits instead. Both read the same way.
 
 ## Libraries, rules and output jobs
 
@@ -177,6 +181,13 @@ is relative to the project folder, uses `/` and must not leave the folder.
   defaults, `severities` (check code → `error`, `warning` or `ignore`) and
   `pinMatrix` (`"output/output"` → severity, pin types in camelCase). The
   section is optional, so files without it keep schema version 1.
+  Optionally `custom`: [custom rules](../guide/design-rules#custom-rules)
+  with `name`, `enabled`, `condition` (query language) and `constraints`
+  (`clearance`, `trackWidthMin`, `trackWidthMax`, `trackWidth`,
+  `viaDiameterMin`, `viaDrillMin`, `annularRingMin`, `holeMin`,
+  `holeToHoleMin`, `edgeClearance`, all in nm), and `drc`: `severities` of
+  the [DRC checks](../guide/drc#what-is-checked) that differ from the
+  defaults. Both are optional; older files read unchanged.
 - **Output job** (`.ewout`): `directory` and the ordered list of `outputs`
   (`kind`: `gerber`, `drill`, `bom`, `pickAndPlace`, `pdf`, `step`, …).
 

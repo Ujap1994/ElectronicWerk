@@ -37,7 +37,7 @@ type Dialog =
   | { kind: 'zone'; zone: ZoneJson; isNew: boolean }
   | { kind: 'sync' }
   | { kind: 'setup' }
-  | { kind: 'rules' }
+  | { kind: 'rules'; tab?: 'checks' }
   | { kind: 'dxf' }
   | null;
 
@@ -257,7 +257,7 @@ export function useBoardEditor({
     ) : dialog.kind === 'setup' ? (
       <SetupDialog doc={doc} units={units} onClose={close} />
     ) : dialog.kind === 'rules' ? (
-      <RulesDialog doc={doc} units={units} onClose={close} />
+      <RulesDialog doc={doc} units={units} initialTab={dialog.tab ?? 'classes'} onClose={close} />
     ) : (
       <DxfDialog doc={doc} units={units} onClose={close} />
     );
@@ -272,7 +272,7 @@ export function useBoardEditor({
       canvasRef.current?.focus();
     },
     openRules: () => {
-      setDialog({ kind: 'rules' });
+      setDialog({ kind: 'rules', tab: 'checks' });
     },
   };
 }
