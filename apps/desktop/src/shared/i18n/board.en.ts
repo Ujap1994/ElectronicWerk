@@ -73,6 +73,19 @@ export const boardEn = {
   prompts: {
     text: 'Text',
   },
+  props: {
+    designator: 'Designator',
+    value: 'Value',
+    rotation: 'Rotation',
+    top: 'On the top side',
+    bottom: 'On the bottom side',
+    locked: 'Locked',
+    width: 'Width',
+    layer: 'Layer',
+    diameter: 'Diameter',
+    drill: 'Drill',
+    text: 'Text',
+  },
   drc: {
     title: 'Design rules check',
     summary: '{errors} errors · {warnings} warnings · {unrouted} unrouted',

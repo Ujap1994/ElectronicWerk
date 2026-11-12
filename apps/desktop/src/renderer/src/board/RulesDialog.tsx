@@ -342,7 +342,7 @@ export function RulesDialog({
           </div>
           <button
             type="button"
-            className="button button--small"
+            className="button button--small board-add"
             data-testid="class-add"
             onClick={() => {
               const base = classes[0];
@@ -404,7 +404,7 @@ export function RulesDialog({
           ))}
           <button
             type="button"
-            className="button button--small"
+            className="button button--small board-add"
             data-testid="assignment-add"
             onClick={() => {
               patch({
@@ -530,7 +530,7 @@ export function RulesDialog({
           ))}
           <button
             type="button"
-            className="button button--small"
+            className="button button--small board-add"
             data-testid="rule-add"
             onClick={() => {
               patch({

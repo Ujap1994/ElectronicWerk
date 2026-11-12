@@ -76,6 +76,19 @@ export const boardDe: Messages['board'] = {
   prompts: {
     text: 'Text',
   },
+  props: {
+    designator: 'Bezeichner',
+    value: 'Wert',
+    rotation: 'Drehung',
+    top: 'Auf der Oberseite',
+    bottom: 'Auf der Unterseite',
+    locked: 'Gesperrt',
+    width: 'Breite',
+    layer: 'Lage',
+    diameter: 'Durchmesser',
+    drill: 'Bohrung',
+    text: 'Text',
+  },
   drc: {
     title: 'Designregelprüfung',
     summary: '{errors} Fehler · {warnings} Warnungen · {unrouted} offen',

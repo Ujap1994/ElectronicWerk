@@ -674,7 +674,19 @@ export function DocumentViewer({
       </div>
       <aside className="viewer__side">
         <LayerPanel controller={controller} />
-        <Inspector controller={controller} doc={doc} units={units} editable={sheet} />
+        <Inspector
+          controller={controller}
+          doc={doc}
+          units={units}
+          editable={sheet}
+          boardLayers={
+            boardEditor === null
+              ? null
+              : snapshot.layers
+                  .filter((layer) => layer.group === 'copper')
+                  .map((layer) => layer.key)
+          }
+        />
       </aside>
       {chooser && editor !== null && (
         <SymbolChooser

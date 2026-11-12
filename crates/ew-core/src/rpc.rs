@@ -74,6 +74,7 @@ pub enum Response {
 pub const METHODS: &[&str] = &[
     "document.add",
     "document.get",
+    "document.object",
     "document.properties",
     "document.remove",
     "document.rename",
@@ -245,6 +246,13 @@ struct PathParams {
 #[serde(deny_unknown_fields)]
 struct DocParams {
     doc: Id,
+}
+
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct ObjectParams {
+    doc: Id,
+    id: Id,
 }
 
 #[derive(Deserialize)]
@@ -848,6 +856,17 @@ impl Engine {
                     }],
                 )?;
                 to_value(&change_set.history)
+            }
+            "document.object" => {
+                let params: ObjectParams = parse(params)?;
+                let session = self.open()?;
+                let document = session.project().document(params.doc).ok_or_else(|| {
+                    EngineError::not_found(format!("no document with id {}", params.doc))
+                })?;
+                let object = document.object(params.id).ok_or_else(|| {
+                    EngineError::not_found(format!("no object with id {}", params.id))
+                })?;
+                to_value(&object)
             }
             "document.get" | "document.properties" => {
                 let params: DocParams = parse(params)?;

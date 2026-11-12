@@ -110,14 +110,12 @@ export function BoardOverlay({
       }
       const [x, y] = screen(finding.at);
       elements.push(
-        <circle
-          key={`drc-${finding.key}`}
-          className="board-marker"
-          data-severity={finding.severity}
-          cx={x}
-          cy={y}
-          r={6}
-        />,
+        <g key={`drc-${finding.key}`} className="board-marker" data-severity={finding.severity}>
+          <circle className="board-marker__halo" cx={x} cy={y} r={9} />
+          <circle className="board-marker__ring" cx={x} cy={y} r={9} />
+          <line className="board-marker__mark" x1={x} y1={y - 4} x2={x} y2={y + 1} />
+          <circle className="board-marker__dot" cx={x} cy={y + 4} r={1.2} />
+        </g>,
       );
     }
   }

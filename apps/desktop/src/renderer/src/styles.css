@@ -3995,15 +3995,35 @@ textarea.field__control {
   stroke: #555;
 }
 
-.board-overlay .board-marker {
-  fill: rgb(210 60 60 / 25%);
+.board-overlay .board-marker__halo {
+  fill: rgb(255 255 255 / 85%);
+  stroke: #fff;
+  stroke-width: 4;
+}
+
+.board-overlay .board-marker__ring {
+  fill: none;
   stroke: var(--color-error);
   stroke-width: 2;
 }
 
-.board-overlay .board-marker[data-severity='warning'] {
-  fill: rgb(201 138 0 / 25%);
+.board-overlay .board-marker__mark {
+  stroke: var(--color-error);
+  stroke-width: 2;
+  stroke-linecap: round;
+}
+
+.board-overlay .board-marker__dot {
+  fill: var(--color-error);
+}
+
+.board-overlay .board-marker[data-severity='warning'] .board-marker__ring,
+.board-overlay .board-marker[data-severity='warning'] .board-marker__mark {
   stroke: var(--color-warn);
+}
+
+.board-overlay .board-marker[data-severity='warning'] .board-marker__dot {
+  fill: var(--color-warn);
 }
 
 .board-overlay .board-polygon {
@@ -4222,4 +4242,16 @@ textarea.field__control {
 .board-presets__meta {
   color: var(--color-text-muted);
   font-size: var(--font-size-s);
+}
+
+.board-properties__side {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  font-size: var(--font-size-s);
+}
+
+.board-add {
+  align-self: flex-start;
 }
