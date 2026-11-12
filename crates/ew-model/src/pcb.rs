@@ -665,8 +665,7 @@ pub struct Zone {
     pub filled: Vec<FilledArea>,
 }
 
-/// One filled copper polygon of a zone. Holes are cut in with slits, so
-/// every area is a single outline.
+/// One filled copper polygon of a zone.
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct FilledArea {
@@ -674,6 +673,10 @@ pub struct FilledArea {
     pub layer: CopperLayer,
     /// The outline.
     pub points: Vec<Point>,
+    /// Openings inside the outline (the zone filler keeps them as holes;
+    /// imported fills cut them in with slits instead).
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub holes: Vec<Vec<Point>>,
 }
 
 /// Free text on the board.
@@ -759,6 +762,9 @@ pub struct Pcb {
     /// Graphics, including the board outline.
     #[serde(default, skip_serializing_if = "Collection::is_empty")]
     pub shapes: Collection<BoardShape>,
+    /// Design rules check findings marked as accepted (their keys).
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub drc_exclusions: Vec<String>,
 }
 
 /// Editable board properties (everything except the objects).
@@ -772,6 +778,9 @@ pub struct PcbProps {
     /// Drill and placement origin.
     #[serde(default)]
     pub origin: Point,
+    /// Accepted design rules check findings.
+    #[serde(default)]
+    pub drc_exclusions: Vec<String>,
 }
 
 impl Pcb {
@@ -790,6 +799,7 @@ impl Pcb {
             zones: Collection::new(),
             texts: Collection::new(),
             shapes: Collection::new(),
+            drc_exclusions: Vec::new(),
         }
     }
 
@@ -800,6 +810,7 @@ impl Pcb {
             name: self.name.clone(),
             stackup: self.stackup.clone(),
             origin: self.origin,
+            drc_exclusions: self.drc_exclusions.clone(),
         }
     }
 
@@ -808,6 +819,7 @@ impl Pcb {
         self.name = props.name;
         self.stackup = props.stackup;
         self.origin = props.origin;
+        self.drc_exclusions = props.drc_exclusions;
     }
 
     /// Bounding box of the board outline, if one is drawn.

@@ -256,6 +256,131 @@ impl ErcSettings {
     }
 }
 
+/// Every design rules check with its default severity.
+pub const DRC_CHECKS: &[(&str, ErcSeverity)] = &[
+    ("short", ErcSeverity::Error),
+    ("clearance", ErcSeverity::Error),
+    ("unrouted", ErcSeverity::Error),
+    ("track-width", ErcSeverity::Error),
+    ("via-diameter", ErcSeverity::Error),
+    ("via-drill", ErcSeverity::Error),
+    ("annular-ring", ErcSeverity::Error),
+    ("hole-size", ErcSeverity::Error),
+    ("hole-to-hole", ErcSeverity::Error),
+    ("copper-to-edge", ErcSeverity::Error),
+    ("no-outline", ErcSeverity::Error),
+    ("outline-open", ErcSeverity::Error),
+    ("outside-board", ErcSeverity::Error),
+    ("keepout", ErcSeverity::Error),
+    ("courtyard-overlap", ErcSeverity::Error),
+    ("silk-over-pad", ErcSeverity::Warning),
+    ("silk-width", ErcSeverity::Warning),
+    ("dangling-track", ErcSeverity::Warning),
+    ("dangling-via", ErcSeverity::Warning),
+    ("zone-unfilled", ErcSeverity::Warning),
+    ("duplicate-designator", ErcSeverity::Error),
+    ("missing-footprint", ErcSeverity::Warning),
+    ("extra-footprint", ErcSeverity::Warning),
+    ("net-mismatch", ErcSeverity::Error),
+    ("rule-error", ErcSeverity::Error),
+];
+
+/// Settings of the design rules check. Only changes from the defaults are
+/// stored.
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct DrcSettings {
+    /// Severity per check (`dangling-via` → `ignore`).
+    #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
+    pub severities: BTreeMap<String, ErcSeverity>,
+}
+
+impl DrcSettings {
+    /// `true` if nothing differs from the defaults.
+    #[must_use]
+    pub fn is_empty(&self) -> bool {
+        self.severities.is_empty()
+    }
+
+    /// The severity of a check (unknown checks are errors).
+    #[must_use]
+    pub fn severity(&self, code: &str) -> ErcSeverity {
+        self.severities.get(code).copied().unwrap_or_else(|| {
+            DRC_CHECKS
+                .iter()
+                .find(|(c, _)| *c == code)
+                .map_or(ErcSeverity::Error, |(_, s)| *s)
+        })
+    }
+
+    /// Sets the severities from a complete table, storing only what
+    /// differs from the defaults.
+    pub fn set_from(&mut self, severities: &BTreeMap<String, ErcSeverity>) {
+        self.severities = severities
+            .iter()
+            .filter(|(code, severity)| DRC_CHECKS.iter().any(|(c, s)| c == code && s != *severity))
+            .map(|(c, s)| (c.clone(), *s))
+            .collect();
+    }
+}
+
+/// The constraints a custom rule sets. Every field is optional: a rule only
+/// changes what it names.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase", default)]
+pub struct RuleConstraints {
+    /// Copper clearance between the two items.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub clearance: Option<Nm>,
+    /// Minimum track width.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub track_width_min: Option<Nm>,
+    /// Maximum track width.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub track_width_max: Option<Nm>,
+    /// Track width used when routing.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub track_width: Option<Nm>,
+    /// Minimum via pad diameter.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub via_diameter_min: Option<Nm>,
+    /// Minimum via drill.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub via_drill_min: Option<Nm>,
+    /// Minimum annular ring.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub annular_ring_min: Option<Nm>,
+    /// Minimum hole size.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub hole_min: Option<Nm>,
+    /// Minimum distance between holes.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub hole_to_hole_min: Option<Nm>,
+    /// Minimum copper distance to the board edge.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub edge_clearance: Option<Nm>,
+}
+
+/// A custom design rule: constraints for the items that match a condition
+/// in the rule query language, for example
+/// `A.netclass == 'HV' && B.netclass != 'HV'`. Later rules win over earlier
+/// ones.
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CustomRule {
+    /// Name, shown in DRC findings.
+    pub name: String,
+    /// Switched on.
+    #[serde(default = "crate::default_true", skip_serializing_if = "Clone::clone")]
+    pub enabled: bool,
+    /// Condition in the rule query language (empty: every item).
+    #[serde(default, skip_serializing_if = "String::is_empty")]
+    pub condition: String,
+    /// The constraints.
+    #[serde(default)]
+    pub constraints: RuleConstraints,
+}
+
 /// A rules document (`.ewrules`).
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -276,6 +401,12 @@ pub struct Rules {
     /// Electrical rules check settings.
     #[serde(default, skip_serializing_if = "ErcSettings::is_empty")]
     pub erc: ErcSettings,
+    /// Custom rules, applied in order (later rules win).
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub custom: Vec<CustomRule>,
+    /// Design rules check settings.
+    #[serde(default, skip_serializing_if = "DrcSettings::is_empty")]
+    pub drc: DrcSettings,
 }
 
 /// Editable rule properties (the whole document except its id).
@@ -294,6 +425,12 @@ pub struct RulesProps {
     /// Electrical rules check settings.
     #[serde(default)]
     pub erc: ErcSettings,
+    /// Custom rules.
+    #[serde(default)]
+    pub custom: Vec<CustomRule>,
+    /// Design rules check settings.
+    #[serde(default)]
+    pub drc: DrcSettings,
 }
 
 impl Rules {
@@ -307,6 +444,8 @@ impl Rules {
             net_classes: vec![NetClass::default_class(), NetClass::power_class()],
             assignments: Vec::new(),
             erc: ErcSettings::default(),
+            custom: Vec::new(),
+            drc: DrcSettings::default(),
         }
     }
 
@@ -319,6 +458,8 @@ impl Rules {
             net_classes: self.net_classes.clone(),
             assignments: self.assignments.clone(),
             erc: self.erc.clone(),
+            custom: self.custom.clone(),
+            drc: self.drc.clone(),
         }
     }
 
@@ -329,12 +470,27 @@ impl Rules {
         self.net_classes = props.net_classes;
         self.assignments = props.assignments;
         self.erc = props.erc;
+        self.custom = props.custom;
+        self.drc = props.drc;
     }
 
     /// The net class with this name.
     #[must_use]
     pub fn net_class(&self, name: &str) -> Option<&NetClass> {
         self.net_classes.iter().find(|class| class.name == name)
+    }
+
+    /// The net class of a net: the class set on the board net, else the
+    /// first matching assignment, else `Default`.
+    #[must_use]
+    pub fn class_of<'a>(&'a self, net_name: &str, board_class: &'a str) -> &'a str {
+        if !board_class.is_empty() {
+            return board_class;
+        }
+        self.assignments
+            .iter()
+            .find(|assignment| matches_pattern(&assignment.pattern, net_name))
+            .map_or(DEFAULT_NET_CLASS, |assignment| assignment.class.as_str())
     }
 }
 

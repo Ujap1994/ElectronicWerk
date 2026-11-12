@@ -245,7 +245,12 @@ pub fn build(pcb: &Pcb, grid: i64, options: &Options<'_>) -> Scene {
             let mut filled = false;
             for area in zone.filled.iter().filter(|area| area.layer == *copper) {
                 let points: Vec<P> = area.points.iter().map(|p| local(*p)).collect();
-                b.polygon(layer, obj, &points, &[], 0);
+                let holes: Vec<Vec<P>> = area
+                    .holes
+                    .iter()
+                    .map(|hole| hole.iter().map(|p| local(*p)).collect())
+                    .collect();
+                b.polygon(layer, obj, &points, &holes, 0);
                 filled = true;
             }
             if !filled {

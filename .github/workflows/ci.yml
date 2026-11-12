@@ -56,6 +56,8 @@ jobs:
         run: cargo test --release -p ew-format -p ew-scene --test budgets -- --ignored --nocapture
       - name: Search 50,000 library entries (release build)
         run: cargo test --release -p ew-library --test budgets -- --ignored --nocapture
+      - name: Design rules check of the L and M boards (release build)
+        run: cargo test --release -p ew-pcb --test budgets -- --ignored --nocapture --test-threads 1
 
   viewer-benchmark:
     name: Viewer benchmark

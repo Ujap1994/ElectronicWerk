@@ -1,0 +1,25 @@
+[package]
+name = "ew-pcb"
+description = "ElectronicWerk board logic: copper geometry, connectivity, design rules, DRC, zone filling, routing and schematic sync"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+publish = false
+
+[dependencies]
+ew-model.workspace = true
+i_overlay.workspace = true
+rayon.workspace = true
+rstar.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+thiserror.workspace = true
+
+[dev-dependencies]
+ew-synth.workspace = true
+
+[lints]
+workspace = true

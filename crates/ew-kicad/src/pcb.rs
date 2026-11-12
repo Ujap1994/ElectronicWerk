@@ -246,7 +246,11 @@ fn zone(
                 .and_then(common::copper)
                 .or_else(|| layers.first().copied())?;
             let points = common::points(area.get("pts"), &xy);
-            (points.len() >= 3).then_some(FilledArea { layer, points })
+            (points.len() >= 3).then_some(FilledArea {
+                layer,
+                points,
+                holes: Vec::new(),
+            })
         })
         .collect();
     let net_name = node
