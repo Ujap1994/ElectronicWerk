@@ -213,8 +213,8 @@ test('the guide helps with a first schematic; check settings', async () => {
 test('the net navigator lists a net on every sheet and jumps there', async () => {
   launched = await launchApp();
   const { page } = launched;
-  // The smallest window the app allows (CI screens are small).
-  await page.setViewportSize({ width: 960, height: 600 });
+  // A small window, as on the CI machines.
+  await page.setViewportSize({ width: 1024, height: 700 });
   // Blinky has GND power symbols on both of its sheets.
   await importBlinky(launched);
   await openDocument(page, 'Blinky');

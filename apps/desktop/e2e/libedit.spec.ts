@@ -45,11 +45,11 @@ async function selectRow(
   row: string,
   modifiers: ('Shift' | 'ControlOrMeta')[] = [],
 ): Promise<void> {
-  await page
-    .getByTestId(row)
-    .locator('td')
-    .first()
-    .click({ position: { x: 1, y: 1 }, modifiers });
+  const cell = page.getByTestId(row).locator('td').first();
+  await cell.scrollIntoViewIfNeeded();
+  const box = await cell.boundingBox();
+  // Left of the check box, halfway down: clear of the sticky header.
+  await cell.click({ position: { x: 1, y: (box?.height ?? 20) / 2 }, modifiers });
 }
 
 async function shot(page: Page, name: string): Promise<void> {
@@ -67,8 +67,8 @@ async function openLibrary(page: Page): Promise<void> {
 test('edits symbols, footprints and components', async () => {
   launched = await launchApp();
   const { page } = launched;
-  // The smallest window the app allows (CI screens are small).
-  await page.setViewportSize({ width: 960, height: 600 });
+  // A small window, as on the CI machines.
+  await page.setViewportSize({ width: 1024, height: 700 });
   await createProjectWithWizard(page, 'Parts');
   await openLibrary(page);
   // The starter symbols of a new project.

@@ -3410,7 +3410,7 @@ textarea.field__control {
   display: flex;
   flex: 0 0 34%;
   flex-direction: column;
-  min-height: 160px;
+  min-height: 220px;
   border-top: 1px solid var(--color-border);
   background: var(--color-surface);
 }
