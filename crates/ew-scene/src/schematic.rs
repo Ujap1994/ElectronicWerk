@@ -256,6 +256,7 @@ pub fn preview(def: &SymbolDef, unit: u16, options: &Options<'_>) -> Scene {
         fields: Vec::new(),
         flags: ew_model::schematic::ComponentFlags::default(),
         instances: std::collections::BTreeMap::new(),
+        alternate: false,
     };
     placed_symbol(&mut b, &ctx, &symbol);
     b.finish(Header {
@@ -458,16 +459,12 @@ fn placed_symbol(b: &mut SceneBuilder, ctx: &Ctx<'_>, symbol: &PlacedSymbol) {
     let obj = b.object(ObjType::Symbol, symbol.id, None, None);
     let def = ctx.symbol_def(&symbol.symbol);
     let pin_text = def.map(|def| def.pin_text).unwrap_or_default();
-    let unit = def.and_then(|def| {
-        def.units
-            .get(usize::from(symbol.unit.max(1) - 1))
-            .or_else(|| def.units.first())
-    });
+    let unit = def.and_then(|def| def.body(symbol.unit, symbol.alternate));
     let mut body;
     let mut vertical_pins = 0;
     let mut pin_count = 0;
     if let Some(unit) = unit {
-        for graphic in &unit.graphics {
+        for graphic in unit.graphics {
             let width = if graphic.stroke.width > 0 {
                 graphic.stroke.width as f64
             } else {
@@ -490,7 +487,7 @@ fn placed_symbol(b: &mut SceneBuilder, ctx: &Ctx<'_>, symbol: &PlacedSymbol) {
             );
         }
         body = b.bbox(obj);
-        for text in &unit.texts {
+        for text in unit.texts {
             let rotation = xf.shape_angle(geom::radians(text.rotation)).to_degrees();
             let item = TextItem::styled(
                 ctx.resolve(&text.text),

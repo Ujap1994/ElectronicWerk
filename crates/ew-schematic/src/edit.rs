@@ -247,11 +247,7 @@ fn symbol_pins(project: &Project, symbol: &PlacedSymbol) -> Vec<Point> {
     let Some(def) = symbol_def(project, &symbol.symbol) else {
         return Vec::new();
     };
-    let Some(unit) = def
-        .units
-        .get(usize::from(symbol.unit.max(1) - 1))
-        .or_else(|| def.units.first())
-    else {
+    let Some(unit) = def.body(symbol.unit, symbol.alternate) else {
         return Vec::new();
     };
     unit.pins.iter().map(|pin| pin_point(symbol, pin)).collect()
@@ -358,6 +354,7 @@ pub fn place_symbol(project: &Project, doc: Id, params: &PlaceSymbol) -> Result<
         fields: Vec::new(),
         flags: ew_model::schematic::ComponentFlags::default(),
         instances: BTreeMap::new(),
+        alternate: false,
     }));
     work.select.push(id);
     Ok(work.finish(true))

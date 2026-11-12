@@ -381,6 +381,7 @@ impl<'a> Generator<'a> {
                 fields: Vec::new(),
                 flags: ComponentFlags::default(),
                 instances: BTreeMap::new(),
+                alternate: false,
             };
             sheet.symbols.insert(symbol);
             for (pin, net) in part.kind.pin_points().into_iter().zip(&part.nets) {

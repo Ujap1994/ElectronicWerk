@@ -4,7 +4,8 @@ use std::collections::BTreeMap;
 
 use ew_model::id::Id;
 use ew_model::library::{
-    Pin, PinDirection, PinKind, PinShape, PinText, SymbolDef, SymbolGraphic, SymbolText, SymbolUnit,
+    Pin, PinDirection, PinKind, PinShape, PinText, SymbolBody, SymbolDef, SymbolGraphic,
+    SymbolText, SymbolUnit,
 };
 use ew_model::shape::{Fill, Geometry, LineStyle, Stroke};
 use ew_model::units::Point;
@@ -242,30 +243,19 @@ pub fn symbol_def(
     }
 
     // Graphics and pins live in sub-symbols `Name_unit_style`. Unit 0 is
-    // shared by all units; style 2 is the alternate (De Morgan) body.
-    let mut parts: Vec<((u16, u16), &Sexp<'_>)> = node
+    // shared by all units; style 1 is the normal body, style 2 the
+    // alternate (De Morgan) one, and style 0 belongs to both.
+    let parts: Vec<((u16, u16), &Sexp<'_>)> = node
         .all("symbol")
         .filter_map(|sub| unit_of(sub.arg(0).unwrap_or_default()).map(|key| (key, sub)))
         .collect();
-    if parts.iter().any(|((_, style), _)| *style > 1) {
-        report.info(
-            "alternate-body-style",
-            Some(file),
-            "alternate body styles (De Morgan) are not imported; the normal body is used",
-        );
-        parts.retain(|((_, style), _)| *style <= 1);
-    }
     if parts.is_empty() {
         if def.units.is_empty() {
-            def.units.push(SymbolUnit {
-                name: String::new(),
-                pins: Vec::new(),
-                graphics: Vec::new(),
-                texts: Vec::new(),
-            });
+            def.units.push(SymbolUnit::default());
         }
         return def;
     }
+    let alternate = parts.iter().any(|((_, style), _)| *style == 2);
     let count = parts
         .iter()
         .map(|((unit, _), _)| *unit)
@@ -274,72 +264,86 @@ pub fn symbol_def(
         .max(1);
     def.units = (1..=count)
         .map(|unit| {
-            let mut out = SymbolUnit {
-                name: String::new(),
-                pins: Vec::new(),
-                graphics: Vec::new(),
-                texts: Vec::new(),
-            };
-            for ((owner, _), sub) in &parts {
-                if *owner != 0 && *owner != unit {
-                    continue;
-                }
-                if let Some(unit_name) = sub.value("unit_name") {
-                    unit_name.clone_into(&mut out.name);
-                }
-                for item in sub.args() {
-                    match item.head() {
-                        Some("pin") => out.pins.push(pin(item)),
-                        Some("text") => {
-                            let at = item.get("at");
-                            out.texts.push(SymbolText {
-                                text: item.arg(0).unwrap_or_default().to_owned(),
-                                at: up(at),
-                                rotation: text_angle(at),
-                                style: common::text_style(item.get("effects")),
-                            });
-                        }
-                        Some("text_box") => {
-                            report.info(
-                                "text-box",
-                                Some(file),
-                                "text boxes in symbols are imported as their frame",
-                            );
-                            out.graphics.push(SymbolGraphic {
-                                geometry: Geometry::Rect {
-                                    start: up(item.get("start").or_else(|| item.get("at"))),
-                                    end: up(item.get("end")),
-                                },
-                                stroke: stroke(item),
-                                fill: fill(item),
-                            });
-                        }
-                        Some(_) => {
-                            if let Some(geometry) = geometry(item, &up_xy) {
-                                out.graphics.push(SymbolGraphic {
-                                    geometry,
-                                    stroke: stroke(item),
-                                    fill: fill(item),
-                                });
-                            } else if !matches!(item.head(), Some("unit_name")) {
-                                report.warn(
-                                    "unsupported-item",
-                                    Some(file),
-                                    format!(
-                                        "symbol item `{}` is not supported",
-                                        item.head().unwrap_or("?")
-                                    ),
-                                );
-                            }
-                        }
-                        None => {}
-                    }
-                }
+            let normal = body(&parts, unit, 1, report, file);
+            SymbolUnit {
+                name: normal.0,
+                pins: normal.1.pins,
+                graphics: normal.1.graphics,
+                texts: normal.1.texts,
+                alternate: alternate.then(|| body(&parts, unit, 2, report, file).1),
             }
-            out
         })
         .collect();
     def
+}
+
+/// The unit name and the items of one unit in one body style.
+fn body(
+    parts: &[((u16, u16), &Sexp<'_>)],
+    unit: u16,
+    style: u16,
+    report: &mut ImportReport,
+    file: &str,
+) -> (String, SymbolBody) {
+    let mut name = String::new();
+    let mut out = SymbolBody::default();
+    for ((owner, owner_style), sub) in parts {
+        if (*owner != 0 && *owner != unit) || (*owner_style != 0 && *owner_style != style) {
+            continue;
+        }
+        if let Some(unit_name) = sub.value("unit_name") {
+            unit_name.clone_into(&mut name);
+        }
+        for item in sub.args() {
+            match item.head() {
+                Some("pin") => out.pins.push(pin(item)),
+                Some("text") => {
+                    let at = item.get("at");
+                    out.texts.push(SymbolText {
+                        text: item.arg(0).unwrap_or_default().to_owned(),
+                        at: up(at),
+                        rotation: text_angle(at),
+                        style: common::text_style(item.get("effects")),
+                    });
+                }
+                Some("text_box") => {
+                    report.info(
+                        "text-box",
+                        Some(file),
+                        "text boxes in symbols are imported as their frame",
+                    );
+                    out.graphics.push(SymbolGraphic {
+                        geometry: Geometry::Rect {
+                            start: up(item.get("start").or_else(|| item.get("at"))),
+                            end: up(item.get("end")),
+                        },
+                        stroke: stroke(item),
+                        fill: fill(item),
+                    });
+                }
+                Some(_) => {
+                    if let Some(geometry) = geometry(item, &up_xy) {
+                        out.graphics.push(SymbolGraphic {
+                            geometry,
+                            stroke: stroke(item),
+                            fill: fill(item),
+                        });
+                    } else if !matches!(item.head(), Some("unit_name")) {
+                        report.warn(
+                            "unsupported-item",
+                            Some(file),
+                            format!(
+                                "symbol item `{}` is not supported",
+                                item.head().unwrap_or("?")
+                            ),
+                        );
+                    }
+                }
+                None => {}
+            }
+        }
+    }
+    (name, out)
 }
 
 #[cfg(test)]
@@ -392,7 +396,7 @@ mod tests {
     }
 
     #[test]
-    fn splits_units_and_skips_the_alternate_body() {
+    fn splits_units_and_reads_the_alternate_body() {
         let text = r#"(symbol "X:Dual"
             (symbol "Dual_0_1" (rectangle (start 0 0) (end 1 1)))
             (symbol "Dual_1_1" (pin input line (at 0 0 0) (length 2.54) (name "A") (number "1")))
@@ -412,7 +416,12 @@ mod tests {
         assert_eq!(def.units[0].pins[0].shape, PinShape::Line);
         assert_eq!(def.units[1].pins[0].direction, PinDirection::Left);
         assert!(def.units[1].pins[0].hidden);
-        assert_eq!(report.findings.len(), 1);
+        // Style 2 is the alternate body; unit 2 has none of its own.
+        let alternate = def.units[0].alternate.as_ref().unwrap();
+        assert_eq!(alternate.pins[0].shape, PinShape::Inverted);
+        assert_eq!(alternate.graphics.len(), 0);
+        assert_eq!(def.units[1].alternate.as_ref().unwrap().pins.len(), 0);
+        assert_eq!(report.findings.len(), 0);
     }
 
     #[test]

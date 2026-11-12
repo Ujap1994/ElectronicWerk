@@ -335,7 +335,7 @@ fn schematic(project: &Project, sheet: &Schematic, target: &ObjectRef) -> Option
             Document::Library(library) => library.symbol(&symbol.symbol),
             _ => None,
         });
-        let unit = def.and_then(|def| def.units.get(usize::from(symbol.unit.max(1) - 1)));
+        let unit = def.and_then(|def| def.body(symbol.unit, symbol.alternate));
         return match &target.child {
             None => Some(info(
                 ObjType::Symbol,

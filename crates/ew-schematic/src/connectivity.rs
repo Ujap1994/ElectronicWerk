@@ -500,11 +500,7 @@ fn sheet_pieces(
             });
             continue;
         };
-        let Some(unit) = def
-            .units
-            .get(usize::from(symbol.unit.max(1) - 1))
-            .or_else(|| def.units.first())
-        else {
+        let Some(unit) = def.body(symbol.unit, symbol.alternate) else {
             continue;
         };
         for (index, pin) in unit.pins.iter().enumerate() {

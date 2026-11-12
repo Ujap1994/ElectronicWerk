@@ -223,6 +223,10 @@ pub struct PlacedSymbol {
     /// sheet down, each after a `/` (see [`instance_key`]).
     #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
     pub instances: BTreeMap<String, String>,
+    /// Drawn with the alternate body of its unit (De Morgan), if the symbol
+    /// has one.
+    #[serde(default, skip_serializing_if = "is_default")]
+    pub alternate: bool,
 }
 
 /// The key of a sheet instance in [`PlacedSymbol::instances`]: `/` for the
@@ -681,6 +685,7 @@ mod tests {
             }],
             flags: ComponentFlags::default(),
             instances: BTreeMap::new(),
+            alternate: false,
         };
         let json = serde_json::to_string(&symbol).unwrap();
         for absent in ["unit", "rotation", "mirror", "flags", "visible", "style"] {

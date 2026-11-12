@@ -305,6 +305,11 @@ fn placed_symbol(
         });
     }
     let mut unit = node.number("unit").map_or(1, |u| u.max(1.0) as u16);
+    // KiCad 6–8 call the body style `convert`, KiCad 9 and later `body_style`.
+    let alternate = node
+        .number("body_style")
+        .or_else(|| node.number("convert"))
+        .is_some_and(|style| style >= 2.0);
     let mut map = BTreeMap::new();
     let mut component = None;
     let list = instances(node);
@@ -357,6 +362,7 @@ fn placed_symbol(
             exclude_from_board: node.value("on_board") == Some("no"),
         },
         instances: if map.len() > 1 { map } else { BTreeMap::new() },
+        alternate,
     }
 }
 

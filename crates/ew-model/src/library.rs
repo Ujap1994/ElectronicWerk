@@ -205,6 +205,37 @@ pub struct SymbolUnit {
     /// Texts.
     #[serde(skip_serializing_if = "Vec::is_empty")]
     pub texts: Vec<SymbolText>,
+    /// The alternate body (De Morgan equivalent, for example a NAND drawn
+    /// as an OR with inverted inputs). Placed symbols choose it with
+    /// `alternate`.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub alternate: Option<SymbolBody>,
+}
+
+/// The pins, graphics and texts of an alternate body.
+#[derive(Debug, Clone, PartialEq, Eq, Default, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase", default)]
+pub struct SymbolBody {
+    /// Pins.
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    pub pins: Vec<Pin>,
+    /// Graphics.
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    pub graphics: Vec<SymbolGraphic>,
+    /// Texts.
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    pub texts: Vec<SymbolText>,
+}
+
+/// The pins, graphics and texts of one unit in one body style.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct BodyRef<'a> {
+    /// Pins.
+    pub pins: &'a [Pin],
+    /// Graphics.
+    pub graphics: &'a [SymbolGraphic],
+    /// Texts.
+    pub texts: &'a [SymbolText],
 }
 
 /// A schematic symbol definition.
@@ -243,6 +274,41 @@ pub struct SymbolDef {
     /// How pin names and numbers are shown.
     #[serde(default, skip_serializing_if = "is_default")]
     pub pin_text: PinText,
+}
+
+impl SymbolDef {
+    /// The unit with this (1-based) number, or the first unit.
+    #[must_use]
+    pub fn unit(&self, unit: u16) -> Option<&SymbolUnit> {
+        self.units
+            .get(usize::from(unit.max(1) - 1))
+            .or_else(|| self.units.first())
+    }
+
+    /// The body of a unit: the alternate one if asked for and present,
+    /// otherwise the normal one.
+    #[must_use]
+    pub fn body(&self, unit: u16, alternate: bool) -> Option<BodyRef<'_>> {
+        let unit = self.unit(unit)?;
+        Some(match (alternate, &unit.alternate) {
+            (true, Some(body)) => BodyRef {
+                pins: &body.pins,
+                graphics: &body.graphics,
+                texts: &body.texts,
+            },
+            _ => BodyRef {
+                pins: &unit.pins,
+                graphics: &unit.graphics,
+                texts: &unit.texts,
+            },
+        })
+    }
+
+    /// `true` if a unit has an alternate body.
+    #[must_use]
+    pub fn has_alternate(&self) -> bool {
+        self.units.iter().any(|unit| unit.alternate.is_some())
+    }
 }
 
 /// How the pin names and numbers of a symbol are shown.
@@ -301,7 +367,61 @@ pub struct FootprintDef {
     pub attributes: FootprintAttributes,
 }
 
-impl_keyed!(SymbolDef, FootprintDef);
+/// A part number of a supplier.
+#[derive(Debug, Clone, PartialEq, Eq, Default, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase", default)]
+pub struct SupplierPart {
+    /// Supplier, for example `Mouser`.
+    pub supplier: String,
+    /// The supplier's part number.
+    pub part_number: String,
+    /// Product page.
+    #[serde(skip_serializing_if = "String::is_empty")]
+    pub url: String,
+}
+
+/// A library component: a symbol together with its footprint (and through
+/// it the 3D model), value, parameters and ordering data. Placing a
+/// component places its symbol with all of this filled in.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ComponentDef {
+    /// Object id.
+    pub id: Id,
+    /// Name, unique within the library (for example `RC0603FR-0710KL`).
+    pub name: String,
+    /// Description.
+    #[serde(default, skip_serializing_if = "String::is_empty")]
+    pub description: String,
+    /// Search keywords.
+    #[serde(default, skip_serializing_if = "String::is_empty")]
+    pub keywords: String,
+    /// Symbol name.
+    pub symbol: String,
+    /// Footprint name.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub footprint: Option<String>,
+    /// Value shown on the schematic.
+    #[serde(default, skip_serializing_if = "String::is_empty")]
+    pub value: String,
+    /// Manufacturer.
+    #[serde(default, skip_serializing_if = "String::is_empty")]
+    pub manufacturer: String,
+    /// Manufacturer part number.
+    #[serde(default, skip_serializing_if = "String::is_empty")]
+    pub mpn: String,
+    /// Datasheet link.
+    #[serde(default, skip_serializing_if = "String::is_empty")]
+    pub datasheet: String,
+    /// Further parameters (tolerance, voltage, …).
+    #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
+    pub properties: BTreeMap<String, String>,
+    /// Ordering data.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub suppliers: Vec<SupplierPart>,
+}
+
+impl_keyed!(SymbolDef, FootprintDef, ComponentDef);
 
 /// A library document (`.ewlib`).
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -320,6 +440,9 @@ pub struct Library {
     /// Footprints.
     #[serde(default, skip_serializing_if = "Collection::is_empty")]
     pub footprints: Collection<FootprintDef>,
+    /// Components (symbol + footprint + parameters + ordering data).
+    #[serde(default, skip_serializing_if = "Collection::is_empty")]
+    pub components: Collection<ComponentDef>,
 }
 
 /// Editable library properties.
@@ -343,6 +466,7 @@ impl Library {
             description: String::new(),
             symbols: Collection::new(),
             footprints: Collection::new(),
+            components: Collection::new(),
         }
     }
 
@@ -373,5 +497,13 @@ impl Library {
         self.footprints
             .iter()
             .find(|footprint| footprint.name == name)
+    }
+
+    /// The component with this name.
+    #[must_use]
+    pub fn component(&self, name: &str) -> Option<&ComponentDef> {
+        self.components
+            .iter()
+            .find(|component| component.name == name)
     }
 }

@@ -8,7 +8,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::collection::Keyed;
 use crate::id::Id;
-use crate::library::{FootprintDef, Library, SymbolDef};
+use crate::library::{ComponentDef, FootprintDef, Library, SymbolDef};
 use crate::pcb::{BoardShape, BoardText, FootprintInstance, Net, Pcb, Track, Via, Zone};
 use crate::schematic::{
     Bus, BusEntry, Junction, Label, NoConnect, PlacedSymbol, PowerPort, Schematic, Shape,
@@ -94,6 +94,7 @@ objects! {
     BoardText(BoardText) = "boardText",
     BoardShape(BoardShape) = "boardShape",
     SymbolDef(SymbolDef) = "symbolDef",
+    ComponentDef(ComponentDef) = "componentDef",
     FootprintDef(FootprintDef) = "footprintDef",
 }
 
@@ -192,6 +193,7 @@ object_store!(Pcb {
 object_store!(Library {
     symbols => SymbolDef,
     footprints => FootprintDef,
+    components => ComponentDef,
 });
 
 #[cfg(test)]

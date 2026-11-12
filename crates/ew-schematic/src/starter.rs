@@ -130,6 +130,7 @@ fn symbol(spec: Spec<'_>) -> SymbolDef {
             pins: spec.pins,
             graphics: spec.graphics,
             texts: Vec::new(),
+            alternate: None,
         }],
         properties: BTreeMap::new(),
         pin_text: PinText {

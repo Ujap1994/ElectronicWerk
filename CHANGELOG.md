@@ -6,6 +6,15 @@ project uses [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Added
+
+- Alternate body styles (De Morgan): a symbol unit can have a second body,
+  and a placed symbol chooses it (`alternate`). The KiCad import now reads
+  body style 2 of symbols and placed symbols instead of dropping it.
+- Library components (`components` in a library): a symbol together with
+  its footprint, value, manufacturer, part number, datasheet, parameters and
+  supplier part numbers.
+
 ## [0.6.2] - 2026-11-09
 
 The schematic release: sheets become editable, with an electrical rules
