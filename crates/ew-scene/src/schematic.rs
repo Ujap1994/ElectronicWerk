@@ -269,6 +269,76 @@ pub fn preview(def: &SymbolDef, unit: u16, options: &Options<'_>) -> Scene {
     })
 }
 
+/// The scene of the symbol editor: one body of a symbol with every pin,
+/// graphic and text as an object of its own (ids from [`crate::editor`]);
+/// hidden pins are drawn too.
+pub fn editor(def: &SymbolDef, unit: u16, alternate: bool, options: &Options<'_>) -> Scene {
+    use crate::editor::{GRAPHIC, PIN, TEXT, item_id};
+    let project = Project::new(def.id, "editor");
+    let origin = P::new(0.0, 0.0);
+    let mut b = SceneBuilder::new(origin);
+    let layers = Layers::new(&mut b);
+    let ctx = Ctx {
+        project: &project,
+        options,
+        origin,
+        layers,
+    };
+    let xf = Xform {
+        offset: origin,
+        angle: 0.0,
+        mirror: false,
+    };
+    if let Some(body) = def.body(unit, alternate) {
+        for (index, graphic) in body.graphics.iter().enumerate() {
+            let obj = b.object(ObjType::Shape, item_id(GRAPHIC, index), None, None);
+            let width = if graphic.stroke.width > 0 {
+                graphic.stroke.width as f64
+            } else {
+                BODY
+            };
+            let fill = match graphic.fill {
+                Fill::None => None,
+                Fill::Solid => Some(ctx.layers.symbols),
+                Fill::Background => Some(ctx.layers.fill),
+            };
+            draw::geometry(
+                &mut b,
+                obj,
+                &graphic.geometry,
+                Paint {
+                    stroke: Some((ctx.layers.symbols, width)),
+                    fill,
+                },
+                &xf,
+            );
+        }
+        for (index, text) in body.texts.iter().enumerate() {
+            let obj = b.object(ObjType::Text, item_id(TEXT, index), None, None);
+            let item = TextItem::styled(
+                ctx.resolve(&text.text),
+                xf.point(text.at),
+                text.rotation.degrees(),
+                &text.style,
+                obj,
+            );
+            b.text(ctx.layers.symbols, obj, text::upright(item));
+        }
+        for (index, pin) in body.pins.iter().enumerate() {
+            let obj = b.object(ObjType::Pin, item_id(PIN, index), None, None);
+            draw_pin(&mut b, &ctx, obj, pin, &xf, &def.pin_text);
+        }
+    }
+    b.finish(Header {
+        doc: def.id,
+        kind: "schematic",
+        name: def.name.clone(),
+        page: None,
+        home: None,
+        grid: 1_270_000,
+    })
+}
+
 /// Wires, buses, bus entries, junctions and no-connect flags.
 fn connections(b: &mut SceneBuilder, ctx: &Ctx<'_>, sheet: &Schematic) {
     for wire in &sheet.wires {

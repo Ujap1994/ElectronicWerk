@@ -312,16 +312,42 @@ pub struct PlaceSymbol {
     pub mirror: bool,
     /// Give it the next free designator (otherwise `R?`).
     pub annotate: bool,
+    /// Place a library component instead: its symbol with its value,
+    /// footprint, parameters, manufacturer and part number.
+    pub component: Option<String>,
 }
 
-/// Places a symbol.
+/// A component of the project libraries (first library wins).
+#[must_use]
+pub fn component_def<'a>(
+    project: &'a Project,
+    name: &str,
+) -> Option<&'a ew_model::library::ComponentDef> {
+    project
+        .manifest
+        .documents
+        .iter()
+        .find_map(|entry| match project.document(entry.id) {
+            Some(Document::Library(library)) => library.component(name),
+            _ => None,
+        })
+}
+
+/// Places a symbol (or a component).
 ///
 /// # Errors
 ///
-/// Fails if the sheet or the symbol does not exist.
+/// Fails if the sheet, the symbol or the component does not exist.
 pub fn place_symbol(project: &Project, doc: Id, params: &PlaceSymbol) -> Result<Edit, EditError> {
-    let def = symbol_def(project, &params.symbol)
-        .ok_or_else(|| EditError::UnknownSymbol(params.symbol.clone()))?;
+    let component = match &params.component {
+        Some(name) => Some(component_def(project, name).ok_or_else(|| {
+            EditError::Invalid(format!("component `{name}` is not in a project library"))
+        })?),
+        None => None,
+    };
+    let symbol_name = component.map_or(params.symbol.as_str(), |c| c.symbol.as_str());
+    let def = symbol_def(project, symbol_name)
+        .ok_or_else(|| EditError::UnknownSymbol(symbol_name.to_owned()))?;
     let mut work = Work::new(project, doc)?;
     let prefix = designator_prefix(&def.prefix, def.power);
     let designator = if params.annotate {
@@ -330,11 +356,36 @@ pub fn place_symbol(project: &Project, doc: Id, params: &PlaceSymbol) -> Result<
     } else {
         format!("{prefix}?")
     };
-    let value = if def.value.is_empty() {
+    let mut value = if def.value.is_empty() {
         def.name.clone()
     } else {
         def.value.clone()
     };
+    let mut footprint = def.footprint.clone();
+    let mut properties = def.properties.clone();
+    if let Some(c) = component {
+        if !c.value.is_empty() {
+            value.clone_from(&c.value);
+        }
+        if c.footprint.is_some() {
+            footprint.clone_from(&c.footprint);
+        }
+        properties.extend(c.properties.clone());
+        for (key, field) in [
+            ("Manufacturer", &c.manufacturer),
+            ("MPN", &c.mpn),
+            ("Datasheet", &c.datasheet),
+        ] {
+            if !field.is_empty() {
+                properties.insert(key.to_owned(), field.clone());
+            }
+        }
+        for (index, supplier) in c.suppliers.iter().enumerate() {
+            let n = index + 1;
+            properties.insert(format!("Supplier {n}"), supplier.supplier.clone());
+            properties.insert(format!("Supplier {n} PN"), supplier.part_number.clone());
+        }
+    }
     let id = Id::random();
     let unit = params
         .unit
@@ -348,9 +399,9 @@ pub fn place_symbol(project: &Project, doc: Id, params: &PlaceSymbol) -> Result<
         mirror: params.mirror,
         designator,
         value,
-        footprint: def.footprint.clone(),
+        footprint,
         component: (!def.power).then(Id::random),
-        properties: def.properties.clone(),
+        properties,
         fields: Vec::new(),
         flags: ew_model::schematic::ComponentFlags::default(),
         instances: BTreeMap::new(),

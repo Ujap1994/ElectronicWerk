@@ -19,6 +19,7 @@
 
 mod builder;
 mod draw;
+pub mod editor;
 mod geom;
 mod inspect;
 mod pcb;
@@ -119,6 +120,23 @@ pub fn symbol_preview(
     schematic::preview(def, unit, options)
 }
 
+/// Builds the scene of the symbol editor (see [`editor`]).
+#[must_use]
+pub fn symbol_editor(
+    def: &ew_model::library::SymbolDef,
+    unit: u16,
+    alternate: bool,
+    options: &Options<'_>,
+) -> Scene {
+    schematic::editor(def, unit, alternate, options)
+}
+
+/// Builds the scene of the footprint editor (see [`editor`]).
+#[must_use]
+pub fn footprint_editor(def: &ew_model::library::FootprintDef, options: &Options<'_>) -> Scene {
+    pcb::editor(def, options)
+}
+
 /// Builds the scene of one library footprint on an empty two-layer board:
 /// the preview of the library manager.
 #[must_use]
@@ -183,6 +201,33 @@ mod tests {
 
     pub(crate) fn synthetic(size: ew_synth::DesignSize) -> Project {
         ew_synth::generate(size, 7)
+    }
+
+    #[test]
+    fn editor_scenes_have_one_object_per_item() {
+        let project = synthetic(ew_synth::DesignSize::S);
+        let library = project
+            .documents
+            .values()
+            .find_map(|doc| match doc {
+                Document::Library(library) => Some(library),
+                _ => None,
+            })
+            .unwrap();
+        let symbol = library.symbols.iter().next().unwrap();
+        let body = symbol.body(1, false).unwrap();
+        let scene = symbol_editor(symbol, 1, false, &options());
+        assert_eq!(
+            scene.meta.stats.objects,
+            body.pins.len() + body.graphics.len() + body.texts.len()
+        );
+        let footprint = library.footprints.iter().next().unwrap();
+        let scene = footprint_editor(footprint, &options());
+        let drawn_texts = footprint.texts.len();
+        assert_eq!(
+            scene.meta.stats.objects,
+            footprint.pads.len() + footprint.graphics.len() + drawn_texts
+        );
     }
 
     #[test]

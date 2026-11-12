@@ -14,6 +14,7 @@
 //! - [`import`]: KiCad projects, libraries and netlists.
 //! - [`summary`]: project snapshots for clients.
 //! - [`schematic`]: the schematic editor and ERC methods.
+//! - [`libedit`]: the symbol, footprint and component editors.
 
 pub mod change;
 pub mod error;
@@ -21,6 +22,7 @@ pub mod history;
 pub mod import;
 pub mod info;
 pub mod journal;
+pub mod libedit;
 pub mod library;
 pub mod rpc;
 pub mod schematic;

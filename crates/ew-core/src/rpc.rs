@@ -89,6 +89,17 @@ pub const METHODS: &[&str] = &[
     "import.kicadProbe",
     "import.library",
     "import.netlist",
+    "libedit.check",
+    "libedit.create",
+    "libedit.delete",
+    "libedit.footprint",
+    "libedit.item",
+    "libedit.list",
+    "libedit.presets",
+    "libedit.rename",
+    "libedit.setProps",
+    "libedit.symbol",
+    "libedit.wizard",
     "library.add",
     "library.build",
     "library.decide",
@@ -122,6 +133,7 @@ pub const METHODS: &[&str] = &[
     "schematic.add",
     "schematic.annotate",
     "schematic.bom",
+    "schematic.components",
     "schematic.copy",
     "schematic.delete",
     "schematic.dragInfo",
@@ -141,6 +153,7 @@ pub const METHODS: &[&str] = &[
     "schematic.symbols",
     "schematic.syncSheetPins",
     "schematic.wire",
+    "view.item",
     "view.object",
     "view.scene",
 ];
@@ -355,6 +368,21 @@ struct SceneParams {
     labels: Option<ew_scene::TitleLabels>,
 }
 
+/// `view.item`: a symbol or footprint of a project library in its editor.
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+struct ItemSceneParams {
+    doc: Id,
+    kind: ew_libedit::refs::LibraryKind,
+    name: String,
+    #[serde(default)]
+    unit: Option<u16>,
+    #[serde(default)]
+    alternate: bool,
+    #[serde(default)]
+    encoding: Option<SceneEncoding>,
+}
+
 #[derive(Deserialize)]
 #[serde(deny_unknown_fields)]
 struct ResolveParams {
@@ -429,6 +457,8 @@ impl Engine {
             }
             "library.preview" => parse::<PreviewParams>(&request.params)
                 .and_then(|params| self.library_preview(&params)),
+            "view.item" => parse::<ItemSceneParams>(&request.params)
+                .and_then(|params| self.item_scene(&params)),
             _ => return (encode(&self.handle(&request)), None),
         };
         match result {
@@ -451,6 +481,38 @@ impl Engine {
                 ew_scene::SceneError::NotFound(_) => EngineError::not_found(error.to_string()),
                 ew_scene::SceneError::NotViewable => EngineError::invalid_params(error.to_string()),
             })?;
+        Ok((to_value(&scene.meta)?, scene.data))
+    }
+
+    /// Builds the editor scene of a library symbol or footprint.
+    fn item_scene(&self, params: &ItemSceneParams) -> Result<(Value, Vec<u8>), EngineError> {
+        use ew_libedit::refs::LibraryKind;
+        let session = self.open()?;
+        let Some(Document::Library(library)) = session.project().document(params.doc) else {
+            return Err(EngineError::not_found(format!("no library {}", params.doc)));
+        };
+        let resolve = |text: &str| text.to_owned();
+        let options = ew_scene::Options {
+            resolve: &resolve,
+            labels: ew_scene::TitleLabels::default(),
+        };
+        let scene = match params.kind {
+            LibraryKind::Symbol => {
+                let def = library.symbol(&params.name).ok_or_else(|| {
+                    EngineError::not_found(format!("no symbol `{}`", params.name))
+                })?;
+                ew_scene::symbol_editor(def, params.unit.unwrap_or(1), params.alternate, &options)
+            }
+            LibraryKind::Footprint => {
+                let def = library.footprint(&params.name).ok_or_else(|| {
+                    EngineError::not_found(format!("no footprint `{}`", params.name))
+                })?;
+                ew_scene::footprint_editor(def, &options)
+            }
+            LibraryKind::Component => {
+                return Err(EngineError::invalid_params("components have no drawing"));
+            }
+        };
         Ok((to_value(&scene.meta)?, scene.data))
     }
 
@@ -515,6 +577,7 @@ impl Engine {
             _ if method.starts_with("edit.") => self.call_edit(method, params),
             _ if method.starts_with("import.") => self.call_import(method, params),
             _ if method.starts_with("schematic.") => self.call_schematic(method, params),
+            _ if method.starts_with("libedit.") => self.call_libedit(method, params),
             "library.preview" => {
                 let params: PreviewParams = parse(params)?;
                 let (mut meta, data) = self.library_preview(&params)?;
@@ -533,6 +596,19 @@ impl Engine {
             "view.scene" => {
                 let params: SceneParams = parse(params)?;
                 let (mut meta, data) = self.scene(&params)?;
+                if let Some(object) = meta.as_object_mut() {
+                    let encoded = if params.encoding == Some(SceneEncoding::None) {
+                        Value::Null
+                    } else {
+                        Value::String(ew_scene::base64(&data))
+                    };
+                    object.insert("data".to_owned(), encoded);
+                }
+                Ok(meta)
+            }
+            "view.item" => {
+                let params: ItemSceneParams = parse(params)?;
+                let (mut meta, data) = self.item_scene(&params)?;
                 if let Some(object) = meta.as_object_mut() {
                     let encoded = if params.encoding == Some(SceneEncoding::None) {
                         Value::Null
@@ -1011,6 +1087,24 @@ impl Engine {
                 ErrorCode::MethodNotFound,
                 format!("unknown method `{other}`"),
             )),
+        }
+    }
+
+    fn call_libedit(&mut self, method: &str, params: &Value) -> Result<Value, EngineError> {
+        match crate::libedit::call(self.open()?.project(), method, params)? {
+            crate::libedit::Outcome::Read(value) => Ok(value),
+            crate::libedit::Outcome::Commit {
+                label,
+                requests,
+                reply,
+            } => {
+                let change_set = self.commit(label, requests)?;
+                let mut out = json!({"seq": change_set.seq, "history": change_set.history});
+                if let (Some(out), Value::Object(extra)) = (out.as_object_mut(), reply) {
+                    out.extend(extra);
+                }
+                Ok(out)
+            }
         }
     }
 

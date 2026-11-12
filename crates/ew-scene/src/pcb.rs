@@ -432,6 +432,74 @@ fn footprint(
     }
 }
 
+/// The scene of the footprint editor: a footprint at the origin with every
+/// pad, graphic and text as an object of its own (ids from
+/// [`crate::editor`]).
+pub fn editor(def: &ew_model::library::FootprintDef, options: &Options<'_>) -> Scene {
+    use crate::editor::{GRAPHIC, PAD, TEXT, item_id};
+    let pcb = Pcb::new(
+        def.id,
+        def.name.clone(),
+        ew_model::pcb::Stackup::standard(2, 1_600_000),
+    );
+    let mut b = SceneBuilder::new(P::default());
+    let layers = BoardLayers::new(&mut b, &pcb);
+    let xf = Xform {
+        offset: P::default(),
+        angle: 0.0,
+        mirror: false,
+    };
+    let same = |layer: Layer| layer;
+    for (index, graphic) in def.graphics.iter().enumerate() {
+        let Some(layer) = layers.get(graphic.layer) else {
+            continue;
+        };
+        let obj = b.object(ObjType::BoardShape, item_id(GRAPHIC, index), None, None);
+        draw::geometry(
+            &mut b,
+            obj,
+            &graphic.geometry,
+            Paint::board(layer, graphic.width as f64, graphic.filled),
+            &xf,
+        );
+    }
+    for (index, pad) in def.pads.iter().enumerate() {
+        let obj = b.object(ObjType::Pad, item_id(PAD, index), None, None);
+        draw_pad(&mut b, &layers, obj, pad, &xf, &same);
+    }
+    let value = def.name.rsplit(':').next().unwrap_or(&def.name).to_owned();
+    for (index, text) in def.texts.iter().enumerate() {
+        let Some(layer) = layers.get(text.layer) else {
+            continue;
+        };
+        let content = match text.kind {
+            FootprintTextKind::Designator if text.text.is_empty() => "REF**".to_owned(),
+            FootprintTextKind::Value if text.text.is_empty() => value.clone(),
+            _ => text
+                .text
+                .replace("${REFERENCE}", "REF**")
+                .replace("${VALUE}", &value),
+        };
+        let obj = b.object(ObjType::FootprintText, item_id(TEXT, index), None, None);
+        let item = TextItem::styled(
+            resolve(options, &content),
+            xf.point(text.at),
+            text.rotation.degrees(),
+            &text.style,
+            obj,
+        );
+        b.text(layer, obj, text::upright(item));
+    }
+    b.finish(Header {
+        doc: def.id,
+        kind: "pcb",
+        name: def.name.clone(),
+        page: None,
+        home: None,
+        grid: 50_000,
+    })
+}
+
 fn draw_pad(
     b: &mut SceneBuilder,
     layers: &BoardLayers,

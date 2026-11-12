@@ -289,6 +289,7 @@ pub fn call(project: &Project, method: &str, params: &Value) -> Result<Outcome, 
             Ok(Outcome::Read(net(project, &params)))
         }
         "schematic.symbols" => Ok(Outcome::Read(symbols(project))),
+        "schematic.components" => Ok(Outcome::Read(components(project))),
         "schematic.symbol" => {
             let params: SymbolParams = parse(params)?;
             let def = ew_schematic::connectivity::symbol_def(project, &params.name)
@@ -488,6 +489,40 @@ pub fn call(project: &Project, method: &str, params: &Value) -> Result<Outcome, 
             format!("unknown method `{other}`"),
         )),
     }
+}
+
+/// The components of the project libraries, sorted by name.
+fn components(project: &Project) -> Value {
+    let mut seen = std::collections::BTreeSet::new();
+    let mut list: Vec<Value> = Vec::new();
+    for entry in &project.manifest.documents {
+        let Some(ew_model::document::Document::Library(library)) = project.document(entry.id)
+        else {
+            continue;
+        };
+        for def in &library.components {
+            if seen.insert(def.name.clone()) {
+                list.push(json!({
+                    "name": def.name,
+                    "description": def.description,
+                    "keywords": def.keywords,
+                    "symbol": def.symbol,
+                    "footprint": def.footprint,
+                    "value": def.value,
+                    "manufacturer": def.manufacturer,
+                    "mpn": def.mpn,
+                    "library": library.name,
+                }));
+            }
+        }
+    }
+    list.sort_by(|a, b| {
+        ew_schematic::connectivity::natural_cmp(
+            a["name"].as_str().unwrap_or_default(),
+            b["name"].as_str().unwrap_or_default(),
+        )
+    });
+    Value::Array(list)
 }
 
 /// The first rules document of the project.
