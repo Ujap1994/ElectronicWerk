@@ -181,7 +181,7 @@ export const libeditEn = {
     value: 'Default value',
     footprint: 'Default footprint',
     datasheet: 'Datasheet',
-    power: 'Power symbol (one hidden pin names a supply net)',
+    power: 'Power symbol (its value names a supply net)',
     hideNumbers: 'Hide pin numbers',
     hideNames: 'Hide pin names',
     nameOffset: 'Pin name offset',
@@ -195,7 +195,7 @@ export const libeditEn = {
     excludeFromPlacement: 'Leave out of the placement file',
     dnp: 'Do not populate',
     usage:
-      'Used by {placed} placed parts, {board} board parts, {symbols} symbols and {components} components.',
+      'In use: on sheets {placed} · on boards {board} · by symbols {symbols} · by components {components}',
     unused: 'Not used in the project yet.',
     fields: 'Fields',
     fieldName: 'Field name',
@@ -368,7 +368,7 @@ export const libeditEn = {
     deleteTitle: 'Delete {name}?',
     deleteText: 'The item is removed from the library. Undo brings it back.',
     deleteUsed:
-      'It is still used: {placed} placed parts, {board} board parts, {symbols} symbols, {components} components. They keep the name but lose the drawing.',
+      'It is still in use (on sheets {placed} · on boards {board} · by symbols {symbols} · by components {components}). These keep the name but lose the drawing.',
     delete: 'Delete',
   },
   component: {

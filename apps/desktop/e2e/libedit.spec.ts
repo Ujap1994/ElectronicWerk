@@ -84,9 +84,15 @@ test('edits symbols, footprints and components', async () => {
   await settleItem(page);
 
   // The pin table: a name, then a bulk change of both pins' type.
+  // Quick edits one after another all arrive (none is dropped).
   await page.getByTestId('pin-name-0').fill('IN');
   await page.getByTestId('pin-name-0').press('Enter');
+  await page.getByTestId('pin-name-1').fill('EN');
+  await page.getByTestId('pin-name-1').press('Enter');
   await expect(page.getByTestId('pin-name-0')).toHaveValue('IN');
+  await page.getByTestId('tab-checks').click();
+  await page.getByTestId('tab-table').click();
+  await expect(page.getByTestId('pin-name-1')).toHaveValue('EN');
   await page.getByTestId('pin-row-0').click({ position: { x: 4, y: 4 } });
   await page.getByTestId('pin-row-1').click({ position: { x: 4, y: 4 }, modifiers: ['Shift'] });
   await expect(page.getByTestId('pin-table')).toContainText('2 selected');

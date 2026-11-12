@@ -187,7 +187,7 @@ export const libeditDe: Messages['libedit'] = {
     value: 'Standardwert',
     footprint: 'Standard-Footprint',
     datasheet: 'Datenblatt',
-    power: 'Versorgungssymbol (ein verborgener Pin benennt ein Versorgungsnetz)',
+    power: 'Versorgungssymbol (sein Wert benennt ein Versorgungsnetz)',
     hideNumbers: 'Pinnummern ausblenden',
     hideNames: 'Pinnamen ausblenden',
     nameOffset: 'Abstand der Pinnamen',
@@ -201,7 +201,7 @@ export const libeditDe: Messages['libedit'] = {
     excludeFromPlacement: 'Nicht in die Bestückungsdatei',
     dnp: 'Nicht bestücken',
     usage:
-      'Verwendet von {placed} platzierten Bauteilen, {board} Platinenbauteilen, {symbols} Symbolen und {components} Bauteilen.',
+      'Verwendet: in Schaltplänen {placed} · auf Platinen {board} · von Symbolen {symbols} · von Bauteilen {components}',
     unused: 'Im Projekt noch nicht verwendet.',
     fields: 'Felder',
     fieldName: 'Feldname',
@@ -376,7 +376,7 @@ export const libeditDe: Messages['libedit'] = {
     deleteTitle: '{name} löschen?',
     deleteText: 'Das Element wird aus der Bibliothek entfernt. Rückgängig holt es zurück.',
     deleteUsed:
-      'Es wird noch verwendet: {placed} platzierte Bauteile, {board} Platinenbauteile, {symbols} Symbole, {components} Bauteile. Sie behalten den Namen, verlieren aber die Zeichnung.',
+      'Es wird noch verwendet (in Schaltplänen {placed} · auf Platinen {board} · von Symbolen {symbols} · von Bauteilen {components}). Diese behalten den Namen, verlieren aber die Zeichnung.',
     delete: 'Löschen',
   },
   component: {

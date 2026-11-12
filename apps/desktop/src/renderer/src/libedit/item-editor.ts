@@ -92,7 +92,8 @@ export class ItemEditor implements Interaction {
   private readonly listeners = new Set<() => void>();
   private press: { start: Point; screen: Point; moving: boolean } | null = null;
   private moveIds: ItemRef[] = [];
-  private busy = false;
+  /** Edits in flight, in order. */
+  private queue: Promise<unknown> = Promise.resolve();
   /** The shown body and the footprint's pads (set by the view). */
   private body: Body = { unit: 1, alternate: false };
   private pads: readonly Pad[] = [];
@@ -211,23 +212,25 @@ export class ItemEditor implements Interaction {
 
   // --- Edits ----------------------------------------------------------------
 
-  async run(edit: Record<string, unknown>): Promise<boolean> {
-    if (this.busy) {
+  /**
+   * Runs an edit after the ones still on their way to the engine (quick
+   * table edits must not overtake or drop each other).
+   */
+  run(edit: Record<string, unknown>): Promise<boolean> {
+    const next = this.queue.then(() => this.execute(edit));
+    this.queue = next.catch(() => false);
+    return next;
+  }
+
+  private async execute(edit: Record<string, unknown>): Promise<boolean> {
+    const select = await this.host.edit(edit, this.body);
+    if (select === null) {
       return false;
     }
-    this.busy = true;
-    try {
-      const select = await this.host.edit(edit, this.body);
-      if (select === null) {
-        return false;
-      }
-      // The drawing grows while it is edited; the view stays put.
-      this.controller.keepView();
-      this.select(select);
-      return true;
-    } finally {
-      this.busy = false;
-    }
+    // The drawing grows while it is edited; the view stays put.
+    this.controller.keepView();
+    this.select(select);
+    return true;
   }
 
   deleteSelection(): void {

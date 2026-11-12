@@ -948,3 +948,213 @@ test('schematic editor', async () => {
   await shoot(dark.page.getByTestId('guide'), 'schematic-guide');
   await dark.close();
 });
+
+/** The drawn canvas of the symbol or footprint editor. */
+function itemCanvas(page: Page): Locator {
+  return page.locator('[data-testid="item-canvas-area"][data-ready="true"]');
+}
+
+/** Waits until the item view stops moving. */
+async function settleItem(page: Page): Promise<void> {
+  const canvas = itemCanvas(page);
+  await canvas.waitFor();
+  await expect(async () => {
+    const first = await canvas.getAttribute('data-view');
+    await page.waitForTimeout(150);
+    expect(await canvas.getAttribute('data-view')).toBe(first);
+  }).toPass();
+}
+
+async function clickItem(page: Page, at: Point): Promise<void> {
+  const [x, y] = await toScreen(itemCanvas(page), at);
+  await page.mouse.move(x, y);
+  await page.mouse.click(x, y);
+}
+
+/** Types into a table cell and saves it. */
+async function cell(page: Page, testId: string, value: string): Promise<void> {
+  await page.getByTestId(testId).fill(value);
+  await page.getByTestId(testId).press('Enter');
+  await expect(page.getByTestId(testId)).toHaveValue(value);
+}
+
+test('library editor', async () => {
+  test.setTimeout(180_000);
+  freshProjects();
+  const { page, close } = await start({ settings: { theme: 'light' } });
+  await page.setViewportSize({ width: 1600, height: 940 });
+  await createDemo(page, 'Level Shifter', 'board-2l');
+  await page.locator('[data-testid^="tree-doc:"]', { hasText: 'Project library' }).dblclick();
+  await expect(page.getByTestId('library-editor')).toBeVisible();
+  await page.getByTestId('libedit-item-Q_NPN_BCE').click();
+  await settleItem(page);
+  await shoot(page, 'libedit-library');
+
+  // A new symbol: four pins from a pasted list on the left …
+  await page.getByTestId('libedit-new').click();
+  await page.getByTestId('libedit-name-input').fill('LVL_SHIFT_2CH');
+  await shoot(page.getByTestId('libedit-name-dialog'), 'libedit-new');
+  await page.getByTestId('libedit-name-confirm').click();
+  await expect(page.getByTestId('item-name')).toHaveText('LVL_SHIFT_2CH');
+  await settleItem(page);
+  await page.getByTestId('paste-pins').click();
+  await page.getByTestId('paste-pins-text').fill('1\tVCCA\tW\n2\tA1\tB\n3\tA2\tB\n4\tGND\tW');
+  await shoot(page.getByTestId('paste-pins-dialog'), 'libedit-paste-pins');
+  await page.getByTestId('paste-pins-add').click();
+  await expect(page.getByTestId('pin-row-3')).toBeVisible();
+
+  // … four pins with the pin tool on the right (R turns them to the left) …
+  await page.getByTestId('item-tool-pin').click();
+  await itemCanvas(page).focus();
+  await page.keyboard.press('r');
+  await page.keyboard.press('r');
+  await expect(page.getByTestId('pin-default-direction')).toHaveValue('left');
+  for (const [index, y] of [0, -2.54, -5.08, -7.62].entries()) {
+    await clickItem(page, [7.62 * MM, y * MM]);
+    await expect(page.getByTestId(`pin-row-${String(index + 4)}`)).toBeVisible();
+  }
+  await shoot(page.getByTestId('item-options'), 'libedit-pin-options');
+  // … and the body.
+  await page.getByTestId('item-tool-rect').click();
+  await clickItem(page, [-5.08 * MM, 2.54 * MM]);
+  await clickItem(page, [5.08 * MM, -10.16 * MM]);
+  await expect(page.getByTestId('selection-props')).toContainText('Graphic');
+  await page.keyboard.press('Escape');
+  for (const [row, name] of [
+    [4, 'B1'],
+    [5, 'B2'],
+    [6, 'OE'],
+    [7, 'VCCB'],
+  ] as const) {
+    await cell(page, `pin-name-${String(row)}`, name);
+  }
+  await page.getByTestId('pin-kind-4').selectOption('bidirectional');
+  await page.getByTestId('pin-kind-5').selectOption('bidirectional');
+  await page.getByTestId('pin-kind-6').selectOption('input');
+  await page.getByTestId('pin-kind-7').selectOption('powerIn');
+  await page.getByTestId('prop-description').fill('Two-channel bidirectional level shifter');
+  await page.getByTestId('prop-description').blur();
+  await page.getByRole('button', { name: 'Fit to window' }).first().click();
+  await settleItem(page);
+  // Rows 2 and 3 selected for a bulk edit.
+  await page.getByTestId('pin-row-1').click({ position: { x: 4, y: 4 } });
+  await page.getByTestId('pin-row-2').click({ position: { x: 4, y: 4 }, modifiers: ['Shift'] });
+  await expect(page.getByTestId('pin-table')).toContainText('2 selected');
+  await page.mouse.move(10, 10);
+  await page
+    .getByTestId('pin-table')
+    .locator('.item-table__scroll')
+    .evaluate((element) => {
+      element.scrollTop = 0;
+    });
+  await shoot(page, 'libedit-symbol');
+  await shoot(page.getByTestId('pin-table'), 'libedit-pin-table');
+
+  // One pin selected: its properties.
+  await page.getByTestId('pin-row-6').click({ position: { x: 4, y: 4 } });
+  await expect(page.getByTestId('selection-props')).toContainText('Pin 7');
+  await shoot(page.getByTestId('selection-props'), 'libedit-pin-properties');
+
+  // A De Morgan body and a second unit.
+  await page.getByTestId('body-alternate').click();
+  await expect(page.getByTestId('body-alternate')).toHaveText('De Morgan');
+  await page.getByTestId('body-alternate').click();
+  await settleItem(page);
+  await shoot(page.getByTestId('unit-bar'), 'libedit-units');
+  await page.getByTestId('body-normal').click();
+  await settleItem(page);
+
+  // The footprint wizard.
+  await page.getByTestId('libedit-kind-footprint').click();
+  await page.getByTestId('libedit-wizard').click();
+  await page.getByTestId('fpwizard-preset').selectOption('QFN-32 5x5');
+  await expect(page.getByTestId('fpwizard-preview')).toContainText('33 pads');
+  await shoot(page.getByTestId('fpwizard-dialog'), 'libedit-wizard-qfn');
+  await page.getByTestId('fpwizard-preset').selectOption('SOIC-8');
+  await page.getByTestId('fpwizard-density').selectOption('most');
+  await expect(page.getByTestId('fpwizard-name')).toHaveValue('SOIC-8_3.9x4.9mm_P1.27mm');
+  await page.getByTestId('fpwizard-name').fill('SOIC-8_HandSolder');
+  await shoot(page.getByTestId('fpwizard-dialog'), 'libedit-wizard');
+  await page.getByTestId('fpwizard-create').click();
+  await expect(page.getByTestId('item-name')).toHaveText('SOIC-8_HandSolder');
+  await settleItem(page);
+  // A 3D model reference and pad 1 selected.
+  await page
+    .getByTestId('model-add-path')
+    .fill('${KICAD9_3DMODEL_DIR}/Package_SO.3dshapes/SOIC-8_3.9x4.9mm_P1.27mm.step');
+  await page.getByTestId('model-add').click();
+  await expect(page.getByTestId('model-0')).toBeVisible();
+  await page.getByTestId('pad-row-0').click({ position: { x: 4, y: 4 } });
+  await expect(page.getByTestId('selection-props')).toContainText('Pad 1');
+  await page.mouse.move(10, 10);
+  await shoot(page, 'libedit-footprint');
+  await shoot(page.getByTestId('pad-table'), 'libedit-pad-table');
+  await shoot(page.getByTestId('selection-props'), 'libedit-pad-properties');
+  await shoot(page.getByTestId('item-models'), 'libedit-models');
+
+  // A pad array.
+  await page.getByTestId('pad-array').click();
+  await page.getByTestId('pad-array-columns').fill('2');
+  await page.getByTestId('pad-array-rows').fill('3');
+  await page.getByTestId('pad-array-rows').press('Tab');
+  await expect(page.getByTestId('pad-array-add')).toHaveText('Add 6 pads');
+  await shoot(page.getByTestId('pad-array-dialog'), 'libedit-pad-array');
+  await page.keyboard.press('Escape');
+
+  // The checks of the whole library.
+  await page.getByTestId('tab-checks').click();
+  await page.getByTestId('check-library').click();
+  await expect(page.getByTestId('library-findings')).toBeVisible();
+  await page
+    .getByTestId('library-findings')
+    .locator('summary')
+    .first()
+    .click({ position: { x: 4, y: 6 } });
+  await shoot(page.getByTestId('checks-panel'), 'libedit-checks');
+  await page.getByTestId('tab-table').click();
+
+  // A component: symbol, footprint and order data.
+  await page.getByTestId('libedit-kind-component').click();
+  await page.getByTestId('libedit-new').click();
+  await page.getByTestId('libedit-name-input').fill('LVL_SHIFT_2CH_SO8');
+  await page.getByTestId('libedit-name-confirm').click();
+  await page.getByTestId('component-symbol').selectOption('LVL_SHIFT_2CH');
+  await page.getByTestId('component-footprint').fill('SOIC-8_HandSolder');
+  await page.getByTestId('component-footprint').press('Enter');
+  await cell(page, 'component-value', 'LVL_SHIFT_2CH');
+  await cell(page, 'component-manufacturer', 'Example Semiconductors');
+  await cell(page, 'component-mpn', 'EX-LS2-SO8');
+  await page.getByTestId('prop-description').fill('Two-channel level shifter, SOIC-8');
+  await page.getByTestId('prop-description').blur();
+  await page.getByTestId('supplier-new').fill('Example Distribution');
+  await page.getByTestId('supplier-add').click();
+  await cell(page, 'supplier-pn-0', '123-EXLS2SO8');
+  await expect(page.getByTestId('component-pin-map')).toContainText('VCCB');
+  await page.mouse.move(10, 10);
+  await shoot(page, 'libedit-component');
+
+  // Placing the component on the sheet.
+  await openDocument(page, 'Root');
+  await viewerCanvas(page).focus();
+  await page.keyboard.press('a');
+  await page.getByTestId('chooser-search').fill('shift');
+  await page.getByTestId('chooser-component-LVL_SHIFT_2CH_SO8').click();
+  await expect(page.getByTestId('symbol-preview')).toBeVisible();
+  await shoot(page.getByTestId('symbol-chooser'), 'libedit-chooser-component');
+  await page.keyboard.press('Escape');
+  await page.getByTestId('toolbar-save').click();
+  await expect(page.getByTestId('dirty-indicator')).toHaveAttribute('data-dirty', 'false');
+  await close();
+
+  // The dark theme.
+  const dark = await start({ settings: { theme: 'dark' } });
+  await dark.page.setViewportSize({ width: 1600, height: 940 });
+  await queueDialogAnswer(dark.app, join(PROJECTS, 'Level Shifter', 'Level Shifter.ewproj'));
+  await dark.page.getByTestId('open-project').click();
+  await dark.page.locator('[data-testid^="tree-doc:"]', { hasText: 'Project library' }).dblclick();
+  await dark.page.getByTestId('libedit-kind-footprint').click();
+  await settleItem(dark.page);
+  await dark.page.mouse.move(10, 10);
+  await shoot(dark.page, 'libedit-footprint-dark');
+  await dark.close();
+});
