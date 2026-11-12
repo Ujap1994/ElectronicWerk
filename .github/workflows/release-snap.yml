@@ -1,0 +1,127 @@
+name: Release snap
+
+# Adds a missing snap package to a published release. When the Snap Store is
+# unreachable from the runners, the release workflow builds the other Linux
+# packages without the snap (v0.7.1). Run this workflow later with the tag and
+# the architecture to build the snap from the tagged source and upload it,
+# together with an updated SHA256SUMS.txt.
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Release tag (v1.2.3)
+        required: true
+        type: string
+      arch:
+        description: Architecture of the missing snap
+        required: true
+        type: choice
+        options: [x64, arm64]
+        default: x64
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-snap-${{ inputs.tag }}
+  cancel-in-progress: false
+
+env:
+  CARGO_TERM_COLOR: always
+  LEFTHOOK: '0'
+  TAG: ${{ inputs.tag }}
+  ARCH: ${{ inputs.arch }}
+  TARGET: ${{ inputs.arch == 'arm64' && 'aarch64-unknown-linux-gnu' || 'x86_64-unknown-linux-gnu' }}
+
+jobs:
+  snap:
+    name: Snap (${{ inputs.tag }}, ${{ inputs.arch }})
+    runs-on: ${{ inputs.arch == 'arm64' && 'ubuntu-24.04-arm' || 'ubuntu-24.04' }}
+    timeout-minutes: 90
+    permissions:
+      contents: write
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ inputs.tag }}
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ env.TARGET }}
+      - uses: Swatinem/rust-cache@v2
+        with:
+          key: release-linux-${{ inputs.arch }}
+
+      - name: Release exists and has no snap for this architecture
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          node scripts/version.mjs check "$TAG"
+          assets="$(gh release view "$TAG" --json assets -q '.assets[].name')"
+          if echo "$assets" | grep -q -- "-linux-$ARCH\.snap$"; then
+            echo "::error::$TAG already has a $ARCH snap."
+            exit 1
+          fi
+
+      - run: npm ci
+
+      - name: Snap tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y xvfb squashfs-tools
+          # electron-builder's core24 snaps need snapcraft 8 (9 cannot find the desktop file).
+          for attempt in $(seq 1 10); do
+            if sudo snap install core24 && sudo snap install snapcraft --classic --channel=8.x/stable; then
+              exit 0
+            fi
+            echo "Snap Store not reachable (attempt $attempt); retrying in 60 s."
+            sleep 60
+          done
+          echo "::error::The Snap Store is still unreachable; run this workflow again later."
+          exit 1
+
+      - name: Build native engine
+        run: node scripts/build-native.mjs --release --target "$TARGET"
+
+      - name: Build app
+        run: npm run build -w @electronicwerk/desktop
+
+      - name: Package
+        working-directory: apps/desktop
+        run: npx electron-builder --linux snap "--$ARCH" --publish never
+
+      - name: Smoke test
+        working-directory: apps/desktop
+        run: |
+          app="release/linux-unpacked/electronicwerk"
+          [ "$ARCH" = arm64 ] && app="release/linux-arm64-unpacked/electronicwerk"
+          EW_USER_DATA_DIR="$(mktemp -d)" xvfb-run --auto-servernum "$app" --smoke-test --no-sandbox
+
+      - name: Upload to the release
+        working-directory: apps/desktop/release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          shopt -s nullglob
+          snaps=(*.snap)
+          if [ "${#snaps[@]}" -ne 1 ]; then
+            echo "::error::Expected one snap, found ${#snaps[@]}."
+            exit 1
+          fi
+          # The same names as the release workflow (deb/snap say amd64).
+          name="$(echo "${snaps[0]}" | sed -E 's/-linux-(amd64|x86_64)\./-linux-x64./; s/-linux-aarch64\./-linux-arm64./')"
+          mkdir -p upload
+          cp "${snaps[0]}" "upload/$name"
+          cd upload
+          gh release download "$TAG" --repo "$GITHUB_REPOSITORY" --pattern SHA256SUMS.txt
+          grep -v -F "  $name" SHA256SUMS.txt > sums.txt || true
+          sha256sum -- "$name" >> sums.txt
+          LC_ALL=C sort -k 2 sums.txt > SHA256SUMS.txt
+          cat SHA256SUMS.txt
+          gh release upload "$TAG" "$name" SHA256SUMS.txt --repo "$GITHUB_REPOSITORY" --clobber

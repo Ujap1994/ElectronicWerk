@@ -6,6 +6,13 @@ project uses [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Added
+
+- A **Release snap** workflow adds a missing snap package to a published
+  release (built from the tagged source, smoke-tested, with updated
+  checksums). The release workflow skips the snap when the Snap Store is
+  unreachable, as it was for the Linux x64 build of 0.7.1.
+
 ## [0.7.1] - 2026-11-12
 
 The library release: symbols, footprints and components are drawn and

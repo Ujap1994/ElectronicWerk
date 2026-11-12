@@ -48,6 +48,27 @@ then:
 The in-app [update notice](../guide/updates) picks up the new release
 automatically.
 
+## When the Snap Store is unreachable
+
+Building a snap needs `snapcraft` from the Snap Store. Now and then the store
+cannot be reached from GitHub's runners for hours. The release workflow tries
+for about ten minutes; if the store stays away, it builds the other Linux
+packages of that architecture without the snap, publishes the release anyway
+and shows a warning in the run summary.
+
+To add the missing snap later, run **Actions → Release snap → Run workflow**
+with the tag (for example `v0.7.1`) and the architecture (`x64` or `arm64`).
+The workflow:
+
+1. checks that the release exists and has no snap for that architecture yet,
+2. builds the engine, the app and the snap from the tagged source,
+3. starts the app once in smoke-test mode,
+4. uploads the snap to the release and replaces `SHA256SUMS.txt` with a list
+   that includes it.
+
+If the Snap Store is still unreachable, the workflow fails without changing
+the release; run it again later.
+
 ## Test builds
 
 Run the workflow manually (**Actions → Release → Run workflow**) to build and
