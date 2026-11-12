@@ -4,6 +4,7 @@
  *
  * Placeholders use `{name}` syntax and must be identical in every language.
  */
+import { boardEn } from './board.en';
 import { libeditEn } from './libedit.en';
 import { schematicEn } from './schematic.en';
 
@@ -112,6 +113,13 @@ export const en = {
     exportSchematic: 'Schematic: export (netlist, BOM, SVG, PDF)',
     gridAssistant: 'Schematic: grid and snapping',
     schematicGuide: 'Schematic: show the guide',
+    runDrc: 'Board: run the design rules check',
+    fillZones: 'Board: fill all zones',
+    updateBoard: 'Board: update from the schematic',
+    boardSetup: 'Board: set up the board (stack-up, presets, outline)',
+    designRules: 'Board: design rules and net classes',
+    importDxf: 'Board: import a DXF drawing',
+    placeFootprint: 'Board: place a footprint',
   },
   project: {
     save: 'Save',
@@ -514,6 +522,8 @@ export const en = {
     importLibraryTitle: 'Import a KiCad library',
     kicadLibraryFilter: 'KiCad libraries',
     importLibraryFolderTitle: 'Choose a KiCad library folder (.pretty or .kicad_symdir)',
+    importDxfTitle: 'Import a DXF drawing',
+    dxfFilter: 'DXF drawings',
   },
   languages: {
     de: 'Deutsch',
@@ -1042,4 +1052,5 @@ export const en = {
   },
   schematic: schematicEn,
   libedit: libeditEn,
+  board: boardEn,
 } as const;

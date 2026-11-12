@@ -1,3 +1,4 @@
+import { boardDe } from './board.de';
 import { libeditDe } from './libedit.de';
 import { schematicDe } from './schematic.de';
 import type { Messages } from './types';
@@ -109,6 +110,13 @@ export const de: Messages = {
     exportSchematic: 'Schaltplan: exportieren (Netzliste, Stückliste, SVG, PDF)',
     gridAssistant: 'Schaltplan: Raster und Fang',
     schematicGuide: 'Schaltplan: Anleitung zeigen',
+    runDrc: 'Platine: Designregelprüfung starten',
+    fillZones: 'Platine: alle Zonen füllen',
+    updateBoard: 'Platine: aus dem Schaltplan aktualisieren',
+    boardSetup: 'Platine: einrichten (Lagenaufbau, Vorlagen, Umriss)',
+    designRules: 'Platine: Designregeln und Netzklassen',
+    importDxf: 'Platine: DXF-Zeichnung importieren',
+    placeFootprint: 'Platine: Footprint platzieren',
   },
   project: {
     save: 'Speichern',
@@ -519,6 +527,8 @@ export const de: Messages = {
     importLibraryTitle: 'KiCad-Bibliothek importieren',
     kicadLibraryFilter: 'KiCad-Bibliotheken',
     importLibraryFolderTitle: 'KiCad-Bibliotheksordner wählen (.pretty oder .kicad_symdir)',
+    importDxfTitle: 'DXF-Zeichnung importieren',
+    dxfFilter: 'DXF-Zeichnungen',
   },
   languages: {
     de: 'Deutsch',
@@ -1050,4 +1060,5 @@ export const de: Messages = {
   },
   schematic: schematicDe,
   libedit: libeditDe,
+  board: boardDe,
 };

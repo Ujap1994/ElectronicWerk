@@ -82,6 +82,21 @@ const PATHS = {
   wand: 'M4 20 15 9M15 9l2-2M13 4v2M18 9h2M17 4l-1 1M19 6l-1 1M10 6l1 1',
   table: 'M4 5h16v14H4zM4 10h16M4 15h16M10 5v14',
   component: 'M7 6h10v12H7zM3 9h4M3 15h4M17 9h4M17 15h4M10 10h4M10 14h2',
+  track: 'M4 20l7-7h5l4-4M4 20h.01M20 9h.01',
+  via: 'M12 19a7 7 0 1 0 0-14 7 7 0 0 0 0 14zM12 14.5a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5z',
+  zone: 'M4 5h16v14H4zM4 9l4-4M4 14l9-9M4 19l14-14M9 19l11-11M14 19l6-6',
+  keepout: 'M4 5h16v14H4zM8 9l8 6M16 9l-8 6',
+  outline: 'M4 4h12l4 4v12H4zM8 8h.01',
+  fill: 'M5 4h14v16H5zM8 8h8v8H8z',
+  sync: 'M4 12a8 8 0 0 1 14-5.3M20 4v5h-5M20 12a8 8 0 0 1-14 5.3M4 20v-5h5',
+  setup:
+    'M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6zM12 2v3M12 19v3M4.2 4.2l2.1 2.1M17.7 17.7l2.1 2.1M2 12h3M19 12h3M4.2 19.8l2.1-2.1M17.7 6.3l2.1-2.1',
+  importFile: 'M12 15V3m0 12-4-4m4 4 4-4M4 15v5h16v-5',
+  alignLeft: 'M4 3v18M8 7h10v4H8zM8 14h6v4H8z',
+  alignTop: 'M3 4h18M7 8v10h4V8zM14 8v6h4V8z',
+  distribute: 'M4 4v16M20 4v16M9 8h6v8H9z',
+  lock: 'M6 11h12v9H6zM9 11V8a3 3 0 0 1 6 0v3',
+  ratsnest: 'M5 6l7 12 7-9M5 6h.01M12 18h.01M19 9h.01',
 } as const;
 
 export type IconName = keyof typeof PATHS;

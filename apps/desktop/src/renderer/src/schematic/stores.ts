@@ -6,7 +6,7 @@
 import type { NetMembers, Point } from './editor';
 import type { EditorCommands } from './EditorToolbar';
 
-class Store<T> {
+export class Store<T> {
   private listeners = new Set<() => void>();
 
   constructor(private value: T) {}

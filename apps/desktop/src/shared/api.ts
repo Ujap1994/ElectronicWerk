@@ -100,14 +100,16 @@ export function isExportKind(value: unknown): value is ExportKind {
 }
 
 /** What kind of file an import dialog asks for. */
-export type ImportKind = 'kicadProject' | 'netlist' | 'kicadLibraryFile' | 'kicadLibraryFolder';
+export type ImportKind =
+  'kicadProject' | 'netlist' | 'kicadLibraryFile' | 'kicadLibraryFolder' | 'dxf';
 
 export function isImportKind(value: unknown): value is ImportKind {
   return (
     value === 'kicadProject' ||
     value === 'netlist' ||
     value === 'kicadLibraryFile' ||
-    value === 'kicadLibraryFolder'
+    value === 'kicadLibraryFolder' ||
+    value === 'dxf'
   );
 }
 

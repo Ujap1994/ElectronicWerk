@@ -90,6 +90,11 @@ const IMPORT_DIALOGS = {
     filter: null,
     extensions: [],
   },
+  dxf: {
+    title: 'dialogs.importDxfTitle',
+    filter: 'dialogs.dxfFilter',
+    extensions: ['dxf'],
+  },
 } as const;
 
 /** Asks for a file or folder to import. */

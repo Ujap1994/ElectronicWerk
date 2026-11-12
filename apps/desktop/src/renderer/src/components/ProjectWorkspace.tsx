@@ -6,6 +6,7 @@ import { LibraryEditor } from '../libedit/LibraryEditor';
 import { historyLabel } from '../project/labels';
 import { useProject } from '../project/ProjectProvider';
 import { selectionKey, type TreeTarget } from '../project/tree';
+import { resetBoardStores } from '../board/stores';
 import { resetSchematicStores } from '../schematic/stores';
 import { useAppState } from '../state';
 import { OpenDocumentContext } from '../viewer/open-context';
@@ -74,6 +75,7 @@ export function ProjectWorkspace({
     () => () => {
       forgetViewMemories();
       resetSchematicStores();
+      resetBoardStores();
     },
     [projectId],
   );

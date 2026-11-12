@@ -19,6 +19,7 @@ import { StatusBar } from './components/StatusBar';
 import { UpdateDialog, type UpdateDialogState } from './components/UpdateDialog';
 import { LibraryManager } from './library/LibraryManager';
 import { useProject } from './project/ProjectProvider';
+import { activeBoard } from './board/stores';
 import { activeSheet } from './schematic/stores';
 import { useAppState } from './state';
 
@@ -160,6 +161,7 @@ export function App(): ReactNode {
   }, []);
 
   const sheet = useSyncExternalStore(activeSheet.subscribe, activeSheet.get);
+  const boardCommands = useSyncExternalStore(activeBoard.subscribe, activeBoard.get);
   const commands = useMemo<Command[]>(
     () => [
       ...(sheet === null
@@ -172,6 +174,21 @@ export function App(): ReactNode {
             { id: 'export-schematic', label: 'commands.exportSchematic', run: sheet.exportMenu },
             { id: 'grid-assistant', label: 'commands.gridAssistant', run: sheet.grid },
             { id: 'schematic-guide', label: 'commands.schematicGuide', run: sheet.guide },
+          ] satisfies Command[])),
+      ...(boardCommands === null
+        ? []
+        : ([
+            { id: 'run-drc', label: 'commands.runDrc', run: boardCommands.drc },
+            { id: 'fill-zones', label: 'commands.fillZones', run: boardCommands.fillZones },
+            { id: 'update-board', label: 'commands.updateBoard', run: boardCommands.update },
+            { id: 'board-setup', label: 'commands.boardSetup', run: boardCommands.setup },
+            { id: 'design-rules', label: 'commands.designRules', run: boardCommands.rules },
+            { id: 'import-dxf', label: 'commands.importDxf', run: boardCommands.importDxf },
+            {
+              id: 'place-footprint',
+              label: 'commands.placeFootprint',
+              run: boardCommands.placeFootprint,
+            },
           ] satisfies Command[])),
       { id: 'new-project', label: 'commands.newProject', run: newProject },
       {
@@ -338,6 +355,7 @@ export function App(): ReactNode {
     ],
     [
       sheet,
+      boardCommands,
       addDocument,
       archive,
       checkForUpdates,

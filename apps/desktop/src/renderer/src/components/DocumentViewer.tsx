@@ -10,6 +10,11 @@ import {
 
 import { formatLength, isEngineEvent, type DocumentSummary, type Units } from '@shared/project';
 
+import { BoardOverlay } from '../board/BoardOverlay';
+import { BoardActions, BoardToolPalette } from '../board/BoardToolbar';
+import { DrcPanel } from '../board/DrcPanel';
+import type { BoardEditor } from '../board/editor';
+import { useBoardEditor, useSchematicCrossProbe } from '../board/useBoardEditor';
 import { useProject } from '../project/ProjectProvider';
 import { errorMessage } from '../project/labels';
 import { SchematicEditor, type Point } from '../schematic/editor';
@@ -106,6 +111,42 @@ function Overlay({ controller }: { readonly controller: ViewerController }): Rea
   );
 }
 
+function BoardStatus({ editor }: { readonly editor: BoardEditor }): ReactNode {
+  const { t } = useAppState();
+  const state = useSyncExternalStore(editor.subscribe, editor.snapshot);
+  const route = state.route;
+  return (
+    <>
+      {state.hint !== null && (
+        <span className="viewer__hint" data-testid="editor-hint">
+          {t(state.hint)}
+        </span>
+      )}
+      {route !== null && (
+        <span className="viewer__hint" data-testid="route-status">
+          {t('board.routeStatus', {
+            net: route.netName === '' ? t('board.noNet') : route.netName,
+            width: (route.width / 1e6).toFixed(3),
+          })}
+        </span>
+      )}
+      {state.net !== null && route === null && (
+        <button
+          type="button"
+          className="net-chip"
+          title={t('schematic.clearNet')}
+          data-testid="net-chip"
+          onClick={() => {
+            editor.showNet(null);
+          }}
+        >
+          {t('schematic.net', { name: state.net })} ×
+        </button>
+      )}
+    </>
+  );
+}
+
 function EditorStatus({ editor }: { readonly editor: SchematicEditor }): ReactNode {
   const { t } = useAppState();
   const state = useSyncExternalStore(editor.subscribe, editor.snapshot);
@@ -152,10 +193,12 @@ function EditorStatus({ editor }: { readonly editor: SchematicEditor }): ReactNo
 function Footer({
   controller,
   editor,
+  board,
   units,
 }: {
   readonly controller: ViewerController;
   readonly editor: SchematicEditor | null;
+  readonly board: BoardEditor | null;
   readonly units: Units;
 }): ReactNode {
   const { t, snapshot } = useAppState();
@@ -180,6 +223,7 @@ function Footer({
             : `${typeLabel(t, view.hover.type)} · ${view.hover.net}`}
       </span>
       {editor !== null && <EditorStatus editor={editor} />}
+      {board !== null && <BoardStatus editor={board} />}
       <span className="viewer__spacer" />
       {view.grid > 0 && <span>{t('viewer.grid', { size: length(view.grid) })}</span>}
       <span data-testid="viewer-zoom">{t('viewer.zoom', { percent })}</span>
@@ -242,12 +286,23 @@ export function DocumentViewer({
     [sheet, controller, doc, engine, notify, t],
   );
 
+  const boardUi = useBoardEditor({
+    controller,
+    document,
+    enabled: document.kind === 'pcb',
+    units,
+    canvasRef,
+  });
+  const boardEditor = boardUi.editor;
+  const firstBoard = project?.documents.find((entry) => entry.kind === 'pcb')?.id ?? null;
+  useSchematicCrossProbe(controller, doc, sheet, firstBoard);
+
   useEffect(() => {
-    controller.setInteraction(editor);
+    controller.setInteraction(editor ?? boardEditor);
     return () => {
       controller.setInteraction(null);
     };
-  }, [controller, editor]);
+  }, [controller, editor, boardEditor]);
 
   // A net highlighted on another sheet shows here too.
   useEffect(() => {
@@ -477,6 +532,13 @@ export function DocumentViewer({
               hasSelection={snapshot.selection.length > 0}
             />
           )}
+          {boardEditor !== null && (
+            <BoardActions
+              editor={boardEditor}
+              commands={boardUi.commands}
+              hasSelection={snapshot.selection.length > 0}
+            />
+          )}
           {board && (
             <>
               <span className="viewer-tool__separator" />
@@ -533,6 +595,12 @@ export function DocumentViewer({
           <Overlay controller={controller} />
           {editor !== null && <EditorOverlay controller={controller} editor={editor} />}
           {editor !== null && <ToolPalette editor={editor} commands={commands} />}
+          {boardEditor !== null && (
+            <BoardOverlay controller={controller} editor={boardEditor} doc={doc} />
+          )}
+          {boardEditor !== null && (
+            <BoardToolPalette editor={boardEditor} commands={boardUi.commands} />
+          )}
           {editor !== null && guide && (
             <Guide
               doc={doc}
@@ -599,7 +667,10 @@ export function DocumentViewer({
             }}
           />
         )}
-        <Footer controller={controller} editor={editor} units={units} />
+        {boardEditor !== null && (
+          <DrcPanel doc={doc} onShow={boardUi.showFinding} onSettings={boardUi.openRules} />
+        )}
+        <Footer controller={controller} editor={editor} board={boardEditor} units={units} />
       </div>
       <aside className="viewer__side">
         <LayerPanel controller={controller} />
@@ -625,6 +696,7 @@ export function DocumentViewer({
           }}
         />
       )}
+      {boardUi.dialogs}
       {ercSettings && (
         <ErcSettingsDialog
           onClose={() => {
