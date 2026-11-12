@@ -34,6 +34,10 @@ and board stay in sync in both directions.
   segment; the target pad snaps to its centre. Track width and via sizes
   come from the net class (or a custom rule). The whole route is one undo
   step.
+- **45° corners by default**: routes never bend at right angles (signal
+  integrity and EMC), also where they continue a fixed segment or an
+  existing track; **Allow 90° corners** in the toolbar permits right angles
+  (the direct path is then an L).
 - **Dragging tracks** (drag or D): a segment moves sideways and the tracks
   and vias at its ends follow.
 - **Copper zones** (Z) with net, layers, priority, clearance, minimum width,

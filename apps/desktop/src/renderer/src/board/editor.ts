@@ -10,6 +10,7 @@
 import type { MessageKey } from '@shared/i18n';
 
 import type { Interaction, ViewerController } from '../viewer/controller';
+import { routingCorners } from './stores';
 
 export type Point = readonly [number, number];
 
@@ -23,6 +24,8 @@ export interface RouteState {
   readonly width: number;
   readonly viaDiameter: number;
   readonly viaDrill: number;
+  /** Direction of the existing track the route started at (bends from it count). */
+  readonly startDirection: Point | null;
   /** The layer of the live segment. */
   readonly layer: string;
   /** Start of the live segment. */
@@ -93,6 +96,7 @@ interface StartReply {
   readonly width: number;
   readonly viaDiameter: number;
   readonly viaDrill: number;
+  readonly previous?: Point | null;
 }
 
 interface RouteReply {
@@ -450,6 +454,7 @@ export class BoardEditor implements Interaction {
             width: start.width,
             viaDiameter: start.viaDiameter,
             viaDrill: start.viaDrill,
+            startDirection: start.previous ?? null,
             layer,
             start: at,
             fixed: [],
@@ -484,6 +489,28 @@ export class BoardEditor implements Interaction {
     return this.snapPoint(point);
   }
 
+  /**
+   * The direction of the segment that ends where the live path starts: the
+   * last fixed segment on the same layer (not across a via), or the track
+   * the route began at.
+   */
+  private previousDirection(route: RouteState): Point | null {
+    const at = route.start;
+    if (route.vias.some((via) => via[0] === at[0] && via[1] === at[1])) {
+      return null;
+    }
+    const last = route.fixed.at(-1);
+    if (last === undefined) {
+      return route.startDirection;
+    }
+    const end = last.points.at(-1);
+    const before = last.points.at(-2);
+    if (last.layer !== route.layer || end === undefined || before === undefined) {
+      return null;
+    }
+    return [end[0] - before[0], end[1] - before[1]];
+  }
+
   private requestRoute(target: Point): void {
     const route = this.state.route;
     if (route === null) {
@@ -504,6 +531,8 @@ export class BoardEditor implements Interaction {
         start: route.start,
         target,
         diagonalFirst: this.state.diagonal,
+        corners: routingCorners.get(),
+        previous: this.previousDirection(route),
         via: route.viaDiameter,
       })
       .then((reply) => {
@@ -528,6 +557,13 @@ export class BoardEditor implements Interaction {
           this.requestRoute(next);
         }
       });
+  }
+
+  /** Asks for a new preview (after the corner mode changed). */
+  refreshRoute(): void {
+    if (this.state.route !== null && this.pointer !== null) {
+      this.requestRoute(this.routeTarget(this.pointer));
+    }
   }
 
   /** Fixes the live path; the route continues from its end. */

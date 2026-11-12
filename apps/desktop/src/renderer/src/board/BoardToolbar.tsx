@@ -5,7 +5,13 @@ import type { MessageKey } from '@shared/i18n';
 import { Icon, type IconName } from '../components/Icon';
 import { useAppState } from '../state';
 import type { BoardEditor, BoardTool } from './editor';
-import { crossProbing, drcState, type BoardCommands } from './stores';
+import {
+  crossProbing,
+  drcState,
+  routingCorners,
+  setRoutingCorners,
+  type BoardCommands,
+} from './stores';
 
 interface ToolSpec {
   readonly tool: BoardTool;
@@ -232,11 +238,23 @@ export function BoardActions({
   const { t } = useAppState();
   const drc = useSyncExternalStore(drcState.subscribe, drcState.get);
   const probing = useSyncExternalStore(crossProbing.subscribe, crossProbing.get);
+  const corners = useSyncExternalStore(routingCorners.subscribe, routingCorners.get);
   const [arrange, setArrange] = useState(false);
   return (
     <>
       <span className="viewer-tool__separator" />
       <LayerSelect editor={editor} />
+      <Button
+        icon="corner90"
+        label={t('board.actions.corners')}
+        tip={t('board.actions.cornersTip')}
+        pressed={corners === '90'}
+        testId="board-corners"
+        onClick={() => {
+          setRoutingCorners(corners === '90' ? '45' : '90');
+          editor.refreshRoute();
+        }}
+      />
       <Button
         icon="rotate"
         label={t('board.actions.rotate')}

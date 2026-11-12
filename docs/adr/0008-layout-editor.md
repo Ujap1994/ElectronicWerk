@@ -115,6 +115,14 @@ keep the rules exactly. When the target is unreachable, the path ends at
 the explored cell nearest to it. The search is limited to a window around
 start and target and to 200,000 expansions, so a preview stays interactive.
 
+Bends are limited by a **corner mode**: by default no bend is sharper than
+45° (no right angles, for signal integrity and EMC), optionally 90°. The
+limit applies to the two-segment candidates, to the A\* transitions (the
+search state includes the direction a cell was entered from, and the
+previous segment's direction seeds the start), to straightening (a merged
+segment must bend within the limit towards the segment before and the grid
+step after it) and to the final join at the target.
+
 Shoving other tracks (push-and-shove) is left for later; walkaround covers
 the common case and never changes existing copper.
 

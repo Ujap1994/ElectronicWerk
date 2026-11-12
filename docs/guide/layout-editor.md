@@ -21,15 +21,15 @@ The editor is built for the usual way of designing a board:
 
 ## The screen
 
-| Area                   | What it holds                                                                                                                        |
-| ---------------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
-| **View toolbar** (top) | Zoom, fit, box and lasso selection, the **active copper layer**, edit actions, board commands, high contrast and the bottom view.    |
-| **Tools** (left)       | The layout tools, one column (see below).                                                                                            |
-| **Board**              | The drawing. Previews of the tool in use, the ratsnest and the markers of the design rules check are drawn over it.                  |
-| **DRC panel** (bottom) | The findings of the [design rules check](./drc), opened with the check button.                                                       |
-| **Layers** (right)     | Visibility, opacity and the active layer of every board layer, as in the [viewer](./viewer#layers).                                  |
-| **Properties** (right) | The selected object: its details, and fields to edit footprints, tracks, vias and texts ([below](#editing-in-the-properties-panel)). |
-| **Status line**        | Cursor position, the object under the cursor, a hint for the tool in use, the net and width while routing, the grid and the zoom.    |
+| Area                   | What it holds                                                                                                                                                                                   |
+| ---------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **View toolbar** (top) | Zoom, fit, box and lasso selection, the **active copper layer**, the [corner mode](./routing#45-and-90-corners) of the router, edit actions, board commands, high contrast and the bottom view. |
+| **Tools** (left)       | The layout tools, one column (see below).                                                                                                                                                       |
+| **Board**              | The drawing. Previews of the tool in use, the ratsnest and the markers of the design rules check are drawn over it.                                                                             |
+| **DRC panel** (bottom) | The findings of the [design rules check](./drc), opened with the check button.                                                                                                                  |
+| **Layers** (right)     | Visibility, opacity and the active layer of every board layer, as in the [viewer](./viewer#layers).                                                                                             |
+| **Properties** (right) | The selected object: its details, and fields to edit footprints, tracks, vias and texts ([below](#editing-in-the-properties-panel)).                                                            |
+| **Status line**        | Cursor position, the object under the cursor, a hint for the tool in use, the net and width while routing, the grid and the zoom.                                                               |
 
 ![The layout tools](/screenshots/layout-tools.png)
 

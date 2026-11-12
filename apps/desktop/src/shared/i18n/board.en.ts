@@ -4,7 +4,7 @@ export const boardEn = {
   activeLayer: 'Active copper layer',
   cancel: 'Cancel',
   noNet: 'no net',
-  routeStatus: 'Routing {net} · {width} mm',
+  routeStatus: 'Routing {net} · {width} mm · {corners}° bends',
   layers: {
     top: 'Top copper',
     bottom: 'Bottom copper',
@@ -47,6 +47,9 @@ export const boardEn = {
   },
   actions: {
     rotate: 'Turn',
+    corners: 'Allow 90° corners',
+    cornersTip:
+      'Allow right-angled bends when routing. Off (the default): tracks only bend by 45°, which is better for signal quality and EMC.',
     flip: 'Flip to the other side',
     lock: 'Lock (Shift+L unlocks)',
     arrange: 'Align and distribute',

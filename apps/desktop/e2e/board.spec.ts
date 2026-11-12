@@ -161,6 +161,28 @@ test('routes tracks, draws zones, updates from the schematic and imports DXF', a
   const [tx, ty] = await toScreen(canvas, target);
   await page.mouse.move(tx, ty, { steps: 5 });
   await expect(page.getByTestId('route-preview')).toBeVisible();
+  // By default the route only bends by 45° (never at right angles).
+  await expect(page.getByTestId('board-corners')).toHaveAttribute('aria-pressed', 'false');
+  await expect(page.getByTestId('route-status')).toContainText('45°');
+  const preview = ((await page.getByTestId('route-preview').getAttribute('points')) ?? '')
+    .trim()
+    .split(/\s+/u)
+    .map((pair) => pair.split(',').map(Number) as [number, number]);
+  for (let i = 2; i < preview.length; i += 1) {
+    const [a, b, c] = [preview[i - 2], preview[i - 1], preview[i]];
+    if (a === undefined || b === undefined || c === undefined) {
+      continue;
+    }
+    const d1 = Math.atan2(b[1] - a[1], b[0] - a[0]);
+    const d2 = Math.atan2(c[1] - b[1], c[0] - b[0]);
+    const bend = Math.abs(((d2 - d1 + 3 * Math.PI) % (2 * Math.PI)) - Math.PI);
+    expect(bend).toBeLessThan(Math.PI / 4 + 0.05);
+  }
+  await page.getByTestId('board-corners').click();
+  await expect(page.getByTestId('board-corners')).toHaveAttribute('aria-pressed', 'true');
+  await page.getByTestId('board-corners').click();
+  await expect(page.getByTestId('board-corners')).toHaveAttribute('aria-pressed', 'false');
+  await page.mouse.move(tx, ty);
   await page.mouse.click(tx, ty);
   await page.keyboard.press('Enter');
   await expect(page.getByTestId('route-status')).toHaveCount(0);

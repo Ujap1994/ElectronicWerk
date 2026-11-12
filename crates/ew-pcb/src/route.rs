@@ -16,12 +16,35 @@ use ew_model::id::Id;
 use ew_model::layer::CopperLayer;
 use ew_model::pcb::Pcb;
 use ew_model::rules::Rules;
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 
 use crate::drc::{EPSILON, NetInfo, item_props, net_table};
 use crate::geom::{BBox, Shape, V};
 use crate::items::{Board, ItemRef};
 use crate::rules::{NoZones, Props, RuleSet};
+
+/// Which corners a route may have.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Deserialize)]
+pub enum Corners {
+    /// Only 45° bends (the default: no right angles, for signal integrity
+    /// and EMC).
+    #[default]
+    #[serde(rename = "45")]
+    Deg45,
+    /// Right-angled bends allowed too; the direct path is an L.
+    #[serde(rename = "90")]
+    Deg90,
+}
+
+impl Corners {
+    /// The largest bend between two segments, in 45° steps.
+    const fn max_turn(self) -> u8 {
+        match self {
+            Self::Deg45 => 1,
+            Self::Deg90 => 2,
+        }
+    }
+}
 
 /// What to route.
 #[derive(Debug, Clone, PartialEq)]
@@ -38,6 +61,11 @@ pub struct Request {
     pub target: V,
     /// Start with the diagonal (otherwise with the straight segment).
     pub diagonal_first: bool,
+    /// Which bends are allowed.
+    pub corners: Corners,
+    /// Direction of the segment that ends at the start (a route that
+    /// continues): the first bend counts too.
+    pub previous: Option<V>,
 }
 
 /// A routed path.
@@ -68,6 +96,9 @@ pub struct Start {
     pub via_drill: f64,
     /// Clearance of the net class.
     pub clearance: f64,
+    /// Direction of the track whose end the route starts at (towards that
+    /// end), so the first bend can be limited too.
+    pub previous: Option<[f64; 2]>,
 }
 
 /// A router for one board.
@@ -80,31 +111,121 @@ pub struct Router<'a> {
 
 const MAX_EXPANSIONS: usize = 200_000;
 
-/// The eight grid directions.
+/// The eight grid directions, counter-clockwise from +x: neighbours in
+/// this list are 45° apart.
 const DIRS: [(i32, i32); 8] = [
     (1, 0),
-    (-1, 0),
-    (0, 1),
-    (0, -1),
     (1, 1),
-    (1, -1),
+    (0, 1),
     (-1, 1),
+    (-1, 0),
     (-1, -1),
+    (0, -1),
+    (1, -1),
 ];
 
-/// A search state: a grid cell and the direction it was entered from
-/// (8 = none).
+/// No direction yet (the start of a new route).
+const NO_DIR: u8 = 8;
+
+/// A search state: a grid cell and the direction it was entered from.
 type State = ((i32, i32), u8);
 
-/// The two-segment path from `a` to `b` at 45° and 90°: the corner point.
-fn corner(a: V, b: V, diagonal_first: bool) -> V {
+/// The index in [`DIRS`] of an octilinear vector, if it is one.
+#[allow(clippy::cast_possible_truncation, reason = "index below 8")]
+fn dir_index(d: V) -> Option<u8> {
+    let tolerance = 1.0_f64.max(1e-6 * d.len());
+    if d.len() < 1.0 {
+        return None;
+    }
+    let sx = if d.x.abs() < tolerance {
+        0
+    } else {
+        d.x.signum() as i32
+    };
+    let sy = if d.y.abs() < tolerance {
+        0
+    } else {
+        d.y.signum() as i32
+    };
+    if sx != 0 && sy != 0 && (d.x.abs() - d.y.abs()).abs() > tolerance {
+        return None;
+    }
+    DIRS.iter()
+        .position(|&(x, y)| x == sx && y == sy)
+        .map(|i| i as u8)
+}
+
+/// The bend between two directions in 45° steps (0 to 4).
+const fn turn(a: u8, b: u8) -> u8 {
+    let d = (a + 8 - b) % 8;
+    if d > 4 { 8 - d } else { d }
+}
+
+/// `true` if every segment of the path is octilinear and no bend (also the
+/// one from `previous`) is sharper than the corners allow.
+fn bends_ok(points: &[V], previous: Option<u8>, corners: Corners) -> bool {
+    let mut last = previous;
+    for pair in points.windows(2) {
+        let d = pair[1].sub(pair[0]);
+        if d.len() < 1.0 {
+            continue;
+        }
+        let Some(dir) = dir_index(d) else {
+            return false;
+        };
+        if let Some(l) = last
+            && turn(l, dir) > corners.max_turn()
+        {
+            return false;
+        }
+        last = Some(dir);
+    }
+    true
+}
+
+/// The corner of a two-segment path from `a` to `b`: which segment comes
+/// first.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum Shape2 {
+    /// Diagonal, then straight.
+    Diagonal,
+    /// Straight, then diagonal.
+    Straight,
+    /// Horizontal, then vertical (90° mode).
+    Horizontal,
+    /// Vertical, then horizontal (90° mode).
+    Vertical,
+}
+
+fn corner(a: V, b: V, shape: Shape2) -> V {
     let d = b.sub(a);
     let m = d.x.abs().min(d.y.abs());
     let diag = V::new(m.copysign(d.x), m.copysign(d.y));
-    if diagonal_first {
-        a.add(diag)
+    match shape {
+        Shape2::Diagonal => a.add(diag),
+        Shape2::Straight => b.sub(diag),
+        Shape2::Horizontal => V::new(b.x, a.y),
+        Shape2::Vertical => V::new(a.x, b.y),
+    }
+}
+
+/// The two-segment shapes to try, the preferred one first.
+fn shapes(request: &Request) -> Vec<Shape2> {
+    let diagonal = if request.diagonal_first {
+        [Shape2::Diagonal, Shape2::Straight]
     } else {
-        b.sub(diag)
+        [Shape2::Straight, Shape2::Diagonal]
+    };
+    match request.corners {
+        Corners::Deg45 => diagonal.to_vec(),
+        Corners::Deg90 => {
+            let square = if request.diagonal_first {
+                [Shape2::Vertical, Shape2::Horizontal]
+            } else {
+                [Shape2::Horizontal, Shape2::Vertical]
+            };
+            square.into_iter().chain(diagonal).collect()
+        }
     }
 }
 
@@ -137,28 +258,33 @@ impl<'a> Router<'a> {
     pub fn start(&self, at: V, layer: CopperLayer) -> Start {
         let bit = self.board.layer_bit(layer).unwrap_or(0);
         let probe = Shape::disc(at, 0.0);
-        let mut found: Option<(V, Option<Id>, u8)> = None;
+        let mut found: Option<(V, Option<Id>, u8, Option<V>)> = None;
         for index in self.board.copper_near(BBox::of(at).grow(1.0)) {
             let item = &self.board.copper[index];
             if item.layers & bit == 0 || item.shape.gap(&probe, 1.0).is_none() {
                 continue;
             }
-            let (point, rank) = match item.item {
-                ItemRef::Pad { .. } | ItemRef::Via { .. } => (item.anchors[0], 0),
+            let (point, rank, direction) = match item.item {
+                ItemRef::Pad { .. } | ItemRef::Via { .. } => (item.anchors[0], 0, None),
                 ItemRef::Track { id } => {
                     let Some(track) = self.board.pcb.tracks.get(id) else {
                         continue;
                     };
                     let (s, e) = (V::of(track.start), V::of(track.end));
-                    (if s.dist(at) <= e.dist(at) { s } else { e }, 1)
+                    let straight = track.mid.is_none();
+                    if s.dist(at) <= e.dist(at) {
+                        (s, 1, straight.then(|| s.sub(e)))
+                    } else {
+                        (e, 1, straight.then(|| e.sub(s)))
+                    }
                 }
-                ItemRef::Zone { .. } => (at, 2),
+                ItemRef::Zone { .. } => (at, 2, None),
             };
-            if found.as_ref().is_none_or(|(_, _, best)| rank < *best) {
-                found = Some((point, item.net, rank));
+            if found.as_ref().is_none_or(|(_, _, best, _)| rank < *best) {
+                found = Some((point, item.net, rank, direction));
             }
         }
-        let (point, net) = found.map_or((at, None), |(p, n, _)| (p, n));
+        let (point, net, direction) = found.map_or((at, None, None), |(p, n, _, d)| (p, n, d));
         let info = self.net(net);
         let props = Props {
             kind: "track",
@@ -179,6 +305,7 @@ impl<'a> Router<'a> {
             via_diameter: via.preferred_diameter,
             via_drill: via.preferred_drill,
             clearance: class.clearance as f64,
+            previous: direction.map(V::pair),
         }
     }
 
@@ -243,38 +370,47 @@ impl<'a> Router<'a> {
         true
     }
 
-    fn two_segments(&self, request: &Request, a: V, b: V, diagonal_first: bool) -> Option<Vec<V>> {
-        let c = corner(a, b, diagonal_first);
-        let ok = if c.dist(a) < 1.0 || c.dist(b) < 1.0 {
-            self.clear(request, a, b)
-        } else {
-            self.clear(request, a, c) && self.clear(request, c, b)
-        };
-        ok.then(|| {
-            let mut points = vec![a];
-            if c.dist(a) >= 1.0 && c.dist(b) >= 1.0 {
-                points.push(c);
-            }
-            if b.dist(a) >= 1.0 {
-                points.push(b);
-            }
-            points
-        })
+    /// A clear two-segment path from `a` to `b` whose bends (also from
+    /// `previous`) are allowed.
+    fn two_segments(
+        &self,
+        request: &Request,
+        a: V,
+        b: V,
+        shape: Shape2,
+        previous: Option<u8>,
+    ) -> Option<Vec<V>> {
+        let c = corner(a, b, shape);
+        let mut points = vec![a];
+        if c.dist(a) >= 1.0 && c.dist(b) >= 1.0 {
+            points.push(c);
+        }
+        if b.dist(a) >= 1.0 {
+            points.push(b);
+        }
+        if !bends_ok(&points, previous, request.corners) {
+            return None;
+        }
+        let clear = points
+            .windows(2)
+            .all(|pair| self.clear(request, pair[0], pair[1]));
+        clear.then_some(points)
     }
 
     /// Routes from the start towards the target.
     #[must_use]
     pub fn route(&self, request: &Request) -> Route {
         let (start, target) = (request.start, request.target);
-        for diagonal_first in [request.diagonal_first, !request.diagonal_first] {
-            if let Some(points) = self.two_segments(request, start, target, diagonal_first) {
+        let previous = request.previous.and_then(dir_index);
+        for shape in shapes(request) {
+            if let Some(points) = self.two_segments(request, start, target, shape, previous) {
                 return Route {
                     points: points.into_iter().map(V::pair).collect(),
                     reached: true,
                 };
             }
         }
-        let (points, reached) = self.search(request);
+        let (points, reached) = self.search(request, previous);
         Route {
             points: points.into_iter().map(V::pair).collect(),
             reached,
@@ -286,7 +422,7 @@ impl<'a> Router<'a> {
         clippy::too_many_lines,
         reason = "grid indices are small; the search reads best in one piece"
     )]
-    fn search(&self, request: &Request) -> (Vec<V>, bool) {
+    fn search(&self, request: &Request, previous: Option<u8>) -> (Vec<V>, bool) {
         let (start, target) = (request.start, request.target);
         let step = (request.width / 2.0).clamp(25_000.0, 200_000.0);
         let cell = |p: V| -> (i32, i32) {
@@ -316,14 +452,15 @@ impl<'a> Router<'a> {
             let (lo, hi) = (dx.min(dy), dx.max(dy));
             u64::from(lo) * 1414 + u64::from(hi - lo) * 1000
         };
-        // State: cell and the direction it was entered from (8 = none).
+        let max_turn = request.corners.max_turn();
         let origin = (0, 0);
+        let first = previous.unwrap_or(NO_DIR);
         let mut best_cost: HashMap<State, u64> = HashMap::new();
         let mut parent: HashMap<State, State> = HashMap::new();
         let mut heap = BinaryHeap::new();
-        heap.push(Reverse((octile(origin), 0_u64, origin, 8_u8)));
-        best_cost.insert((origin, 8), 0);
-        let mut closest = ((origin, 8_u8), octile(origin));
+        heap.push(Reverse((octile(origin), 0_u64, origin, first)));
+        best_cost.insert((origin, first), 0);
+        let mut closest = ((origin, first), octile(origin));
         let mut found = None;
         let mut expansions = 0;
         while let Some(Reverse((_, cost, c, dir))) = heap.pop() {
@@ -343,15 +480,19 @@ impl<'a> Router<'a> {
                 break;
             }
             for (index, (dx, dy)) in DIRS.iter().enumerate() {
+                let index = index as u8;
+                // Only bends the corner mode allows; 45° bends cost a
+                // little, so straight runs win.
+                let bend = if dir == NO_DIR { 0 } else { turn(dir, index) };
+                if bend > max_turn {
+                    continue;
+                }
                 let next = (c.0 + dx, c.1 + dy);
                 if !is_free(next) {
                     continue;
                 }
-                let mut step_cost = if *dx != 0 && *dy != 0 { 1414 } else { 1000 };
-                let index = index as u8;
-                if dir != 8 && dir != index {
-                    step_cost += 400;
-                }
+                let step_cost =
+                    if *dx != 0 && *dy != 0 { 1414 } else { 1000 } + 400 * u64::from(bend);
                 let total = cost + step_cost;
                 let key = (next, index);
                 if best_cost.get(&key).is_none_or(|b| total < *b) {
@@ -371,25 +512,26 @@ impl<'a> Router<'a> {
         cells.reverse();
         let mut path: Vec<V> = cells.into_iter().map(at).collect();
         path[0] = start;
-        let mut points = self.straighten(request, &path);
+        let mut points = self.straighten(request, &path, previous);
         if reached {
             // End exactly at the target: replace the tail with a clear
-            // two-segment path.
+            // two-segment path whose bends are allowed.
             let n = points.len();
             let mut joined = false;
-            for k in (n.saturating_sub(4)..n).rev() {
-                for diagonal_first in [true, false] {
-                    if let Some(tail) =
-                        self.two_segments(request, points[k], target, diagonal_first)
+            'tail: for k in (n.saturating_sub(4)..n).rev() {
+                let before = if k == 0 {
+                    previous
+                } else {
+                    dir_index(points[k].sub(points[k - 1]))
+                };
+                for shape in shapes(request) {
+                    if let Some(tail) = self.two_segments(request, points[k], target, shape, before)
                     {
                         points.truncate(k);
                         points.extend(tail);
                         joined = true;
-                        break;
+                        break 'tail;
                     }
-                }
-                if joined {
-                    break;
                 }
             }
             if !joined && points.last().is_some_and(|p| p.dist(target) > 1.0) {
@@ -399,30 +541,42 @@ impl<'a> Router<'a> {
         (points, reached)
     }
 
-    /// Joins grid steps into long segments at 0°, 45° and 90°.
-    fn straighten(&self, request: &Request, path: &[V]) -> Vec<V> {
-        let octilinear = |a: V, b: V| {
-            let d = b.sub(a);
-            d.x.abs() < 1.0 || d.y.abs() < 1.0 || (d.x.abs() - d.y.abs()).abs() < 1.0
-        };
+    /// Joins grid steps into long octilinear segments. Every bend stays
+    /// within the corner mode: towards the segment before, and towards the
+    /// grid step after the new segment's end (so the rest still fits).
+    fn straighten(&self, request: &Request, path: &[V], previous: Option<u8>) -> Vec<V> {
+        let max_turn = request.corners.max_turn();
         let mut out = vec![path[0]];
+        let mut last = previous;
         let mut i = 0;
         while i + 1 < path.len() {
-            let mut j = i + 1;
-            let mut k = path.len() - 1;
-            // The farthest point reachable in one straight segment.
-            while k > i + 1 {
-                if octilinear(path[i], path[k]) && self.clear(request, path[i], path[k]) {
-                    j = k;
-                    break;
+            let far = (i + 400).min(path.len() - 1);
+            let mut chosen = None;
+            for k in (i + 1..=far).rev() {
+                let Some(dir) = dir_index(path[k].sub(path[i])) else {
+                    continue;
+                };
+                if last.is_some_and(|l| turn(l, dir) > max_turn) {
+                    continue;
                 }
-                k -= 1;
-            }
-            if j == i + 1 && !self.clear(request, path[i], path[j]) {
+                if k + 1 < path.len()
+                    && let Some(next) = dir_index(path[k + 1].sub(path[k]))
+                    && turn(dir, next) > max_turn
+                {
+                    continue;
+                }
+                if !self.clear(request, path[i], path[k]) {
+                    continue;
+                }
+                chosen = Some((k, dir));
                 break;
             }
-            out.push(path[j]);
-            i = j;
+            let Some((k, dir)) = chosen else {
+                break;
+            };
+            out.push(path[k]);
+            last = Some(dir);
+            i = k;
         }
         out
     }
@@ -519,6 +673,8 @@ mod tests {
             start: V::new(0.0, 0.0),
             target: V::new(20e6, 0.0),
             diagonal_first: false,
+            corners: Corners::Deg45,
+            previous: None,
         };
         let route = router.route(&request);
         assert!(route.reached, "{route:?}");
@@ -532,6 +688,10 @@ mod tests {
             assert!(octilinear, "{d:?}");
         }
         assert!(points.len() <= 8, "straightened: {}", points.len());
+        assert!(
+            bends_ok(&points, None, Corners::Deg45),
+            "only 45° bends: {points:?}"
+        );
         // The tracks pass the DRC without clearance problems.
         for pair in points.windows(2) {
             let mut t = crate::connectivity::tests::track(
@@ -565,6 +725,8 @@ mod tests {
             start: V::new(0.0, 0.0),
             target: V::new(10e6, 0.0),
             diagonal_first: true,
+            corners: Corners::Deg45,
+            previous: None,
         };
         let route = router.route(&request);
         assert!(!route.reached);
@@ -575,5 +737,73 @@ mod tests {
         );
         assert!(router.via_fits(Some(gnd), V::new(5e6, 0.0), 600_000.0));
         assert!(!router.via_fits(Some(gnd), V::new(10e6, 0.6e6), 600_000.0));
+    }
+
+    #[test]
+    fn corner_modes_and_the_previous_segment() {
+        let (pcb, gnd) = setup();
+        let router = Router::new(&pcb, None);
+        let base = Request {
+            layer: CopperLayer::Top,
+            net: Some(gnd),
+            width: 250_000.0,
+            start: V::new(0.0, -8e6),
+            target: V::new(6e6, -14e6),
+            diagonal_first: false,
+            corners: Corners::Deg45,
+            previous: None,
+        };
+        let path =
+            |route: &Route| -> Vec<V> { route.points.iter().map(|p| V::new(p[0], p[1])).collect() };
+        // 45°: a pure diagonal; 90°: an L with a right angle.
+        let r45 = router.route(&base);
+        assert_eq!(path(&r45).len(), 2);
+        let r90 = router.route(&Request {
+            corners: Corners::Deg90,
+            ..base.clone()
+        });
+        let p90 = path(&r90);
+        assert_eq!(p90.len(), 3, "{p90:?}");
+        assert!(!bends_ok(&p90, None, Corners::Deg45));
+        assert!(bends_ok(&p90, None, Corners::Deg90));
+        // Continuing a segment that ran in +x: going straight down (−y)
+        // would be a 90° bend, so the route turns through 45° first.
+        let continued = router.route(&Request {
+            target: V::new(0.0, -14e6),
+            previous: Some(V::new(1e6, 0.0)),
+            ..base.clone()
+        });
+        let points = path(&continued);
+        assert!(continued.reached, "{points:?}");
+        assert!(bends_ok(&points, Some(0), Corners::Deg45), "{points:?}");
+        assert!(points.len() >= 3, "{points:?}");
+        // Around the wall in 45° mode, also when starting towards it.
+        let around = router.route(&Request {
+            start: V::new(0.0, 0.0),
+            target: V::new(20e6, 0.0),
+            previous: Some(V::new(1e6, 0.0)),
+            ..base
+        });
+        let points = path(&around);
+        assert!(around.reached);
+        assert!(bends_ok(&points, Some(0), Corners::Deg45), "{points:?}");
+    }
+
+    #[test]
+    fn directions_and_bends() {
+        assert_eq!(dir_index(V::new(5.0, 0.0)), Some(0));
+        assert_eq!(dir_index(V::new(3.0, 3.0)), Some(1));
+        assert_eq!(dir_index(V::new(0.0, -7.0)), Some(6));
+        assert_eq!(dir_index(V::new(3.0, 1.0)), None);
+        assert_eq!(turn(0, 1), 1);
+        assert_eq!(turn(0, 7), 1);
+        assert_eq!(turn(0, 2), 2);
+        assert_eq!(turn(1, 5), 4);
+        let square = [V::new(0.0, 0.0), V::new(10.0, 0.0), V::new(10.0, 10.0)];
+        assert!(!bends_ok(&square, None, Corners::Deg45));
+        assert!(bends_ok(&square, None, Corners::Deg90));
+        let soft = [V::new(0.0, 0.0), V::new(10.0, 0.0), V::new(20.0, 10.0)];
+        assert!(bends_ok(&soft, None, Corners::Deg45));
+        assert!(!bends_ok(&soft, Some(2), Corners::Deg45));
     }
 }

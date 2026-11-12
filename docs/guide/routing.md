@@ -39,14 +39,32 @@ target pad routes to its centre exactly, whatever the grid.
 
 The whole route is **one undo step** (`route`), with all its tracks and vias.
 
+## 45° and 90° corners
+
+By default, routes **only bend by 45°**: segments run at 0°, 45° or 90°,
+but two segments never meet at a right angle (or a sharper one). Right-angled
+corners are a classic signal-integrity and EMC concern (they make the track
+wider at the corner and are etched less evenly), so the safe choice needs no
+setting. This also holds where a route continues: at a fixed segment, and at
+the end of an existing track the route starts from. To turn by 90°, the
+route makes two 45° bends.
+
+If you do want right angles (for example on a simple one-sided board, or to
+match an existing layout), click **Allow 90° corners** in the board toolbar
+(the right-angle icon). The direct path is then an L (across, then up or
+down; **/** swaps it), and the router may bend by up to 90°. Sharper bends
+are never made. The setting is remembered on this computer; the status line
+shows the current mode while routing (`45° bends` or `90° bends`).
+
 ## How the route finds its way
 
 For every cursor position the router first tries the simplest path: one
-straight and one diagonal segment (or the other way round). If that path
-keeps every rule, it is used — this is what you see in open areas. If not,
-the router searches a grid around the obstacles (an A\* search with
-octilinear steps that avoids needless bends) and then straightens the
-result into as few segments as possible. The search covers the area between
+straight and one diagonal segment (or the other way round; in 90° mode an L
+first). If that path keeps every rule and every bend is allowed, it is used
+— this is what you see in open areas. If not, the router searches a grid
+around the obstacles (an A\* search with octilinear steps that only takes
+allowed bends and avoids needless ones) and then straightens the result
+into as few segments as possible, again without sharper bends. The search covers the area between
 start and cursor plus a margin of at least 5 mm, so it stays fast: a preview
 on a typical board takes a few milliseconds.
 

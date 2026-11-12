@@ -696,14 +696,18 @@ libraries. Without a designator it gets the next free `X<n>`.
 ### `pcb.routeStart` / `pcb.route` / `pcb.addTracks`
 
 `pcb.routeStart {"doc", "at", "layer"}` → `{"at", "net", "netName", "width",
-"viaDiameter", "viaDrill", "clearance"}`: where a route that begins at `at`
-starts (snapped to a pad or via centre or a track end) and the sizes from the
-rules.
+"viaDiameter", "viaDrill", "clearance", "previous"}`: where a route that
+begins at `at` starts (snapped to a pad or via centre or a track end) and the
+sizes from the rules. `previous` is the direction of the track whose end the
+route starts at (`null` for pads and vias).
 
 `pcb.route {"doc", "layer", "net", "width", "start", "target",
-"diagonalFirst"?, "via"?}` → `{"points": [[x, y], …], "reached", "viaFits"?}`:
-the walkaround path. It changes nothing. With `via` (a diameter), `viaFits`
-says whether a via fits at the end.
+"diagonalFirst"?, "corners"?, "previous"?, "via"?}` → `{"points": [[x, y], …],
+"reached", "viaFits"?}`: the walkaround path. It changes nothing. `corners`
+is `"45"` (the default: no bend sharper than 45°) or `"90"` (right angles
+allowed); `previous` is the direction of the segment that ends at `start`,
+so the first bend is limited too. With `via` (a diameter), `viaFits` says
+whether a via fits at the end.
 
 `pcb.addTracks {"doc", "net", "width", "segments": [{"layer", "points"}],
 "vias": [{"at", "diameter", "drill", "from"?, "to"?}]}` (`route`) adds the

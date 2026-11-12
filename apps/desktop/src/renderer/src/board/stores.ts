@@ -67,6 +67,33 @@ export const drcState = new Store<DrcState>({
   ratsnest: true,
 });
 
+/** Which bends routes may have: only 45° (default) or also 90°. */
+export type Corners = '45' | '90';
+
+const CORNERS_KEY = 'ew.routing.corners';
+
+function storedCorners(): Corners {
+  try {
+    return window.localStorage.getItem(CORNERS_KEY) === '90' ? '90' : '45';
+  } catch {
+    return '45';
+  }
+}
+
+/** The corner mode of the router (kept per user in this browser profile). */
+export const routingCorners = new Store<Corners>(
+  typeof window === 'undefined' ? '45' : storedCorners(),
+);
+
+export function setRoutingCorners(corners: Corners): void {
+  routingCorners.set(corners);
+  try {
+    window.localStorage.setItem(CORNERS_KEY, corners);
+  } catch {
+    // Storage may be unavailable; the setting then lasts for the session.
+  }
+}
+
 /** A selection made on one side, to show on the other. */
 export interface CrossSelection {
   readonly source: 'board' | 'schematic';

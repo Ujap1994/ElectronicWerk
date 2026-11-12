@@ -223,6 +223,12 @@ struct RouteParams {
     target: [f64; 2],
     #[serde(default)]
     diagonal_first: bool,
+    /// `"45"` (default: only 45° bends) or `"90"` (right angles allowed).
+    #[serde(default)]
+    corners: ew_pcb::route::Corners,
+    /// Direction of the segment that ends at the start.
+    #[serde(default)]
+    previous: Option<[f64; 2]>,
     /// Check whether a via of this diameter fits at the end.
     #[serde(default)]
     via: Option<f64>,
@@ -625,6 +631,8 @@ pub fn call(
                 start: V::new(params.start[0], params.start[1]),
                 target: V::new(params.target[0], params.target[1]),
                 diagonal_first: params.diagonal_first,
+                corners: params.corners,
+                previous: params.previous.map(|[x, y]| V::new(x, y)),
             };
             let route = router.route(&request);
             let mut value = to_value(&route)?;

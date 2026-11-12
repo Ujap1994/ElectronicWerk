@@ -97,6 +97,7 @@ const PATHS = {
   distribute: 'M4 4v16M20 4v16M9 8h6v8H9z',
   lock: 'M6 11h12v9H6zM9 11V8a3 3 0 0 1 6 0v3',
   ratsnest: 'M5 6l7 12 7-9M5 6h.01M12 18h.01M19 9h.01',
+  corner90: 'M5 4v15h15M9 15h.01',
 } as const;
 
 export type IconName = keyof typeof PATHS;

@@ -6,7 +6,7 @@ export const boardDe: Messages['board'] = {
   activeLayer: 'Aktive Kupferlage',
   cancel: 'Abbrechen',
   noNet: 'kein Netz',
-  routeStatus: 'Verlege {net} · {width} mm',
+  routeStatus: 'Verlege {net} · {width} mm · {corners}°-Knicke',
   layers: {
     top: 'Kupfer oben',
     bottom: 'Kupfer unten',
@@ -50,6 +50,9 @@ export const boardDe: Messages['board'] = {
   },
   actions: {
     rotate: 'Drehen',
+    corners: '90°-Ecken erlauben',
+    cornersTip:
+      'Erlaubt rechtwinklige Knicke beim Verlegen. Aus (Standard): Leiterbahnen knicken nur um 45°, das ist besser für Signalqualität und EMV.',
     flip: 'Auf die andere Seite',
     lock: 'Sperren (Umschalt+L entsperrt)',
     arrange: 'Ausrichten und verteilen',

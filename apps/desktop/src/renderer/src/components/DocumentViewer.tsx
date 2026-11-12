@@ -14,6 +14,7 @@ import { BoardOverlay } from '../board/BoardOverlay';
 import { BoardActions, BoardToolPalette } from '../board/BoardToolbar';
 import { DrcPanel } from '../board/DrcPanel';
 import type { BoardEditor } from '../board/editor';
+import { routingCorners } from '../board/stores';
 import { useBoardEditor, useSchematicCrossProbe } from '../board/useBoardEditor';
 import { useProject } from '../project/ProjectProvider';
 import { errorMessage } from '../project/labels';
@@ -127,6 +128,7 @@ function BoardStatus({ editor }: { readonly editor: BoardEditor }): ReactNode {
           {t('board.routeStatus', {
             net: route.netName === '' ? t('board.noNet') : route.netName,
             width: (route.width / 1e6).toFixed(3),
+            corners: routingCorners.get(),
           })}
         </span>
       )}
