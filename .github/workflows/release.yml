@@ -111,12 +111,13 @@ jobs:
           sudo apt-get install -y rpm libarchive-tools ruby ruby-dev build-essential xvfb flatpak flatpak-builder squashfs-tools
           sudo gem install --no-document fpm
           # electron-builder's core24 snaps need snapcraft 8 (9 cannot find the desktop file).
-          # The Snap Store is sometimes unreachable for a while: retry.
-          for attempt in 1 2 3 4 5 6; do
-            sudo snap install snapcraft --classic --channel=8.x/stable && break
-            if [ "$attempt" = 6 ]; then exit 1; fi
-            echo "Snap Store not reachable (attempt $attempt); retrying in 30 s."
-            sleep 30
+          # The Snap Store is sometimes unreachable from the runners for a
+          # while (v0.7.0): retry for up to about 15 minutes.
+          for attempt in $(seq 1 15); do
+            sudo snap install core24 && sudo snap install snapcraft --classic --channel=8.x/stable && break
+            if [ "$attempt" = 15 ]; then exit 1; fi
+            echo "Snap Store not reachable (attempt $attempt); retrying in 60 s."
+            sleep 60
           done
           flatpak remote-add --user --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo
           flatpak remote-ls --user flathub --all --columns=ref | grep -E 'Electron2.BaseApp|org.freedesktop.(Platform|Sdk)/' | grep -v -E 'Locale|Debug|Sources' | tail -n 12 || true
