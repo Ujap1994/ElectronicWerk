@@ -11,4 +11,8 @@
 )]
 
 pub mod check;
+pub mod footprint;
+pub mod items;
+pub mod refs;
+pub mod symbol;
 pub mod wizard;
