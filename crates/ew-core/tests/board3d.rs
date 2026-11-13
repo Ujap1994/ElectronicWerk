@@ -56,7 +56,7 @@ fn the_demo_board_in_3d() {
     assert!(keys.contains(&"mask:top"), "{keys:?}");
     assert!(scene["data"].as_str().is_some_and(|d| !d.is_empty()));
     let parts = scene["parts"].as_array().unwrap();
-    assert!(!parts.is_empty());
+    assert_ne!(parts.len(), 0);
     // Every part has a placement matrix; models are listed with where they
     // were found.
     assert!(
@@ -123,7 +123,13 @@ fn the_demo_board_in_3d() {
         .unwrap();
     assert_eq!(result["status"], "done", "{result}");
     let file = result["files"][0].as_str().unwrap();
-    assert!(file.starts_with("3d/") && file.ends_with(".step"), "{file}");
+    let path = std::path::Path::new(file);
+    assert!(file.starts_with("3d/"), "{file}");
+    assert!(
+        path.extension()
+            .is_some_and(|ext| ext.eq_ignore_ascii_case("step")),
+        "{file}"
+    );
     let directory = report["directory"].as_str().unwrap();
     let text = std::fs::read_to_string(std::path::Path::new(directory).join(file)).unwrap();
     assert!(text.contains("MANIFOLD_SOLID_BREP"));
