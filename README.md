@@ -80,6 +80,17 @@ B.netclass != 'HV'`)
   Park; the Gerber output is verified pixel by pixel against KiCad 10
 - A built-in **Gerber viewer** for Gerber X2/RS-274X and Excellon files from
   any tool
+- A **live 3D view** of the board — laminate, copper with its surface finish,
+  solder mask, silkscreen and the parts' 3D models — that follows every edit
+  at once, in a tab or **in its own window** for a second monitor, with
+  camera presets, sections, measuring, screenshots and a selection shared
+  with the layout editor; models come from the project, a KiCad installation
+  or the base library
+- **3D exports:** **STEP** assemblies for mechanical CAD (the board as an exact
+  solid with true cylinders for holes, the parts' original STEP models),
+  **GLB** and **VRML**, from the 3D view, output jobs or the CLI; part
+  placement verified against KiCad 10, the STEP file read back with
+  OpenCASCADE in every CI run
 - **Exports:** KiCad and CSV netlists, a bill of materials, SVG and a PDF of
   all sheets
 - **KiCad import:** KiCad 6 to 10 projects with schematics, hierarchy,
@@ -98,7 +109,8 @@ B.netclass != 'HV'`)
 - An open, **git-friendly file format**: readable JSON, one object per line,
   with schema versions and migrations
 - A **CLI** (`ewerk`) to create, inspect, check and archive projects, import
-  KiCad projects, libraries and netlists, run output jobs, build, search and
+  KiCad projects, libraries and netlists, run output jobs, export 3D models,
+  build, search and
   distribute the base library, and a JSON-RPC session for scripts and AI
   agents
 - A German and English UI, light and dark appearance, a command palette and
@@ -107,10 +119,9 @@ B.netclass != 'HV'`)
 
 ## Planned highlights
 
-- STEP export of the board and other open standard formats
 - **Online part search** that plugs into the base library and its
   deduplication
-- A **live 3D view**, optionally in its own window
+- Further open standard formats (KiCad export, Specctra, DXF export)
 - Push-and-shove routing, differential pairs and length tuning
 - **GitHub integration**: save a project straight to a new or existing
   repository

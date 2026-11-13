@@ -6,6 +6,103 @@ project uses [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.10.0] - 2026-11-13
+
+The 3D release: every board can now be looked at in 3D while it is edited —
+in a tab or in its own window on a second monitor — and handed to
+mechanical CAD as a STEP assembly. The parts' placement is verified against
+KiCad 10 and the STEP export is read back with OpenCASCADE in every CI run.
+
+### Added
+
+- **3D view** of every board (the cube in the layout editor's toolbar,
+  **3D view** in the board's details, **Show the 3D view** in the command
+  palette): the laminate with its holes and cut-outs, the outer copper in
+  the colour of the surface finish (gold for ENIG, bright copper for OSP,
+  silver for HASL), the transparent solder mask and the silkscreen in the
+  stack-up's colours, the solder paste, the plated walls of holes and the
+  3D models of the parts. The heights come from the stack-up; parts stand on
+  the outer copper of their side. See
+  [The 3D view](https://ujap1994.github.io/ElectronicWerk/guide/view-3d).
+- **Live updates:** the 3D view follows every edit of its board, undo and
+  redo included. Moved, turned and flipped parts are placed again at once
+  (about 7 ms for a board with 5,000 parts); the copper, mask and
+  silkscreen follow as soon as the edits pause.
+- **3D view in its own window** for a second monitor; it closes with the
+  project or the main window.
+- **Shared selection** between the layout editor, the schematic and the 3D
+  view, in every window: a part clicked in 3D is selected in the layout
+  editor (and its symbol, with cross-probing on), a part selected in the
+  layout is framed in 3D. Shift-, Ctrl- or ⌘-click adds parts.
+- **Camera:** isometric view, top, bottom, front, back, left and right,
+  fit (**Home**), perspective or orthographic projection, turning, panning
+  and zooming towards the pointer.
+- **Show** switches for the parts of each side, parts marked “do not
+  populate”, silkscreen, solder mask, copper, solder paste, the board and
+  the inner copper layers (remembered for all boards).
+- **Sections** along x, along y or horizontal, with a position slider and
+  the choice of the side to keep; cut solids show their inside.
+- **Measuring** between two points on any surface, with the distance and
+  its x, y and z parts.
+- **Screenshots** of the 3D view as PNG images.
+- **3D models of the parts** are found like KiCad finds them: `${KIPRJMOD}`
+  and relative paths in the project folder, environment variables, KiCad's
+  model variables also in the 3D folders of KiCad installations (macOS,
+  Windows, Linux, Flatpak), `.step` files for `.wrl` paths, then the base
+  library (downloading its mesh pack the first time). STEP files are
+  converted with OpenCASCADE once and cached. The status line counts the
+  loaded models and lists the ones that were not found.
+- **STEP export** of the board assembly (AP214) for mechanical CAD: the
+  board as an exact solid (outline lines and arcs, holes as true cylinders,
+  cut-outs; polygons if holes overlap), every part as an instance of its
+  model's original STEP file (written once per model), mesh-only models
+  (from the downloaded library) as faceted surfaces with their colours.
+  See [3D models: STEP, GLB and VRML](https://ujap1994.github.io/ElectronicWerk/guide/export-3d).
+- **GLB** (binary glTF 2.0) and **VRML 2.0** exports with the board's
+  materials and one shared mesh per model.
+- The exports run from the 3D view (**Export**), as a **3D model** output in
+  output jobs (format, origin — drill and placement origin, board centre or
+  board coordinates —, VRML units, parts not placed; missing models are
+  reported in the results) and on the command line with
+  `ewerk export-3d <project> [--format step|glb|vrml] [-o <file>]`.
+- Engine methods `board3d.scene` (the board meshes as a binary buffer with
+  the parts and the found models), `board3d.parts` (placements only, for
+  live updates), `board3d.resolve` and `board3d.export`.
+
+### Changed
+
+- The footprint editor's **3D preview** looks models up like the 3D view: a
+  STEP file in the project folder or a KiCad installation is shown too, not
+  only base library models.
+- **KiCad import:** the 3D models of bottom-side footprints get the same half
+  turn as their pads, so they sit on their pads (they were turned by 180°
+  before). Projects imported earlier keep the old model rotation until they
+  are imported again.
+- The layout editor always shares its selection with the 3D view; the
+  schematic still follows it only with cross-probing on.
+- Tessellated STEP files are cached by their content (`step-<hash>.glb`), so
+  a changed file is converted again and the exports find the meshes.
+- The STEP output kind of output jobs, skipped until now, is the new
+  **3D model (STEP, GLB, VRML)** output (`3d/<board>.step` by default).
+
+### Tests
+
+- The placement of every part of the blinky fixture (positions, rotations,
+  the bottom side) is compared with KiCad 10's export of the same board
+  (`scripts/make-kicad-3d-reference.py`).
+- The STEP assembly of the blinky fixture is a reference file; a vitest reads
+  it back with OpenCASCADE and checks the board body, its size and origin
+  and every part. Locally, with KiCad's own models, the exported parts match
+  `kicad-cli pcb export step` triangle for triangle.
+- The board body's volume (laminate minus holes), tiled triangulation, GLB
+  round trips, VRML transforms and the Part 21 reader are unit-tested.
+- Performance budgets in CI: the 3D board of the M board below 1 s, of the L
+  board below 5 s, the placements of the L board below 50 ms.
+- End-to-end tests open the 3D view from the layout editor, the details and
+  the command palette, switch views, projection, layers and sections,
+  measure, export STEP, save a screenshot, open the 3D window and check that
+  it follows a part turned in the layout editor and shares the selection.
+
 ## [0.9.0] - 2026-11-13
 
 The manufacturing release: a board designed in ElectronicWerk can now be
@@ -694,7 +791,8 @@ quality gates and the delivery pipeline that every later feature builds on.
   process ([ujap1994.github.io/ElectronicWerk](https://ujap1994.github.io/ElectronicWerk/)).
   **Help → Documentation** opens it.
 
-[Unreleased]: https://github.com/Ujap1994/ElectronicWerk/compare/v0.9.0...HEAD
+[Unreleased]: https://github.com/Ujap1994/ElectronicWerk/compare/v0.10.0...HEAD
+[0.10.0]: https://github.com/Ujap1994/ElectronicWerk/compare/v0.9.0...v0.10.0
 [0.9.0]: https://github.com/Ujap1994/ElectronicWerk/compare/v0.8.0...v0.9.0
 [0.8.0]: https://github.com/Ujap1994/ElectronicWerk/compare/v0.7.1...v0.8.0
 [0.7.1]: https://github.com/Ujap1994/ElectronicWerk/compare/v0.6.2...v0.7.1

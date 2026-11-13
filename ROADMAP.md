@@ -1,7 +1,7 @@
 # ElectronicWerk Roadmap
 
-> **Status:** v0.13 (2026-11-13). M0 to M8 are complete (releases v0.1.0 to
-> v0.9.0; M0, M1 and M3 accepted by the maintainer); M9 is next.
+> **Status:** v0.14 (2026-11-13). M0 to M9 are complete (releases v0.1.0 to
+> v0.10.0; M0, M1 and M3 accepted by the maintainer); M10 is next.
 > This roadmap is a living document. It **must** be updated with every feature
 > (requirement D5). Every change to it is listed in the
 > [roadmap changelog](#13-roadmap-changelog).
@@ -244,7 +244,7 @@ own work only. Maintainer test cycles and feedback come on top. Status values:
 | M6  | Symbol editor and footprint editor                    | v0.7.0  | F5, F6            | 8–12 S          | ✅     |
 | M7  | Layout editor, DRC, rules, schematic ↔ PCB sync       | v0.8.0  | F7, F10           | 16–24 S         | ✅     |
 | M8  | Manufacturing outputs and output jobs                 | v0.9.0  | F10               | 7–10 S          | ✅     |
-| M9  | Live 3D view and STEP export                          | v0.10.0 | F8                | 7–10 S          | ⬜     |
+| M9  | Live 3D view and STEP export                          | v0.10.0 | F8                | 7–10 S          | ✅     |
 | M10 | Online component search and provider accounts         | v0.11.0 | F1                | 6–9 S           | ⬜     |
 | M11 | GitHub integration                                    | v0.12.0 | F9                | 4–6 S           | ⬜     |
 | M12 | CLI and AI automation (complete)                      | v0.13.0 | F12               | 4–6 S           | ⬜     |
@@ -710,18 +710,34 @@ Delivered in v0.9.0 (design in ADR-0009):
 - [ ] DXF export of the outline and mechanical layers moves to M14 (open
       formats); STEP export stays with the 3D view in M9.
 
-### M9 — Live 3D view and STEP export (v0.10.0, 7–10 S)
+### M9 — Live 3D view and STEP export (v0.10.0, 7–10 S) ✅
 
-- Board body from the outline (holes, cut-outs, thickness from the stack-up),
-  copper, mask, silkscreen and paste as textures or geometry.
-- Component models from the mesh cache, with placement offsets from the
-  footprints.
-- **Live update** from the engine change stream: a component moved in the
-  layout moves in 3D within < 250 ms.
-- Optional detachable **3D window** (second monitor), synchronized selection.
-- Camera presets, section views, measurements, screenshot export.
-- STEP export of the whole board assembly (native OpenCASCADE), VRML/GLB
-  export.
+Delivered (ADR-0010):
+
+- [x] Board body from the outline (holes, cut-outs, thickness from the
+      stack-up: the laminate between the outer coppers), copper with the
+      surface finish, mask and silkscreen in the stack-up colours, paste and
+      inner copper layers as geometry, built from the Gerber features (L
+      board in 0.6 s, M board in 60 ms; budget test in CI).
+- [x] Component models from the mesh cache (STEP files of the project or a
+      KiCad installation are tessellated once, base library models come from
+      their packs), placed with KiCad's convention; the placement of every
+      part of the blinky fixture is verified against KiCad 10.
+- [x] **Live update** from the engine change stream: moved parts are placed
+      again at once (7 ms for 5,000 parts), the layers follow when the edits
+      pause.
+- [x] Detachable **3D window** (second monitor); the selection is shared
+      between the layout editor, the schematic and the 3D view in every
+      window.
+- [x] Camera presets, perspective and orthographic projection, layer
+      switches, section views, measurements, PNG screenshots.
+- [x] STEP export of the whole board assembly, written in Rust instead of
+      native OpenCASCADE (exact board B-rep, component STEP files merged as
+      they are, mesh-only models as faceted surfaces; read back with
+      OpenCASCADE in CI), plus GLB and VRML; from the 3D view, as an
+      output-job output and with `ewerk export-3d`.
+- [x] The footprint editor's 3D preview shows project and KiCad models too;
+      bottom-side models of imported KiCad boards sit on their pads.
 
 ### M10 — Online component search and provider accounts (v0.11.0, 6–9 S)
 
@@ -810,6 +826,7 @@ The CLI grows with every milestone. This milestone completes it.
 | KiCad symbols and footprints                                                   | ✔                    | ✔                  | M3 / M6        |
 | KiCad netlist (`.net`), generic CSV/XML netlist                                | ✔                    | ✔                  | M3 / M5        |
 | STEP / WRL 3D models                                                           | ✔                    | ✔ (board assembly) | M4 / M9        |
+| glTF / GLB 3D models                                                           | ✔ (mesh cache)       | ✔ (board assembly) | M4 / M9        |
 | DXF (outline, mechanical layers)                                               | ✔                    | ✔                  | M7 / M14       |
 | Gerber X2, Excellon                                                            | ✔ (reference/viewer) | ✔                  | M8 / M14       |
 | BOM (CSV/XLSX/HTML), pick-and-place                                            | —                    | ✔                  | M8             |
@@ -896,3 +913,4 @@ The CLI grows with every milestone. This milestone completes it.
 | 2026-11-12 | v0.12      | M7 complete: v0.8.0 with the layout editor, walkaround routing, zones, design rules with a query language, the online DRC (by region; the incremental index cache for very large boards follows if needed) and schematic ↔ board updates. Push-and-shove stays in M15 as planned.                                                                                                                                                                          |
 | 2026-11-12 | v0.11      | M6 complete: v0.7.1 with the symbol, footprint and component editors, IPC-7351 footprint wizards and library checks (0.7.0 was tagged but not published: the Snap Store was unreachable from the Linux builds). Models outside the base library have no 3D preview until the 3D view (M9) tessellates project models. The net navigator (Ctrl/⌘ + double-click on a net, an Altium feature) was added to the schematic editor at the maintainer's request. |
 | 2026-11-13 | v0.13      | M8 complete: v0.9.0 with output jobs, Gerber X2, Excellon, drill map, BOM, pick and place, IPC-D-356, IPC-2581, PDF/SVG prints, assembly drawings, presets for six board makers and the Gerber viewer; Gerbers verified against KiCad 10 golden files. ODB++ not written (licensed specification, covered by Gerber X2 and IPC-2581). DXF export moved to M14.                                                                                             |
+| 2026-11-13 | v0.14      | M9 complete: v0.10.0 with the live 3D view (tab or own window, shared selection, sections, measuring, screenshots) and STEP/GLB/VRML exports. STEP is written in Rust instead of native OpenCASCADE (no C++ build for five targets, no LGPL linking, smaller packages); OpenCASCADE (WebAssembly) verifies the export in CI. Part placement verified against KiCad 10.                                                                                     |
