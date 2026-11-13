@@ -214,3 +214,97 @@ fn net_and_pad_attributes() {
     assert_eq!(job["GeneralSpecs"]["LayerNumber"], 4);
     assert_eq!(job["FilesAttributes"][0]["FileFunction"], "Copper,L1,Top");
 }
+
+#[test]
+fn ipc356_matches_kicad() {
+    let pcb = board();
+    let text = ew_output::ipc356::netlist(&pcb, true, "test");
+    assert!(text.ends_with("999\n"));
+    let ours = text;
+    let kicad =
+        std::fs::read_to_string(fixture("tests/fixtures/blinky-kicad/blinky.d356")).unwrap();
+    let records = |text: &str| -> Vec<String> {
+        let mut lines: Vec<String> = text
+            .lines()
+            .filter(|l| l.starts_with('3'))
+            .map(|l| l.trim_end().to_owned())
+            .collect();
+        lines.sort();
+        lines
+    };
+    // The fixture's via at (137, 108) is stored on GND but overlaps a pad
+    // of /LED_A (one of the fixture's deliberate shorts); KiCad moves it to
+    // the pad's net when it loads the board, we keep the stored net.
+    let short = |line: &String| line.contains("VIA") && line.contains("X+014567");
+    let (mut ours, mut kicad) = (records(&ours), records(&kicad));
+    assert!(ours.iter().any(|l| short(l) && l.starts_with("317GND")));
+    ours.retain(|l| !short(l));
+    kicad.retain(|l| !short(l));
+    assert_eq!(ours, kicad);
+}
+
+/// Checks that XML is well formed and returns the element names in order.
+fn elements(xml: &str) -> Vec<String> {
+    let mut stack: Vec<String> = Vec::new();
+    let mut names = Vec::new();
+    let mut rest = xml;
+    while let Some(start) = rest.find('<') {
+        let end = rest[start..].find('>').unwrap() + start;
+        let tag = &rest[start + 1..end];
+        rest = &rest[end + 1..];
+        if tag.starts_with('?') || tag.starts_with('!') {
+            continue;
+        }
+        // Quotes in attributes are balanced.
+        assert_eq!(tag.matches('"').count() % 2, 0, "{tag}");
+        if let Some(name) = tag.strip_prefix('/') {
+            assert_eq!(stack.pop().as_deref(), Some(name), "closing {name}");
+        } else {
+            let name = tag
+                .split(|c: char| c.is_whitespace() || c == '/')
+                .next()
+                .unwrap()
+                .to_owned();
+            names.push(name.clone());
+            if !tag.ends_with('/') {
+                stack.push(name);
+            }
+        }
+    }
+    assert!(stack.is_empty(), "unclosed {stack:?}");
+    names
+}
+
+#[test]
+fn ipc2581_is_complete() {
+    let pcb = board();
+    let resolve = |s: &str| s.to_owned();
+    let art = BoardArt::new(&pcb, ArtOptions::default(), &resolve);
+    let xml = ew_output::ipc2581::write(
+        &art,
+        &ew_output::ipc2581::Context {
+            version: "test".into(),
+            created: "2026-11-13T08:00:00".into(),
+        },
+    );
+    let names = elements(&xml);
+    let count = |name: &str| names.iter().filter(|n| *n == name).count();
+    assert_eq!(count("IPC-2581"), 1);
+    assert_eq!(count("Component"), pcb.footprints.len());
+    assert_eq!(count("RefDes"), pcb.footprints.len());
+    let mut packages: std::collections::BTreeMap<&str, usize> = std::collections::BTreeMap::new();
+    for fp in &pcb.footprints {
+        packages.insert(fp.footprint.as_str(), fp.pads.len());
+    }
+    assert_eq!(count("Package"), packages.len(), "one per footprint name");
+    assert_eq!(count("Pin"), packages.values().sum::<usize>());
+    let pads: usize = pcb.footprints.iter().map(|f| f.pads.len()).sum();
+    assert!(count("PinRef") >= pads, "every pad in a net and on copper");
+    assert_eq!(count("Hole"), 4, "two vias and two header holes");
+    assert!(count("Contour") >= 1, "the GND plane");
+    assert!(xml.contains("<LogicalNet name=\"GND\">"));
+    assert!(xml.contains("<Layer name=\"DRILL_1_4\" layerFunction=\"DRILL\""));
+    if let Ok(dir) = std::env::var("EW_RASTER_DIR") {
+        std::fs::write(PathBuf::from(dir).join("blinky.ipc2581.xml"), &xml).unwrap();
+    }
+}

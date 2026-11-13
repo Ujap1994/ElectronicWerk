@@ -154,6 +154,12 @@ const fn definition(c: char) -> Option<&'static str> {
         }
         'Ω' => "1,0 3,0 @4,5.8,3,4.2,240,-60 5,0 7,0",
         '€' => "@4.5,5,3,5,45,315 | 0.5,6 4.5,6 | 0.5,4 4.5,4",
+        '–' => "1,4 7,4",
+        '—' => "0,4 8.2,4",
+        '‘' | '’' | '‚' => "4.4,10 4.2,9.2 3.4,7.6",
+        '“' | '”' | '„' => "3.4,10 3.2,9.2 2.4,7.6 | 5.4,10 5.2,9.2 4.4,7.6",
+        '…' => "1.5,0.2 1.5,0.6 | 4,0.2 4,0.6 | 6.5,0.2 6.5,0.6",
+        '•' => "@4,4.5,1,1,0,360 | @4,4.5,0.4,0.4,0,360",
         _ => return None,
     })
 }
@@ -305,6 +311,42 @@ pub fn default_thickness(size: f64, bold: bool) -> f64 {
     size * if bold { BOLD_THICKNESS } else { THICKNESS }
 }
 
+/// The start of the baseline of every line, in the coordinates of `at`
+/// (mirrored and rotated like the strokes).
+#[must_use]
+pub fn baselines(spec: &TextSpec<'_>) -> Vec<(String, [f64; 2])> {
+    let size = spec.size;
+    let (w, h) = extent(spec.text, size);
+    let x0 = match spec.h {
+        i8::MIN..=-1 => 0.0,
+        0 => -w / 2.0,
+        _ => -w,
+    };
+    let y0 = match spec.v {
+        i8::MIN..=-1 => 0.0,
+        0 => -h / 2.0,
+        _ => -h,
+    };
+    let top = y0 + h;
+    let (sin, cos) = spec.rotation.to_radians().sin_cos();
+    let mirror = if spec.mirror { -1.0 } else { 1.0 };
+    spec.text
+        .split('\n')
+        .enumerate()
+        .map(|(row, line)| {
+            let ly = top - size - row as f64 * LINE_PITCH * size;
+            let mx = x0 * mirror;
+            (
+                line.to_owned(),
+                [
+                    spec.at[0] + mx * cos - ly * sin,
+                    spec.at[1] + mx * sin + ly * cos,
+                ],
+            )
+        })
+        .collect()
+}
+
 /// The strokes of a text as polylines in the coordinates of `at`.
 #[must_use]
 pub fn strokes(spec: &TextSpec<'_>) -> Vec<Vec<[f64; 2]>> {
@@ -395,7 +437,7 @@ mod tests {
         for code in 0x20_u8..0x7f {
             assert!(has_glyph(char::from(code)), "{}", char::from(code));
         }
-        for c in "ÄÖÜäöüßµΩ°±éè".chars() {
+        for c in "ÄÖÜäöüßµΩ°±éè–“”".chars() {
             assert!(has_glyph(c), "{c}");
         }
     }

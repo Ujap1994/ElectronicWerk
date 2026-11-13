@@ -305,3 +305,30 @@ fn bottom_parts_go_to_the_bottom_layers() {
     let mask = art.features(Layer::SolderMask(Side::Bottom));
     assert_eq!(mask.len(), 4, "J1 pads 1–3 and the mounting hole");
 }
+
+#[test]
+fn drill_map_and_prints() {
+    let pcb = test_board();
+    let resolve = |s: &str| s.to_owned();
+    let art = BoardArt::new(&pcb, ArtOptions::default(), &resolve);
+    let doc = ew_output::drillmap::drill_map_doc(
+        &art,
+        &ew_output::drillmap::Labels::default(),
+        "test",
+        "",
+    );
+    let pdf = ew_output::pdf::write(&doc);
+    assert!(pdf.starts_with(b"%PDF-1.7"));
+    let svg = ew_output::svg::write(&doc.pages[0], &doc.title);
+    assert!(svg.contains("<path"));
+    if let Ok(dir) = std::env::var("EW_RASTER_DIR") {
+        let dir = std::path::PathBuf::from(dir);
+        std::fs::write(dir.join("drillmap.pdf"), &pdf).unwrap();
+        std::fs::write(dir.join("drillmap.svg"), &svg).unwrap();
+    }
+    // The legend lists the via, the two plated sizes and the mounting hole.
+    assert_eq!(
+        ew_output::drillmap::tools(&ew_output::drill::holes(&pcb)).len(),
+        4
+    );
+}

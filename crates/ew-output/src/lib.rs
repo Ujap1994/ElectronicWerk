@@ -4,7 +4,13 @@
 //! - [`art`]: board layers as plotted features (flashes, lines, arcs,
 //!   regions).
 //! - [`gerber`]: Gerber X2 files and the Gerber job file.
-//! - [`drill`]: Excellon drill files.
+//! - [`drill`]: Excellon drill files; [`drillmap`]: the drill map drawing.
+//! - [`bom`]: bills of materials (CSV, XLSX via [`xlsx`], HTML).
+//! - [`placement`]: pick-and-place files.
+//! - [`ipc356`]: IPC-D-356A netlists for the electrical test; [`ipc2581`]:
+//!   IPC-2581 board data.
+//! - [`canvas`]: vector pages, written by [`pdf`] and [`svg`].
+//! - [`archive`]: ZIP packages.
 //! - [`fracture`]: polygons with holes as one contour.
 //! - [`read`]: reads Gerber and Excellon files; [`raster`] draws them into
 //!   bitmaps for comparisons.
@@ -18,13 +24,23 @@
     reason = "board coordinates are limited to ±10 m, well inside f64 precision; geometry code uses short names"
 )]
 
+pub mod archive;
 pub mod art;
+pub mod bom;
+pub mod canvas;
 pub mod drill;
+pub mod drillmap;
 pub mod font;
 pub mod fracture;
 pub mod gerber;
+pub mod ipc2581;
+pub mod ipc356;
+pub mod pdf;
+pub mod placement;
 pub mod raster;
 pub mod read;
+pub mod svg;
+pub mod xlsx;
 
 /// A generated file.
 #[derive(Debug, Clone, PartialEq, Eq)]
