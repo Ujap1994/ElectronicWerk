@@ -1,7 +1,7 @@
 # ElectronicWerk Roadmap
 
-> **Status:** v0.12 (2026-11-12). M0 to M7 are complete (releases v0.1.0 to
-> v0.8.0; M0, M1 and M3 accepted by the maintainer); M8 is next.
+> **Status:** v0.13 (2026-11-13). M0 to M8 are complete (releases v0.1.0 to
+> v0.9.0; M0, M1 and M3 accepted by the maintainer); M9 is next.
 > This roadmap is a living document. It **must** be updated with every feature
 > (requirement D5). Every change to it is listed in the
 > [roadmap changelog](#13-roadmap-changelog).
@@ -243,7 +243,7 @@ own work only. Maintainer test cycles and feedback come on top. Status values:
 | M5  | Schematic editor and ERC                              | v0.6.0  | F4, F10           | 12–18 S         | ✅     |
 | M6  | Symbol editor and footprint editor                    | v0.7.0  | F5, F6            | 8–12 S          | ✅     |
 | M7  | Layout editor, DRC, rules, schematic ↔ PCB sync       | v0.8.0  | F7, F10           | 16–24 S         | ✅     |
-| M8  | Manufacturing outputs and output jobs                 | v0.9.0  | F10               | 7–10 S          | ⬜     |
+| M8  | Manufacturing outputs and output jobs                 | v0.9.0  | F10               | 7–10 S          | ✅     |
 | M9  | Live 3D view and STEP export                          | v0.10.0 | F8                | 7–10 S          | ⬜     |
 | M10 | Online component search and provider accounts         | v0.11.0 | F1                | 6–9 S           | ⬜     |
 | M11 | GitHub integration                                    | v0.12.0 | F9                | 4–6 S           | ⬜     |
@@ -682,17 +682,33 @@ Delivered in v0.8.0 (design in ADR-0008):
       methods), performance budgets in CI, Vitest, end-to-end tests of the
       layout editor and cross-probing; documentation with screenshots.
 
-### M8 — Manufacturing outputs and output jobs (v0.9.0, 7–10 S)
+### M8 — Manufacturing outputs and output jobs (v0.9.0, 7–10 S) ✅
 
-- Gerber X2 (with attributes), Excellon drill files, drill map.
-- BOM (CSV/XLSX/HTML, configurable columns, grouping), pick-and-place (CPL).
-- PDF and SVG prints of schematic and layout, assembly drawings.
-- IPC-D-356 netlist, IPC-2581. ODB++ if the effort is justified.
-- **Output jobs** (like Altium OutJobs): one click generates every
-  manufacturing file, with presets for common board houses.
-- Built-in Gerber viewer to check the generated output.
-- Verification: generated Gerbers are tested against reference renders (golden
-  files).
+Delivered in v0.9.0 (design in ADR-0009):
+
+- [x] Gerber X2 with file, aperture and object attributes (net, pin,
+      component) and a Gerber job file; Protel extensions and attribute-free
+      output for older CAM systems. Excellon drill files (plated,
+      non-plated, blind and buried layer pairs, slots), drill map (PDF/SVG).
+- [x] BOM (CSV/XLSX/HTML, configurable columns and headings, grouping by
+      any fields, DNP handling, live preview), pick-and-place (generic,
+      JLCPCB and KiCad columns, units, origin, sides).
+- [x] PDF and SVG prints of the schematic (from the viewer's scene), board
+      layers and assembly drawings, with an original stroke font and
+      searchable PDF text.
+- [x] IPC-D-356 netlist (matches KiCad), IPC-2581 (revision C subset).
+      ODB++ is not justified: its specification is licensed, and every
+      maker that takes ODB++ also takes Gerber X2 or IPC-2581 (ADR-0009).
+- [x] **Output jobs** with an editor, one-click generation, results with
+      open/show actions, ZIP packages, presets for Generic, JLCPCB, PCBWay,
+      AISLER, Eurocircuits and OSH Park, `ewerk outputs` on the command line
+      and `outputs.*` in the engine API.
+- [x] Built-in Gerber viewer (RS-274X/X2 and Excellon from any tool).
+- [x] Verification: Gerber and drill files are rasterized and compared with
+      KiCad 10 golden files in CI (identical apart from 2 pixels of arc
+      approximation); every pad kind is written, read back and compared.
+- [ ] DXF export of the outline and mechanical layers moves to M14 (open
+      formats); STEP export stays with the 3D view in M9.
 
 ### M9 — Live 3D view and STEP export (v0.10.0, 7–10 S)
 
@@ -762,6 +778,7 @@ The CLI grows with every milestone. This milestone completes it.
 - Specctra DSN export and SES import (external autorouters such as
   Freerouting).
 - Gerber/Excellon import as a reference layer.
+- DXF export of the board outline and mechanical layers (moved from M8).
 - Eagle XML import (`.sch`/`.brd`/`.lbr`, publicly documented DTD) as a new
   native project, with an import report, and Eagle libraries routed into the
   deduplication engine (M4).
@@ -793,12 +810,12 @@ The CLI grows with every milestone. This milestone completes it.
 | KiCad symbols and footprints                                                   | ✔                    | ✔                  | M3 / M6        |
 | KiCad netlist (`.net`), generic CSV/XML netlist                                | ✔                    | ✔                  | M3 / M5        |
 | STEP / WRL 3D models                                                           | ✔                    | ✔ (board assembly) | M4 / M9        |
-| DXF (outline, mechanical layers)                                               | ✔                    | ✔                  | M7 / M8        |
+| DXF (outline, mechanical layers)                                               | ✔                    | ✔                  | M7 / M14       |
 | Gerber X2, Excellon                                                            | ✔ (reference/viewer) | ✔                  | M8 / M14       |
 | BOM (CSV/XLSX/HTML), pick-and-place                                            | —                    | ✔                  | M8             |
 | PDF / SVG                                                                      | —                    | ✔                  | M5 / M8        |
 | IPC-D-356, IPC-2581                                                            | —                    | ✔                  | M8             |
-| ODB++                                                                          | —                    | ✔ (if justified)   | M8             |
+| ODB++                                                                          | —                    | — (not justified)  | M8 (ADR-0009)  |
 | Specctra DSN / SES                                                             | SES                  | DSN                | M14            |
 | Eagle XML (`.sch`, `.brd`, `.lbr`)                                             | ✔                    | —                  | M14            |
 | DipTrace (undocumented binary format)                                          | ⏸ deferred           | —                  | see section 12 |
@@ -878,3 +895,4 @@ The CLI grows with every milestone. This milestone completes it.
 | 2026-11-09 | v0.10      | M5 complete: v0.6.2 with the schematic editor, the ERC (same findings as KiCad on imported projects), net highlighting, find and replace, annotation, exports and beginner aids. Starter symbols in new projects were added so the first-schematic guide works without the base library. Buses are drawn only; bus member nets follow later.                                                                                                               |
 | 2026-11-12 | v0.12      | M7 complete: v0.8.0 with the layout editor, walkaround routing, zones, design rules with a query language, the online DRC (by region; the incremental index cache for very large boards follows if needed) and schematic ↔ board updates. Push-and-shove stays in M15 as planned.                                                                                                                                                                          |
 | 2026-11-12 | v0.11      | M6 complete: v0.7.1 with the symbol, footprint and component editors, IPC-7351 footprint wizards and library checks (0.7.0 was tagged but not published: the Snap Store was unreachable from the Linux builds). Models outside the base library have no 3D preview until the 3D view (M9) tessellates project models. The net navigator (Ctrl/⌘ + double-click on a net, an Altium feature) was added to the schematic editor at the maintainer's request. |
+| 2026-11-13 | v0.13      | M8 complete: v0.9.0 with output jobs, Gerber X2, Excellon, drill map, BOM, pick and place, IPC-D-356, IPC-2581, PDF/SVG prints, assembly drawings, presets for six board makers and the Gerber viewer; Gerbers verified against KiCad 10 golden files. ODB++ not written (licensed specification, covered by Gerber X2 and IPC-2581). DXF export moved to M14.                                                                                             |

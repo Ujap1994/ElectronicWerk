@@ -6,6 +6,144 @@ project uses [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.9.0] - 2026-11-13
+
+The manufacturing release: a board designed in ElectronicWerk can now be
+ordered. **Output jobs** generate Gerber X2 and Excellon files, a drill map,
+the bill of materials, pick-and-place files, IPC-D-356 and IPC-2581
+netlists, PDF and SVG prints and a ZIP package in one click, with presets
+for common board makers, and a built-in **Gerber viewer** shows the files as
+a board maker reads them. The Gerber and drill output is verified against
+KiCad 10 in every CI run.
+
+### Added
+
+- **Output job editor**: output jobs (`outputs/*.ewout`) open in a tab of
+  their own from the new **Outputs** button of the project toolbar, the
+  project tree or the command palette. The list on the left holds the
+  outputs in the order they run, each with a switch and the badge of its
+  last result; the settings on the right edit the selected output (name,
+  subfolder and every option of its kind); **Add output**, the arrows and
+  the bin add, move and remove outputs. Every change is one undo step. See
+  [Output jobs](https://ujap1994.github.io/ElectronicWerk/guide/outputs).
+- **Generate all** writes every enabled output into the job's output folder
+  (`outputs/generated` by default) and lists the results — generated,
+  skipped or failed with the reason — with every file; **Open** opens a file
+  with its application, the arrow shows it in the file manager.
+  **Generate this output** runs a single output. Paths that leave the
+  project folder are rejected.
+- **Gerber X2** files for every fabrication layer (copper, solder mask,
+  paste, silkscreen, board outline): millimetres with six decimals, so
+  coordinates are written exactly; standard apertures for circles,
+  rectangles and ovals and parameterless aperture macros for every other
+  pad shape (rounded and chamfered rectangles, trapezoids, custom pads);
+  zone fills as regions with their holes; texts in ElectronicWerk's stroke
+  font. **X2 attributes**: file function and polarity, generation software,
+  project id, aperture functions (`SMDPad`, `ComponentPad`, `ViaPad`,
+  `Conductor`, …) and the net, pin and component of every object. A
+  **Gerber job file** (`.gbrjob`) lists the layers, the stack-up and the
+  board size. Attributes and the job file can be switched off, and Protel
+  file extensions (`.gtl`, `.gbs`, …) chosen, for older CAM systems. Options
+  for tented vias, paste for parts that are not placed and values and
+  designators on the silkscreen. See
+  [Gerber and drill files](https://ujap1994.github.io/ElectronicWerk/guide/gerber-drill).
+- **Excellon drill files** in metric decimal format with file and tool
+  functions: plated and non-plated holes in separate files or one file,
+  blind and buried vias in one file per layer pair, slots as `G85`.
+- **Drill map** as PDF or SVG: the board outline and every hole drawn with
+  a symbol per drill size, with a legend of the drills (size, count, plated
+  or non-plated, slots).
+- **Bill of materials** as CSV (UTF-8 with byte order mark, comma,
+  semicolon or tab), **Excel workbook** (bold frozen header, filter, fitted
+  columns) or **HTML page** (light and dark, prints well): configurable
+  columns (item, quantity, designators, value, footprint, symbol,
+  description, side, mounting, DNP and any symbol field such as
+  `Manufacturer`, `MPN` or `LCSC`) with their own headings, grouping by any
+  fields, designators in natural order and an optional list of parts that
+  are not placed. The settings show a **live preview** of the first 50
+  lines. See [Bill of materials and pick and place](https://ujap1994.github.io/ElectronicWerk/guide/bom-placement).
+- **Pick-and-place files** (CPL) with generic, JLCPCB or KiCad columns, in
+  millimetres or inches, relative to the board origin or the design origin,
+  in one file or one per side, optionally with mirrored x on the bottom;
+  footprints marked _Exclude from placement files_ are left out.
+- **IPC-D-356** netlist for the electrical test of the bare board (pads,
+  vias and their access sides, tented vias), matching KiCad's record by
+  record on the test project.
+- **IPC-2581** (revision C subset): content, logistic header, bill of
+  materials, stack-up, layers, profile, packages, components, nets and the
+  features of every layer in one XML file.
+- **PDF and SVG prints** of the schematic (every sheet in hierarchy order,
+  as the viewer draws it, with frame and title block), of chosen **board
+  layers** (on one page or one page per layer, optionally seen from the
+  bottom) and **assembly drawings** (one page per side with the outline,
+  pads, part outlines and fitted designators, optionally with values), in
+  colour or black and white, on paper of the drawing's size (1:1), A4, A3
+  or Letter. PDFs have a bookmark per page, and their texts can be searched
+  and copied. See [Prints and drawings](https://ujap1994.github.io/ElectronicWerk/guide/prints).
+- **ZIP packages** of the files of chosen outputs for upload
+  (`{board}-fabrication.zip`).
+- **Presets** for board makers — Generic, JLCPCB, PCBWay, AISLER,
+  Eurocircuits and OSH Park — that replace the outputs of a job in one
+  undoable step (**Apply a preset…**). New projects and new output jobs
+  start with the Generic preset. See [Ordering boards](https://ujap1994.github.io/ElectronicWerk/guide/ordering).
+- **Gerber viewer**: opens the files of a job (**Gerber viewer** in the
+  toolbar of the job) or any Gerber and drill files (**Gerber viewer: open
+  Gerber and drill files…** in the command palette) in a read-only tab with
+  the navigation, layer panel and **view from the bottom** of the 2D view.
+  It reads RS-274X with or without X2 attributes (standard apertures, macros
+  with expressions, arcs, regions, polarity, step and repeat) and Excellon
+  (metric and inch, decimal and implicit coordinates, slots); layers are
+  coloured by file function or extension, and problems are listed in the
+  side panel. See [The Gerber viewer](https://ujap1994.github.io/ElectronicWerk/guide/gerber-viewer).
+- **Stroke font**: an original monospace stroke font with the metrics of the
+  viewer's font, covering ASCII, German letters and common electronics
+  symbols (`µ`, `Ω`, `°`, `±`, `²`, …), for silkscreen texts and prints.
+- **Command line**: `ewerk outputs run <project> [--job NAME] [--output
+NAME …] [--json]` runs an output job, `ewerk outputs list` lists the jobs
+  of a project and `ewerk outputs presets` the presets. See
+  [Command-line tool](https://ujap1994.github.io/ElectronicWerk/reference/cli#outputs).
+- **Engine API**: `outputs.presets`, `outputs.create`, `outputs.applyPreset`,
+  `outputs.run`, `outputs.bom`, `outputs.files` and `gerber.scene`. See
+  [Engine API](https://ujap1994.github.io/ElectronicWerk/reference/engine-api#output-jobs).
+- New crate `ew-output` with every file format, a Gerber and Excellon
+  reader and a rasterizer; a recording mode of the scene builder that keeps
+  the vector drawing for prints. See
+  [ADR-0009](https://github.com/Ujap1994/ElectronicWerk/blob/main/docs/adr/0009-manufacturing-outputs.md).
+
+### Changed
+
+- The fabrication job of new projects now holds the generic preset: Gerber
+  X2, drill files, drill map, bill of materials (XLSX), pick and place,
+  IPC-D-356, schematic PDF, assembly drawing and a ZIP package. Projects
+  without a board get a schematic PDF and a bill of materials. The planned
+  STEP output was removed from new jobs; existing STEP outputs are skipped
+  until the 3D export arrives.
+- Output jobs open from their details (**Open**) and with a double-click in
+  the project tree, like sheets and boards; the notice about version 0.9 is
+  gone.
+- The demo project and the synthetic test boards route with 45° corners
+  (straight and diagonal pieces) instead of right angles, like routes drawn
+  in the layout editor; the Blinky test board chamfers its supply track.
+  The documentation screenshots show no right-angled tracks.
+- The KiCad import report suggests writing custom rules from `.kicad_dru`
+  again as custom rules, instead of the old notice that the rule editor is
+  still to come.
+
+### Tests
+
+- Gerber and drill files of the Blinky test project are compared pixel by
+  pixel (20 µm) with the files KiCad 10 writes for the same board: copper,
+  solder mask, paste, outline and drill files are identical apart from 2
+  pixels of arc approximation. Every pad kind, shape and rotation is
+  written, read back and compared with the model's geometry.
+- The IPC-D-356 netlist is compared with KiCad's; every preset runs on the
+  test project; the engine writes a job into a project folder; end-to-end
+  tests generate the outputs of the demo project, check the BOM preview and
+  apply a preset with undo.
+- The performance budget of the full design rules check takes the best of
+  two runs after a warm-up, as the online check already did: shared CI
+  runners varied between 2.1 s and 3.5 s for the same code.
+
 ## [0.8.0] - 2026-11-12
 
 The layout release: boards are edited in ElectronicWerk itself. Tracks are
@@ -555,7 +693,9 @@ quality gates and the delivery pipeline that every later feature builds on.
   process ([ujap1994.github.io/ElectronicWerk](https://ujap1994.github.io/ElectronicWerk/)).
   **Help → Documentation** opens it.
 
-[Unreleased]: https://github.com/Ujap1994/ElectronicWerk/compare/v0.7.1...HEAD
+[Unreleased]: https://github.com/Ujap1994/ElectronicWerk/compare/v0.9.0...HEAD
+[0.9.0]: https://github.com/Ujap1994/ElectronicWerk/compare/v0.8.0...v0.9.0
+[0.8.0]: https://github.com/Ujap1994/ElectronicWerk/compare/v0.7.1...v0.8.0
 [0.7.1]: https://github.com/Ujap1994/ElectronicWerk/compare/v0.6.2...v0.7.1
 [0.6.2]: https://github.com/Ujap1994/ElectronicWerk/compare/v0.5.0...v0.6.2
 [0.5.0]: https://github.com/Ujap1994/ElectronicWerk/compare/v0.4.0...v0.5.0

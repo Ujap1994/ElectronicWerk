@@ -381,7 +381,7 @@ dependencies = [
 
 [[package]]
 name = "ew-cli"
-version = "0.8.0"
+version = "0.9.0"
 dependencies = [
  "clap",
  "ew-core",
@@ -396,7 +396,7 @@ dependencies = [
 
 [[package]]
 name = "ew-core"
-version = "0.8.0"
+version = "0.9.0"
 dependencies = [
  "ew-format",
  "ew-kicad",
@@ -417,7 +417,7 @@ dependencies = [
 
 [[package]]
 name = "ew-format"
-version = "0.8.0"
+version = "0.9.0"
 dependencies = [
  "criterion",
  "ew-model",
@@ -433,7 +433,7 @@ dependencies = [
 
 [[package]]
 name = "ew-kicad"
-version = "0.8.0"
+version = "0.9.0"
 dependencies = [
  "ew-model",
  "serde",
@@ -444,7 +444,7 @@ dependencies = [
 
 [[package]]
 name = "ew-libedit"
-version = "0.8.0"
+version = "0.9.0"
 dependencies = [
  "ew-model",
  "serde",
@@ -454,7 +454,7 @@ dependencies = [
 
 [[package]]
 name = "ew-library"
-version = "0.8.0"
+version = "0.9.0"
 dependencies = [
  "ew-kicad",
  "ew-model",
@@ -471,7 +471,7 @@ dependencies = [
 
 [[package]]
 name = "ew-model"
-version = "0.8.0"
+version = "0.9.0"
 dependencies = [
  "proptest",
  "serde",
@@ -482,7 +482,7 @@ dependencies = [
 
 [[package]]
 name = "ew-node"
-version = "0.8.0"
+version = "0.9.0"
 dependencies = [
  "ew-core",
  "napi",
@@ -493,7 +493,7 @@ dependencies = [
 
 [[package]]
 name = "ew-output"
-version = "0.8.0"
+version = "0.9.0"
 dependencies = [
  "ew-kicad",
  "ew-model",
@@ -510,7 +510,7 @@ dependencies = [
 
 [[package]]
 name = "ew-pcb"
-version = "0.8.0"
+version = "0.9.0"
 dependencies = [
  "ew-model",
  "ew-schematic",
@@ -525,7 +525,7 @@ dependencies = [
 
 [[package]]
 name = "ew-scene"
-version = "0.8.0"
+version = "0.9.0"
 dependencies = [
  "earcut",
  "ew-model",
@@ -537,7 +537,7 @@ dependencies = [
 
 [[package]]
 name = "ew-schematic"
-version = "0.8.0"
+version = "0.9.0"
 dependencies = [
  "ew-kicad",
  "ew-model",
@@ -548,7 +548,7 @@ dependencies = [
 
 [[package]]
 name = "ew-synth"
-version = "0.8.0"
+version = "0.9.0"
 dependencies = [
  "ew-model",
 ]
