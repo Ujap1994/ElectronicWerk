@@ -109,7 +109,9 @@ looks for each model in this order:
    also look in the 3D model folder of a KiCad installation (on macOS in
    `/Applications/KiCad`, on Windows in `C:\Program Files\KiCad\<version>`,
    on Linux in `/usr/share/kicad` and the KiCad Flatpak). A `.wrl` path also
-   finds a `.step` file of the same name, as in KiCad.
+   finds a `.step` file of the same name, as in KiCad. The environment
+   variable `EW_KICAD_3DMODEL_DIRS` (a list of folders, like `PATH`)
+   replaces the search for KiCad installations; set it empty to use none.
 2. **The [base library](./library).** A model of the library is shown from
    the mesh cache; if it is not downloaded yet, its mesh pack is downloaded
    the first time.
