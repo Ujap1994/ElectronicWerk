@@ -1,7 +1,7 @@
 # ElectronicWerk Roadmap
 
-> **Status:** v0.15 (2026-11-13). M0 to M9 are complete (releases v0.1.0 to
-> v0.10.0; M0, M1 and M3 accepted by the maintainer); M10 is in progress.
+> **Status:** v0.16 (2026-11-13). M0 to M10 are complete (releases v0.1.0 to
+> v0.11.0; M0, M1 and M3 accepted by the maintainer); M11 is next.
 > This roadmap is a living document. It **must** be updated with every feature
 > (requirement D5). Every change to it is listed in the
 > [roadmap changelog](#13-roadmap-changelog).
@@ -245,7 +245,7 @@ own work only. Maintainer test cycles and feedback come on top. Status values:
 | M7  | Layout editor, DRC, rules, schematic ↔ PCB sync       | v0.8.0  | F7, F10           | 16–24 S         | ✅     |
 | M8  | Manufacturing outputs and output jobs                 | v0.9.0  | F10               | 7–10 S          | ✅     |
 | M9  | Live 3D view and STEP export                          | v0.10.0 | F8                | 7–10 S          | ✅     |
-| M10 | Online part libraries: SnapEDA, Ultra Librarian       | v0.11.0 | F1                | 6–9 S           | 🟦     |
+| M10 | Online part libraries: SnapEDA, Ultra Librarian       | v0.11.0 | F1                | 6–9 S           | ✅     |
 | M11 | GitHub integration                                    | v0.12.0 | F9                | 4–6 S           | ⬜     |
 | M12 | CLI and AI automation (complete)                      | v0.13.0 | F12               | 4–6 S           | ⬜     |
 | M13 | Assembly assistant and extras                         | v0.14.0 | F11               | 4–6 S           | ⬜     |
@@ -739,30 +739,34 @@ Delivered (ADR-0010):
 - [x] The footprint editor's 3D preview shows project and KiCad models too;
       bottom-side models of imported KiCad boards sit on their pads.
 
-### M10 — Online part libraries: SnapEDA and Ultra Librarian (v0.11.0, 6–9 S)
+### M10 — Online part libraries: SnapEDA and Ultra Librarian (v0.11.0, 6–9 S) ✅
 
 Scope decided by the maintainer (2026-11-13): only **SnapEDA** and **Ultra
 Librarian**, the two online libraries with the most parts. Distributor APIs
 (Nexar/Octopart, Digi-Key, Mouser, LCSC/JLCPCB) are not part of the plan.
 
-- Terms of use reviewed first: both allow the downloaded design files in the
-  user's own designs; SnapEDA forbids automated access (robots, scrapers)
-  and redistribution of more than ten files, neither offers a public search
-  API. So ElectronicWerk does not search or download automatically: the user
-  searches and downloads on the provider's site, and ElectronicWerk imports
-  what the user downloaded.
-- **Provider window**: each provider in an isolated, sandboxed browser window
-  with its own browser profile (the sign-in stays there; ElectronicWerk never
-  sees passwords). Searching from ElectronicWerk opens the provider's search
-  page with the query.
-- **Import of downloads**: KiCad-format ZIP files downloaded in the provider
-  window are picked up; a ZIP downloaded with any browser can be imported
-  too. The import shows the symbols, footprints and 3D models, checks them
-  against the base library (deduplication, M4: identical or near-identical
-  footprints can be replaced by the library's), copies the 3D models into
-  the project and adds everything to a project library.
-- Accounts in Settings: sign in, sign out (clears the provider's browser
-  profile), links to the terms.
+Delivered:
+
+- [x] Terms of use reviewed first: both allow the downloaded design files in
+      the user's own designs; SnapEDA forbids automated access (robots,
+      scrapers) and redistribution of more than ten files, neither offers a
+      public search API. ElectronicWerk therefore never searches or
+      downloads by itself: the user does, and ElectronicWerk imports the
+      downloads.
+- [x] **Provider window** per provider: an isolated, sandboxed browser with
+      its own persistent profile (the sign-in stays there; the app never
+      sees passwords), without access to the app, https only. Searching from
+      ElectronicWerk opens the provider's search page with the query (or the
+      user's own browser).
+- [x] **Import of downloads**: files downloaded in the provider window are
+      offered at once; any KiCad ZIP (or single file) can be imported too.
+      Preview of symbols, footprints and 3D models, models copied into the
+      project, safe unpacking (no paths outside, size and entry limits),
+      `ewerk import archive`.
+- [x] Deduplication against the base library (M4 fingerprints): identical or
+      near-identical footprints can be replaced by the library's.
+- [x] Accounts in Settings: sign in, sign out (clears the provider's
+      profile), terms of use.
 
 ### M11 — GitHub integration (v0.12.0, 4–6 S)
 
@@ -935,3 +939,4 @@ The CLI grows with every milestone. This milestone completes it.
 | 2026-11-13 | v0.13      | M8 complete: v0.9.0 with output jobs, Gerber X2, Excellon, drill map, BOM, pick and place, IPC-D-356, IPC-2581, PDF/SVG prints, assembly drawings, presets for six board makers and the Gerber viewer; Gerbers verified against KiCad 10 golden files. ODB++ not written (licensed specification, covered by Gerber X2 and IPC-2581). DXF export moved to M14.                                                                                             |
 | 2026-11-13 | v0.14      | M9 complete: v0.10.0 with the live 3D view (tab or own window, shared selection, sections, measuring, screenshots) and STEP/GLB/VRML exports. STEP is written in Rust instead of native OpenCASCADE (no C++ build for five targets, no LGPL linking, smaller packages); OpenCASCADE (WebAssembly) verifies the export in CI. Part placement verified against KiCad 10.                                                                                     |
 | 2026-11-13 | v0.15      | M10 narrowed by the maintainer to SnapEDA and Ultra Librarian (provider window and import of the user's downloads; no distributor APIs, no automated access, as both providers' terms require). Added the acceptance on real designs before v1.0 (M16) and the datasheet part generator as a later advanced feature.                                                                                                                                       |
+| 2026-11-13 | v0.16      | M10 complete: v0.11.0 with SnapEDA and Ultra Librarian in isolated provider windows, the import of their downloads (symbols, footprints, 3D models) with the duplicate check against the base library, accounts in the settings and `ewerk import archive`.                                                                                                                                                                                                |

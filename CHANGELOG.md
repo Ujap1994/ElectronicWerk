@@ -6,6 +6,69 @@ project uses [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.11.0] - 2026-11-13
+
+The online part libraries: parts from **SnapEDA** and **Ultra Librarian**,
+the two largest online part libraries, come into the project with their
+symbol, footprint and 3D model, checked against the base library. As both
+providers' terms require, ElectronicWerk does not search or download on
+their websites by itself: the user does, in an isolated provider window or
+in their own browser, and ElectronicWerk imports the downloads.
+
+### Added
+
+- **Online part libraries** dialog (**Find parts online** in the command
+  palette, **Online parts** in the library manager, **Search online…** in
+  the symbol chooser): a part number or keyword opens SnapEDA's or Ultra
+  Librarian's search page, in a provider window or in the user's own
+  browser. See
+  [Online part libraries](https://ujap1994.github.io/ElectronicWerk/guide/online-parts).
+- **Provider windows**: each provider in a separate, isolated browser with
+  its own persistent profile (the sign-in stays there; ElectronicWerk never
+  sees passwords), sandboxed, without access to the app, https only, sign-in
+  pop-ups in the same profile. Files downloaded there are offered for
+  import at once; other files (datasheets) are saved and the folder named.
+- **Import of part downloads** (KiCad ZIPs of SnapEDA, Ultra Librarian or any
+  other source, or single `.kicad_sym`, `.kicad_mod` and STEP files): a
+  dialog shows the symbols, footprints and 3D models with their pins and
+  pads, what the project library has already, and problems (for example a
+  KiCad 5-only download). The library name (prefix of the imported names)
+  and the target library can be chosen. The import is one undo step; the 3D
+  models are copied into `3d/<library name>/` in the project folder and the
+  footprints point at them with `${KIPRJMOD}`, so the 3D view and the 3D
+  exports find them.
+- **Duplicate check against the base library**: every downloaded footprint
+  and symbol is compared with the base library (identical, the same pads,
+  pads within 0.05 mm; symbols with the same drawing or pins). A footprint
+  the base library has can be replaced by the library's (preselected for
+  identical ones); the downloaded symbol then uses it.
+- **Accounts** in the settings: sign in, sign out (deletes the provider
+  window's sign-in and stored data) and the terms of use of each provider.
+- `ewerk import archive <file> --project <project> [--use-library]
+[--dry-run]` imports a download on the command line; engine methods
+  `import.archivePreview` and `import.archive`.
+
+### Changed
+
+- The roadmap's milestone M10 covers SnapEDA and Ultra Librarian only, as
+  decided by the maintainer; distributor APIs (Octopart, Digi-Key, Mouser,
+  LCSC) are not planned.
+
+### Security
+
+- A download may not unpack outside its folder, have more than 2,000
+  entries or unpack to more than 512 MB.
+
+### Tests
+
+- Synthetic downloads laid out like SnapEDA's and Ultra Librarian's
+  (`scripts/make-parts-fixture.py`): preview, duplicate check against a
+  test base library, import with models, undo and archives with paths
+  outside their folder.
+- End-to-end tests against a local stand-in website: search opens the
+  provider window (without the app's API), a download there is imported,
+  a download from the own browser too, and the settings list the accounts.
+
 ## [0.10.0] - 2026-11-13
 
 The 3D release: every board can now be looked at in 3D while it is edited —
@@ -791,7 +854,8 @@ quality gates and the delivery pipeline that every later feature builds on.
   process ([ujap1994.github.io/ElectronicWerk](https://ujap1994.github.io/ElectronicWerk/)).
   **Help → Documentation** opens it.
 
-[Unreleased]: https://github.com/Ujap1994/ElectronicWerk/compare/v0.10.0...HEAD
+[Unreleased]: https://github.com/Ujap1994/ElectronicWerk/compare/v0.11.0...HEAD
+[0.11.0]: https://github.com/Ujap1994/ElectronicWerk/compare/v0.10.0...v0.11.0
 [0.10.0]: https://github.com/Ujap1994/ElectronicWerk/compare/v0.9.0...v0.10.0
 [0.9.0]: https://github.com/Ujap1994/ElectronicWerk/compare/v0.8.0...v0.9.0
 [0.8.0]: https://github.com/Ujap1994/ElectronicWerk/compare/v0.7.1...v0.8.0

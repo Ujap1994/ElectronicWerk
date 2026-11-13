@@ -103,6 +103,9 @@ B.netclass != 'HV'`)
   45,000 entries): full-text search in milliseconds, filters, 2D and 3D
   previews, adding parts to a project; downloaded on demand or built from a
   local KiCad installation
+- **Online part libraries:** parts downloaded from **SnapEDA** and **Ultra
+  Librarian** (in an isolated provider window or any browser) are imported
+  with symbol, footprint and 3D model, and checked against the base library
 - **Duplicate detection** independent of the source: exact duplicates are
   merged, near duplicates (pads within 0.05 mm, same mesh in other colours, …)
   are reviewed side by side, with a reproducible report
@@ -119,14 +122,14 @@ B.netclass != 'HV'`)
 
 ## Planned highlights
 
-- **Online part search** that plugs into the base library and its
-  deduplication
 - Further open standard formats (KiCad export, Specctra, DXF export)
 - Push-and-shove routing, differential pairs and length tuning
 - **GitHub integration**: save a project straight to a new or existing
   repository
 - A complete CLI and MCP server for scripting and AI agents
 - An **assembly assistant**
+- Later: a **part generator** that reads a datasheet and draws symbol,
+  footprint and 3D model
 
 ## License
 
