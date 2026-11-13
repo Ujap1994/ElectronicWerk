@@ -1,6 +1,7 @@
 import { boardDe } from './board.de';
 import { outputsDe } from './outputs.de';
 import { view3dDe } from './view3d.de';
+import { partsDe } from './parts.de';
 import { libeditDe } from './libedit.de';
 import { schematicDe } from './schematic.de';
 import type { Messages } from './types';
@@ -121,6 +122,7 @@ export const de: Messages = {
     placeFootprint: 'Platine: Footprint platzieren',
     generateOutputs: 'Ausgaben: Fertigungsdaten erzeugen (Ausgabejob)',
     gerberViewer: 'Gerber-Viewer: Gerber- und Bohrdateien öffnen …',
+    onlineParts: 'Bauteile online finden (SnapEDA, Ultra Librarian)',
     view3d: '3D-Ansicht zeigen',
   },
   project: {
@@ -165,6 +167,7 @@ export const de: Messages = {
     recover: 'Änderungen wiederherstellen',
     importNetlist: 'Netzliste importieren',
     importLibrary: 'Bibliothek importieren',
+    importDownload: 'Bauteil-Download importieren',
     addFromLibrary: 'Aus Bibliothek hinzufügen',
     placeSymbol: 'Symbol platzieren',
     drawWire: 'Leitung zeichnen',
@@ -533,6 +536,8 @@ export const de: Messages = {
     exportGlb: 'GLB-Modelle',
     exportVrml: 'VRML-Modelle',
     exportPng: 'PNG-Bilder',
+    downloadTitle: 'Bauteil-Download importieren',
+    downloadFilter: 'Bauteil-Downloads (ZIP, KiCad, STEP)',
     importKicadTitle: 'KiCad-Projekt importieren',
     kicadProjectFilter: 'KiCad-Projekte',
     importNetlistTitle: 'Netzliste importieren',
@@ -1079,4 +1084,5 @@ export const de: Messages = {
   board: boardDe,
   outputs: outputsDe,
   view3d: view3dDe,
+  parts: partsDe,
 };

@@ -22,6 +22,8 @@ import { useProject } from './project/ProjectProvider';
 import { activeBoard } from './board/stores';
 import { outputCommands } from './outputs/stores';
 import { open3dCommand } from './view3d/stores';
+import { PartsHost } from './parts/PartsHost';
+import { openOnlineParts } from './parts/stores';
 import { activeSheet } from './schematic/stores';
 import { useAppState } from './state';
 
@@ -203,6 +205,17 @@ export function App(): ReactNode {
       ...(open3d === null
         ? []
         : ([{ id: 'view-3d', label: 'commands.view3d', run: open3d }] satisfies Command[])),
+      ...(project === null
+        ? []
+        : ([
+            {
+              id: 'online-parts',
+              label: 'commands.onlineParts',
+              run: () => {
+                openOnlineParts();
+              },
+            },
+          ] satisfies Command[])),
       { id: 'new-project', label: 'commands.newProject', run: newProject },
       {
         id: 'open-project',
@@ -409,6 +422,7 @@ export function App(): ReactNode {
         {libraryOpen && <LibraryManager onClose={closeLibrary} />}
       </main>
       <ProjectDialogs />
+      <PartsHost />
       <StatusBar
         onOpenSettings={() => {
           setSettingsOpen(true);

@@ -1,0 +1,70 @@
+/** English strings of the online part libraries (part of `en`). */
+export const partsEn = {
+  title: 'Online part libraries',
+  open: 'Online parts',
+  openTip: 'Find parts on SnapEDA and Ultra Librarian and import their downloads',
+  intro:
+    'Search a part on SnapEDA or Ultra Librarian and download it in KiCad format (KiCad 6 or newer). ElectronicWerk imports the download into the project library: symbol, footprint and 3D model.',
+  query: 'Part number or keyword',
+  queryPlaceholder: 'for example NE555 or TPS62130',
+  search: 'Search on {provider}',
+  searchExternal: 'In your browser',
+  searchExternalTip:
+    'Open {provider} in your own browser; import the download with “Import a download…”',
+  searchOnline: 'Search online (SnapEDA, Ultra Librarian)…',
+  importFile: 'Import a download…',
+  importFileTip: 'Import a ZIP file (or a KiCad library or STEP file) you downloaded',
+  providers: {
+    snapeda:
+      'Millions of symbols, footprints and 3D models, free with an account. Files under CC BY-SA 4.0 with a design exception.',
+    ultralibrarian:
+      'Models from manufacturers in many CAD formats, free with an account. Choose “KiCad” when you download.',
+  },
+  session: 'Signed in (the provider window keeps the session)',
+  noSession: 'Not signed in',
+  howItWorks:
+    'The provider window is a separate, isolated browser: ElectronicWerk never sees your password and does not search or download anything by itself. Files you download there are offered for import.',
+  noProject: 'Open a project to import {file}.',
+  downloaded: 'Downloaded {file}',
+  downloadFailed: 'The download of {file} failed.',
+  notImportable: '{file} is not a KiCad download; it was saved in {folder}.',
+  settings: {
+    title: 'Online part libraries',
+    signIn: 'Sign in',
+    signOut: 'Sign out',
+    signOutTip: 'Deletes the sign-in and everything the website stored',
+    terms: 'Terms of use',
+    signedOut: 'Signed out of {provider}',
+  },
+  dialog: {
+    title: 'Import a part download',
+    reading: 'Reading {file}…',
+    from: 'From {provider}',
+    unknownSource: 'From an unknown source',
+    nickname: 'Library name',
+    nicknameHint: 'The prefix of the imported names, for example {example}.',
+    target: 'Into',
+    symbols: 'Symbols',
+    footprints: 'Footprints',
+    models: '3D models',
+    modelsHint: 'Copied into {folder} in the project folder.',
+    pins: '{count} pins',
+    pads: '{count} pads',
+    exists: 'already in the library (skipped)',
+    duplicate: {
+      exact: 'identical to {name} in the base library',
+      pads: 'same pads as {name} in the base library',
+      near: 'pads within 0.05 mm of {name} in the base library',
+      pins: 'same pins as {name} in the base library',
+    },
+    useLibrary: 'Use {name} from the base library instead',
+    unused: 'not used by a footprint',
+    noModel: 'no 3D model',
+    problems: 'Problems',
+    nothing: 'This download contains nothing to import.',
+    import: 'Import',
+    cancel: 'Cancel',
+    imported:
+      'Imported {symbols} symbols, {footprints} footprints and {models} 3D models into {library}',
+  },
+} as const;

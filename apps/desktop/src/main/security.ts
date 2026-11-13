@@ -1,5 +1,6 @@
 import { app, session, shell, type WebFrameMain } from 'electron';
 
+import { providerContents } from './providers';
 import { APP_ORIGIN, isAllowedExternalUrl, originOf } from './urls';
 
 /** Origins the UI may be loaded from. */
@@ -44,6 +45,10 @@ export function hardenApp(devUrl: string | undefined): void {
       return { action: 'deny' };
     });
     contents.on('will-navigate', (event, url) => {
+      // Provider windows browse the provider's website (their own rules).
+      if (providerContents.has(contents)) {
+        return;
+      }
       const origin = originOf(url);
       if (origin === null || !origins.includes(origin)) {
         event.preventDefault();

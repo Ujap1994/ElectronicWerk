@@ -31,6 +31,7 @@ import type { Settings } from '@shared/settings';
 import {
   chooseArchiveFile,
   chooseExportFile,
+  chooseDownload,
   chooseImageFile,
   chooseModelFile,
   chooseFolder,
@@ -45,6 +46,7 @@ import { writeExport } from './export';
 import { buildMenu } from './menu';
 import { projectFromArgv } from './open-path';
 import { LIBRARY_TAG } from '@shared/library';
+import { isProviderId, isProviderPage, isProviderUrl, providerUrl } from '@shared/providers';
 
 import { LibraryDownloader } from './library';
 import {
@@ -61,6 +63,7 @@ import { createSenderCheck, hardenApp, openExternalSafely } from './security';
 import { SettingsStore } from './settings-store';
 import { runSmokeTest, SMOKE_TEST_FLAG } from './smoke-test';
 import { UpdateService } from './updates';
+import { ProviderWindows } from './providers';
 import { createMainWindow, createViewWindow } from './window';
 
 // Tests and screenshot automation run with an isolated profile. This must
@@ -127,6 +130,7 @@ function main(): void {
   app.commandLine.appendSwitch('enable-unsafe-swiftshader');
 
   let mainWindow: BrowserWindow | null = null;
+  let providerWindows: ProviderWindows | null = null;
   /** Windows with a view of the open project (3D views), by board. */
   const viewWindows = new Map<string, BrowserWindow>();
   const closeViewWindows = (): void => {
@@ -545,6 +549,67 @@ function main(): void {
       });
     });
 
+    // --- Online part libraries ------------------------------------------
+
+    const providerBase = process.env['EW_PROVIDER_BASE'];
+    const providers = new ProviderWindows({
+      downloadsDir: join(app.getPath('userData'), 'downloads'),
+      isPackaged: app.isPackaged,
+      ...(testHooksEnabled() && providerBase !== undefined && providerBase !== ''
+        ? { base: providerBase }
+        : {}),
+      onDownload: (download) => {
+        mainWindow?.webContents.send(IPC.providersDownload, download);
+        if (mainWindow !== null && !mainWindow.isDestroyed() && download.importable) {
+          mainWindow.focus();
+        }
+      },
+    });
+    providerWindows = providers;
+
+    ipcMain.on(IPC.providersOpen, (event, id: unknown, page: unknown, query: unknown) => {
+      if (
+        isTrustedSender(event.senderFrame) &&
+        isProviderId(id) &&
+        isProviderPage(page) &&
+        typeof query === 'string' &&
+        query.length <= 200
+      ) {
+        providers.open(id, page, query);
+      }
+    });
+
+    ipcMain.on(IPC.providersOpenExternal, (event, id: unknown, page: unknown, query: unknown) => {
+      if (
+        isTrustedSender(event.senderFrame) &&
+        isProviderId(id) &&
+        isProviderPage(page) &&
+        typeof query === 'string' &&
+        query.length <= 200
+      ) {
+        const url = providerUrl(id, page, query);
+        if (isProviderUrl(url)) {
+          void shell.openExternal(url);
+        }
+      }
+    });
+
+    ipcMain.handle(IPC.providersSignOut, async (event, id: unknown) => {
+      if (isTrustedSender(event.senderFrame) && isProviderId(id)) {
+        await providers.signOut(id);
+      }
+    });
+
+    ipcMain.handle(IPC.providersStatus, (event) =>
+      isTrustedSender(event.senderFrame) ? providers.status() : [],
+    );
+
+    ipcMain.handle(IPC.dialogChooseDownload, (event) =>
+      isTrustedSender(event.senderFrame)
+        ? chooseDownload(BrowserWindow.fromWebContents(event.sender), t)
+        : null,
+    );
+
     // The selection travels between the windows.
     ipcMain.on(IPC.syncPublish, (event, message: unknown) => {
       if (!isTrustedSender(event.senderFrame) || !isSyncMessage(message)) {
@@ -644,6 +709,7 @@ function main(): void {
           windowState: () => windowState,
           windowTitle: () => mainWindow?.getTitle() ?? null,
           viewWindows: () => [...viewWindows.keys()],
+          providerWindows: () => providerWindows?.openIds() ?? [],
         },
       });
     }
@@ -671,6 +737,7 @@ function main(): void {
       mainWindow = null;
       // The views belong to the main window: the program ends with it.
       closeViewWindows();
+      providerWindows?.closeAll();
     });
     return window;
   }

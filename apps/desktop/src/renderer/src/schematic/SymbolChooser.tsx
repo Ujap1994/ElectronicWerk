@@ -2,6 +2,8 @@ import { useEffect, useMemo, useState, type ReactNode } from 'react';
 
 import { Modal } from '../components/Modal';
 import type { EntrySummary, LibraryStatus, SearchResult } from '../library/types';
+import { Icon } from '../components/Icon';
+import { openOnlineParts } from '../parts/stores';
 import { useAppState } from '../state';
 import type { SymbolDefJson } from './editor';
 import { SymbolPreview } from './SymbolShapes';
@@ -278,6 +280,18 @@ export function SymbolChooser({
           )}
           <h3 className="chooser__heading">{t('schematic.chooser.project')}</h3>
           {shown.length === 0 && <p className="chooser__empty">{t('schematic.chooser.empty')}</p>}
+          <button
+            type="button"
+            className="button button--quiet chooser__online"
+            title={t('parts.openTip')}
+            data-testid="chooser-online"
+            onClick={() => {
+              openOnlineParts(query);
+            }}
+          >
+            <Icon name="search" size={16} />
+            <span>{t('parts.searchOnline')}</span>
+          </button>
           <ul className="chooser__items" data-testid="chooser-project">
             {shown.map((symbol) => (
               <li key={symbol.name}>

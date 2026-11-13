@@ -44,6 +44,8 @@ export interface LaunchOptions {
    * default, so tests see the same models on every machine).
    */
   readonly kicadModels?: boolean;
+  /** More environment variables for the app. */
+  readonly env?: Readonly<Record<string, string>>;
 }
 
 /** A GitHub API release object for tests. */
@@ -95,6 +97,7 @@ export async function launchApp(options: LaunchOptions = {}): Promise<LaunchedAp
       EW_PROJECTS_DIR: projectsDir,
       EW_LIBRARY_FEED: libraryFeed,
       ...(options.kicadModels === true ? {} : { EW_KICAD_3DMODEL_DIRS: '' }),
+      ...options.env,
       ELECTRON_RENDERER_URL: '',
     },
   });

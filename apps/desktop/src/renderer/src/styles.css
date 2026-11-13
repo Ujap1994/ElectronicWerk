@@ -4660,3 +4660,129 @@ textarea.field__control {
   place-items: center;
   color: var(--color-text-muted);
 }
+
+/* --- Online part libraries -------------------------------------------- */
+
+.online-parts__providers {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: var(--space-3);
+}
+
+.online-parts__provider {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-m);
+}
+
+.online-parts__name {
+  margin: 0;
+  font-size: var(--font-size-m);
+}
+
+.online-parts__text {
+  margin: 0;
+}
+
+.online-parts__status {
+  margin: 0;
+  color: var(--color-text-muted);
+  font-size: var(--font-size-s);
+}
+
+.online-parts__status[data-session='true'] {
+  color: var(--color-accent);
+}
+
+.online-parts__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin-top: auto;
+}
+
+.online-parts__actions .button,
+.online-parts__setting .button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.online-parts__setting {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.online-parts__setting-name {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-width: 180px;
+}
+
+.parts-import {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.parts-import__options {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: var(--space-3);
+}
+
+.parts-import__heading {
+  margin: 0 0 var(--space-1);
+  font-size: var(--font-size-m);
+}
+
+.parts-import__list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.parts-import__item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: var(--space-2);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-s);
+}
+
+.parts-import__item p {
+  margin: 0;
+}
+
+.parts-import__name {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  overflow-wrap: anywhere;
+}
+
+.parts-import__duplicate {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--color-accent);
+}
+
+.chooser__online {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  align-self: flex-start;
+  margin: var(--space-1) 0;
+}

@@ -4,6 +4,7 @@ import type { Language } from './i18n';
 import type { RecentState } from './recent';
 import type { Settings, SettingsPatch } from './settings';
 import type { UpdateCheckResult } from './update';
+import type { ProviderDownload, ProviderId, ProviderPage, ProviderStatus } from './providers';
 
 /** IPC channel names (renderer ↔ main). */
 export const IPC = {
@@ -49,6 +50,12 @@ export const IPC = {
   view3dOpen: 'view3d:open',
   syncPublish: 'sync:publish',
   syncMessage: 'sync:message',
+  providersOpen: 'providers:open',
+  providersOpenExternal: 'providers:open-external',
+  providersSignOut: 'providers:sign-out',
+  providersStatus: 'providers:status',
+  providersDownload: 'providers:download',
+  dialogChooseDownload: 'dialog:choose-download',
 } as const;
 
 /** 3D model file formats the 3D view exports. */
@@ -212,6 +219,19 @@ export interface EwApi {
   readonly view3d: {
     /** Shows the 3D view of a board in its own window. */
     open: (doc: string, name: string) => void;
+  };
+  readonly providers: {
+    /** Opens a provider's website in its provider window. */
+    open: (id: ProviderId, page: ProviderPage, query?: string) => void;
+    /** Opens a provider's website in the user's browser. */
+    openExternal: (id: ProviderId, page: ProviderPage, query?: string) => void;
+    /** Deletes the provider window's sign-in and stored data. */
+    signOut: (id: ProviderId) => Promise<void>;
+    status: () => Promise<readonly ProviderStatus[]>;
+    /** A file downloaded in a provider window. */
+    onDownload: (listener: (download: ProviderDownload) => void) => Unsubscribe;
+    /** Lets the user pick a downloaded part file to import. */
+    chooseDownload: () => Promise<string | null>;
   };
   readonly sync: {
     /** Sends a message to the app's other windows. */

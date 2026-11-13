@@ -65,6 +65,18 @@ const api: EwApi = {
       ipcRenderer.send(IPC.view3dOpen, doc, name);
     },
   },
+  providers: {
+    open: (id, page, query) => {
+      ipcRenderer.send(IPC.providersOpen, id, page, query ?? '');
+    },
+    openExternal: (id, page, query) => {
+      ipcRenderer.send(IPC.providersOpenExternal, id, page, query ?? '');
+    },
+    signOut: (id) => ipcRenderer.invoke(IPC.providersSignOut, id),
+    status: () => ipcRenderer.invoke(IPC.providersStatus),
+    onDownload: (listener) => subscribe(IPC.providersDownload, listener),
+    chooseDownload: () => ipcRenderer.invoke(IPC.dialogChooseDownload),
+  },
   sync: {
     publish: (message) => {
       ipcRenderer.send(IPC.syncPublish, message);

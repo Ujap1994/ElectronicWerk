@@ -7,6 +7,7 @@
 import { boardEn } from './board.en';
 import { outputsEn } from './outputs.en';
 import { view3dEn } from './view3d.en';
+import { partsEn } from './parts.en';
 import { libeditEn } from './libedit.en';
 import { schematicEn } from './schematic.en';
 
@@ -124,6 +125,7 @@ export const en = {
     placeFootprint: 'Board: place a footprint',
     generateOutputs: 'Outputs: generate manufacturing files (output job)',
     gerberViewer: 'Gerber viewer: open Gerber and drill files…',
+    onlineParts: 'Find parts online (SnapEDA, Ultra Librarian)',
     view3d: 'Show the 3D view',
   },
   project: {
@@ -168,6 +170,7 @@ export const en = {
     recover: 'Restore changes',
     importNetlist: 'Import netlist',
     importLibrary: 'Import library',
+    importDownload: 'Import part download',
     addFromLibrary: 'Add from library',
     placeSymbol: 'Place symbol',
     drawWire: 'Draw wire',
@@ -528,6 +531,8 @@ export const en = {
     exportGlb: 'GLB models',
     exportVrml: 'VRML models',
     exportPng: 'PNG images',
+    downloadTitle: 'Import a part download',
+    downloadFilter: 'Part downloads (ZIP, KiCad, STEP)',
     importKicadTitle: 'Import a KiCad project',
     kicadProjectFilter: 'KiCad projects',
     importNetlistTitle: 'Import a netlist',
@@ -1071,4 +1076,5 @@ export const en = {
   board: boardEn,
   outputs: outputsEn,
   view3d: view3dEn,
+  parts: partsEn,
 } as const;

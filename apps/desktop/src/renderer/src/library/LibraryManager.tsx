@@ -8,6 +8,7 @@ import { useCallback, useEffect, useState, type ReactNode } from 'react';
 import { formatBytes, type LibraryRelease } from '@shared/library';
 
 import { Icon } from '../components/Icon';
+import { openOnlineParts } from '../parts/stores';
 import { useProject } from '../project/ProjectProvider';
 import { useAppState } from '../state';
 import { DEFAULT_DUPLICATE_FILTERS, DuplicatesView, type DuplicateFilters } from './DuplicatesView';
@@ -305,6 +306,17 @@ export function LibraryManager({ onClose }: { readonly onClose: () => void }): R
           </div>
         )}
         <span className="library__spacer" />
+        <button
+          type="button"
+          className="button button--quiet"
+          title={t('parts.openTip')}
+          data-testid="library-online"
+          onClick={() => {
+            openOnlineParts();
+          }}
+        >
+          <Icon name="search" size={18} /> {t('parts.open')}
+        </button>
         {installed && (
           <button
             type="button"

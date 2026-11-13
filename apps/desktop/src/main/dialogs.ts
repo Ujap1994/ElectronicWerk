@@ -176,6 +176,32 @@ export async function chooseGerbers(
   return result.canceled || result.filePaths.length === 0 ? null : result.filePaths;
 }
 
+/** Lets the user pick a part downloaded from an online library. */
+export async function chooseDownload(
+  window: BrowserWindow | null,
+  t: Translate,
+): Promise<string | null> {
+  const stub = takeQueued();
+  if (stub !== null) {
+    return stub.answer;
+  }
+  const options: Electron.OpenDialogOptions = {
+    title: t('dialogs.downloadTitle'),
+    properties: ['openFile'],
+    filters: [
+      {
+        name: t('dialogs.downloadFilter'),
+        extensions: ['zip', 'kicad_sym', 'kicad_mod', 'step', 'stp'],
+      },
+    ],
+  };
+  const result =
+    window === null
+      ? await dialog.showOpenDialog(options)
+      : await dialog.showOpenDialog(window, options);
+  return result.canceled || result.filePaths.length === 0 ? null : (result.filePaths[0] ?? null);
+}
+
 export async function chooseArchiveFile(
   window: BrowserWindow | null,
   t: Translate,

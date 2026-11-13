@@ -4,6 +4,7 @@ import { LANGUAGES, isLanguage, type LanguageSetting } from '@shared/i18n';
 import type { ThemeSetting } from '@shared/settings';
 
 import { useAppState } from '../state';
+import { ProviderSettings } from '../parts/OnlineParts';
 import { Modal } from './Modal';
 
 interface SettingsDialogProps {
@@ -108,6 +109,8 @@ export function SettingsDialog({ onClose, onCheckUpdates }: SettingsDialogProps)
           </button>
         </div>
       </fieldset>
+
+      <ProviderSettings />
     </Modal>
   );
 }

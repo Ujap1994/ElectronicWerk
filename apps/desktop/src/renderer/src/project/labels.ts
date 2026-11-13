@@ -17,6 +17,7 @@ const HISTORY_LABELS: Readonly<Record<string, MessageKey>> = {
   recover: 'history.recover',
   'import-netlist': 'history.importNetlist',
   'import-library': 'history.importLibrary',
+  'import-download': 'history.importDownload',
   'add-from-library': 'history.addFromLibrary',
   'place-symbol': 'history.placeSymbol',
   'draw-wire': 'history.drawWire',
