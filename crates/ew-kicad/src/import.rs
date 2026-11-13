@@ -373,7 +373,9 @@ pub fn import_project(source: &Path, name: Option<&str>) -> Result<Imported, Kic
             report.warn(
                 "custom-rules",
                 Some(&format!("{stem}.kicad_dru")),
-                format!("{count} custom design rules are not imported; the rule editor arrives with the layout editor"),
+                format!(
+                    "{count} custom design rules are not imported; write them again as custom rules in the design rules"
+                ),
             );
         }
     }
