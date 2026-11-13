@@ -353,3 +353,75 @@ fn prints_of_the_blinky_project() {
         }
     }
 }
+
+#[test]
+fn a_job_runs_every_output_of_a_preset() {
+    use ew_model::outputs::{OutputJob, OutputKind};
+    use ew_output::job::{RunContext, Status, preset_outputs, presets, run};
+    let imported = ew_kicad::import_project(
+        &fixture("../ew-kicad/tests/fixtures/blinky/blinky.kicad_pro"),
+        None,
+    )
+    .unwrap();
+    let project = imported.project;
+    let resolve = |t: &str, _doc: Option<ew_model::id::Id>| t.to_owned();
+    let ctx = RunContext {
+        project: &project,
+        version: "test".into(),
+        created: String::new(),
+        resolve: &resolve,
+        labels: ew_scene::TitleLabels::default(),
+    };
+    for preset in presets() {
+        let mut job = OutputJob::new(ew_model::id::Id::random(), preset.name);
+        job.outputs = preset_outputs(&preset, ew_model::id::Id::random);
+        let result = run(&job, None, &ctx);
+        for entry in &result.results {
+            assert_eq!(
+                entry.status,
+                Status::Done,
+                "{} {}: {:?}",
+                preset.id,
+                entry.name,
+                entry.message
+            );
+            assert_ne!(entry.files.len(), 0);
+        }
+        let zip = result
+            .results
+            .iter()
+            .find(|r| r.kind == OutputKind::Archive)
+            .unwrap();
+        assert!(
+            std::path::Path::new(&zip.files[0])
+                .extension()
+                .is_some_and(|e| e.eq_ignore_ascii_case("zip"))
+        );
+        if preset.id == "generic" {
+            let names: Vec<&str> = result.files.iter().map(|f| f.name.as_str()).collect();
+            for expected in [
+                "gerber/blinky-Copper_Top.gtl",
+                "gerber/blinky-job.gbrjob",
+                "gerber/blinky-PTH.drl",
+                "gerber/blinky-drill-map.pdf",
+                "assembly/blinky-bom.xlsx",
+                "assembly/blinky-placement.csv",
+                "netlists/blinky.d356",
+                "documentation/blinky-schematic.pdf",
+                "documentation/blinky-assembly.pdf",
+                "blinky-fabrication.zip",
+            ] {
+                assert!(names.contains(&expected), "{expected} in {names:?}");
+            }
+        }
+    }
+    // Switched-off and unselected outputs are skipped.
+    let mut job = OutputJob::new(ew_model::id::Id::random(), "x");
+    job.outputs = preset_outputs(&presets()[0], ew_model::id::Id::random);
+    job.outputs[1].enabled = false;
+    let only = [job.outputs[0].id, job.outputs[1].id];
+    let result = run(&job, Some(&only), &ctx);
+    assert_eq!(result.results[0].status, Status::Done);
+    assert_eq!(result.results[1].status, Status::Skipped);
+    assert_eq!(result.results[2].status, Status::Skipped);
+}

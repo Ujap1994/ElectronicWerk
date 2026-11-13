@@ -33,9 +33,10 @@ use ew_model::project::Project;
 use serde::Deserialize;
 
 pub use builder::{
-    CHUNK, FontMetrics, LayerInfo, MESH_HATCH, MeshSection, NONE, ObjType, ObjectSections, Scene,
-    SceneMeta, SceneStats, Section,
+    CHUNK, FontMetrics, Header, LayerDef, LayerInfo, MESH_HATCH, MeshSection, NONE, ObjType,
+    ObjectSections, Scene, SceneBuilder, SceneMeta, SceneStats, Section,
 };
+pub use geom::P;
 pub use inspect::{ChildRef, ObjectInfo, ObjectRef, Row, describe};
 pub use text::{ADVANCE, LINE_PITCH};
 

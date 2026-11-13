@@ -57,6 +57,9 @@ enum Command {
     /// Build, search and distribute the base library.
     #[command(subcommand)]
     Library(LibraryCommand),
+    /// Generate manufacturing outputs (Gerber, drill, BOM, prints, …).
+    #[command(subcommand)]
+    Outputs(OutputsCommand),
     /// Generate a synthetic reference design (for tests and benchmarks).
     Synth {
         /// Size class: S, M, L or XL.
@@ -116,6 +119,38 @@ enum ProjectCommand {
     },
     /// List the project templates.
     Templates,
+}
+
+#[derive(Debug, Subcommand)]
+enum OutputsCommand {
+    /// Run an output job of a project (exit code 1 if an output fails).
+    Run {
+        /// Project folder or `.ewproj` file.
+        path: PathBuf,
+        /// Job name or id (default: the first job of the project).
+        #[arg(long)]
+        job: Option<String>,
+        /// Only these outputs (names or ids; repeat the option).
+        #[arg(long = "output")]
+        outputs: Vec<String>,
+        /// Print the report as JSON.
+        #[arg(long)]
+        json: bool,
+    },
+    /// List the output jobs of a project and their outputs.
+    List {
+        /// Project folder or `.ewproj` file.
+        path: PathBuf,
+        /// Print machine-readable JSON.
+        #[arg(long)]
+        json: bool,
+    },
+    /// List the presets for board makers.
+    Presets {
+        /// Print machine-readable JSON.
+        #[arg(long)]
+        json: bool,
+    },
 }
 
 #[derive(Debug, Subcommand)]

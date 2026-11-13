@@ -383,6 +383,7 @@ pub struct SceneBuilder {
 
 impl SceneBuilder {
     /// A builder whose buffer coordinates are relative to `origin` (nm).
+    #[must_use]
     pub fn new(origin: P) -> Self {
         Self {
             origin,
@@ -456,6 +457,7 @@ impl SceneBuilder {
     }
 
     /// Bounding box of an object so far.
+    #[must_use]
     pub fn bbox(&self, obj: u32) -> BBox {
         self.objects
             .get(obj as usize)
@@ -617,6 +619,7 @@ impl SceneBuilder {
     }
 
     /// Writes the buffer.
+    #[must_use]
     pub fn finish(mut self, header: Header) -> Scene {
         let mut writer = Writer::default();
         let mut stats = SceneStats {

@@ -12,6 +12,8 @@
 //! - [`canvas`]: vector pages, written by [`pdf`] and [`svg`]; [`print`]:
 //!   schematic prints, board prints and assembly drawings.
 //! - [`archive`]: ZIP packages.
+//! - [`job`]: output jobs and presets for board makers.
+//! - [`viewer`]: Gerber and drill files as a scene for the viewer.
 //! - [`fracture`]: polygons with holes as one contour.
 //! - [`read`]: reads Gerber and Excellon files; [`raster`] draws them into
 //!   bitmaps for comparisons.
@@ -36,12 +38,14 @@ pub mod fracture;
 pub mod gerber;
 pub mod ipc2581;
 pub mod ipc356;
+pub mod job;
 pub mod pdf;
 pub mod placement;
 pub mod print;
 pub mod raster;
 pub mod read;
 pub mod svg;
+pub mod viewer;
 pub mod xlsx;
 
 /// A generated file.

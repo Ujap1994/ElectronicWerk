@@ -86,6 +86,7 @@ pub const METHODS: &[&str] = &[
     "engine.info",
     "engine.methods",
     "engine.ping",
+    "gerber.scene",
     "import.kicad",
     "import.kicadProbe",
     "import.library",
@@ -116,6 +117,12 @@ pub const METHODS: &[&str] = &[
     "library.report",
     "library.search",
     "library.status",
+    "outputs.applyPreset",
+    "outputs.bom",
+    "outputs.create",
+    "outputs.files",
+    "outputs.presets",
+    "outputs.run",
     "pcb.addTracks",
     "pcb.applyPreset",
     "pcb.backApply",
@@ -493,12 +500,22 @@ impl Engine {
                 .and_then(|params| self.library_preview(&params)),
             "view.item" => parse::<ItemSceneParams>(&request.params)
                 .and_then(|params| self.item_scene(&params)),
+            "gerber.scene" => parse::<crate::outputs::GerberSceneParams>(&request.params)
+                .and_then(|params| self.gerber_scene(&params)),
             _ => return (encode(&self.handle(&request)), None),
         };
         match result {
             Ok((meta, data)) => (encode(&Response::Result(meta)), Some(data)),
             Err(error) => (encode(&Response::Error(error.into())), None),
         }
+    }
+
+    /// Builds the scene of Gerber and drill files (the Gerber viewer).
+    fn gerber_scene(
+        &self,
+        params: &crate::outputs::GerberSceneParams,
+    ) -> Result<(Value, Vec<u8>), EngineError> {
+        crate::outputs::gerber_scene(self.session.as_ref().map(Session::root), params)
     }
 
     /// Builds the scene of a document: metadata and binary buffer.
@@ -613,6 +630,20 @@ impl Engine {
             _ if method.starts_with("schematic.") => self.call_schematic(method, params),
             _ if method.starts_with("libedit.") => self.call_libedit(method, params),
             _ if method.starts_with("pcb.") => self.call_pcb(method, params),
+            _ if method.starts_with("outputs.") => self.call_outputs(method, params),
+            "gerber.scene" => {
+                let params: crate::outputs::GerberSceneParams = parse(params)?;
+                let (mut meta, data) = self.gerber_scene(&params)?;
+                if let Some(object) = meta.as_object_mut() {
+                    let encoded = if params.encoding.as_deref() == Some("none") {
+                        Value::Null
+                    } else {
+                        Value::String(ew_scene::base64(&data))
+                    };
+                    object.insert("data".to_owned(), encoded);
+                }
+                Ok(meta)
+            }
             "library.preview" => {
                 let params: PreviewParams = parse(params)?;
                 let (mut meta, data) = self.library_preview(&params)?;
@@ -1163,6 +1194,28 @@ impl Engine {
         match crate::pcb::call(session.project(), method, params, &mut self.drc)? {
             crate::pcb::Outcome::Read(value) => Ok(value),
             crate::pcb::Outcome::Commit {
+                label,
+                requests,
+                reply,
+            } => {
+                let change_set = self.commit(label, requests)?;
+                let mut out = json!({"seq": change_set.seq, "history": change_set.history});
+                if let (Some(out), Value::Object(extra)) = (out.as_object_mut(), reply) {
+                    out.extend(extra);
+                }
+                Ok(out)
+            }
+        }
+    }
+
+    fn call_outputs(&mut self, method: &str, params: &Value) -> Result<Value, EngineError> {
+        if method == "outputs.presets" {
+            return to_value(&ew_output::job::presets());
+        }
+        let session = self.session.as_ref().ok_or_else(EngineError::no_project)?;
+        match crate::outputs::call(session, method, params, crate::VERSION)? {
+            crate::outputs::Outcome::Read(value) => Ok(value),
+            crate::outputs::Outcome::Commit {
                 label,
                 requests,
                 reply,

@@ -144,13 +144,23 @@ pub struct NewProject {
     pub names: DocumentNames,
 }
 
-/// Renames the outputs of a job to the given names (by output kind).
+/// Renames the outputs of a job to the given names (by output kind, and
+/// `assemblyDrawing` for the PDF of the assembly drawing).
 fn name_outputs(job: &mut OutputJob, names: &BTreeMap<String, String>) {
     for output in &mut job.outputs {
-        let kind = serde_json::to_value(output.kind)
-            .ok()
-            .and_then(|value| value.as_str().map(str::to_owned))
-            .unwrap_or_default();
+        let assembly = output
+            .options
+            .get("content")
+            .and_then(serde_json::Value::as_str)
+            == Some("assembly");
+        let kind = if assembly {
+            "assemblyDrawing".to_owned()
+        } else {
+            serde_json::to_value(output.kind)
+                .ok()
+                .and_then(|value| value.as_str().map(str::to_owned))
+                .unwrap_or_default()
+        };
         rename(&mut output.name, names.get(&kind));
     }
 }
@@ -262,7 +272,7 @@ pub fn build(options: &NewProject) -> Result<Project, EngineError> {
             matches!(
                 output.kind,
                 ew_model::outputs::OutputKind::Pdf | ew_model::outputs::OutputKind::Bom
-            )
+            ) && !output.options.contains_key("content")
         });
     }
     add(

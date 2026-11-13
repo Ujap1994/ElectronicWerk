@@ -33,6 +33,8 @@ pub enum OutputKind {
     Ipc2581,
     /// Netlist.
     Netlist,
+    /// ZIP package of other outputs (for the board maker).
+    Archive,
 }
 
 /// One output in a job.
@@ -98,26 +100,44 @@ impl OutputJob {
         }
     }
 
-    /// A job with the usual fabrication and assembly outputs. `make_id`
-    /// supplies the output ids.
+    /// A job with the usual fabrication and assembly outputs (the
+    /// `generic` preset of the output jobs). `make_id` supplies the output
+    /// ids.
     #[must_use]
     pub fn fabrication(id: Id, name: impl Into<String>, mut make_id: impl FnMut() -> Id) -> Self {
+        let option = |key: &str, value: &str| {
+            BTreeMap::from([(key.to_owned(), serde_json::Value::String(value.to_owned()))])
+        };
         let outputs = [
-            ("Gerber", OutputKind::Gerber),
-            ("Drill", OutputKind::Drill),
-            ("Bill of materials", OutputKind::Bom),
-            ("Pick and place", OutputKind::PickAndPlace),
-            ("Schematic PDF", OutputKind::Pdf),
-            ("3D model", OutputKind::Step),
+            ("Gerber", OutputKind::Gerber, BTreeMap::new()),
+            ("Drill", OutputKind::Drill, BTreeMap::new()),
+            ("Drill map", OutputKind::DrillMap, BTreeMap::new()),
+            (
+                "Bill of materials",
+                OutputKind::Bom,
+                option("format", "xlsx"),
+            ),
+            ("Pick and place", OutputKind::PickAndPlace, BTreeMap::new()),
+            ("IPC-D-356 netlist", OutputKind::Ipc356, BTreeMap::new()),
+            ("Schematic PDF", OutputKind::Pdf, BTreeMap::new()),
+            ("Assembly drawing", OutputKind::Pdf, {
+                let mut options = option("content", "assembly");
+                options.insert(
+                    "paper".to_owned(),
+                    serde_json::Value::String("a4".to_owned()),
+                );
+                options
+            }),
+            ("Fabrication package", OutputKind::Archive, BTreeMap::new()),
         ]
         .into_iter()
-        .map(|(name, kind)| OutputSpec {
+        .map(|(name, kind, options)| OutputSpec {
             id: make_id(),
             name: name.to_owned(),
             kind,
             enabled: true,
             source: None,
-            options: BTreeMap::new(),
+            options,
         })
         .collect();
         Self {
@@ -151,7 +171,7 @@ mod tests {
     #[test]
     fn fabrication_job() {
         let job = OutputJob::fabrication(Id::random(), "Fabrication", Id::random);
-        assert_eq!(job.outputs.len(), 6);
+        assert_eq!(job.outputs.len(), 9);
         assert_eq!(job.directory, DEFAULT_OUTPUT_DIRECTORY);
         let json = serde_json::to_string(&job).unwrap();
         assert_eq!(serde_json::from_str::<OutputJob>(&json).unwrap(), job);

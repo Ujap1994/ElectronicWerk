@@ -13,6 +13,10 @@ pub struct P {
     pub y: f64,
 }
 
+#[allow(
+    clippy::should_implement_trait,
+    reason = "small named helpers, like the board geometry"
+)]
 impl P {
     /// A point.
     #[must_use]

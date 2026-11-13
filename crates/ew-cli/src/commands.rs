@@ -10,7 +10,7 @@ use ew_core::info::EngineInfo;
 use ew_synth::DesignSize;
 use serde_json::{Value, json};
 
-use crate::{Command, ImportCommand, NewArgs, ProjectCommand};
+use crate::{Command, ImportCommand, NewArgs, OutputsCommand, ProjectCommand};
 
 /// A command failure with a message for standard error.
 #[derive(Debug)]
@@ -90,6 +90,7 @@ pub fn run(command: Command, out: &mut impl Write) -> Outcome {
         Command::Project(command) => project(command, out),
         Command::Import(command) => import(command, out),
         Command::Library(command) => crate::library::run(command, out),
+        Command::Outputs(command) => outputs(command, out),
         Command::Synth {
             size,
             dir,
@@ -379,6 +380,146 @@ fn print_netlist(result: &Value, apply: bool, out: &mut impl Write) -> io::Resul
         )?;
     }
     Ok(())
+}
+
+/// The output jobs of an opened project as `(id, name)`.
+fn output_jobs(engine: &mut Engine) -> Result<Vec<(String, String)>, Failure> {
+    let info = call(engine, "project.info", Value::Null)?;
+    Ok(info["documents"]
+        .as_array()
+        .into_iter()
+        .flatten()
+        .filter(|d| d["kind"] == "outputJob")
+        .map(|d| {
+            (
+                d["id"].as_str().unwrap_or_default().to_owned(),
+                d["name"].as_str().unwrap_or_default().to_owned(),
+            )
+        })
+        .collect())
+}
+
+#[allow(clippy::too_many_lines, reason = "one arm per subcommand")]
+fn outputs(command: OutputsCommand, out: &mut impl Write) -> Outcome {
+    let mut engine = Engine::without_journal();
+    match command {
+        OutputsCommand::Presets { json } => {
+            let presets = call(&mut engine, "outputs.presets", Value::Null)?;
+            if json {
+                print_json(out, &presets)?;
+            } else {
+                for preset in presets.as_array().into_iter().flatten() {
+                    writeln!(
+                        out,
+                        "{:<14} {}",
+                        preset["id"].as_str().unwrap_or_default(),
+                        preset["description"].as_str().unwrap_or_default()
+                    )?;
+                }
+            }
+            Ok(ExitCode::SUCCESS)
+        }
+        OutputsCommand::List { path, json } => {
+            call(&mut engine, "project.open", json!({"path": path}))?;
+            let mut list = Vec::new();
+            for (id, name) in output_jobs(&mut engine)? {
+                let doc = call(&mut engine, "document.get", json!({"doc": id}))?;
+                list.push(json!({"id": id, "name": name, "directory": doc["directory"], "outputs": doc["outputs"]}));
+            }
+            if json {
+                print_json(out, &Value::Array(list))?;
+            } else {
+                for job in &list {
+                    writeln!(
+                        out,
+                        "{} → {}",
+                        job["name"].as_str().unwrap_or_default(),
+                        job["directory"].as_str().unwrap_or_default()
+                    )?;
+                    for output in job["outputs"].as_array().into_iter().flatten() {
+                        writeln!(
+                            out,
+                            "  {} {:<24} {}",
+                            if output["enabled"] == false { "-" } else { "+" },
+                            output["name"].as_str().unwrap_or_default(),
+                            output["kind"].as_str().unwrap_or_default()
+                        )?;
+                    }
+                }
+            }
+            Ok(ExitCode::SUCCESS)
+        }
+        OutputsCommand::Run {
+            path,
+            job,
+            outputs,
+            json,
+        } => {
+            call(&mut engine, "project.open", json!({"path": path}))?;
+            let jobs = output_jobs(&mut engine)?;
+            let (id, name) = match &job {
+                Some(wanted) => jobs
+                    .iter()
+                    .find(|(id, name)| id == wanted || name.eq_ignore_ascii_case(wanted))
+                    .cloned()
+                    .ok_or_else(|| Failure(format!("no output job `{wanted}`")))?,
+                None => jobs
+                    .first()
+                    .cloned()
+                    .ok_or_else(|| Failure("the project has no output job".to_owned()))?,
+            };
+            let mut params = json!({"job": id});
+            if !outputs.is_empty() {
+                let doc = call(&mut engine, "document.get", json!({"doc": id}))?;
+                let mut ids = Vec::new();
+                for wanted in &outputs {
+                    let found = doc["outputs"].as_array().into_iter().flatten().find(|o| {
+                        o["id"] == wanted.as_str()
+                            || o["name"]
+                                .as_str()
+                                .is_some_and(|n| n.eq_ignore_ascii_case(wanted))
+                    });
+                    let found = found
+                        .ok_or_else(|| Failure(format!("no output `{wanted}` in `{name}`")))?;
+                    ids.push(found["id"].clone());
+                }
+                params["outputs"] = Value::Array(ids);
+            }
+            let report = call(&mut engine, "outputs.run", params)?;
+            let failed = report["results"]
+                .as_array()
+                .into_iter()
+                .flatten()
+                .any(|r| r["status"] == "failed");
+            if json {
+                print_json(out, &report)?;
+            } else {
+                writeln!(
+                    out,
+                    "{name} → {}",
+                    report["directory"].as_str().unwrap_or_default()
+                )?;
+                for result in report["results"].as_array().into_iter().flatten() {
+                    let files = result["files"].as_array().map_or(0, Vec::len);
+                    let detail = result["message"].as_str().map_or_else(
+                        || format!("{files} file{}", if files == 1 { "" } else { "s" }),
+                        str::to_owned,
+                    );
+                    writeln!(
+                        out,
+                        "  {:<8} {:<24} {detail}",
+                        result["status"].as_str().unwrap_or_default(),
+                        result["name"].as_str().unwrap_or_default()
+                    )?;
+                }
+            }
+            Ok(if failed {
+                ExitCode::FAILURE
+            } else {
+                ExitCode::SUCCESS
+            })
+        }
+    }
 }
 
 fn project(command: ProjectCommand, out: &mut impl Write) -> Outcome {
