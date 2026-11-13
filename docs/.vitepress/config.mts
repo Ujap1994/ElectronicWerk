@@ -59,6 +59,8 @@ export default defineConfig({
           { text: 'Bill of materials and placement', link: '/guide/bom-placement' },
           { text: 'Prints and drawings', link: '/guide/prints' },
           { text: 'The Gerber viewer', link: '/guide/gerber-viewer' },
+          { text: 'The 3D view', link: '/guide/view-3d' },
+          { text: '3D models: STEP, GLB, VRML', link: '/guide/export-3d' },
           { text: 'Ordering boards', link: '/guide/ordering' },
           { text: 'Importing KiCad projects', link: '/guide/import-kicad' },
           { text: 'Netlists', link: '/guide/netlists' },

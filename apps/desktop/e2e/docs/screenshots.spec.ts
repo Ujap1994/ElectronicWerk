@@ -1516,3 +1516,143 @@ test('manufacturing outputs', async () => {
   await shootSvg(page, pick(/layers\.svg$/u), 'output-board-print');
   await close();
 });
+
+test('3d view', async () => {
+  test.setTimeout(300_000);
+  freshProjects();
+  const kicad = '/tmp/ElectronicWerk/KiCad/blinky';
+  rmSync(kicad, { recursive: true, force: true });
+  cpSync(KICAD_FIXTURE, kicad, { recursive: true });
+  const { app, page, close } = await start({ settings: { theme: 'light' } });
+  await page.setViewportSize({ width: 1500, height: 900 });
+  await queueDialogAnswer(app, join(kicad, 'blinky.kicad_pro'));
+  await page.getByTestId('import-kicad').click();
+  await page.getByTestId('kicad-import-name').fill('Blinky');
+  await page.getByTestId('kicad-import-start').click();
+  await page
+    .getByTestId('import-report')
+    .getByRole('button', { name: 'Close', exact: true })
+    .last()
+    .click();
+  await page
+    .locator('[data-testid^="tree-doc:"]')
+    .filter({ hasText: /^Blinky$/u })
+    .dblclick();
+  await settle(page);
+  await expect(page.getByTestId('viewer')).toHaveAttribute('data-kind', 'pcb');
+
+  // The 3D view next to the layout, with every model loaded.
+  await page.getByTestId('viewer-open-3d').click();
+  const canvas = page.locator('[data-testid="view3d-canvas"][data-ready="true"]');
+  await expect(canvas).toBeVisible({ timeout: 60_000 });
+  await expect(page.getByTestId('view3d-models')).toHaveText(/^(\d+) of \1 models$/u, {
+    timeout: 120_000,
+  });
+  const still = async (): Promise<void> => {
+    await page.mouse.move(5, 300);
+    await page.waitForTimeout(800);
+  };
+  await still();
+  await shoot(page, 'view3d');
+  const view = page.locator('.view3d');
+
+  // Views and projection.
+  await page.getByTestId('view3d-views').click();
+  await shoot(page.locator('.workspace__main'), 'view3d-views');
+  await page.getByTestId('view3d-view-top').click();
+  await page.getByTestId('view3d-projection').click();
+  await still();
+  await shoot(view, 'view3d-top');
+  await page.getByTestId('view3d-views').click();
+  await page.getByTestId('view3d-view-bottom').click();
+  await still();
+  await shoot(view, 'view3d-bottom');
+  await page.getByTestId('view3d-projection').click();
+
+  // What is shown.
+  await page.getByTestId('view3d-view-iso').click();
+  await page.getByTestId('view3d-show').click();
+  await page.getByTestId('view3d-show-mask').uncheck();
+  await page.getByTestId('view3d-show-silk').uncheck();
+  await still();
+  await shoot(view, 'view3d-show');
+  await page.getByTestId('view3d-show-mask').check();
+  await page.getByTestId('view3d-show-silk').check();
+  await page.getByTestId('view3d-show').click();
+
+  // A section through the SOIC and the pin header.
+  await page.getByTestId('view3d-section').click();
+  await page.getByTestId('view3d-section-y').check();
+  await page.getByTestId('view3d-section-position').fill('0.55');
+  await still();
+  await shoot(view, 'view3d-section');
+  await page.getByTestId('view3d-section-off').check();
+  await page.getByTestId('view3d-section').click();
+
+  // Measuring in the top view.
+  await page.getByTestId('view3d-views').click();
+  await page.getByTestId('view3d-view-top').click();
+  await page.getByTestId('view3d-projection').click();
+  await page.getByTestId('view3d-measure').click();
+  const box = await canvas.boundingBox();
+  const cx = (box?.x ?? 0) + (box?.width ?? 0) / 2;
+  const cy = (box?.y ?? 0) + (box?.height ?? 0) / 2;
+  await page.mouse.click(cx - 220, cy + 120);
+  await page.mouse.click(cx + 180, cy - 90);
+  await expect(page.getByTestId('view3d-measure-label')).toBeVisible();
+  await still();
+  await shoot(view, 'view3d-measure');
+  await page.keyboard.press('Escape');
+  await page.getByTestId('view3d-projection').click();
+
+  // A part selected in the layout editor is selected in 3D too.
+  await page.getByTestId('view3d-view-iso').click();
+  await page.locator('[role="tab"]', { hasText: /^Blinky$/u }).click();
+  await settle(page);
+  const board = readBoardJson('Blinky');
+  const u1 = board.footprints.find((f) => f.designator === 'U1');
+  const [ux, uy] = await toScreen(viewerCanvas(page), u1?.at ?? [0, 0]);
+  await page.mouse.click(ux, uy);
+  await page.locator('[role="tab"]', { hasText: 'Blinky (3D)' }).click();
+  await expect(canvas).toBeVisible({ timeout: 60_000 });
+  await expect(page.getByTestId('view3d-selected')).toContainText('U1');
+  await expect(page.getByTestId('view3d-models')).toHaveText(/^(\d+) of \1 models$/u, {
+    timeout: 120_000,
+  });
+  await still();
+  await shoot(page, 'view3d-selection');
+
+  // Export.
+  await page.getByTestId('view3d-export').click();
+  await shoot(page.locator('.workspace__main'), 'view3d-export');
+  await page.getByTestId('view3d-export').click();
+
+  // Its own window.
+  const opened = app.waitForEvent('window');
+  await page.getByTestId('view3d-detach').click();
+  const second = await opened;
+  await second.setViewportSize({ width: 1100, height: 700 });
+  const secondCanvas = second.locator('[data-testid="view3d-canvas"][data-ready="true"]');
+  await expect(secondCanvas).toBeVisible({ timeout: 60_000 });
+  await expect(second.getByTestId('view3d-models')).toHaveText(/^(\d+) of \1 models$/u, {
+    timeout: 120_000,
+  });
+  await second.mouse.move(5, 300);
+  await second.waitForTimeout(800);
+  await shoot(second, 'view3d-window');
+  await second.close();
+
+  // A 3D model in the output job.
+  await page.getByTestId('toolbar-outputs').click();
+  await expect(page.getByTestId('output-job')).toBeVisible();
+  await page.getByTestId('outputs-add').selectOption('step');
+  await expect(page.getByTestId('output-model3d-format')).toBeVisible();
+  await page.getByTestId('output-generate-one').click();
+  const list = page.getByTestId('outputs-list');
+  await expect(list.locator('li').last().locator('[data-status="done"]')).toBeVisible({
+    timeout: 60_000,
+  });
+  await page.mouse.move(10, 10);
+  await shoot(page.locator('.outputs__settings'), 'outputs-3d');
+  await close();
+});

@@ -148,8 +148,9 @@ courtyard by hand on the courtyard layer for parts that are not rectangular.
 
 ## 3D models
 
-A footprint can reference one or more 3D models (STEP or WRL files). The 3D
-board view of a later version shows them; the library checks note footprints
+A footprint can reference one or more 3D models (STEP or WRL files). The
+[3D view](./view-3d) shows them on the board and the
+[3D exports](./export-3d) write them; the library checks note footprints
 without one.
 
 ![The 3D models of a footprint](/screenshots/libedit-models.png)
@@ -163,11 +164,12 @@ without one.
 3. **Hidden** keeps a model in the footprint without showing it; the trash
    button removes it.
 
-**3D preview.** If the model is part of the [base library](./library),
-**3D preview** shows it placed on a board as large as the footprint, with the
-offset, rotation and scale you entered: every change of a value updates the
-preview, so you can align the model step by step. Drag to turn the view.
-Models that are not in the base library have no preview yet.
+**3D preview.** **3D preview** shows the model placed on a board as large as
+the footprint, with the offset, rotation and scale you entered: every change
+of a value updates the preview, so you can align the model step by step.
+Drag to turn the view. The model is looked for like in the
+[3D view](./view-3d#parts-and-their-3d-models): a STEP file in the project
+folder or a KiCad installation, else the [base library](./library).
 
 ## Properties
 

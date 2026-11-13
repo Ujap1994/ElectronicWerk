@@ -774,9 +774,9 @@ the project. `labels` translates the title block of schematic prints, as in
       "id": "…",
       "name": "3D model",
       "kind": "step",
-      "status": "skipped",
-      "message": "…",
-      "files": []
+      "status": "done",
+      "message": "1 3D models not found: ${KIPRJMOD}/3d/relay.step",
+      "files": ["3d/Blinky.step"]
     }
   ],
   "files": [{ "path": "gerber/Blinky-Copper_Top.gtl", "bytes": 3712 }],
@@ -784,8 +784,9 @@ the project. `labels` translates the title block of schematic prints, as in
 }
 ```
 
-`status` is `done`, `skipped` (switched off, not selected, or not available
-yet) or `failed` (with `message`). Paths are relative to `directory`. The job
+`status` is `done` (a 3D model output may add a `message` with the models
+that were not found), `skipped` (switched off or not selected) or `failed`
+(with `message`). Paths are relative to `directory`. The job
 folder and every subfolder must lie inside the project folder.
 
 ### `outputs.bom`
@@ -807,6 +808,110 @@ files (absolute, or relative to the project folder) and returns a scene like
 [`view.scene`](#view), one layer per file, plus `"files": [{"file",
 "function"}]` (the X2 file function, or one guessed from the extension) and
 `"problems": [{"file", "message"}]`. Works without an open project.
+
+## 3D view
+
+The 3D view and the 3D exports (see [The 3D view](../guide/view-3d) and
+[3D models](../guide/export-3d)). Lengths are millimetres with z up; the
+board's bottom face lies at z = 0. Matrices are 4 × 4, column-major (as
+glTF and three.js store them).
+
+### `board3d.scene`
+
+`board3d.scene {"doc", "inner"?}` builds the 3D board of a board document:
+the laminate (outline minus holes), the copper, solder mask, silkscreen and
+paste of each side, the plated walls of holes and, with `inner: true`, the
+inner copper layers. The reply:
+
+```json
+{
+  "board": {
+    "name": "Blinky",
+    "levels": { "bodyTop": 1.5558, "topCopper": 0.035, "bottomCopper": 0.035,
+                "topMask": 0.01, "bottomMask": 0.01, "copperLayers": 4 },
+    "colors": { "body": […], "topMask": […], "copper": […], "finish": "ENIG", … },
+    "bounds": [100, 80, -0.045, 140, 110, 1.6008],
+    "holes": 21,
+    "warnings": []
+  },
+  "meshes": [
+    { "key": "body", "vertices": 1520, "triangles": 1748,
+      "positions": 0, "normals": 18240, "indices": 36480 }
+  ],
+  "parts": [ … as in board3d.parts … ],
+  "models": [ … as in board3d.resolve … ],
+  "data": "…"
+}
+```
+
+`meshes` names the meshes (`body`, `barrels`, `copper:top`, `mask:bottom`,
+`silk:top`, `paste:top`, `copper:in1`, …) and where they lie in the binary
+buffer: positions and normals as little-endian `f32` triples, indices as
+`u32` triples. JSON clients get the buffer base64-encoded in `data`; the
+desktop app receives it as binary next to the JSON.
+
+### `board3d.parts`
+
+`board3d.parts {"doc"}` → `{"parts", "models"}`: only the parts, for live
+updates while parts move (about 7 ms for 5,000 parts). Every part:
+
+```json
+{
+  "id": "…",
+  "designator": "U1",
+  "value": "NE555",
+  "footprint": "Package_SO:SOIC-8_3.9x4.9mm_P1.27mm",
+  "side": "top",
+  "dnp": false,
+  "matrix": [ … 16 numbers: the footprint placement … ],
+  "pads": [-2.95, -2.105, 2.95, 2.105],
+  "models": [
+    { "path": "${KICAD10_3DMODEL_DIR}/Package_SO.3dshapes/SOIC-8_3.9x4.9mm_P1.27mm.step",
+      "matrix": [ … model coordinates → board … ] }
+  ]
+}
+```
+
+A model's matrix applies KiCad's convention: the footprint's position and
+rotation, a half turn about the footprint's y axis for parts on the bottom,
+then the model's offset, its rotation by the negated angles (z, y, x) and its
+scale. `pads` is the box of the pads in footprint coordinates (for parts
+without a model).
+
+### `board3d.resolve`
+
+`board3d.resolve {"path"}` → `{"path", "file"?, "format"?, "entry"?,
+"mesh"?}`: where a model path was found — a `file` on this computer
+(`format` `step` or `vrml`), the base library's model `entry` with the hash
+of its `mesh` in the mesh cache, both, or neither. See
+[Parts and their 3D models](../guide/view-3d#parts-and-their-3d-models) for
+the search order. Works without an open project (relative paths then find
+nothing).
+
+### `board3d.export`
+
+`board3d.export {"doc", "path", "format"?, "origin"?, "includeDnp"?,
+"units"?}` writes the board as a 3D model to `path` (absolute): `format`
+`step` (default), `glb` or `vrml`; `origin` `drill` (default), `center` or
+`absolute`; `units` (VRML) `mm` (default), `m` or `inch`. The reply:
+
+```json
+{
+  "placed": 8,
+  "exact": 5,
+  "faceted": 0,
+  "missing": [],
+  "warnings": [],
+  "exactBody": true,
+  "bytes": 390553,
+  "path": "/Users/me/Mechanics/blinky.step"
+}
+```
+
+`placed` counts the parts written with a model, `exact` the STEP files
+merged as they are, `faceted` the models written from meshes, `missing` the
+model paths that were not found. `exactBody` tells whether the board body
+uses the exact outline and holes (else polygons).
 
 ## Library editor
 
@@ -1172,7 +1277,9 @@ part of the Rust engine):
 - `mesh.load` `{"hash"}` returns the cached GLB file of a mesh hash as
   `{"data"}` (bytes), or `notFound`.
 - `mesh.tessellate` `{"file"}` converts an absolute STEP path to GLB in a
-  worker thread (OpenCASCADE) and caches it by path, size and time; returns
+  worker thread (OpenCASCADE) and caches it as `meshes/step-<hash>.glb`,
+  named by the first 32 hex digits of the file's SHA-256 (the engine finds
+  these meshes for [GLB and VRML exports](../guide/export-3d)); returns
   `{"data", "cached"}`.
 
 ## Engine

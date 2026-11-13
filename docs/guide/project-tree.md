@@ -150,8 +150,8 @@ thickness, the number of footprints, track segments, vias, zones and nets, and
 the **layer stack-up** from top to bottom: silkscreen, solder mask, copper and
 dielectric (core or prepreg) layers with material and thickness.
 
-Double-click a board to open it in the [layout editor](./layout-editor). The
-live 3D view arrives in version 0.10.
+Double-click a board to open it in the [layout editor](./layout-editor);
+**3D view** shows it in the [3D view](./view-3d).
 
 ### Design rules
 

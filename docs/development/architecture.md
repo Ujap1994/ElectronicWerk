@@ -240,3 +240,25 @@ and the [prints](../guide/prints) are recorded in
    scene like a board's) and for the tests, which rasterize our files and
    KiCad's reference files of the same board and compare them pixel by
    pixel.
+
+## 3D view and 3D exports
+
+The [3D view](../guide/view-3d) and the [3D exports](../guide/export-3d) are
+recorded in
+[ADR-0010: The live 3D view and the STEP export](https://github.com/Ujap1994/ElectronicWerk/blob/main/docs/adr/0010-3d-view-and-step-export.md):
+
+1. `ew-board3d` builds the 3D board from the plot features of `ew-output`:
+   the laminate (outline minus holes, between the outer coppers), copper,
+   mask, silkscreen and paste per side, and the plated walls of holes. It
+   places the parts' 3D models with KiCad's convention, verified against
+   `kicad-cli` exports of the same board.
+2. The engine (`board3d.*`) sends the meshes as a binary buffer with the
+   parts and the found models; the renderer draws them with three.js and
+   loads the models from the mesh cache (STEP files are tessellated once
+   by the engine host). Change events update the parts at once and the
+   layers when the edits pause; a second window shows the same view, and
+   the selection travels between the windows through the main process.
+3. STEP is written in Rust: the board as an exact B-rep, the parts' STEP
+   files merged as they are, mesh-only models as faceted surfaces. A vitest
+   reads the reference export back with OpenCASCADE. GLB and VRML carry
+   the meshes.

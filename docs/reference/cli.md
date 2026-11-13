@@ -47,6 +47,7 @@ macOS quarantines downloaded programs. Run
 | [`ewerk outputs run`](#ewerk-outputs-run)               | Generate the manufacturing files of an output job    |
 | [`ewerk outputs list`](#ewerk-outputs-list)             | List the output jobs of a project                    |
 | [`ewerk outputs presets`](#ewerk-outputs-presets)       | List the presets for board makers                    |
+| [`ewerk export-3d`](#ewerk-export-3d)                   | Export a board as a STEP, GLB or VRML model          |
 | [`ewerk library build`](#ewerk-library-build)           | Build the base library from KiCad libraries          |
 | [`ewerk library info`](#ewerk-library-info)             | Show what the base library contains                  |
 | [`ewerk library search`](#ewerk-library-search)         | Search the base library                              |
@@ -309,6 +310,36 @@ ewerk outputs presets [--json]
 
 Lists the [presets for board makers](../guide/ordering#presets) with what they
 contain.
+
+## 3D export
+
+### `ewerk export-3d`
+
+```sh
+ewerk export-3d <project> [-o <file>] [--format step|glb|vrml] [--board <name or id>]
+                [--origin drill|center|absolute] [--include-dnp] [--units mm|m|inch] [--json]
+```
+
+Exports a board with its parts as a 3D model (see
+[3D models: STEP, GLB and VRML](../guide/export-3d)). Without `--board` the
+first board of the project is exported; without `-o` the file is written to
+the current folder as `<board>.step` (`.glb`, `.wrl`). `--origin` chooses the
+origin (the drill and placement origin by default), `--include-dnp` also
+exports parts marked “do not populate”, `--units` sets the units of VRML
+files.
+
+```text
+$ ewerk export-3d ~/Projects/Blinky -o ~/Mechanics/blinky.step
+Blinky → /Users/me/Mechanics/blinky.step (390553 bytes)
+  8 parts placed, 5 exact models, 0 from meshes
+```
+
+The 3D models are looked up like in the [3D view](../guide/view-3d#parts-and-their-3d-models).
+Models that were not found are listed (`not found: …`); the board and the
+other parts are still written. GLB and VRML need meshes: models of the base
+library have them, STEP models get one when the board is first shown in the
+app's 3D view (the command line cannot convert STEP files). `--json` prints
+the report of [`board3d.export`](./engine-api#board3d-export).
 
 ## Library
 

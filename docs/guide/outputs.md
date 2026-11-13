@@ -52,7 +52,7 @@ step in the project history, so **Undo** takes it back.
 | **IPC-2581**          | The whole board in one XML file                                      | [IPC-2581](./gerber-drill#ipc-2581)                                      |
 | **Netlist**           | The schematic netlist (KiCad format or CSV)                          | [Netlists](./schematic-exports#netlists)                                 |
 | **ZIP package**       | A ZIP archive of the files of chosen outputs                         | [Below](#zip-packages)                                                   |
-| **STEP 3D model**     | Not yet: the 3D export comes with the 3D view; the output is skipped |                                                                          |
+| **3D model**          | The board with its parts as STEP, GLB or VRML                        | [3D models](./export-3d)                                                 |
 
 ## Generating
 
@@ -64,7 +64,7 @@ When it is done, the results list every file:
 
 - **Generated** — the files were written (existing files of the same name are
   replaced).
-- **Skipped** — the output is switched off, or it cannot be made yet (STEP).
+- **Skipped** — the output is switched off.
 - **Failed** — the output could not be made; the reason is shown next to it,
   for example _the project has no board_. The other outputs still run.
 

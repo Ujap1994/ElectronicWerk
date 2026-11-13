@@ -56,6 +56,22 @@ The [2D view](./viewer) is drawn by the graphics card with WebGL 2.
   enter `document.createElement('canvas').getContext('webgl2')` in the
   console.
 
+## The 3D view misses parts or models
+
+- **“… not found” in the status line**: the 3D models of these parts are
+  neither in the project folder, in a KiCad installation nor in the base
+  library. The list under **… not found** names the paths. Install KiCad,
+  set up the [base library](./library), or copy the files into the project
+  folder (see [Parts and their 3D models](./view-3d#parts-and-their-3d-models)).
+- **A model takes long the first time**: STEP files are converted into
+  meshes once; large connectors or modules can take several seconds. They are
+  cached afterwards.
+- **A part looks turned or offset**: check its model's offset and rotation in
+  the [footprint editor](./footprint-editor#3d-models); the preview there
+  shows the model on the footprint.
+- **GLB or VRML export lists “has no mesh yet”**: show the board once in the
+  3D view, then export again (see [Models for GLB and VRML](./export-3d#models-for-glb-and-vrml)).
+
 ## The update check fails
 
 - Check your internet connection.

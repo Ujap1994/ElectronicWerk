@@ -171,3 +171,17 @@ While drawing a zone, keep-out area or polygon outline: <kbd>Backspace</kbd>
 removes the last corner, <kbd>Enter</kbd> or a double-click closes the
 shape, <kbd>/</kbd> switches the outline tool between rectangle and
 polygon.
+
+## 3D view
+
+In the [3D view](./view-3d) (click the view first):
+
+| Key or mouse                                        | Action                                    |
+| --------------------------------------------------- | ----------------------------------------- |
+| Left mouse button, drag                             | Turn the view                             |
+| Right mouse button, drag (or Shift + left)          | Pan                                       |
+| Mouse wheel                                         | Zoom towards the pointer                  |
+| <kbd>Home</kbd>                                     | Fit the board                             |
+| Click                                               | Select a part (also in the layout editor) |
+| <kbd>Shift</kbd>/<kbd>Ctrl</kbd>/<kbd>⌘</kbd>+click | Add a part to the selection or remove it  |
+| <kbd>Esc</kbd>                                      | Stop measuring, close a menu              |

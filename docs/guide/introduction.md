@@ -9,15 +9,17 @@ DipTrace and Eagle, but it is written from scratch and released under the
 
 ## What you can do today
 
-Version 0.9 adds **manufacturing outputs**: output jobs that write Gerber X2,
-Excellon drill files, a drill map, the bill of materials, pick-and-place
-files, IPC-D-356 and IPC-2581 netlists, PDF and SVG prints and a ZIP package
-in one click, with presets for common board makers, and a built-in **Gerber
-viewer** to check the files. It builds on the **layout editor** with
+Version 0.10 adds the **live 3D view**: the board with its laminate, copper,
+solder mask, silkscreen and the 3D models of its parts, following every edit
+at once, in a tab or in its own window for a second monitor, with sections,
+measuring and screenshots, and **3D exports** as STEP (exact solids for
+mechanical CAD), GLB and VRML. It builds on the **manufacturing outputs**
+with output jobs and the Gerber viewer (0.9), the **layout editor** with
 routing, zones and the design rules check (0.8), the **schematic editor**
 (0.6) and the **library editors** (0.7), the **base library** (0.5), the
 **KiCad import** (0.4), the **2D view** (0.3) and **projects** (0.2). Together
-they take a design from the first symbol to the files a board maker needs.
+they take a design from the first symbol to the files a board maker needs
+and the model the enclosure is designed around.
 
 | Feature                                  | Status    | Page                                                   |
 | ---------------------------------------- | --------- | ------------------------------------------------------ |
@@ -42,7 +44,7 @@ they take a design from the first symbol to the files a board maker needs.
 | Schematic ↔ board updates, cross-probing | Available | [Schematic and board](./schematic-to-board)            |
 | Output jobs: Gerber, drill, BOM, prints  | Available | [Output jobs](./outputs), [Ordering](./ordering)       |
 | Gerber viewer                            | Available | [The Gerber viewer](./gerber-viewer)                   |
-| Live 3D view, STEP export                | Planned   | v0.10                                                  |
+| Live 3D view, STEP/GLB/VRML export       | Available | [The 3D view](./view-3d), [3D models](./export-3d)     |
 
 The [roadmap](https://github.com/Ujap1994/ElectronicWerk/blob/main/ROADMAP.md)
 lists every milestone with its scope and status. It is updated with every
