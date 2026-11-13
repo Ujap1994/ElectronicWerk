@@ -591,36 +591,48 @@ fn rotate(point: Point, angle: Angle) -> Point {
     }
 }
 
-/// `segments` + 1 points from `a` to `b`, alternating horizontal and
-/// vertical moves.
+/// `segments` + 1 points from `a` to `b`, alternating straight moves along
+/// the longer axis with 45° diagonal moves, so every bend is 45° (never a
+/// right angle, like routes drawn in the layout editor). Pads on one line or
+/// on one diagonal are joined by collinear pieces.
 fn staircase(a: Point, b: Point, segments: usize) -> Vec<Point> {
     let mut points = Vec::with_capacity(segments + 1);
     points.push(a);
-    let horizontal_steps = i64::try_from(segments.div_ceil(2)).unwrap_or(1).max(1);
-    let vertical_steps = i64::try_from(segments / 2).unwrap_or(0).max(1);
+    let (dx, dy) = (b.x - a.x, b.y - a.y);
+    let horizontal = dx.abs() >= dy.abs();
+    let (major, minor) = if horizontal { (dx, dy) } else { (dy, dx) };
+    let diagonal_total = minor.abs();
+    let straight_total = major.abs() - diagonal_total;
+    let count = i64::try_from(segments).unwrap_or(1).max(1);
+    let collinear = segments < 2 || diagonal_total == 0 || straight_total == 0;
+    let straight_steps = i64::try_from(segments.div_ceil(2)).unwrap_or(1).max(1);
+    let diagonal_steps = i64::try_from(segments / 2).unwrap_or(1).max(1);
+    let (mut straight_done, mut diagonal_done) = (0, 0);
     let mut current = a;
-    let mut done_h = 0;
-    let mut done_v = 0;
     for index in 0..segments {
-        let last = index + 1 == segments;
-        let next = if index % 2 == 0 {
-            done_h += 1;
-            let x = if done_h >= horizontal_steps || last {
-                b.x
-            } else {
-                a.x + (b.x - a.x) * done_h / horizontal_steps
-            };
-            Point::new(x, current.y)
+        let step = i64::try_from(index + 1).unwrap_or(count);
+        let next = if collinear {
+            Point::new(a.x + dx * step / count, a.y + dy * step / count)
         } else {
-            done_v += 1;
-            let y = if done_v >= vertical_steps || last {
-                b.y
+            // Moves along the longer axis (`along`) and the other (`across`).
+            let (along, across) = if index % 2 == 0 {
+                let target = straight_total * ((step + 1) / 2) / straight_steps;
+                let length = target - straight_done;
+                straight_done = target;
+                (length * major.signum(), 0)
             } else {
-                a.y + (b.y - a.y) * done_v / vertical_steps
+                let target = diagonal_total * (step / 2) / diagonal_steps;
+                let length = target - diagonal_done;
+                diagonal_done = target;
+                (length * major.signum(), length * minor.signum())
             };
-            Point::new(current.x, y)
+            if horizontal {
+                Point::new(current.x + along, current.y + across)
+            } else {
+                Point::new(current.x + across, current.y + along)
+            }
         };
-        // Keep segments non-degenerate even between pads on one line.
+        // Keep segments non-degenerate even for pads very close together.
         let next = if next == current {
             Point::new(next.x + um(10), next.y)
         } else {
@@ -743,17 +755,40 @@ mod tests {
     #[test]
     fn staircase_routes() {
         let a = Point::mm(0, 0);
-        let b = Point::mm(10, 5);
-        for segments in 1..12 {
-            let points = staircase(a, b, segments);
-            assert_eq!(points.len(), segments + 1);
-            assert_eq!(points[0], a);
-            for pair in points.windows(2) {
-                assert_ne!(pair[0], pair[1]);
-                assert!(pair[0].x == pair[1].x || pair[0].y == pair[1].y);
+        for b in [
+            Point::mm(10, 5),
+            Point::mm(-3, 8),
+            Point::mm(7, -7),
+            Point::mm(0, -6),
+            Point::mm(12, 0),
+        ] {
+            for segments in 1..12 {
+                let points = staircase(a, b, segments);
+                assert_eq!(points.len(), segments + 1);
+                assert_eq!(points[0], a);
+                assert_eq!(*points.last().unwrap(), b, "{b:?} in {segments}");
+                let directions: Vec<(i64, i64)> = points
+                    .windows(2)
+                    .map(|pair| (pair[1].x - pair[0].x, pair[1].y - pair[0].y))
+                    .collect();
+                for &(x, y) in &directions {
+                    assert!((x, y) != (0, 0));
+                    // Octilinear whenever there is more than one segment.
+                    assert!(segments == 1 || x == 0 || y == 0 || x.abs() == y.abs());
+                }
+                // No bend sharper than 45°: cos(angle) > 0.7, in integers
+                // (dot > 0 and dot² > 0.49 |u|² |v|²).
+                for pair in directions.windows(2) {
+                    let ((ux, uy), (vx, vy)) = (pair[0], pair[1]);
+                    let dot = i128::from(ux * vx + uy * vy);
+                    let lengths = i128::from(ux * ux + uy * uy) * i128::from(vx * vx + vy * vy);
+                    assert!(
+                        dot > 0 && 100 * dot * dot > 49 * lengths,
+                        "{b:?} in {segments}"
+                    );
+                }
             }
         }
-        assert_eq!(*staircase(a, b, 2).last().unwrap(), b);
     }
 
     #[test]
