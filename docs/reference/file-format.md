@@ -188,8 +188,52 @@ KiCad cut them in with slits instead. Both read the same way.
   `holeToHoleMin`, `edgeClearance`, all in nm), and `drc`: `severities` of
   the [DRC checks](../guide/drc#what-is-checked) that differ from the
   defaults. Both are optional; older files read unchanged.
-- **Output job** (`.ewout`): `directory` and the ordered list of `outputs`
-  (`kind`: `gerber`, `drill`, `bom`, `pickAndPlace`, `pdf`, `step`, …).
+- **Output job** (`.ewout`): `directory` and the ordered list of `outputs`,
+  see [below](#output-jobs).
+
+### Output jobs
+
+```json
+{
+  "id": "…",
+  "name": "Fabrication",
+  "directory": "outputs/generated",
+  "outputs": [
+    { "id": "…", "name": "Gerber", "kind": "gerber" },
+    { "id": "…", "name": "Bill of materials", "kind": "bom", "options": { "format": "xlsx" } },
+    {
+      "id": "…",
+      "name": "Assembly drawing",
+      "kind": "pdf",
+      "options": { "content": "assembly", "paper": "a4" }
+    },
+    { "id": "…", "name": "3D model", "kind": "step", "enabled": false }
+  ]
+}
+```
+
+Every output has an `id`, a `name`, a `kind` and optionally `enabled`
+(default `true`), `source` (a board id; default: the first board) and
+`options`. Options that are missing take their defaults, so an empty
+`options` object is left out:
+
+| `kind`         | Options (default)                                                                                                                                                                                                        |
+| -------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `gerber`       | `layers` (`[]` = fabrication layers), `protelExtensions` (`true`), `x2` (`true`), `jobFile` (`true`), `tentVias` (`true`), `silkValues` (`true`), `folder` (`"gerber"`)                                                  |
+| `drill`        | `merge` (`false`), `folder` (`"gerber"`)                                                                                                                                                                                 |
+| `drillMap`     | `format`: `pdf` or `svg` (`pdf`), `folder` (`"gerber"`)                                                                                                                                                                  |
+| `bom`          | `columns` (`[{"field", "label"?}]`), `groupBy` (field names), `includeDnp` (`true`), `separator` (`","`), `format`: `csv`, `xlsx`, `html` (`csv`), `folder` (`"assembly"`)                                               |
+| `pickAndPlace` | `style`: `generic`, `jlcpcb`, `kicad`; `unit`: `mm`, `inch`; `boardOrigin` (`true`), `includeDnp` (`false`), `splitSides` (`false`), `mirrorBottomX` (`false`), `folder` (`"assembly"`)                                  |
+| `pdf`, `svg`   | `content`: `schematic`, `board`, `assembly`; `layers` (`["cu.top", "silk.top"]`), `pagePerLayer`, `mirror`, `color`: `color`, `monochrome`; `paper`: `fit`, `a4`, `a3`, `letter`; `values`; `folder` (`"documentation"`) |
+| `ipc356`       | `tentVias` (`true`), `folder` (`"netlists"`)                                                                                                                                                                             |
+| `ipc2581`      | `folder` (`""`)                                                                                                                                                                                                          |
+| `netlist`      | `format`: `kicad`, `csv` (`kicad`), `folder` (`"netlists"`)                                                                                                                                                              |
+| `archive`      | `include` (output kinds, `["gerber", "drill"]`), `file` (`"{board}-fabrication.zip"`)                                                                                                                                    |
+| `step`         | none (not generated yet)                                                                                                                                                                                                 |
+
+Layers are written as in boards (`cu.top`, `cu.in1`, `mask.bottom`,
+`outline`, …). Unknown options are ignored, so newer files open in older
+versions.
 
 ## Versions and migrations
 

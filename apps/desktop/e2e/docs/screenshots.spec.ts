@@ -1376,3 +1376,143 @@ test('layout editor', async () => {
   await page.getByTestId('dxf-dialog').getByRole('button', { name: 'Cancel' }).click();
   await close();
 });
+
+// --- Manufacturing outputs (M8) ----------------------------------------------
+
+/** Every file below a folder, as paths relative to it. */
+function filesBelow(dir: string, prefix = ''): string[] {
+  return readdirSync(dir, { withFileTypes: true }).flatMap((entry) =>
+    entry.isDirectory()
+      ? filesBelow(join(dir, entry.name), `${prefix}${entry.name}/`)
+      : [`${prefix}${entry.name}`],
+  );
+}
+
+/** Shows a generated SVG drawing over the window and photographs it. */
+async function shootSvg(page: Page, file: string, name: string): Promise<void> {
+  const markup = readFileSync(file, 'utf8').replace(/^<\?xml[^>]*>\s*/u, '');
+  await page.evaluate((svg) => {
+    const frame = document.createElement('div');
+    frame.id = 'doc-drawing';
+    frame.style.cssText =
+      'position:fixed;inset:0;z-index:100000;display:flex;align-items:center;' +
+      'justify-content:center;padding:24px;background:#e9ecef';
+    const sheet = document.createElement('div');
+    sheet.style.cssText =
+      'width:100%;height:100%;display:flex;align-items:center;justify-content:center';
+    sheet.innerHTML = svg;
+    const element = sheet.querySelector('svg');
+    if (element !== null) {
+      element.style.cssText =
+        'max-width:100%;max-height:100%;width:auto;height:100%;background:#fff;' +
+        'box-shadow:0 2px 12px rgb(0 0 0 / 25%)';
+    }
+    frame.appendChild(sheet);
+    document.body.appendChild(frame);
+  }, markup);
+  await shoot(page.locator('#doc-drawing'), name);
+  await page.evaluate(() => {
+    document.getElementById('doc-drawing')?.remove();
+  });
+}
+
+test('manufacturing outputs', async () => {
+  test.setTimeout(300_000);
+  freshProjects();
+  const kicad = '/tmp/ElectronicWerk/KiCad/blinky';
+  rmSync(kicad, { recursive: true, force: true });
+  cpSync(KICAD_FIXTURE, kicad, { recursive: true });
+  const { app, page, close } = await start({ settings: { theme: 'light' } });
+  await page.setViewportSize({ width: 1500, height: 900 });
+  await queueDialogAnswer(app, join(kicad, 'blinky.kicad_pro'));
+  await page.getByTestId('import-kicad').click();
+  await page.getByTestId('kicad-import-name').fill('Blinky');
+  await page.getByTestId('kicad-import-start').click();
+  await page
+    .getByTestId('import-report')
+    .getByRole('button', { name: 'Close', exact: true })
+    .last()
+    .click();
+  const generated = join(PROJECTS, 'Blinky', 'outputs', 'generated');
+
+  // The output job with the Gerber settings.
+  await page.getByTestId('toolbar-outputs').click();
+  await expect(page.getByTestId('output-job')).toBeVisible();
+  await expect(page.getByTestId('output-settings')).toBeVisible();
+  await page.mouse.move(10, 10);
+  await shoot(page, 'outputs-job');
+
+  // Generate everything.
+  await page.getByTestId('outputs-generate').click();
+  const list = page.getByTestId('outputs-list');
+  await expect(list.locator('[data-status="done"]')).toHaveCount(9, { timeout: 60_000 });
+  await page.locator('.toast__close').first().click();
+  await page.mouse.move(10, 10);
+  await shoot(page, 'outputs-generated');
+  await shoot(page.getByTestId('outputs-results'), 'outputs-results');
+
+  // Settings of the bill of materials, the placement file and a print.
+  const settings = page.locator('.outputs__settings');
+  await page.getByTestId('output-3').getByRole('button').click();
+  await expect(page.getByTestId('output-bom-preview').locator('tbody tr').first()).toBeVisible();
+  await shoot(settings, 'outputs-bom');
+  await page.getByTestId('output-4').getByRole('button').click();
+  await expect(page.getByTestId('output-placement-style')).toBeVisible();
+  await shoot(settings, 'outputs-placement');
+  await page.getByTestId('output-7').getByRole('button').click();
+  await expect(page.getByTestId('output-content')).toHaveValue('assembly');
+  await shoot(settings, 'outputs-print');
+
+  // A board maker preset.
+  await page.getByTestId('outputs-preset').selectOption('jlcpcb');
+  await expect(page.getByTestId('outputs-preset-confirm')).toBeVisible();
+  await shoot(page.getByTestId('outputs-preset-confirm'), 'outputs-preset');
+  await page.getByTestId('outputs-preset-confirm').getByRole('button', { name: 'Cancel' }).click();
+
+  // The Gerber viewer.
+  await page.getByTestId('outputs-gerber-viewer').click();
+  await expect(page.getByTestId('gerber-canvas')).toHaveAttribute('data-ready', 'true', {
+    timeout: 30_000,
+  });
+  // The inner GND plane covers everything: show the outer layers.
+  const eyes = page.getByTestId('gerber-viewer').locator('.layer-list__eye');
+  await eyes.nth(1).click();
+  await eyes.nth(2).click();
+  await page.waitForTimeout(500);
+  await page.mouse.move(10, 10);
+  await shoot(page, 'gerber-viewer');
+  await page.getByTestId('gerber-flip').click();
+  await page.waitForTimeout(500);
+  await shoot(page.locator('.viewer__main'), 'gerber-viewer-bottom');
+  await page.getByTestId('gerber-flip').click();
+
+  // The generated drawings: as SVG for the documentation.
+  await page.locator('[data-testid^="tab-"]', { hasText: 'Fabrication' }).first().click();
+  await page.getByTestId('output-2').getByRole('button').click();
+  await page.getByTestId('output-format').selectOption('svg');
+  await page.getByTestId('output-generate-one').click();
+  await expect(page.getByTestId('output-2').locator('[data-status="done"]')).toBeVisible();
+  const add = async (content: string): Promise<void> => {
+    await page.getByTestId('outputs-add').selectOption('svg');
+    await page.getByTestId('output-content').selectOption(content);
+    await page.getByTestId('output-generate-one').click();
+    await expect(list.locator('li').last().locator('[data-status="done"]')).toBeVisible();
+  };
+  await add('schematic');
+  await add('assembly');
+  await add('board');
+  const files = filesBelow(generated);
+  const pick = (pattern: RegExp): string => {
+    const found = files.find((file) => pattern.test(file));
+    if (found === undefined) {
+      throw new Error(`no file matching ${String(pattern)} in ${files.join(', ')}`);
+    }
+    return join(generated, found);
+  };
+  await shootSvg(page, pick(/drill-map\.svg$/u), 'output-drill-map');
+  await shootSvg(page, pick(/schematic-1\.svg$/u), 'output-schematic');
+  await shootSvg(page, pick(/assembly-1\.svg$/u), 'output-assembly-top');
+  await shootSvg(page, pick(/assembly-2\.svg$/u), 'output-assembly-bottom');
+  await shootSvg(page, pick(/layers\.svg$/u), 'output-board-print');
+  await close();
+});

@@ -70,6 +70,16 @@ B.netclass != 'HV'`)
   unconnected pins, conflicting drivers, missing power and more, a results
   panel that zooms to each problem, and the same results as KiCad on
   imported projects
+- **Manufacturing outputs** in **output jobs** (like Altium's OutJobs): one
+  click writes **Gerber X2** with net, pad and component attributes and a job
+  file, **Excellon** drill files (plated, non-plated, blind and buried, slots),
+  a drill map, a configurable **bill of materials** (CSV, XLSX, HTML),
+  **pick-and-place** files, **IPC-D-356** and **IPC-2581** netlists, **PDF and
+  SVG prints** of schematics, board layers and **assembly drawings**, and a
+  ZIP package; **presets** for JLCPCB, PCBWay, AISLER, Eurocircuits and OSH
+  Park; the Gerber output is verified pixel by pixel against KiCad 10
+- A built-in **Gerber viewer** for Gerber X2/RS-274X and Excellon files from
+  any tool
 - **Exports:** KiCad and CSV netlists, a bill of materials, SVG and a PDF of
   all sheets
 - **KiCad import:** KiCad 6 to 10 projects with schematics, hierarchy,
@@ -88,20 +98,20 @@ B.netclass != 'HV'`)
 - An open, **git-friendly file format**: readable JSON, one object per line,
   with schema versions and migrations
 - A **CLI** (`ewerk`) to create, inspect, check and archive projects, import
-  KiCad projects, libraries and netlists, build, search and distribute the
-  base library, and a JSON-RPC session for scripts and AI agents
+  KiCad projects, libraries and netlists, run output jobs, build, search and
+  distribute the base library, and a JSON-RPC session for scripts and AI
+  agents
 - A German and English UI, light and dark appearance, a command palette and
   an update notice
 - Builds for Windows, macOS and Linux
 
 ## Planned highlights
 
-- Open standard formats (Gerber, STEP, …)
+- STEP export of the board and other open standard formats
 - **Online part search** that plugs into the base library and its
   deduplication
 - A **live 3D view**, optionally in its own window
 - Push-and-shove routing, differential pairs and length tuning
-- Manufacturing outputs: Gerber X2, Excellon, BOM, pick-and-place, PDF, STEP
 - **GitHub integration**: save a project straight to a new or existing
   repository
 - A complete CLI and MCP server for scripting and AI agents

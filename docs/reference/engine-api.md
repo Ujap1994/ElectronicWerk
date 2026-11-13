@@ -727,6 +727,87 @@ stack-up of the board and the minimums and `Default` class of the rules.
 chosen DXF layers onto a board layer (`outline`, `mech.1`, …); `scale` is
 nanometres per drawing unit, `origin` moves the lower left corner there.
 
+## Output jobs
+
+The manufacturing outputs (see [Output jobs](../guide/outputs)). An output
+job is a document of kind `outputJob`; its properties (`document.properties`)
+are `{"name", "directory", "outputs": [...]}` and every output is
+`{"id", "name", "kind", "enabled", "source"?, "options"?}` (see the
+[file format](./file-format#output-jobs)). Change outputs with
+`document.setProperties {"doc", "props": {"outputs": [...]}}`.
+
+### `outputs.presets`
+
+Lists the [presets for board makers](../guide/ordering#presets):
+`[{"id", "name", "description", "outputs": [[name, kind, options], ...]}]`.
+Works without an open project.
+
+### `outputs.create`
+
+`outputs.create {"name", "preset"?}` (`add-output-job`) adds an output job
+with the outputs of a preset (default `generic`) → `{"id"}`.
+
+### `outputs.applyPreset`
+
+`outputs.applyPreset {"job", "preset"}` (`output-preset`) replaces the outputs
+of a job with the outputs of a preset.
+
+### `outputs.run`
+
+`outputs.run {"job", "outputs"?, "labels"?}` generates the outputs of a job
+(or only the listed output ids) and writes them into the job's folder inside
+the project. `labels` translates the title block of schematic prints, as in
+`view.scene`. The reply:
+
+```json
+{
+  "directory": "/home/me/Projects/Blinky/outputs/generated",
+  "results": [
+    {
+      "id": "…",
+      "name": "Gerber",
+      "kind": "gerber",
+      "status": "done",
+      "files": ["gerber/Blinky-Copper_Top.gtl", "…"]
+    },
+    {
+      "id": "…",
+      "name": "3D model",
+      "kind": "step",
+      "status": "skipped",
+      "message": "…",
+      "files": []
+    }
+  ],
+  "files": [{ "path": "gerber/Blinky-Copper_Top.gtl", "bytes": 3712 }],
+  "elapsedMs": 168
+}
+```
+
+`status` is `done`, `skipped` (switched off, not selected, or not available
+yet) or `failed` (with `message`). Paths are relative to `directory`. The job
+folder and every subfolder must lie inside the project folder.
+
+### `outputs.bom`
+
+`outputs.bom {"source"?, "options"?}` → `{"headers", "rows", "parts",
+"fields"}`: the bill of materials for the given BOM options (columns,
+grouping, …) without writing a file — the preview of the editor. `fields` lists
+the fields that columns can show.
+
+### `outputs.files`
+
+`outputs.files {"job"}` → `{"directory", "files"}`: the Gerber and drill files
+in the job's output folder (absolute paths), for the Gerber viewer.
+
+### `gerber.scene`
+
+`gerber.scene {"paths", "name"?, "encoding"?}` reads Gerber and Excellon
+files (absolute, or relative to the project folder) and returns a scene like
+[`view.scene`](#view), one layer per file, plus `"files": [{"file",
+"function"}]` (the X2 file function, or one guessed from the extension) and
+`"problems": [{"file", "message"}]`. Works without an open project.
+
 ## Library editor
 
 The methods of the [library editor](../guide/library-editor). Items are

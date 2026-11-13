@@ -216,3 +216,27 @@ the [design rules check](../guide/drc) and the
 Performance budgets (checked on every CI run): a full DRC of the
 synthetic L board (5,000 parts, 200,000 track segments) in under 3 s, an
 online check of a region of the M board (500 parts) in under 100 ms.
+
+## Manufacturing outputs
+
+[Output jobs](../guide/outputs), the [Gerber viewer](../guide/gerber-viewer)
+and the [prints](../guide/prints) are recorded in
+[ADR-0009: Manufacturing outputs and output jobs](https://github.com/Ujap1994/ElectronicWerk/blob/main/docs/adr/0009-manufacturing-outputs.md):
+
+1. `ew-output` turns a board layer into plot features (flashed pads and
+   vias, lines and arcs, filled regions) from the same exact shapes as the
+   DRC (`ew-pcb`), and writes them as Gerber X2 (aperture macros built from
+   the shapes' cores and radii, regions with cut-in holes, net and pad
+   attributes). It also writes Excellon drill files, the drill map, the
+   bill of materials (CSV, XLSX, HTML), placement files, IPC-D-356 and
+   IPC-2581, and PDF and SVG pages. Texts are drawn with an own monospace
+   stroke font with the metrics of the viewer.
+2. Schematic prints reuse the scene builder of the viewer (`ew-scene`) in a
+   recording mode that keeps vector primitives and polygon outlines, so
+   prints show exactly what the viewer shows.
+3. A job runner generates every output of a job in memory; the engine's
+   `outputs.*` methods write the files into the project folder. The same
+   crate reads Gerber and Excellon files back — for the Gerber viewer (a
+   scene like a board's) and for the tests, which rasterize our files and
+   KiCad's reference files of the same board and compare them pixel by
+   pixel.

@@ -15,6 +15,10 @@ suggested.
 | **This sheet as SVG**       | `<sheet>.svg`   | The open sheet as a vector image                             |
 | **All sheets as PDF**       | `<project>.pdf` | Every sheet of the project, one page each, in its paper size |
 
+For manufacturing, the [output jobs](./outputs) write these files and the
+Gerber, drill, placement and test files together, with more settings (BOM
+columns, Excel and HTML formats, board and assembly prints).
+
 Every export covers the whole hierarchy. A sheet that is placed more than once
 appears once per placement, with the designators of that placement.
 
@@ -30,7 +34,7 @@ electrical type:
 
 ```text
 (export (version "E")
-  (design (source "Blinky") (tool "ElectronicWerk 0.8.0"))
+  (design (source "Blinky") (tool "ElectronicWerk 0.9.0"))
   (components
     (comp (ref "C1") (value "10u") (libsource (lib "") (part "Device:C")))
     …)

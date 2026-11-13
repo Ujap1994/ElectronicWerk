@@ -44,6 +44,9 @@ macOS quarantines downloaded programs. Run
 | [`ewerk import kicad`](#ewerk-import-kicad)             | Import a KiCad project as a new project              |
 | [`ewerk import library`](#ewerk-import-library)         | Add a KiCad library to a project library             |
 | [`ewerk import netlist`](#ewerk-import-netlist)         | Compare a netlist with a board, or apply it          |
+| [`ewerk outputs run`](#ewerk-outputs-run)               | Generate the manufacturing files of an output job    |
+| [`ewerk outputs list`](#ewerk-outputs-list)             | List the output jobs of a project                    |
+| [`ewerk outputs presets`](#ewerk-outputs-presets)       | List the presets for board makers                    |
 | [`ewerk library build`](#ewerk-library-build)           | Build the base library from KiCad libraries          |
 | [`ewerk library info`](#ewerk-library-info)             | Show what the base library contains                  |
 | [`ewerk library search`](#ewerk-library-search)         | Search the base library                              |
@@ -198,8 +201,8 @@ import report, and writes the report into the project as
 ```console
 $ ewerk import kicad blinky/blinky.kicad_pro Blinky
 Imported blinky/blinky.kicad_pro into /home/lab/Blinky
-3 board graphics, 8 footprints, 10 labels, 1 library footprints, 2 library symbols, 7 nets, 22 pads, 3 sheet texts and graphics, 2 sheets, 17 symbols, 12 tracks, 2 vias, 19 wires, 1 zones
-warning blinky.kicad_dru: 1 custom design rules are not imported; the rule editor arrives with the layout editor [custom-rules]
+3 board graphics, 8 footprints, 10 labels, 1 library footprints, 2 library symbols, 7 nets, 22 pads, 3 sheet texts and graphics, 2 sheets, 17 symbols, 14 tracks, 2 vias, 19 wires, 1 zones
+warning blinky.kicad_dru: 1 custom design rules are not imported; write them again as custom rules in the design rules [custom-rules]
 info    sym-lib-table: the symbol library `Device` is outside the project; the symbols the design uses were imported from the design itself [external-library]
 info    blinky.kicad_pcb: `dimension` items are not imported [unsupported-item]
 Report: /home/lab/Blinky/kicad-import-report.md
@@ -253,6 +256,59 @@ Run with --apply to change 1 pads.
 
 With `--json`, the result of the engine method
 [`import.netlist`](./engine-api#import-netlist) is printed.
+
+## Outputs
+
+The output jobs of a project generate the manufacturing files: Gerber, drill,
+drill map, bill of materials, placement, PDF and SVG prints, IPC-D-356,
+IPC-2581, netlists and ZIP packages (see [Output jobs](../guide/outputs)).
+
+### `ewerk outputs run`
+
+```sh
+ewerk outputs run <project> [--job <name or id>] [--output <name or id>]… [--json]
+```
+
+Runs an output job and writes its files into the job's output folder inside
+the project (`outputs/generated` by default). Without `--job` the first job of
+the project runs. `--output` (repeatable) runs only these outputs; the others
+are reported as skipped.
+
+```text
+$ ewerk outputs run ~/Projects/Blinky
+Fabrication → /Users/me/Projects/Blinky/outputs/generated
+  done     Gerber                   10 files
+  done     Drill                    2 files
+  done     Drill map                1 file
+  done     Bill of materials        1 file
+  done     Pick and place           1 file
+  done     IPC-D-356 netlist        1 file
+  done     Schematic PDF            1 file
+  done     Assembly drawing         1 file
+  done     Fabrication package      1 file
+```
+
+The exit code is 1 when an output fails (for example a board output in a
+project without a board). `--json` prints the report of
+[`outputs.run`](./engine-api#outputs-run).
+
+### `ewerk outputs list`
+
+```sh
+ewerk outputs list <project> [--json]
+```
+
+Lists the output jobs with their folder and outputs (`+` switched on, `-`
+switched off).
+
+### `ewerk outputs presets`
+
+```sh
+ewerk outputs presets [--json]
+```
+
+Lists the [presets for board makers](../guide/ordering#presets) with what they
+contain.
 
 ## Library
 

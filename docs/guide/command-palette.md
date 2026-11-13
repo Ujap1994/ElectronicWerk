@@ -46,30 +46,32 @@ The palette closes as soon as a command runs.
 
 Project commands appear only while a project is open.
 
-| Command                    | What it does                                                      |
-| -------------------------- | ----------------------------------------------------------------- |
-| New project                | Opens the [new-project wizard](./projects#creating-a-project)     |
-| Open project               | Opens a project file                                              |
-| Save project               | Saves the open project                                            |
-| Save project as            | Saves the project into another folder                             |
-| Save a copy of the project | Writes a copy and keeps working on the original                   |
-| Archive project            | Writes a `.zip` archive                                           |
-| Undo / Redo                | [Undo and redo](./undo-and-recovery)                              |
-| Check project              | Runs the [project check](./projects#checking-a-project)           |
-| Project properties         | Shows the [project properties](./project-tree#project-properties) |
-| Add schematic sheet        | Adds a sheet below the top sheet                                  |
-| Show project folder        | Reveals the project in your file manager                          |
-| Close project              | Closes the project (asks about unsaved changes)                   |
-| Open settings              | Opens the [settings](./settings)                                  |
-| Check for updates          | Checks for a newer release ([Updates](./updates))                 |
-| Language: German           | Switches the interface to German                                  |
-| Language: English          | Switches the interface to English                                 |
-| Language: system default   | Follows the system language                                       |
-| Appearance: light          | Light appearance                                                  |
-| Appearance: dark           | Dark appearance                                                   |
-| Appearance: system default | Follows the system's light or dark mode                           |
-| Open documentation         | Opens this documentation in your browser                          |
-| Report an issue            | Opens the issue tracker on GitHub                                 |
+| Command                                    | What it does                                                      |
+| ------------------------------------------ | ----------------------------------------------------------------- |
+| New project                                | Opens the [new-project wizard](./projects#creating-a-project)     |
+| Open project                               | Opens a project file                                              |
+| Save project                               | Saves the open project                                            |
+| Save project as                            | Saves the project into another folder                             |
+| Save a copy of the project                 | Writes a copy and keeps working on the original                   |
+| Archive project                            | Writes a `.zip` archive                                           |
+| Undo / Redo                                | [Undo and redo](./undo-and-recovery)                              |
+| Check project                              | Runs the [project check](./projects#checking-a-project)           |
+| Project properties                         | Shows the [project properties](./project-tree#project-properties) |
+| Add schematic sheet                        | Adds a sheet below the top sheet                                  |
+| Outputs: generate manufacturing files      | Opens the [output job](./outputs) (creates one if there is none)  |
+| Gerber viewer: open Gerber and drill files | Opens files in the [Gerber viewer](./gerber-viewer)               |
+| Show project folder                        | Reveals the project in your file manager                          |
+| Close project                              | Closes the project (asks about unsaved changes)                   |
+| Open settings                              | Opens the [settings](./settings)                                  |
+| Check for updates                          | Checks for a newer release ([Updates](./updates))                 |
+| Language: German                           | Switches the interface to German                                  |
+| Language: English                          | Switches the interface to English                                 |
+| Language: system default                   | Follows the system language                                       |
+| Appearance: light                          | Light appearance                                                  |
+| Appearance: dark                           | Dark appearance                                                   |
+| Appearance: system default                 | Follows the system's light or dark mode                           |
+| Open documentation                         | Opens this documentation in your browser                          |
+| Report an issue                            | Opens the issue tracker on GitHub                                 |
 
 ## Example: switch to the dark appearance
 

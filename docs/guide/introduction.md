@@ -9,13 +9,15 @@ DipTrace and Eagle, but it is written from scratch and released under the
 
 ## What you can do today
 
-Version 0.5 adds the **base library**: the symbols, footprints and 3D models
-of the KiCad libraries, searchable in milliseconds, with 2D and 3D previews
-and automatic duplicate detection. It builds on the **KiCad import** (0.4),
-the **2D view** (0.3) and **projects** (0.2): create, open, organise, save,
-archive and check projects with schematics, a board, a library, design rules
-and output jobs, with unlimited undo, an autosave journal and crash recovery.
-The editors follow in the next releases.
+Version 0.9 adds **manufacturing outputs**: output jobs that write Gerber X2,
+Excellon drill files, a drill map, the bill of materials, pick-and-place
+files, IPC-D-356 and IPC-2581 netlists, PDF and SVG prints and a ZIP package
+in one click, with presets for common board makers, and a built-in **Gerber
+viewer** to check the files. It builds on the **layout editor** with
+routing, zones and the design rules check (0.8), the **schematic editor**
+(0.6) and the **library editors** (0.7), the **base library** (0.5), the
+**KiCad import** (0.4), the **2D view** (0.3) and **projects** (0.2). Together
+they take a design from the first symbol to the files a board maker needs.
 
 | Feature                                  | Status    | Page                                                   |
 | ---------------------------------------- | --------- | ------------------------------------------------------ |
@@ -38,7 +40,9 @@ The editors follow in the next releases.
 | Layout editor, routing, zones            | Available | [The layout editor](./layout-editor)                   |
 | Design rules and DRC                     | Available | [Design rules](./design-rules), [DRC](./drc)           |
 | Schematic ↔ board updates, cross-probing | Available | [Schematic and board](./schematic-to-board)            |
-| Manufacturing outputs, live 3D view      | Planned   | v0.9 and v0.10                                         |
+| Output jobs: Gerber, drill, BOM, prints  | Available | [Output jobs](./outputs), [Ordering](./ordering)       |
+| Gerber viewer                            | Available | [The Gerber viewer](./gerber-viewer)                   |
+| Live 3D view, STEP export                | Planned   | v0.10                                                  |
 
 The [roadmap](https://github.com/Ujap1994/ElectronicWerk/blob/main/ROADMAP.md)
 lists every milestone with its scope and status. It is updated with every

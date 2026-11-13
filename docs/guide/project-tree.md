@@ -28,7 +28,7 @@ Designer.
 | **Design rules**    | Manufacturing limits and net classes.                                                                                                                                 |
 | **Output jobs**     | Which manufacturing files to generate.                                                                                                                                |
 | **Other files**     | Every other file in the project folder (notes, datasheets, `.gitignore`).                                                                                             |
-| **Generated files** | Files produced by output jobs (from version 0.9).                                                                                                                     |
+| **Generated files** | Files produced by output jobs.                                                                                                                                        |
 
 The number next to a group is the number of documents in it. A dot **●** marks
 documents with unsaved changes.
@@ -139,7 +139,7 @@ Select a document in the tree to see its details. Every document shows its
   the date `${CURRENT_DATE}` and the revision `${REVISION}`.
 - Counts of symbols, wires, labels and placed sub-sheets.
 
-The schematic editor itself arrives in version 0.6.
+Double-click a sheet to open it in the [schematic editor](./schematic-editor).
 
 ### Boards
 
@@ -150,7 +150,8 @@ thickness, the number of footprints, track segments, vias, zones and nets, and
 the **layer stack-up** from top to bottom: silkscreen, solder mask, copper and
 dielectric (core or prepreg) layers with material and thickness.
 
-The layout editor arrives in version 0.8 and the live 3D view in version 0.10.
+Double-click a board to open it in the [layout editor](./layout-editor). The
+live 3D view arrives in version 0.10.
 
 ### Design rules
 
@@ -163,13 +164,15 @@ The layout editor arrives in version 0.8 and the live 3D view in version 0.10.
 - **Net classes:** clearance, track width, via diameter and drill per class.
   New projects have a `Default` and a `Power` class.
 
-The rule editor arrives with the layout editor in version 0.8.
+The [design rules](./design-rules) are edited from the layout editor.
 
 ### Output jobs
 
 ![An output job](/screenshots/details-output-job.png)
 
 An output job lists the manufacturing files to generate (Gerber X2, Excellon
-drill, bill of materials, pick-and-place, schematic PDF, STEP 3D model …) and
-the output folder (`outputs/generated` by default). Generating the files
-arrives in version 0.9.
+drill, drill map, bill of materials, pick-and-place, IPC-D-356 netlist, PDF
+prints and a ZIP package for the board maker) and the output folder
+(`outputs/generated` by default). **Open** (or a double-click in the tree)
+opens it in the [output job editor](./outputs), where **Generate all** writes
+the files.
