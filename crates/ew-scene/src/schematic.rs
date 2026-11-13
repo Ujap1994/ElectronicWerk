@@ -154,9 +154,26 @@ fn item(text: String, at: P, size: f64, rotation: f64, h: i8, v: i8, obj: u32) -
 
 /// Builds the scene of a sheet.
 pub fn build(project: &Project, sheet: &Schematic, grid: i64, options: &Options<'_>) -> Scene {
+    let (b, header) = draw_sheet(project, sheet, grid, options, false);
+    b.finish(header)
+}
+
+/// The vector drawing of a sheet (for prints).
+pub fn plot(project: &Project, sheet: &Schematic, options: &Options<'_>) -> crate::plot::Plot {
+    let (b, header) = draw_sheet(project, sheet, 0, options, true);
+    b.plot(header)
+}
+
+fn draw_sheet(
+    project: &Project,
+    sheet: &Schematic,
+    grid: i64,
+    options: &Options<'_>,
+    record: bool,
+) -> (SceneBuilder, Header) {
     let page = sheet.page.dimensions();
     let origin = P::new((page.w / 2) as f64, (page.h / 2) as f64);
-    let mut b = SceneBuilder::new(origin);
+    let mut b = SceneBuilder::new(origin).recording(record);
     let layers = Layers::new(&mut b);
     let ctx = Ctx {
         project,
@@ -215,14 +232,15 @@ pub fn build(project: &Project, sheet: &Schematic, grid: i64, options: &Options<
         b.text(ctx.layers.texts, obj, text::upright(item));
     }
 
-    b.finish(Header {
+    let header = Header {
         doc: sheet.id,
         kind: "schematic",
         name: sheet.name.clone(),
         page: Some([page.w, page.h]),
         home: Some([0, 0, page.w, page.h]),
         grid,
-    })
+    };
+    (b, header)
 }
 
 /// Builds the scene of one library symbol (one unit), without a page:

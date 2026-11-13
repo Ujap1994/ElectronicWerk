@@ -308,3 +308,48 @@ fn ipc2581_is_complete() {
         std::fs::write(PathBuf::from(dir).join("blinky.ipc2581.xml"), &xml).unwrap();
     }
 }
+
+#[test]
+fn prints_of_the_blinky_project() {
+    use ew_output::print::{self, AssemblyPrint, BoardPrint, SchematicPrint};
+    let imported = ew_kicad::import_project(
+        &fixture("../ew-kicad/tests/fixtures/blinky/blinky.kicad_pro"),
+        None,
+    )
+    .unwrap();
+    let project = imported.project;
+    let options = ew_scene::Options {
+        resolve: &|s: &str| s.to_owned(),
+        labels: ew_scene::TitleLabels::default(),
+    };
+    let sheets = print::schematic_pages(&project, &options, SchematicPrint::default());
+    assert_eq!(sheets.len(), 2, "root sheet and power sheet");
+    assert!(sheets[0].items.len() > 100);
+    assert!(sheets[0].labels.iter().any(|l| l.text == "U1"));
+    let pcb = board();
+    let resolve = |s: &str| s.to_owned();
+    let art = BoardArt::new(&pcb, ArtOptions::default(), &resolve);
+    let boards = print::board_pages(&art, &BoardPrint::default(), "blinky");
+    assert_eq!(boards.len(), 1);
+    let assembly = print::assembly_pages(&art, &AssemblyPrint::default(), "blinky");
+    assert_eq!(assembly.len(), 2, "C2 is on the bottom");
+    assert!(assembly[1].labels.iter().any(|l| l.text == "C2"));
+    if let Ok(dir) = std::env::var("EW_RASTER_DIR") {
+        let dir = PathBuf::from(dir);
+        for (name, pages) in [
+            ("schematic", sheets),
+            ("board", boards),
+            ("assembly", assembly),
+        ] {
+            for (i, page) in pages.iter().enumerate() {
+                std::fs::write(
+                    dir.join(format!("{name}-{i}.svg")),
+                    ew_output::svg::write(page, name),
+                )
+                .unwrap();
+            }
+            let doc = print::document(name, pages, "test", "");
+            std::fs::write(dir.join(format!("{name}.pdf")), ew_output::pdf::write(&doc)).unwrap();
+        }
+    }
+}

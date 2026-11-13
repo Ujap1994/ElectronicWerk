@@ -23,6 +23,7 @@ pub mod editor;
 mod geom;
 mod inspect;
 mod pcb;
+pub mod plot;
 mod schematic;
 mod text;
 
@@ -105,6 +106,20 @@ pub fn build(project: &Project, doc: Id, options: &Options<'_>) -> Result<Scene,
             settings.schematic_grid,
             options,
         )),
+        _ => Err(SceneError::NotViewable),
+    }
+}
+
+/// Builds the vector drawing of a sheet or board for prints: the same
+/// drawing as [`build`], with polygons kept as outlines.
+///
+/// # Errors
+///
+/// Fails if the document does not exist or is not a sheet or board.
+pub fn plot(project: &Project, doc: Id, options: &Options<'_>) -> Result<plot::Plot, SceneError> {
+    match project.document(doc).ok_or(SceneError::NotFound(doc))? {
+        Document::Pcb(pcb) => Ok(pcb::plot(pcb, options)),
+        Document::Schematic(sheet) => Ok(schematic::plot(project, sheet, options)),
         _ => Err(SceneError::NotViewable),
     }
 }

@@ -9,7 +9,8 @@
 //! - [`placement`]: pick-and-place files.
 //! - [`ipc356`]: IPC-D-356A netlists for the electrical test; [`ipc2581`]:
 //!   IPC-2581 board data.
-//! - [`canvas`]: vector pages, written by [`pdf`] and [`svg`].
+//! - [`canvas`]: vector pages, written by [`pdf`] and [`svg`]; [`print`]:
+//!   schematic prints, board prints and assembly drawings.
 //! - [`archive`]: ZIP packages.
 //! - [`fracture`]: polygons with holes as one contour.
 //! - [`read`]: reads Gerber and Excellon files; [`raster`] draws them into
@@ -37,6 +38,7 @@ pub mod ipc2581;
 pub mod ipc356;
 pub mod pdf;
 pub mod placement;
+pub mod print;
 pub mod raster;
 pub mod read;
 pub mod svg;

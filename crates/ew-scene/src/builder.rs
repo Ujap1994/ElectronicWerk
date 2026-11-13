@@ -200,6 +200,8 @@ struct LayerData {
     vertices: Vec<(P, u32, u32)>,
     indices: Vec<u32>,
     texts: Vec<TextItem>,
+    /// Polygons as drawn (recording builders only).
+    polygons: Vec<(Vec<P>, Vec<Vec<P>>, u32)>,
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -376,6 +378,7 @@ pub struct SceneBuilder {
     layer_index: HashMap<String, usize>,
     objects: Vec<ObjectRec>,
     nets: Vec<String>,
+    record: bool,
 }
 
 impl SceneBuilder {
@@ -387,7 +390,16 @@ impl SceneBuilder {
             layer_index: HashMap::new(),
             objects: Vec::new(),
             nets: Vec::new(),
+            record: false,
         }
+    }
+
+    /// Keeps polygons as drawn (not only their triangles), for
+    /// [`SceneBuilder::plot`].
+    #[must_use]
+    pub const fn recording(mut self, record: bool) -> Self {
+        self.record = record;
+        self
     }
 
     /// Registers a layer (once per key) and returns its index.
@@ -576,9 +588,17 @@ impl SceneBuilder {
             bbox = bbox.with(*p);
         }
         self.extend(obj, bbox);
+        let record = self.record;
         let Some(data) = self.data(layer) else {
             return;
         };
+        if record {
+            data.polygons.push((
+                outline.to_vec(),
+                holes.iter().filter(|h| h.len() >= 3).cloned().collect(),
+                flags,
+            ));
+        }
         let base = u32::try_from(data.vertices.len()).unwrap_or(0);
         data.vertices
             .extend(coords.iter().map(|c| (P::new(c[0], c[1]), obj, flags)));
@@ -666,6 +686,114 @@ impl SceneBuilder {
         Scene {
             meta,
             data: writer.data,
+        }
+    }
+
+    /// The vector primitives of every layer in absolute coordinates (for
+    /// prints), instead of the binary scene.
+    #[must_use]
+    #[allow(clippy::too_many_lines, reason = "one conversion per primitive kind")]
+    pub fn plot(self, header: Header) -> crate::plot::Plot {
+        let o = self.origin;
+        let abs = |p: P| [p.x + o.x, p.y + o.y];
+        let mut bounds = BBox::EMPTY;
+        for rec in &self.objects {
+            bounds = bounds.union(rec.bbox);
+        }
+        let layers = self
+            .layers
+            .into_iter()
+            .filter_map(|data| {
+                let def = data.def?;
+                Some(crate::plot::PlotLayer {
+                    key: def.key,
+                    group: def.group,
+                    side: def.side,
+                    z: def.z,
+                    visible: def.visible,
+                    segments: data
+                        .segments
+                        .iter()
+                        .map(|s| crate::plot::PlotSegment {
+                            a: abs(s.a),
+                            b: abs(s.b),
+                            width: s.half_width * 2.0,
+                        })
+                        .collect(),
+                    arcs: data
+                        .arcs
+                        .iter()
+                        .map(|a| crate::plot::PlotArc {
+                            center: abs(a.center),
+                            radius: a.radius,
+                            width: a.half_width * 2.0,
+                            start: a.start,
+                            sweep: a.sweep,
+                        })
+                        .collect(),
+                    circles: data
+                        .circles
+                        .iter()
+                        .map(|c| crate::plot::PlotCircle {
+                            center: abs(c.center),
+                            outer: c.outer,
+                            inner: c.inner,
+                        })
+                        .collect(),
+                    rects: data
+                        .rects
+                        .iter()
+                        .map(|r| crate::plot::PlotRect {
+                            center: abs(r.center),
+                            half_w: r.half_w,
+                            half_h: r.half_h,
+                            angle: r.angle,
+                            corner: r.corner,
+                        })
+                        .collect(),
+                    polygons: data
+                        .polygons
+                        .iter()
+                        .map(|(outline, holes, flags)| crate::plot::PlotPolygon {
+                            outline: outline.iter().map(|p| abs(*p)).collect(),
+                            holes: holes
+                                .iter()
+                                .map(|h| h.iter().map(|p| abs(*p)).collect())
+                                .collect(),
+                            hatched: flags & MESH_HATCH != 0,
+                        })
+                        .collect(),
+                    texts: data
+                        .texts
+                        .iter()
+                        .map(|t| crate::plot::PlotText {
+                            text: t.text.clone(),
+                            at: abs(t.at),
+                            size: t.size,
+                            rotation: t.rotation,
+                            h: t.h,
+                            v: t.v,
+                            mirror: t.flags & text::MIRROR != 0,
+                            bold: t.flags & text::BOLD != 0,
+                            italic: t.flags & text::ITALIC != 0,
+                        })
+                        .collect(),
+                })
+            })
+            .collect();
+        crate::plot::Plot {
+            kind: header.kind,
+            name: header.name,
+            page: header.page,
+            bounds: (!bounds.is_empty()).then_some({
+                [
+                    bounds.min_x + o.x,
+                    bounds.min_y + o.y,
+                    bounds.max_x + o.x,
+                    bounds.max_y + o.y,
+                ]
+            }),
+            layers,
         }
     }
 

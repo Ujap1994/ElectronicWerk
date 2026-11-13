@@ -165,6 +165,8 @@ pub struct ArtOptions {
     pub silk_values: bool,
     /// Plot the designators of footprints on silkscreen layers.
     pub silk_designators: bool,
+    /// Plot texts at all (assembly drawings draw their own designators).
+    pub texts: bool,
 }
 
 impl Default for ArtOptions {
@@ -174,6 +176,7 @@ impl Default for ArtOptions {
             paste_dnp: false,
             silk_values: true,
             silk_designators: true,
+            texts: true,
         }
     }
 }
@@ -306,6 +309,25 @@ impl<'a> BoardArt<'a> {
             options,
             resolve,
         }
+    }
+
+    /// The same board with other options.
+    #[must_use]
+    pub fn with_options(&self, options: ArtOptions) -> Self {
+        Self {
+            pcb: self.pcb,
+            nets: self.nets.clone(),
+            copper_count: self.copper_count,
+            stack: self.stack.clone(),
+            options,
+            resolve: self.resolve,
+        }
+    }
+
+    /// The options.
+    #[must_use]
+    pub const fn options(&self) -> ArtOptions {
+        self.options
     }
 
     /// The board.
@@ -475,7 +497,10 @@ impl<'a> BoardArt<'a> {
             self.pad(fp, pad, &xf, layer, out);
         }
         for text in &fp.texts {
-            if !text.visible || placed(fp, text.layer, self.copper_count) != layer {
+            if !self.options.texts
+                || !text.visible
+                || placed(fp, text.layer, self.copper_count) != layer
+            {
                 continue;
             }
             let silk = matches!(layer, Layer::Silkscreen(_));
@@ -613,6 +638,9 @@ impl<'a> BoardArt<'a> {
     }
 
     fn texts(&self, layer: Layer, out: &mut Vec<Feature>) {
+        if !self.options.texts {
+            return;
+        }
         for text in self.pcb.texts.iter().filter(|t| t.layer == layer) {
             let content = if text.text.contains("${") {
                 (self.resolve)(&text.text)

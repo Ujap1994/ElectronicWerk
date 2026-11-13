@@ -262,7 +262,7 @@ pub fn build(parts: &[Part], options: &BomOptions) -> Bom {
         }
         let key: Vec<String> = options.group_by.iter().map(|g| field(part, g)).collect();
         if let Some(i) = index.get(&key) {
-            groups[*i].1.push(part)
+            groups[*i].1.push(part);
         } else {
             index.insert(key.clone(), groups.len());
             groups.push((key, vec![part]));

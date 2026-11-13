@@ -208,13 +208,24 @@ fn resolve(options: &Options<'_>, text: &str) -> String {
 
 /// Builds the scene of a board.
 pub fn build(pcb: &Pcb, grid: i64, options: &Options<'_>) -> Scene {
+    let (b, header) = draw_board(pcb, grid, options, false);
+    b.finish(header)
+}
+
+/// The vector drawing of a board as the viewer shows it.
+pub fn plot(pcb: &Pcb, options: &Options<'_>) -> crate::plot::Plot {
+    let (b, header) = draw_board(pcb, 0, options, true);
+    b.plot(header)
+}
+
+fn draw_board(pcb: &Pcb, grid: i64, options: &Options<'_>, record: bool) -> (SceneBuilder, Header) {
     let outline = pcb.outline_bounds();
     let origin = outline.map_or(Point::ORIGIN, |r| {
         Point::new(r.min.x / 2 + r.max.x / 2, r.min.y / 2 + r.max.y / 2)
     });
     let origin_p = P::of(origin);
     let local = |p: Point| P::of(p).sub(origin_p);
-    let mut b = SceneBuilder::new(origin_p);
+    let mut b = SceneBuilder::new(origin_p).recording(record);
     let layers = BoardLayers::new(&mut b, pcb);
 
     let mut net_index: HashMap<Id, u32> = HashMap::new();
@@ -307,14 +318,15 @@ pub fn build(pcb: &Pcb, grid: i64, options: &Options<'_>) -> Scene {
     }
 
     let home = outline.map(rect_bounds);
-    b.finish(Header {
+    let header = Header {
         doc: pcb.id,
         kind: "pcb",
         name: pcb.name.clone(),
         page: None,
         home,
         grid,
-    })
+    };
+    (b, header)
 }
 
 /// Free shapes and texts of the board.
