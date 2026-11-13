@@ -342,7 +342,12 @@ fn pad(
     }
 }
 
-fn model(node: &Sexp<'_>) -> Model3d {
+/// A 3D model. On the bottom side, KiCad's flipped local coordinates are
+/// the library's mirrored in y; ElectronicWerk mirrors them in x (see
+/// [`Local`]), which turns the footprint by a half turn. The model gets the
+/// same half turn (offset negated in x and y, 180° more about z), so it
+/// still sits on its pads.
+fn model(node: &Sexp<'_>, bottom: bool) -> Model3d {
     let xyz = |name: &str, scale: f64| -> [f64; 3] {
         let xyz = node.get(name).and_then(|n| n.get("xyz"));
         [0, 1, 2].map(|i| xyz.and_then(|x| x.num(i)).unwrap_or(0.0) * scale)
@@ -357,7 +362,13 @@ fn model(node: &Sexp<'_>) -> Model3d {
         .get("scale")
         .and_then(|s| s.get("xyz"))
         .map_or([1.0; 3], |x| [0, 1, 2].map(|i| x.num(i).unwrap_or(1.0)));
-    let rotate = xyz("rotate", 1.0);
+    let mut rotate = xyz("rotate", 1.0);
+    let mut offset = offset;
+    if bottom {
+        offset = [-offset[0], -offset[1], offset[2]];
+        // z − 180°, kept within [−180°, 180°).
+        rotate[2] = rotate[2].rem_euclid(360.0) - 180.0;
+    }
     Model3d {
         path: node.arg(0).unwrap_or_default().to_owned(),
         offset: Vec3 {
@@ -515,7 +526,7 @@ pub fn footprint(
                 Some(file),
                 "text boxes in footprints are not imported",
             ),
-            "model" => out.models.push(model(item)),
+            "model" => out.models.push(model(item, bottom)),
             "attr" => {
                 out.attributes = FootprintAttributes {
                     mounting: if item.has_word("smd") {
@@ -595,6 +606,8 @@ mod tests {
                 .contains(&LayerSpec::Layer(Layer::Paste(Side::Top)))
         );
         assert_eq!(pad.shape, PadShape::RoundRect { ratio: 250 });
+        // The model turns with the pads: 90° − 180° about z.
+        assert_eq!(fp.models[0].rotation[2], Angle::DEG_270);
         assert_eq!(fp.pad_nets[0], Some(NetRef::Name("GND".into())));
         assert_eq!(fp.pad_nets[1], Some(NetRef::Name("VCC".into())));
         assert_eq!(fp.pad_nets[2], None);
@@ -615,7 +628,6 @@ mod tests {
         assert!(fp.texts[0].visible);
         assert!(!fp.texts[1].visible);
         assert_eq!(fp.texts[0].layer, Layer::Silkscreen(Side::Top));
-        assert_eq!(fp.models[0].rotation[2], Angle::DEG_90);
         let _ = CopperLayer::Top;
     }
 
