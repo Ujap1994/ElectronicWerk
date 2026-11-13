@@ -1101,6 +1101,66 @@ undoable step (`Import library`). Returns `{"symbols", "footprints",
 "report", "history"}`: the numbers added, a report (with `already-in-library`
 for skipped names) and the history state.
 
+### `import.archivePreview`
+
+| Parameter  | Type   | Meaning                                                              |
+| ---------- | ------ | -------------------------------------------------------------------- |
+| `path`     | string | The download: a ZIP file, `.kicad_sym`, `.kicad_mod` or STEP file    |
+| `nickname` | string | Prefix of the names (default: the provider, else the file name)      |
+| `doc`      | id     | Target library, to mark what it has already (default: the first one) |
+
+Reads a part download of an [online part library](../guide/online-parts)
+without changing anything. Works without an open project. The reply:
+
+```json
+{
+  "file": "NE555-DEMO.zip",
+  "provider": "SnapEDA",
+  "nickname": "SnapEDA",
+  "modelFolder": "3d/SnapEDA",
+  "symbols": [
+    {
+      "name": "SnapEDA:NE555-DEMO",
+      "description": "…",
+      "footprint": "SnapEDA:SOIC127P600X175-8N",
+      "pins": 8,
+      "exists": false
+    }
+  ],
+  "footprints": [
+    {
+      "name": "SnapEDA:SOIC127P600X175-8N",
+      "description": "…",
+      "pins": 8,
+      "exists": false,
+      "models": ["${KIPRJMOD}/3d/SnapEDA/NE555-DEMO.step"],
+      "duplicate": { "id": 412, "name": "Demo:SOIC-8", "class": "exact" }
+    }
+  ],
+  "models": [{ "file": "NE555-DEMO.step", "bytes": 1960, "used": true }],
+  "problems": []
+}
+```
+
+`provider` is `SnapEDA`, `UltraLibrarian` or `null`. `duplicate` is the base
+library's best match: `exact`, `pads` or `near` for footprints, `exact` or
+`pins` for symbols. A ZIP may not unpack outside its folder, have more than
+2,000 entries or more than 512 MB.
+
+### `import.archive`
+
+| Parameter    | Type     | Meaning                                                          |
+| ------------ | -------- | ---------------------------------------------------------------- |
+| `path`       | string   | The download                                                     |
+| `nickname`   | string   | Prefix of the names                                              |
+| `doc`        | id       | Target library (default: the first library of the project)       |
+| `useLibrary` | string[] | Downloaded footprints to replace by their base library duplicate |
+
+Imports the download as one undoable step (`Import part download`): the
+symbols and footprints the library does not have yet, the used 3D models
+copied into the project folder. Returns `{"symbols", "footprints",
+"models", "replaced", "skipped", "nickname", "problems", "history"}`.
+
 ### `import.netlist`
 
 | Parameter | Type    | Meaning                                                        |

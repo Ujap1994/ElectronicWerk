@@ -12,6 +12,7 @@ import { expect, test, type Locator, type Page } from '@playwright/test';
 
 import {
   APP_VERSION,
+  createProjectWithWizard,
   fakeRelease,
   killHard,
   launchApp,
@@ -1655,5 +1656,62 @@ test('3d view', async () => {
   });
   await page.mouse.move(10, 10);
   await shoot(page.locator('.outputs__settings'), 'outputs-3d');
+  await close();
+});
+
+test('online parts', async () => {
+  test.setTimeout(240_000);
+  freshProjects();
+  const { app, page, close } = await start({
+    settings: { theme: 'light' },
+    libraryFeed: demoLibraryRelease(),
+  });
+  await page.setViewportSize({ width: 1400, height: 860 });
+  // A base library, so the import finds a duplicate.
+  await page.getByTestId('library').click();
+  await page.getByTestId('library-download').click();
+  await expect(page.getByTestId('library-manager')).toHaveAttribute('data-installed', 'true');
+  await page.getByTestId('library-close').click();
+  await createProjectWithWizard(page, 'Timer', 'empty');
+
+  // The online part libraries.
+  await page.keyboard.press('ControlOrMeta+Shift+P');
+  await page.getByTestId('command-input').fill('parts online');
+  await page.keyboard.press('Enter');
+  await page.getByTestId('online-query').fill('NE555');
+  await page.mouse.move(5, 5);
+  await shoot(page.getByTestId('online-parts'), 'parts-online');
+
+  // A SnapEDA download: the footprint is in the base library already.
+  const parts = resolve(import.meta.dirname, '../../../../crates/ew-core/tests/fixtures/parts');
+  const downloads = '/tmp/ElectronicWerk/Downloads';
+  rmSync(downloads, { recursive: true, force: true });
+  mkdirSync(downloads, { recursive: true });
+  cpSync(join(parts, 'NE555-DEMO.zip'), join(downloads, 'NE555-DEMO.zip'));
+  cpSync(join(parts, 'ul_OPAMP-DEMO.zip'), join(downloads, 'ul_OPAMP-DEMO.zip'));
+  await queueDialogAnswer(app, join(downloads, 'NE555-DEMO.zip'));
+  await page.getByTestId('online-import-file').click();
+  const importer = page.getByTestId('download-import');
+  await expect(importer.getByTestId('duplicate-exact')).toBeVisible();
+  await shoot(importer, 'parts-import');
+  await page.getByTestId('download-import-start').click();
+  await expect(importer).toBeHidden();
+
+  // An Ultra Librarian download with its own footprint and 3D model.
+  await page.keyboard.press('ControlOrMeta+Shift+P');
+  await page.getByTestId('command-input').fill('parts online');
+  await page.keyboard.press('Enter');
+  await queueDialogAnswer(app, join(downloads, 'ul_OPAMP-DEMO.zip'));
+  await page.getByTestId('online-import-file').click();
+  await expect(importer.getByTestId('import-model')).toBeVisible();
+  await shoot(importer, 'parts-import-ul');
+  await page.getByTestId('download-import-start').click();
+  await expect(importer).toBeHidden();
+  await expect(page.getByTestId('notice').last()).toContainText('Imported');
+  await shoot(page.getByTestId('notices'), 'parts-imported');
+
+  // The accounts in the settings.
+  await page.getByTestId('open-settings').click();
+  await shoot(page.getByTestId('settings-providers'), 'parts-settings');
   await close();
 });

@@ -4704,6 +4704,7 @@ textarea.field__control {
   margin-top: auto;
 }
 
+.online-parts__import,
 .online-parts__actions .button,
 .online-parts__setting .button {
   display: inline-flex;

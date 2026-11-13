@@ -61,6 +61,9 @@ symbols of the [base library](./library).
 - A symbol of the base library is copied into the project library first
   (**Add to the project and place**), together with its default footprint.
   This is one undo step of its own.
+- Not there? **Search online (SnapEDA, Ultra Librarian)…** opens the
+  [online part libraries](./online-parts) with what you typed; the imported
+  part shows up in the project library of the dialog.
 
 Every new project brings **starter symbols**, so you can draw a first circuit
 without setting up the base library: `R`, `C`, `C_Polarized`, `L`, `D`, `LED`,

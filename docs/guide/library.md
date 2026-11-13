@@ -189,6 +189,11 @@ step in the history: **Undo** removes everything that was added.
 
 ![Adding a symbol to the project library](/screenshots/library-add.png)
 
+A part the base library does not have can be downloaded from SnapEDA or
+Ultra Librarian: **Online parts** in the header opens the
+[online part libraries](./online-parts). Their downloads are checked
+against the base library when they are imported.
+
 ## About this library
 
 **About this library** shows the numbers of symbols, footprints and 3D

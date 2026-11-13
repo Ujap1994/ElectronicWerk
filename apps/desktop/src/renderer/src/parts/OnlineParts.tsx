@@ -62,7 +62,7 @@ export function OnlineParts({ initialQuery }: { readonly initialQuery: string })
         <>
           <button
             type="button"
-            className="button"
+            className="button online-parts__import"
             title={
               project === null ? t('parts.noProject', { file: '…' }) : t('parts.importFileTip')
             }

@@ -65,6 +65,7 @@ export default defineConfig({
           { text: 'Importing KiCad projects', link: '/guide/import-kicad' },
           { text: 'Netlists', link: '/guide/netlists' },
           { text: 'The base library', link: '/guide/library' },
+          { text: 'Online part libraries', link: '/guide/online-parts' },
           { text: 'Duplicates', link: '/guide/duplicates' },
           { text: 'Undo, autosave and recovery', link: '/guide/undo-and-recovery' },
           { text: 'Settings', link: '/guide/settings' },

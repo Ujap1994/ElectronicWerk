@@ -43,6 +43,7 @@ macOS quarantines downloaded programs. Run
 | [`ewerk project templates`](#ewerk-project-templates)   | List the project templates                           |
 | [`ewerk import kicad`](#ewerk-import-kicad)             | Import a KiCad project as a new project              |
 | [`ewerk import library`](#ewerk-import-library)         | Add a KiCad library to a project library             |
+| [`ewerk import archive`](#ewerk-import-archive)         | Import a SnapEDA or Ultra Librarian download         |
 | [`ewerk import netlist`](#ewerk-import-netlist)         | Compare a netlist with a board, or apply it          |
 | [`ewerk outputs run`](#ewerk-outputs-run)               | Generate the manufacturing files of an output job    |
 | [`ewerk outputs list`](#ewerk-outputs-list)             | List the output jobs of a project                    |
@@ -231,6 +232,33 @@ Names that the library has already are skipped:
 $ ewerk import library ~/kicad/MyParts.pretty --project Blinky
 Added 0 symbols and 12 footprints to the project library.
 ```
+
+### `ewerk import archive`
+
+```text
+ewerk import archive <source> --project <project> [--nickname <name>] [--use-library] [--dry-run] [--json]
+```
+
+Imports a part downloaded from an [online part library](../guide/online-parts)
+(SnapEDA, Ultra Librarian, or any KiCad ZIP; also a single `.kicad_sym`,
+`.kicad_mod` or STEP file) into the first library of the project, copies its
+3D models into `3d/<nickname>/` and saves the project. The names get the
+prefix `<nickname>:` (default: the provider, else the file name).
+`--use-library` takes the base library's footprint instead of a downloaded
+one that the base library has already (identical, the same pads or pads
+within 0.05 mm); `--dry-run` only lists the content:
+
+```console
+$ ewerk import archive ~/Downloads/ul_OPAMP-DEMO.zip --project Amp
+ul_OPAMP-DEMO.zip (UltraLibrarian)
+  symbol    UltraLibrarian:OPAMP-DEMO
+  footprint UltraLibrarian:DBV0005A
+  3D model  DBV0005A.step
+Added 1 symbols, 1 footprints and 1 3D models (0 replaced by the base library, 0 already there).
+```
+
+With `--json` the result of [`import.archive`](./engine-api#import-archive)
+is printed (with `--dry-run`, that of `import.archivePreview`).
 
 ### `ewerk import netlist`
 

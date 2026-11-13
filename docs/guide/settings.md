@@ -52,6 +52,16 @@ The appearance also applies to native elements such as menus and dialogs.
 
 The [Updates](./updates) page explains the update notice in detail.
 
+## Online part libraries
+
+The accounts of the [online part libraries](./online-parts) SnapEDA and Ultra
+Librarian: **Sign in** opens the provider's sign-in page in its provider
+window, **Sign out** deletes the provider window's sign-in and stored data,
+**Terms of use** opens the provider's terms. The sign-in itself is kept by
+the provider window, never by ElectronicWerk.
+
+![The online part libraries in the settings](/screenshots/parts-settings.png)
+
 ## Where the settings are stored
 
 The settings are saved as `settings.json` in your user folder:

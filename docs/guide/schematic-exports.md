@@ -34,7 +34,7 @@ electrical type:
 
 ```text
 (export (version "E")
-  (design (source "Blinky") (tool "ElectronicWerk 0.10.0"))
+  (design (source "Blinky") (tool "ElectronicWerk 0.11.0"))
   (components
     (comp (ref "C1") (value "10u") (libsource (lib "") (part "Device:C")))
     …)
