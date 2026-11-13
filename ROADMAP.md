@@ -1,7 +1,7 @@
 # ElectronicWerk Roadmap
 
-> **Status:** v0.14 (2026-11-13). M0 to M9 are complete (releases v0.1.0 to
-> v0.10.0; M0, M1 and M3 accepted by the maintainer); M10 is next.
+> **Status:** v0.15 (2026-11-13). M0 to M9 are complete (releases v0.1.0 to
+> v0.10.0; M0, M1 and M3 accepted by the maintainer); M10 is in progress.
 > This roadmap is a living document. It **must** be updated with every feature
 > (requirement D5). Every change to it is listed in the
 > [roadmap changelog](#13-roadmap-changelog).
@@ -245,7 +245,7 @@ own work only. Maintainer test cycles and feedback come on top. Status values:
 | M7  | Layout editor, DRC, rules, schematic ↔ PCB sync       | v0.8.0  | F7, F10           | 16–24 S         | ✅     |
 | M8  | Manufacturing outputs and output jobs                 | v0.9.0  | F10               | 7–10 S          | ✅     |
 | M9  | Live 3D view and STEP export                          | v0.10.0 | F8                | 7–10 S          | ✅     |
-| M10 | Online component search and provider accounts         | v0.11.0 | F1                | 6–9 S           | ⬜     |
+| M10 | Online part libraries: SnapEDA, Ultra Librarian       | v0.11.0 | F1                | 6–9 S           | 🟦     |
 | M11 | GitHub integration                                    | v0.12.0 | F9                | 4–6 S           | ⬜     |
 | M12 | CLI and AI automation (complete)                      | v0.13.0 | F12               | 4–6 S           | ⬜     |
 | M13 | Assembly assistant and extras                         | v0.14.0 | F11               | 4–6 S           | ⬜     |
@@ -739,20 +739,30 @@ Delivered (ADR-0010):
 - [x] The footprint editor's 3D preview shows project and KiCad models too;
       bottom-side models of imported KiCad boards sit on their pads.
 
-### M10 — Online component search and provider accounts (v0.11.0, 6–9 S)
+### M10 — Online part libraries: SnapEDA and Ultra Librarian (v0.11.0, 6–9 S)
 
-- Provider framework with one adapter per provider and an account setup in
-  Settings. Credentials are stored in the OS keychain.
-- Integration in two tiers, depending on what each provider allows:
-  1. **Official APIs** where they exist (for example Nexar/Octopart, Digi-Key,
-     Mouser, LCSC/JLCPCB, and SnapEDA with an API key).
-  2. **Embedded provider window**: the user signs in to the provider (for
-     example Ultra Librarian or SnapEDA) in an isolated, sandboxed browser
-     window. Downloaded KiCad-format ZIP files are imported automatically and
-     run through deduplication (M4).
-- Unified search results with symbol, footprint and 3D preview, datasheet,
-  pricing and stock where the API offers them.
-- The terms of use of every provider are reviewed before its adapter is built.
+Scope decided by the maintainer (2026-11-13): only **SnapEDA** and **Ultra
+Librarian**, the two online libraries with the most parts. Distributor APIs
+(Nexar/Octopart, Digi-Key, Mouser, LCSC/JLCPCB) are not part of the plan.
+
+- Terms of use reviewed first: both allow the downloaded design files in the
+  user's own designs; SnapEDA forbids automated access (robots, scrapers)
+  and redistribution of more than ten files, neither offers a public search
+  API. So ElectronicWerk does not search or download automatically: the user
+  searches and downloads on the provider's site, and ElectronicWerk imports
+  what the user downloaded.
+- **Provider window**: each provider in an isolated, sandboxed browser window
+  with its own browser profile (the sign-in stays there; ElectronicWerk never
+  sees passwords). Searching from ElectronicWerk opens the provider's search
+  page with the query.
+- **Import of downloads**: KiCad-format ZIP files downloaded in the provider
+  window are picked up; a ZIP downloaded with any browser can be imported
+  too. The import shows the symbols, footprints and 3D models, checks them
+  against the base library (deduplication, M4: identical or near-identical
+  footprints can be replaced by the library's), copies the 3D models into
+  the project and adds everything to a project library.
+- Accounts in Settings: sign in, sign out (clears the provider's browser
+  profile), links to the terms.
 
 ### M11 — GitHub integration (v0.12.0, 4–6 S)
 
@@ -815,6 +825,10 @@ The CLI grows with every milestone. This milestone completes it.
   menus, accessibility (keyboard navigation, contrast, scaling).
 - Final, complete documentation, plus screen videos showing the main workflows
   (D1).
+- **Acceptance on real designs** before the release, planned with the
+  maintainer: an existing board of the maintainer rebuilt in ElectronicWerk
+  (schematic and a clean layout, every check automated as a test, kept
+  private), and a new small project designed by the maintainer.
 - Release v1.0.0.
 
 ## 10. File format matrix
@@ -871,15 +885,15 @@ The CLI grows with every milestone. This milestone completes it.
 
 ### Risks
 
-| Risk                                                      | Impact           | Mitigation                                                                                 |
-| --------------------------------------------------------- | ---------------- | ------------------------------------------------------------------------------------------ |
-| Size of the overall scope (Altium/KiCad class)            | Schedule         | Strict milestone order and a usable release at every stage                                 |
-| Rendering performance on large designs                    | T3/T4            | Custom WebGL2 engine, benchmarks in CI from M2                                             |
-| STEP tessellation (OpenCASCADE is a large C++ dependency) | Build complexity | WASM build first, native later; a GLB cache                                                |
-| 3D model volume (more than 3 GB)                          | Installer size   | Library packs downloaded on demand                                                         |
-| Online provider APIs and terms of use                     | F1 scope         | Official APIs plus an embedded login window; review the terms first                        |
-| Unsigned builds                                           | Install friction | Clear installation docs for every OS                                                       |
-| Interactive router quality (push-and-shove)               | F7               | Walkaround router in M7; push-and-shove in M15; external autorouter through Specctra (M14) |
+| Risk                                                      | Impact           | Mitigation                                                                                                               |
+| --------------------------------------------------------- | ---------------- | ------------------------------------------------------------------------------------------------------------------------ |
+| Size of the overall scope (Altium/KiCad class)            | Schedule         | Strict milestone order and a usable release at every stage                                                               |
+| Rendering performance on large designs                    | T3/T4            | Custom WebGL2 engine, benchmarks in CI from M2                                                                           |
+| STEP tessellation (OpenCASCADE is a large C++ dependency) | Build complexity | WASM build first, native later; a GLB cache                                                                              |
+| 3D model volume (more than 3 GB)                          | Installer size   | Library packs downloaded on demand                                                                                       |
+| Online part libraries and their terms of use              | F1 scope         | SnapEDA and Ultra Librarian through a provider window and the user's own downloads; terms reviewed (no automated access) |
+| Unsigned builds                                           | Install friction | Clear installation docs for every OS                                                                                     |
+| Interactive router quality (push-and-shove)               | F7               | Walkaround router in M7; push-and-shove in M15; external autorouter through Specctra (M14)                               |
 
 ### Open decisions
 
@@ -895,6 +909,12 @@ The CLI grows with every milestone. This milestone completes it.
   can be added later without redesign.
 - **Post-1.0 candidates:** SPICE simulation (ngspice), real-time collaboration,
   a plugin API, multi-board/harness design, signal-integrity helpers.
+- **Advanced feature: part generator from datasheets** (requested by the
+  maintainer): reads a part's datasheet and generates the symbol, the
+  footprint and a 3D STEP model; for parts in several packages the user only
+  picks the package, the generator extracts pins, functions, package
+  dimensions and land pattern. Builds on the footprint wizards (M6) and the
+  STEP writer (M9).
 
 ## 13. Roadmap changelog
 
@@ -914,3 +934,4 @@ The CLI grows with every milestone. This milestone completes it.
 | 2026-11-12 | v0.11      | M6 complete: v0.7.1 with the symbol, footprint and component editors, IPC-7351 footprint wizards and library checks (0.7.0 was tagged but not published: the Snap Store was unreachable from the Linux builds). Models outside the base library have no 3D preview until the 3D view (M9) tessellates project models. The net navigator (Ctrl/⌘ + double-click on a net, an Altium feature) was added to the schematic editor at the maintainer's request. |
 | 2026-11-13 | v0.13      | M8 complete: v0.9.0 with output jobs, Gerber X2, Excellon, drill map, BOM, pick and place, IPC-D-356, IPC-2581, PDF/SVG prints, assembly drawings, presets for six board makers and the Gerber viewer; Gerbers verified against KiCad 10 golden files. ODB++ not written (licensed specification, covered by Gerber X2 and IPC-2581). DXF export moved to M14.                                                                                             |
 | 2026-11-13 | v0.14      | M9 complete: v0.10.0 with the live 3D view (tab or own window, shared selection, sections, measuring, screenshots) and STEP/GLB/VRML exports. STEP is written in Rust instead of native OpenCASCADE (no C++ build for five targets, no LGPL linking, smaller packages); OpenCASCADE (WebAssembly) verifies the export in CI. Part placement verified against KiCad 10.                                                                                     |
+| 2026-11-13 | v0.15      | M10 narrowed by the maintainer to SnapEDA and Ultra Librarian (provider window and import of the user's downloads; no distributor APIs, no automated access, as both providers' terms require). Added the acceptance on real designs before v1.0 (M16) and the datasheet part generator as a later advanced feature.                                                                                                                                       |
