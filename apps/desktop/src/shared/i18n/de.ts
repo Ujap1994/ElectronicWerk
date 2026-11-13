@@ -336,7 +336,7 @@ export const de: Messages = {
     pickAndPlace: 'Bestückungsdaten',
     pdf: 'PDF',
     svg: 'SVG',
-    step: 'STEP-3D-Modell',
+    step: '3D-Modell (STEP, GLB, VRML)',
     ipc356: 'IPC-D-356-Netzliste',
     ipc2581: 'IPC-2581',
     netlist: 'Netzliste',

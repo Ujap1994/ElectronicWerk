@@ -456,7 +456,7 @@ export function OutputSettings({
     />
   );
   const layers = boardLayers(copperCount);
-  const usesBoard = !['bom', 'netlist', 'step'].includes(spec.kind);
+  const usesBoard = !['bom', 'netlist'].includes(spec.kind);
   const content = option<string>(spec, 'content', 'schematic');
   const showsBoard =
     usesBoard && !((spec.kind === 'pdf' || spec.kind === 'svg') && content === 'schematic');
@@ -678,10 +678,54 @@ export function OutputSettings({
         </>
       )}
       {spec.kind === 'step' && (
-        <p className="callout callout--info">
-          <Icon name="info" />
-          <span>{t('outputs.step')}</span>
-        </p>
+        <>
+          <Choice
+            label={t('outputs.model3d.format')}
+            value={option<string>(spec, 'format')}
+            options={[
+              ['step', t('outputs.model3d.step')],
+              ['glb', t('outputs.model3d.glb')],
+              ['vrml', t('outputs.model3d.vrml')],
+            ]}
+            testId="output-model3d-format"
+            onChange={(value) => {
+              set('format', value);
+            }}
+          />
+          <Choice
+            label={t('outputs.model3d.origin')}
+            value={option<string>(spec, 'origin')}
+            options={[
+              ['drill', t('outputs.model3d.originDrill')],
+              ['center', t('outputs.model3d.originCenter')],
+              ['absolute', t('outputs.model3d.originAbsolute')],
+            ]}
+            testId="output-model3d-origin"
+            onChange={(value) => {
+              set('origin', value);
+            }}
+          />
+          {option<string>(spec, 'format') === 'vrml' && (
+            <Choice
+              label={t('outputs.model3d.units')}
+              value={option<string>(spec, 'units')}
+              options={[
+                ['mm', t('outputs.placement.mm')],
+                ['m', t('outputs.model3d.metres')],
+                ['inch', t('outputs.placement.inch')],
+              ]}
+              testId="output-model3d-units"
+              onChange={(value) => {
+                set('units', value);
+              }}
+            />
+          )}
+          {check('includeDnp', 'outputs.placement.includeDnp')}
+          <p className="callout callout--info">
+            <Icon name="info" />
+            <span>{t('outputs.model3d.hint')}</span>
+          </p>
+        </>
       )}
       {folder !== undefined && (
         <TextOption

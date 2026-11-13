@@ -9,7 +9,12 @@ use ew_model::document::{Document, DocumentKind};
 use ew_model::id::Id;
 use ew_model::outputs::OutputJob;
 use ew_output::bom::{self, BomOptions, Cell};
-use ew_output::job::{self, RunContext};
+use std::cell::RefCell;
+
+use ew_output::job::{self, Model3dFile, Model3dJob, RunContext};
+
+use crate::board3d::ExportParams;
+use crate::library::LibraryState;
 use ew_output::viewer::{self, ViewerFile};
 use serde::Deserialize;
 use serde::de::DeserializeOwned;
@@ -150,17 +155,41 @@ fn job_folder(session: &Session, job: &OutputJob) -> Result<PathBuf, EngineError
     inside(session.root(), directory)
 }
 
-fn run(session: &Session, params: &RunParams, version: &str) -> Result<Value, EngineError> {
+fn run(
+    session: &Session,
+    library: &mut LibraryState,
+    params: &RunParams,
+    version: &str,
+) -> Result<Value, EngineError> {
     let job = output_job(session, params.job)?;
     let folder = job_folder(session, job)?;
     let started = Instant::now();
+    let created = ew_format::time::DateTime::now().iso_string();
     let resolve = |text: &str, doc: Option<Id>| session.resolve_text(text, doc);
+    let library = RefCell::new(library);
+    let model3d = |pcb: &ew_model::pcb::Pcb, o: &Model3dJob| -> Result<Model3dFile, String> {
+        let params: ExportParams = serde_json::from_value(json!({
+            "format": if o.format == "wrl" { "vrml" } else { o.format.as_str() },
+            "origin": o.origin,
+            "includeDnp": o.include_dnp,
+            "units": o.units,
+        }))
+        .map_err(|error| format!("invalid options: {error}"))?;
+        let mut library = library.borrow_mut();
+        let (data, report) =
+            crate::board3d::export_board(session, &mut library, pcb, &params, version, &created);
+        Ok(Model3dFile {
+            data,
+            note: crate::board3d::summary(&report),
+        })
+    };
     let ctx = RunContext {
         project: session.project(),
         version: version.to_owned(),
-        created: ew_format::time::DateTime::now().iso_string(),
+        created: created.clone(),
         resolve: &resolve,
         labels: params.labels.clone().unwrap_or_default(),
+        model3d: Some(&model3d),
     };
     let result = job::run(job, params.outputs.as_deref(), &ctx);
     let mut files = Vec::new();
@@ -362,6 +391,7 @@ pub fn gerber_scene(
 /// Fails on bad parameters, unknown documents or write errors.
 pub fn call(
     session: &Session,
+    library: &mut LibraryState,
     method: &str,
     params: &Value,
     version: &str,
@@ -403,7 +433,12 @@ pub fn call(
                 reply: json!({}),
             })
         }
-        "outputs.run" => Ok(Outcome::Read(run(session, &parse(params)?, version)?)),
+        "outputs.run" => Ok(Outcome::Read(run(
+            session,
+            library,
+            &parse(params)?,
+            version,
+        )?)),
         "outputs.bom" => Ok(Outcome::Read(bom_preview(session, &parse(params)?)?)),
         "outputs.files" => {
             let params: JobParams = parse(params)?;

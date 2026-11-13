@@ -339,7 +339,7 @@ export const en = {
     pickAndPlace: 'Pick and place',
     pdf: 'PDF',
     svg: 'SVG',
-    step: 'STEP 3D model',
+    step: '3D model (STEP, GLB, VRML)',
     ipc356: 'IPC-D-356 netlist',
     ipc2581: 'IPC-2581',
     netlist: 'Netlist',

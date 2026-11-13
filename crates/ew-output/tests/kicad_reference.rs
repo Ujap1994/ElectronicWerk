@@ -371,6 +371,7 @@ fn a_job_runs_every_output_of_a_preset() {
         created: String::new(),
         resolve: &resolve,
         labels: ew_scene::TitleLabels::default(),
+        model3d: None,
     };
     for preset in presets() {
         let mut job = OutputJob::new(ew_model::id::Id::random(), preset.name);

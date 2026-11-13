@@ -10,7 +10,7 @@ use ew_core::info::EngineInfo;
 use ew_synth::DesignSize;
 use serde_json::{Value, json};
 
-use crate::{Command, ImportCommand, NewArgs, OutputsCommand, ProjectCommand};
+use crate::{Command, Export3dArgs, ImportCommand, NewArgs, OutputsCommand, ProjectCommand};
 
 /// A command failure with a message for standard error.
 #[derive(Debug)]
@@ -91,6 +91,7 @@ pub fn run(command: Command, out: &mut impl Write) -> Outcome {
         Command::Import(command) => import(command, out),
         Command::Library(command) => crate::library::run(command, out),
         Command::Outputs(command) => outputs(command, out),
+        Command::Export3d(args) => export_3d(&args, out),
         Command::Synth {
             size,
             dir,
@@ -397,6 +398,82 @@ fn output_jobs(engine: &mut Engine) -> Result<Vec<(String, String)>, Failure> {
             )
         })
         .collect())
+}
+
+fn export_3d(args: &Export3dArgs, out: &mut impl Write) -> Outcome {
+    let mut engine = Engine::without_journal();
+    call(&mut engine, "project.open", json!({"path": args.path}))?;
+    let info = call(&mut engine, "project.info", Value::Null)?;
+    let boards: Vec<&Value> = info["documents"]
+        .as_array()
+        .into_iter()
+        .flatten()
+        .filter(|d| d["kind"] == "pcb")
+        .collect();
+    let board = match &args.board {
+        Some(wanted) => boards
+            .iter()
+            .find(|d| d["name"] == wanted.as_str() || d["id"] == wanted.as_str()),
+        None => boards.first(),
+    }
+    .ok_or_else(|| Failure("the project has no such board".to_owned()))?;
+    let extension = match args.format.as_str() {
+        "glb" => "glb",
+        "vrml" => "wrl",
+        "step" => "step",
+        other => {
+            return Err(Failure(format!(
+                "unknown format `{other}` (step, glb or vrml)"
+            )));
+        }
+    };
+    let target = args.output.clone().unwrap_or_else(|| {
+        Path::new(&format!(
+            "{}.{extension}",
+            board["name"].as_str().unwrap_or("board")
+        ))
+        .to_path_buf()
+    });
+    let target = if target.is_absolute() {
+        target
+    } else {
+        std::env::current_dir()?.join(target)
+    };
+    let report = call(
+        &mut engine,
+        "board3d.export",
+        json!({
+            "doc": board["id"],
+            "path": target,
+            "format": args.format,
+            "origin": args.origin,
+            "includeDnp": args.include_dnp,
+            "units": args.units,
+        }),
+    )?;
+    if args.json {
+        print_json(out, &report)?;
+    } else {
+        writeln!(
+            out,
+            "{} → {} ({} bytes)",
+            board["name"].as_str().unwrap_or_default(),
+            target.display(),
+            report["bytes"]
+        )?;
+        writeln!(
+            out,
+            "  {} parts placed, {} exact models, {} from meshes",
+            report["placed"], report["exact"], report["faceted"]
+        )?;
+        for missing in report["missing"].as_array().into_iter().flatten() {
+            writeln!(out, "  not found: {}", missing.as_str().unwrap_or_default())?;
+        }
+        for warning in report["warnings"].as_array().into_iter().flatten() {
+            writeln!(out, "  {}", warning.as_str().unwrap_or_default())?;
+        }
+    }
+    Ok(ExitCode::SUCCESS)
 }
 
 #[allow(clippy::too_many_lines, reason = "one arm per subcommand")]

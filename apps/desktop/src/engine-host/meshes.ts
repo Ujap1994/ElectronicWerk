@@ -5,7 +5,7 @@
  * caches it.
  */
 import { createHash } from 'node:crypto';
-import { mkdirSync, readFileSync, renameSync, statSync, writeFileSync } from 'node:fs';
+import { mkdirSync, readFileSync, renameSync, writeFileSync } from 'node:fs';
 import { extname, isAbsolute, join } from 'node:path';
 import { Worker } from 'node:worker_threads';
 
@@ -97,12 +97,9 @@ export async function handleMeshRequest(
     return fail(id, 'invalidParams', 'file must be an absolute path to a STEP file');
   }
   try {
-    const stat = statSync(file);
-    // Cached by path, size and time: re-tessellated when the file changes.
-    const key = createHash('sha256')
-      .update(`${file}\n${stat.size}\n${stat.mtimeMs}`)
-      .digest('hex')
-      .slice(0, 32);
+    // Cached by content, so the engine finds the mesh of a STEP file too
+    // (3D exports) and a changed file is tessellated again.
+    const key = createHash('sha256').update(readFileSync(file)).digest('hex').slice(0, 32);
     const cached = join(dir, `step-${key}.glb`);
     try {
       return { id, result: { data: new Uint8Array(readFileSync(cached)), cached: true } };

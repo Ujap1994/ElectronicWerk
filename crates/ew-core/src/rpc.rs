@@ -72,6 +72,7 @@ pub enum Response {
 
 /// All methods the engine understands, in alphabetical order.
 pub const METHODS: &[&str] = &[
+    "board3d.export",
     "board3d.parts",
     "board3d.resolve",
     "board3d.scene",
@@ -1231,7 +1232,7 @@ impl Engine {
             return to_value(&ew_output::job::presets());
         }
         let session = self.session.as_ref().ok_or_else(EngineError::no_project)?;
-        match crate::outputs::call(session, method, params, crate::VERSION)? {
+        match crate::outputs::call(session, &mut self.library, method, params, crate::VERSION)? {
             crate::outputs::Outcome::Read(value) => Ok(value),
             crate::outputs::Outcome::Commit {
                 label,

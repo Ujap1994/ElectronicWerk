@@ -17,9 +17,13 @@ use std::collections::BTreeSet;
 use std::path::{Path, PathBuf};
 
 use ew_board3d::board::{self, BoardOptions};
+use ew_board3d::export::{self as export3d, ExportOptions, Format};
+use ew_board3d::glb;
 use ew_board3d::place;
 use ew_board3d::scene;
 use ew_board3d::stack::Levels;
+use ew_board3d::step::{ExportReport, ModelData, Origin};
+use ew_board3d::vrml::Units;
 use ew_model::document::Document;
 use ew_model::id::Id;
 use ew_model::pcb::Pcb;
@@ -208,6 +212,124 @@ pub fn sources(pcb: &Pcb, root: &Path, library: &mut LibraryState) -> Vec<ModelS
         .collect()
 }
 
+/// The cache file of a tessellated STEP file: named by the content hash,
+/// as the desktop app's tessellator names it.
+#[must_use]
+pub fn step_mesh(mesh_dir: &Path, file: &Path) -> Option<PathBuf> {
+    let hash = ew_library::pack::sha256_file(file).ok()?;
+    let path = mesh_dir.join(format!("step-{}.glb", &hash[..32]));
+    path.is_file().then_some(path)
+}
+
+fn read_mesh(path: &Path) -> Option<ModelData> {
+    let bytes = std::fs::read(path).ok()?;
+    glb::read(&bytes).ok().map(ModelData::Mesh)
+}
+
+/// The data of a found model: the STEP text (for STEP exports) or a mesh
+/// from the cache.
+#[must_use]
+pub fn model_data(source: &ModelSource, mesh_dir: Option<&Path>, step: bool) -> Option<ModelData> {
+    let file = source.file.as_deref().map(Path::new);
+    if step
+        && source.format == Some("step")
+        && let Some(file) = file
+        && let Ok(text) = std::fs::read_to_string(file)
+    {
+        return Some(ModelData::Step(text));
+    }
+    let dir = mesh_dir?;
+    if let Some(hash) = &source.mesh
+        && let Some(mesh) = read_mesh(&ew_library::pack::mesh_path(
+            dir.parent().unwrap_or(dir),
+            hash,
+        ))
+    {
+        return Some(mesh);
+    }
+    if source.format == Some("step")
+        && let Some(file) = file
+    {
+        if let Some(path) = step_mesh(dir, file) {
+            return read_mesh(&path);
+        }
+        // No mesh yet: the exporter reports that the model needs one.
+        return std::fs::read_to_string(file).ok().map(ModelData::Step);
+    }
+    None
+}
+
+/// Options of `board3d.export` and of 3D outputs.
+#[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ExportParams {
+    /// File format.
+    #[serde(default)]
+    pub format: Format,
+    /// Origin.
+    #[serde(default)]
+    pub origin: Origin,
+    /// Also export parts marked "do not populate".
+    #[serde(default)]
+    pub include_dnp: bool,
+    /// Units of VRML files.
+    #[serde(default)]
+    pub units: Units,
+}
+
+/// Exports the 3D model of a board.
+pub fn export_board(
+    session: &Session,
+    library: &mut LibraryState,
+    pcb: &Pcb,
+    params: &ExportParams,
+    version: &str,
+    created: &str,
+) -> (Vec<u8>, ExportReport) {
+    let found = sources(pcb, session.root(), library);
+    let mesh_dir = library.mesh_dir();
+    let step = params.format == Format::Step;
+    let mut models = |path: &str| -> Option<ModelData> {
+        let source = found.iter().find(|s| s.path == path)?;
+        model_data(source, mesh_dir.as_deref(), step)
+    };
+    let resolve = |text: &str| session.resolve_text(text, Some(pcb.id));
+    let options = ExportOptions {
+        format: params.format,
+        origin: params.origin,
+        include_dnp: params.include_dnp,
+        units: params.units,
+        name: format!("{}.{}", pcb.name, params.format.extension()),
+        created: created.to_owned(),
+        version: version.to_owned(),
+    };
+    export3d::export(pcb, &resolve, &mut models, &options)
+}
+
+/// A one-line summary of an export report.
+#[must_use]
+pub fn summary(report: &ExportReport) -> Option<String> {
+    let mut parts = Vec::new();
+    if !report.missing.is_empty() {
+        parts.push(format!(
+            "{} 3D models not found: {}",
+            report.missing.len(),
+            report.missing.join(", ")
+        ));
+    }
+    parts.extend(report.warnings.iter().cloned());
+    (!parts.is_empty()).then(|| parts.join("; "))
+}
+
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+struct FileExportParams {
+    doc: Id,
+    path: PathBuf,
+    #[serde(flatten)]
+    options: ExportParams,
+}
+
 #[derive(Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 struct SceneParams {
@@ -298,6 +420,33 @@ pub fn call(
                 "parts": to_value(&place::parts(pcb, &levels))?,
                 "models": to_value(&sources(pcb, session.root(), library))?,
             }))
+        }
+        "board3d.export" => {
+            let session = session.ok_or_else(EngineError::no_project)?;
+            let params: FileExportParams = parse(params)?;
+            if !params.path.is_absolute() {
+                return Err(EngineError::invalid_params("the path must be absolute"));
+            }
+            let pcb = board_of(session, params.doc)?;
+            let (data, report) = export_board(
+                session,
+                library,
+                pcb,
+                &params.options,
+                crate::VERSION,
+                &ew_format::time::DateTime::now().iso_string(),
+            );
+            ew_format::fsio::write_atomic(&params.path, &data)
+                .map_err(|error| EngineError::invalid_params(error.to_string()))?;
+            let mut value = to_value(&report)?;
+            if let Some(object) = value.as_object_mut() {
+                object.insert("bytes".into(), Value::from(data.len()));
+                object.insert(
+                    "path".into(),
+                    Value::String(params.path.to_string_lossy().into_owned()),
+                );
+            }
+            Ok(value)
         }
         "board3d.resolve" => {
             // One model path (the footprint editor's 3D preview).

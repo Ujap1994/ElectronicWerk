@@ -60,6 +60,9 @@ enum Command {
     /// Generate manufacturing outputs (Gerber, drill, BOM, prints, …).
     #[command(subcommand)]
     Outputs(OutputsCommand),
+    /// Export the 3D model of a board (STEP, GLB or VRML).
+    #[command(name = "export-3d")]
+    Export3d(Export3dArgs),
     /// Generate a synthetic reference design (for tests and benchmarks).
     Synth {
         /// Size class: S, M, L or XL.
@@ -82,6 +85,34 @@ enum Command {
         #[arg(long)]
         json: bool,
     },
+}
+
+/// Arguments of `export-3d`.
+#[derive(Debug, Args)]
+struct Export3dArgs {
+    /// Project folder or `.ewproj` file.
+    path: PathBuf,
+    /// Output file (default: `<board>.<format>` in the current folder).
+    #[arg(short, long)]
+    output: Option<PathBuf>,
+    /// `step`, `glb` or `vrml`.
+    #[arg(long, default_value = "step")]
+    format: String,
+    /// Board name or id (default: the first board).
+    #[arg(long)]
+    board: Option<String>,
+    /// Origin: `drill`, `center` or `absolute`.
+    #[arg(long, default_value = "drill")]
+    origin: String,
+    /// Also export parts marked "do not populate".
+    #[arg(long)]
+    include_dnp: bool,
+    /// Units of VRML files: `mm`, `m` or `inch`.
+    #[arg(long, default_value = "mm")]
+    units: String,
+    /// Print the report as JSON.
+    #[arg(long)]
+    json: bool,
 }
 
 #[derive(Debug, Subcommand)]

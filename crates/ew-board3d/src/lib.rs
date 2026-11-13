@@ -13,6 +13,7 @@
 //!   B-rep, component STEP files merged in, mesh-only models as faceted
 //!   solids.
 //! - [`vrml`]: VRML 2.0 export.
+//! - [`export`]: the three exports with one set of options.
 //!
 //! Units: the 3D model uses millimetres with z up; the board's bottom face
 //! lies at z = 0 and its top face at the height of the dielectric stack, so
@@ -28,10 +29,14 @@
 )]
 
 pub mod board;
+pub mod export;
+pub mod glb;
 pub mod mesh;
 pub mod place;
 pub mod scene;
 pub mod stack;
+pub mod step;
+pub mod vrml;
 
 /// Nanometres per millimetre.
 pub const NM_PER_MM: f64 = 1e6;

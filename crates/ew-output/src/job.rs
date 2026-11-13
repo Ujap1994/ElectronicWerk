@@ -22,6 +22,59 @@ use crate::art::{ArtOptions, BoardArt};
 use crate::bom::{self, BomOptions, Heading};
 use crate::print::{self, AssemblyPrint, BoardPrint, ColorMode, Paper, SchematicPrint};
 
+/// Options of 3D model outputs (`OutputKind::Step`).
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase", default)]
+pub struct Model3dJob {
+    /// `step`, `glb` or `vrml`.
+    pub format: String,
+    /// `drill` (drill and placement origin), `center` or `absolute`.
+    pub origin: String,
+    /// Also export parts marked "do not populate".
+    pub include_dnp: bool,
+    /// Units of VRML files: `mm`, `m` or `inch`.
+    pub units: String,
+    /// Subfolder.
+    pub folder: String,
+}
+
+impl Default for Model3dJob {
+    fn default() -> Self {
+        Self {
+            format: "step".to_owned(),
+            origin: "drill".to_owned(),
+            include_dnp: false,
+            units: "mm".to_owned(),
+            folder: "3d".to_owned(),
+        }
+    }
+}
+
+impl Model3dJob {
+    /// The file extension of the format.
+    #[must_use]
+    pub fn extension(&self) -> &'static str {
+        match self.format.as_str() {
+            "glb" => "glb",
+            "vrml" | "wrl" => "wrl",
+            _ => "step",
+        }
+    }
+}
+
+/// A 3D model made by the exporter of [`RunContext::model3d`].
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Model3dFile {
+    /// Content.
+    pub data: Vec<u8>,
+    /// A note for the results (models that were not found, …).
+    pub note: Option<String>,
+}
+
+/// Writes the 3D model of a board (provided by the engine, which knows
+/// where the parts' models are).
+pub type Model3dExporter<'a> = &'a dyn Fn(&Pcb, &Model3dJob) -> Result<Model3dFile, String>;
+
 /// Inputs of a run besides the job.
 pub struct RunContext<'a> {
     /// The project.
@@ -34,6 +87,8 @@ pub struct RunContext<'a> {
     pub resolve: &'a dyn Fn(&str, Option<Id>) -> String,
     /// Title block labels of prints.
     pub labels: ew_scene::TitleLabels,
+    /// The 3D exporter; without one, 3D outputs are skipped.
+    pub model3d: Option<Model3dExporter<'a>>,
 }
 
 impl std::fmt::Debug for RunContext<'_> {
@@ -672,8 +727,34 @@ fn run_one(
                 crate::archive::zip(&entries),
             )])
         }
-        OutputKind::Step => Err("SKIP:3D export (STEP) comes with the 3D view".to_owned()),
+        OutputKind::Step => {
+            let (files, _) = model3d(spec, ctx)?;
+            Ok(files)
+        }
     }
+}
+
+/// A 3D model output: its file and the exporter's note.
+fn model3d(
+    spec: &OutputSpec,
+    ctx: &RunContext<'_>,
+) -> Result<(Vec<OutputFile>, Option<String>), String> {
+    let o: Model3dJob = options(spec)?;
+    let pcb = board(ctx.project, spec.source)?;
+    let Some(exporter) = ctx.model3d else {
+        return Err("SKIP:3D models are written by the app and the command line".to_owned());
+    };
+    let made = exporter(pcb, &o)?;
+    Ok((
+        vec![OutputFile::binary(
+            folder(
+                &o.folder,
+                &format!("{}.{}", sanitize(&pcb.name), o.extension()),
+            ),
+            made.data,
+        )],
+        made.note,
+    ))
 }
 
 /// A drawing as one PDF or one SVG per page.
@@ -734,7 +815,15 @@ pub fn run(job: &OutputJob, only: Option<&[Id]>, ctx: &RunContext<'_>) -> RunRes
             result.results.push(entry);
             continue;
         }
-        match run_one(spec, ctx, &done) {
+        let outcome = if spec.kind == OutputKind::Step {
+            model3d(spec, ctx).map(|(files, note)| {
+                entry.message = note;
+                files
+            })
+        } else {
+            run_one(spec, ctx, &done)
+        };
+        match outcome {
             Ok(files) => {
                 entry.status = Status::Done;
                 entry.files = files.iter().map(|f| f.name.clone()).collect();
