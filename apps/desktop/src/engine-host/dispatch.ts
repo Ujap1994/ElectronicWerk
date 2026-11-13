@@ -23,7 +23,7 @@ export function takeEvents(engine: NativeEngine): unknown[] {
 const METHOD_PATTERN = /^[a-z][\w.]{0,127}$/u;
 
 /** Methods whose reply carries a binary buffer (`data`). */
-const BINARY_METHODS = new Set(['view.scene', 'library.preview', 'gerber.scene']);
+const BINARY_METHODS = new Set(['view.scene', 'library.preview', 'gerber.scene', 'board3d.scene']);
 
 /**
  * Validates one request from the UI, forwards it to the native engine and

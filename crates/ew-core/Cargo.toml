@@ -10,6 +10,7 @@ authors.workspace = true
 publish = false
 
 [dependencies]
+ew-board3d.workspace = true
 ew-format.workspace = true
 ew-kicad.workspace = true
 ew-libedit.workspace = true

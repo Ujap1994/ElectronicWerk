@@ -265,7 +265,40 @@ fn promote(staging: &Path, dir: &Path) -> std::io::Result<()> {
     std::fs::remove_dir_all(staging)
 }
 
+/// A model of the base library (for the 3D view and exports).
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct LibraryModel {
+    /// Entry id.
+    pub id: i64,
+    /// Hash of its GLB mesh in the mesh cache.
+    pub mesh: Option<String>,
+    /// Its STEP file, for libraries built from local folders.
+    pub file: Option<PathBuf>,
+}
+
 impl LibraryState {
+    /// The base library's model of a footprint's model path, if a library
+    /// is installed and has it.
+    pub fn model(&mut self, path: &str) -> Option<LibraryModel> {
+        let key = ew_library::entry::model_key(path)?;
+        let index = self.index().ok()?;
+        let id = index.model_id(&key).ok()??;
+        let details = index.get(id).ok()?;
+        Some(LibraryModel {
+            id,
+            mesh: details.mesh,
+            file: details
+                .source_file
+                .map(PathBuf::from)
+                .filter(|file| file.is_file()),
+        })
+    }
+
+    /// The mesh cache folder (`meshes` in the library folder).
+    pub fn mesh_dir(&mut self) -> Option<PathBuf> {
+        self.dir().ok().map(|dir| dir.join("meshes"))
+    }
+
     /// The library folder (resolved on first use).
     fn dir(&mut self) -> Result<PathBuf, EngineError> {
         if self.dir.is_none() {

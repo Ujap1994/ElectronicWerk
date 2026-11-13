@@ -1,0 +1,27 @@
+[package]
+name = "ew-board3d"
+description = "ElectronicWerk 3D board model: board body, copper, mask and silkscreen meshes, component placements, STEP, GLB and VRML export"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+publish = false
+
+[dependencies]
+earcut.workspace = true
+ew-model.workspace = true
+ew-output.workspace = true
+ew-pcb.workspace = true
+rayon.workspace = true
+rstar.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+
+[dev-dependencies]
+ew-kicad.workspace = true
+ew-synth.workspace = true
+
+[lints]
+workspace = true

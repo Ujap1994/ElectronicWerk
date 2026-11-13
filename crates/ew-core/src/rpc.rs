@@ -72,6 +72,9 @@ pub enum Response {
 
 /// All methods the engine understands, in alphabetical order.
 pub const METHODS: &[&str] = &[
+    "board3d.parts",
+    "board3d.resolve",
+    "board3d.scene",
     "document.add",
     "document.get",
     "document.object",
@@ -502,6 +505,10 @@ impl Engine {
                 .and_then(|params| self.item_scene(&params)),
             "gerber.scene" => parse::<crate::outputs::GerberSceneParams>(&request.params)
                 .and_then(|params| self.gerber_scene(&params)),
+            "board3d.scene" => match self.session.as_ref() {
+                Some(session) => crate::board3d::scene(session, &mut self.library, &request.params),
+                None => Err(EngineError::no_project()),
+            },
             _ => return (encode(&self.handle(&request)), None),
         };
         match result {
@@ -631,6 +638,17 @@ impl Engine {
             _ if method.starts_with("libedit.") => self.call_libedit(method, params),
             _ if method.starts_with("pcb.") => self.call_pcb(method, params),
             _ if method.starts_with("outputs.") => self.call_outputs(method, params),
+            "board3d.scene" => {
+                let session = self.session.as_ref().ok_or_else(EngineError::no_project)?;
+                let (mut meta, data) = crate::board3d::scene(session, &mut self.library, params)?;
+                if let Some(object) = meta.as_object_mut() {
+                    object.insert("data".to_owned(), Value::String(ew_scene::base64(&data)));
+                }
+                Ok(meta)
+            }
+            _ if method.starts_with("board3d.") => {
+                crate::board3d::call(self.session.as_ref(), &mut self.library, method, params)
+            }
             "gerber.scene" => {
                 let params: crate::outputs::GerberSceneParams = parse(params)?;
                 let (mut meta, data) = self.gerber_scene(&params)?;

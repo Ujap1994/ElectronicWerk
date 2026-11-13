@@ -16,6 +16,7 @@
 //! - [`schematic`]: the schematic editor and ERC methods.
 //! - [`libedit`]: the symbol, footprint and component editors.
 
+pub mod board3d;
 pub mod change;
 pub mod error;
 pub mod history;

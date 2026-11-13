@@ -58,6 +58,8 @@ jobs:
         run: cargo test --release -p ew-library --test budgets -- --ignored --nocapture
       - name: Design rules check of the L and M boards (release build)
         run: cargo test --release -p ew-pcb --test budgets -- --ignored --nocapture --test-threads 1
+      - name: 3D board of the M and L boards (release build)
+        run: cargo test --release -p ew-board3d --test budgets -- --ignored --nocapture
 
   viewer-benchmark:
     name: Viewer benchmark

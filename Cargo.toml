@@ -11,6 +11,7 @@ repository = "https://github.com/Ujap1994/ElectronicWerk"
 authors = ["ElectronicWerk contributors"]
 
 [workspace.dependencies]
+ew-board3d = { path = "crates/ew-board3d" }
 ew-core = { path = "crates/ew-core" }
 ew-format = { path = "crates/ew-format" }
 ew-kicad = { path = "crates/ew-kicad" }

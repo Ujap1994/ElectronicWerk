@@ -15,3 +15,5 @@ apps/desktop/native/
 docs/.vitepress/cache/
 docs/.vitepress/dist/
 package-lock.json
+# Reference files written by scripts (kept exactly as generated)
+crates/*/tests/fixtures/
