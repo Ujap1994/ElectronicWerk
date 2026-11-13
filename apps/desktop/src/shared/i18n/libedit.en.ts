@@ -257,7 +257,8 @@ export const libeditEn = {
     remove: 'Remove model',
     none: 'No 3D model yet.',
     preview: '3D preview',
-    notFound: 'This model is not in the base library, so it cannot be previewed here.',
+    notFound:
+      'This model was found neither in the project folder, a KiCad installation nor the base library.',
   },
   checks: {
     title: 'Library checks',

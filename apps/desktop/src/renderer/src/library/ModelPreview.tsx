@@ -12,16 +12,22 @@ import { loadMesh, type MeshStatus } from './mesh-loader';
 import type { BoardSize, ModelView, Placement } from './model-view';
 import type { EntryDetails } from './types';
 
+const TESSELLATE_MS = 300_000;
+
 type State =
   MeshStatus | { readonly kind: 'ready' } | { readonly kind: 'failed'; readonly message: string };
 
 export function ModelPreview({
   modelId,
+  file = null,
   placement,
   board,
   release,
 }: {
-  readonly modelId: number;
+  /** A base library model. */
+  readonly modelId: number | null;
+  /** Or a STEP file on this computer (tessellated by the engine host). */
+  readonly file?: string | null;
   readonly placement: Placement | null;
   readonly board: BoardSize | null;
   readonly release: string | null;
@@ -74,12 +80,25 @@ export function ModelPreview({
     const stale = (): boolean => cancelled;
     void (async () => {
       try {
-        const model = await engine.call<EntryDetails>('library.get', { id: modelId });
-        const glb = await loadMesh(engine, model, release, (status) => {
-          if (!stale()) {
-            setState(status);
-          }
-        });
+        let glb: Uint8Array;
+        if (file !== null) {
+          setState({ kind: 'tessellating' });
+          const reply = await engine.call<{ data: Uint8Array }>(
+            'mesh.tessellate',
+            { file },
+            TESSELLATE_MS,
+          );
+          glb = reply.data;
+        } else if (modelId !== null) {
+          const model = await engine.call<EntryDetails>('library.get', { id: modelId });
+          glb = await loadMesh(engine, model, release, (status) => {
+            if (!stale()) {
+              setState(status);
+            }
+          });
+        } else {
+          throw new Error('unavailable');
+        }
         if (stale()) {
           return;
         }
@@ -97,7 +116,7 @@ export function ModelPreview({
     return () => {
       cancelled = true;
     };
-  }, [view, engine, modelId, placement, board, release]);
+  }, [view, engine, modelId, file, placement, board, release]);
 
   let message: string | null = null;
   switch (state.kind) {

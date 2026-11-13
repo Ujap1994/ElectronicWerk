@@ -265,7 +265,7 @@ export const libeditDe: Messages['libedit'] = {
     none: 'Noch kein 3D-Modell.',
     preview: '3D-Vorschau',
     notFound:
-      'Dieses Modell ist nicht in der Basisbibliothek, deshalb gibt es hier keine Vorschau.',
+      'Dieses Modell wurde weder im Projektordner noch in einer KiCad-Installation oder der Basisbibliothek gefunden.',
   },
   checks: {
     title: 'Bibliotheksprüfung',

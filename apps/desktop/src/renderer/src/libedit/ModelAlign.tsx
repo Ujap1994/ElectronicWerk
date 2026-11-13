@@ -1,8 +1,8 @@
 /**
- * The 3D preview of a footprint's model while it is aligned: the model of
- * the base library with the footprint's offset, rotation and scale, on a
- * board as large as the footprint. Models outside the base library have
- * no preview (the engine cannot read them yet).
+ * The 3D preview of a footprint's model while it is aligned: the model with
+ * the footprint's offset, rotation and scale, on a board as large as the
+ * footprint. The model is looked up like the 3D view does it: a STEP file
+ * in the project folder or a KiCad installation, else the base library.
  */
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
 
@@ -36,23 +36,35 @@ export function ModelAlign({
   readonly model: Model3d;
 }): ReactNode {
   const { t, engine } = useAppState();
-  const [found, setFound] = useState<{ path: string; id: number | null } | null>(null);
+  const [found, setFound] = useState<{
+    path: string;
+    id: number | null;
+    file: string | null;
+  } | null>(null);
   const [release, setRelease] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
-    void engine.call<{ id: number | null }>('library.model', { path: model.path }).then(
-      (reply) => {
-        if (!cancelled) {
-          setFound({ path: model.path, id: reply.id });
-        }
-      },
-      () => {
-        if (!cancelled) {
-          setFound({ path: model.path, id: null });
-        }
-      },
-    );
+    void engine
+      .call<{ entry?: number; file?: string; format?: string }>('board3d.resolve', {
+        path: model.path,
+      })
+      .then(
+        (reply) => {
+          if (!cancelled) {
+            setFound({
+              path: model.path,
+              id: reply.entry ?? null,
+              file: reply.format === 'step' ? (reply.file ?? null) : null,
+            });
+          }
+        },
+        () => {
+          if (!cancelled) {
+            setFound({ path: model.path, id: null, file: null });
+          }
+        },
+      );
     return () => {
       cancelled = true;
     };
@@ -79,7 +91,7 @@ export function ModelAlign({
   if (found?.path !== model.path) {
     return null;
   }
-  if (found.id === null) {
+  if (found.id === null && found.file === null) {
     return (
       <p className="libedit-props__muted" data-testid="model-not-found">
         {t('libedit.models.notFound')}
@@ -88,7 +100,13 @@ export function ModelAlign({
   }
   return (
     <div className="libedit-model__preview" data-testid="model-align">
-      <ModelPreview modelId={found.id} placement={placement} board={board} release={release} />
+      <ModelPreview
+        modelId={found.id}
+        file={found.file}
+        placement={placement}
+        board={board}
+        release={release}
+      />
     </div>
   );
 }
