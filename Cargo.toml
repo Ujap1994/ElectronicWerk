@@ -19,6 +19,7 @@ ew-model = { path = "crates/ew-model" }
 ew-scene = { path = "crates/ew-scene" }
 ew-schematic = { path = "crates/ew-schematic" }
 ew-libedit = { path = "crates/ew-libedit" }
+ew-output = { path = "crates/ew-output" }
 ew-pcb = { path = "crates/ew-pcb" }
 ew-synth = { path = "crates/ew-synth" }
 clap = { version = "4.6", features = ["derive"] }

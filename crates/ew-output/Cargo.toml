@@ -1,0 +1,27 @@
+[package]
+name = "ew-output"
+description = "ElectronicWerk manufacturing outputs: Gerber X2, Excellon, bills of materials, placement files, IPC netlists, PDF and SVG prints, output jobs"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+publish = false
+
+[dependencies]
+ew-model.workspace = true
+ew-pcb.workspace = true
+ew-scene.workspace = true
+ew-schematic.workspace = true
+flate2.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+thiserror.workspace = true
+
+[dev-dependencies]
+ew-kicad.workspace = true
+ew-synth.workspace = true
+
+[lints]
+workspace = true

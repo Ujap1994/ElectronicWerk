@@ -491,6 +491,22 @@ dependencies = [
 ]
 
 [[package]]
+name = "ew-output"
+version = "0.8.0"
+dependencies = [
+ "ew-kicad",
+ "ew-model",
+ "ew-pcb",
+ "ew-scene",
+ "ew-schematic",
+ "ew-synth",
+ "flate2",
+ "serde",
+ "serde_json",
+ "thiserror",
+]
+
+[[package]]
 name = "ew-pcb"
 version = "0.8.0"
 dependencies = [

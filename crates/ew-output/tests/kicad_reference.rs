@@ -1,0 +1,216 @@
+//! Our Gerber and drill files of the blinky fixture compared with the files
+//! KiCad 10 writes for the same board (`tests/fixtures/blinky-kicad`): both
+//! are read back, rasterized at 20 µm and compared pixel by pixel.
+
+#![allow(
+    clippy::unwrap_used,
+    clippy::print_stderr,
+    clippy::cast_precision_loss,
+    clippy::too_many_lines,
+    reason = "test helpers"
+)]
+
+use std::path::PathBuf;
+
+use ew_model::document::Document;
+use ew_model::layer::{CopperLayer, Layer, Side};
+use ew_model::pcb::Pcb;
+use ew_output::art::{ArtOptions, BoardArt};
+use ew_output::drill::{DrillOptions, drill_files};
+use ew_output::gerber::{Context, GerberOptions, gerbers};
+use ew_output::raster::Bitmap;
+use ew_output::read::{self, Image};
+use ew_pcb::geom::V;
+
+const PIXEL: f64 = 20_000.0;
+
+fn fixture(path: &str) -> PathBuf {
+    PathBuf::from(env!("CARGO_MANIFEST_DIR")).join(path)
+}
+
+fn board() -> Pcb {
+    let imported = ew_kicad::import_project(
+        &fixture("../ew-kicad/tests/fixtures/blinky/blinky.kicad_pro"),
+        None,
+    )
+    .unwrap();
+    imported
+        .project
+        .documents
+        .values()
+        .find_map(|d| match d {
+            Document::Pcb(pcb) => Some(pcb.clone()),
+            _ => None,
+        })
+        .unwrap()
+}
+
+fn context() -> Context {
+    Context {
+        version: "test".into(),
+        created: String::new(),
+        project: "blinky".into(),
+        guid: "00000000-0000-0000-0000-000000000000".into(),
+        revision: "A".into(),
+        stem: "blinky".into(),
+    }
+}
+
+fn reference(name: &str) -> Image {
+    let text =
+        std::fs::read_to_string(fixture(&format!("tests/fixtures/blinky-kicad/{name}"))).unwrap();
+    read::read(&text).unwrap()
+}
+
+struct Ours {
+    files: Vec<(String, Image)>,
+}
+
+impl Ours {
+    fn new(pcb: &Pcb) -> Self {
+        let resolve = |s: &str| s.to_owned();
+        let art = BoardArt::new(pcb, ArtOptions::default(), &resolve);
+        let options = GerberOptions {
+            layers: vec![
+                Layer::Copper(CopperLayer::Top),
+                Layer::Copper(CopperLayer::Inner(1)),
+                Layer::Copper(CopperLayer::Inner(2)),
+                Layer::Copper(CopperLayer::Bottom),
+                Layer::SolderMask(Side::Top),
+                Layer::SolderMask(Side::Bottom),
+                Layer::Paste(Side::Top),
+                Layer::Paste(Side::Bottom),
+                Layer::Silkscreen(Side::Top),
+                Layer::Silkscreen(Side::Bottom),
+                Layer::Outline,
+            ],
+            ..GerberOptions::default()
+        };
+        let mut files: Vec<(String, Image)> = gerbers(&art, &options, &context())
+            .into_iter()
+            .filter(|f| !f.name.ends_with(".gbrjob"))
+            .map(|f| {
+                let text = String::from_utf8(f.data).unwrap();
+                let image = read::read(&text).unwrap();
+                assert!(
+                    image.warnings.is_empty(),
+                    "{}: {:?}",
+                    f.name,
+                    image.warnings
+                );
+                (f.name, image)
+            })
+            .collect();
+        for f in drill_files(pcb, DrillOptions { merge: true }, "blinky", "test", "") {
+            let text = String::from_utf8(f.data).unwrap();
+            files.push((f.name, read::read(&text).unwrap()));
+        }
+        Self { files }
+    }
+
+    fn get(&self, suffix: &str) -> &Image {
+        &self
+            .files
+            .iter()
+            .find(|(name, _)| name.ends_with(suffix))
+            .unwrap_or_else(|| panic!("no file {suffix}"))
+            .1
+    }
+}
+
+/// The offset that moves the KiCad image onto ours (KiCad's y axis points
+/// down from the page corner, ours up), from the board outlines.
+fn alignment(ours: &Image, kicad: &Image) -> V {
+    let (a, b) = (ours.bounds().unwrap(), kicad.bounds().unwrap());
+    V::new(a[0] - b[0], a[1] - b[1])
+}
+
+/// Pixels that differ, relative to the pixels of the reference.
+fn compare(ours: &Image, kicad: &Image, offset: V, name: &str) -> f64 {
+    let b = ours.bounds().or_else(|| kicad.bounds()).unwrap();
+    let k = kicad.bounds().unwrap_or(b);
+    let bounds = [
+        b[0].min(k[0] + offset.x) - 1e6,
+        b[1].min(k[1] + offset.y) - 1e6,
+        b[2].max(k[2] + offset.x) + 1e6,
+        b[3].max(k[3] + offset.y) + 1e6,
+    ];
+    let mine = Bitmap::of(ours, bounds, PIXEL, V::new(0.0, 0.0));
+    let theirs = Bitmap::of(kicad, bounds, PIXEL, offset);
+    let differ = mine.difference(&theirs);
+    let ratio = differ as f64 / theirs.count().max(1) as f64;
+    eprintln!(
+        "{name}: ours {} px, KiCad {} px, differ {differ} px ({:.3} %)",
+        mine.count(),
+        theirs.count(),
+        ratio * 100.0
+    );
+    if let Ok(dir) = std::env::var("EW_RASTER_DIR") {
+        let dir = PathBuf::from(dir);
+        std::fs::write(dir.join(format!("{name}-ours.pgm")), mine.pgm()).unwrap();
+        std::fs::write(dir.join(format!("{name}-kicad.pgm")), theirs.pgm()).unwrap();
+    }
+    ratio
+}
+
+#[test]
+fn gerbers_match_kicad() {
+    let pcb = board();
+    let ours = Ours::new(&pcb);
+    let offset = alignment(ours.get("-Outline.gm1"), &reference("Edge_Cuts.gm1"));
+    // Copper, mask, paste and outline match to the pixel apart from curve
+    // approximation along edges.
+    for (suffix, kicad, limit) in [
+        ("-Copper_Top.gtl", "F_Cu.gtl", 0.01),
+        ("-Copper_In1.g1", "In1_Cu.g1", 0.01),
+        ("-Copper_In2.g2", "In2_Cu.g2", 0.01),
+        ("-Copper_Bottom.gbl", "B_Cu.gbl", 0.01),
+        ("-Soldermask_Top.gts", "F_Mask.gts", 0.01),
+        ("-Soldermask_Bottom.gbs", "B_Mask.gbs", 0.01),
+        ("-Paste_Top.gtp", "F_Paste.gtp", 0.01),
+        ("-Paste_Bottom.gbp", "B_Paste.gbp", 0.01),
+        ("-Outline.gm1", "Edge_Cuts.gm1", 0.02),
+        ("blinky.drl", "blinky.drl", 0.01),
+    ] {
+        let ratio = compare(ours.get(suffix), &reference(kicad), offset, kicad);
+        assert!(ratio <= limit, "{kicad}: {:.3} % differ", ratio * 100.0);
+    }
+    // Silkscreen texts use another font: only the graphics and the place of
+    // the texts can match.
+    for (suffix, kicad) in [
+        ("-Silkscreen_Top.gto", "F_Silkscreen.gto"),
+        ("-Silkscreen_Bottom.gbo", "B_Silkscreen.gbo"),
+    ] {
+        let ratio = compare(ours.get(suffix), &reference(kicad), offset, kicad);
+        assert!(ratio <= 0.8, "{kicad}: {:.3} % differ", ratio * 100.0);
+    }
+}
+
+#[test]
+fn net_and_pad_attributes() {
+    let pcb = board();
+    let resolve = |s: &str| s.to_owned();
+    let art = BoardArt::new(&pcb, ArtOptions::default(), &resolve);
+    let options = GerberOptions {
+        layers: vec![Layer::Copper(CopperLayer::Top)],
+        ..GerberOptions::default()
+    };
+    let files = gerbers(&art, &options, &context());
+    let top = String::from_utf8(files[0].data.clone()).unwrap();
+    for expected in [
+        "%TF.FileFunction,Copper,L1,Top*%",
+        "%TO.P,U1,1*%",
+        "%TO.N,GND*%",
+        "%TO.N,/TRIG*%",
+        "%TA.AperFunction,SMDPad,CuDef*%",
+        "%TA.AperFunction,ComponentPad*%",
+        "%TA.AperFunction,ViaPad*%",
+        "%TA.AperFunction,Conductor*%",
+    ] {
+        assert!(top.contains(expected), "missing {expected}");
+    }
+    let job = files.iter().find(|f| f.name.ends_with(".gbrjob")).unwrap();
+    let job: serde_json::Value = serde_json::from_slice(&job.data).unwrap();
+    assert_eq!(job["GeneralSpecs"]["LayerNumber"], 4);
+    assert_eq!(job["FilesAttributes"][0]["FileFunction"], "Copper,L1,Top");
+}
