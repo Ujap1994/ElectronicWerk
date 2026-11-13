@@ -24,6 +24,7 @@ export const IPC = {
   dialogChooseFolder: 'dialog:choose-folder',
   dialogSaveArchive: 'dialog:save-archive',
   dialogChooseImport: 'dialog:choose-import',
+  dialogChooseGerbers: 'dialog:choose-gerbers',
   exportSave: 'export:save',
   projectsLocation: 'projects:default-location',
   recentGet: 'recent:get',
@@ -33,6 +34,7 @@ export const IPC = {
   recentSetLocation: 'recent:set-location',
   recentChanged: 'recent:changed',
   showItem: 'shell:show-item',
+  openFile: 'shell:open-file',
   windowState: 'window:state',
   closeRequested: 'window:close-requested',
   closeConfirmed: 'window:close-confirmed',
@@ -164,6 +166,8 @@ export interface EwApi {
     saveArchive: (defaultPath: string) => Promise<string | null>;
     /** Lets the user pick a file (or folder) to import. */
     chooseImport: (kind: ImportKind) => Promise<string | null>;
+    /** Lets the user pick Gerber and drill files for the Gerber viewer. */
+    chooseGerbers: () => Promise<readonly string[] | null>;
     /**
      * Asks where to save an export and writes it: text as it is, a print
      * document (HTML) as PDF. Returns the path, or `null` if cancelled.
@@ -181,6 +185,8 @@ export interface EwApi {
     onRecentChanged: (listener: (state: RecentState) => void) => Unsubscribe;
     /** Reveals a file or folder in the system file manager. */
     showInFolder: (path: string) => void;
+    /** Opens a generated output file (PDF, SVG, CSV, …) with its application. */
+    openFile: (path: string) => void;
     /** A project passed on the command line or by the OS, taken once. */
     takePendingOpen: () => Promise<string | null>;
     /** Projects opened from the "Open Recent" menu, the OS or a second launch. */

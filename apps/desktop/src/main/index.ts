@@ -29,8 +29,10 @@ import {
   chooseArchiveFile,
   chooseExportFile,
   chooseFolder,
+  chooseGerbers,
   chooseImport,
   chooseProjectFile,
+  GERBER_EXTENSIONS,
   queueDialogAnswer,
 } from './dialogs';
 import { EngineManager } from './engine';
@@ -73,6 +75,26 @@ const NO_PROJECT: WindowState = {
   canUndo: false,
   canRedo: false,
 };
+
+/** Output files that may be opened with their application. */
+const OPENABLE_OUTPUTS = new Set<string>([
+  'pdf',
+  'svg',
+  'csv',
+  'xlsx',
+  'html',
+  'zip',
+  'xml',
+  'd356',
+  'net',
+  'gbrjob',
+  ...GERBER_EXTENSIONS,
+]);
+
+function isOpenableOutput(path: string): boolean {
+  const dot = path.lastIndexOf('.');
+  return dot > 0 && OPENABLE_OUTPUTS.has(path.slice(dot + 1).toLowerCase());
+}
 
 function isWindowState(value: unknown): value is WindowState {
   if (typeof value !== 'object' || value === null) {
@@ -324,6 +346,10 @@ function main(): void {
         : null,
     );
 
+    ipcMain.handle(IPC.dialogChooseGerbers, (event) =>
+      isTrustedSender(event.senderFrame) ? chooseGerbers(mainWindow, t) : null,
+    );
+
     ipcMain.handle(IPC.dialogChooseImport, (event, kind: unknown) =>
       isTrustedSender(event.senderFrame) && isImportKind(kind)
         ? chooseImport(mainWindow, t, kind)
@@ -397,6 +423,19 @@ function main(): void {
         ? updateRecent(recent.setLastLocation(folder))
         : null,
     );
+
+    // Opens generated outputs with their application; only document,
+    // table and manufacturing file types, never programs.
+    ipcMain.on(IPC.openFile, (event, path: unknown) => {
+      if (
+        isTrustedSender(event.senderFrame) &&
+        typeof path === 'string' &&
+        isAbsolute(path) &&
+        isOpenableOutput(path)
+      ) {
+        void shell.openPath(path);
+      }
+    });
 
     ipcMain.on(IPC.showItem, (event, path: unknown) => {
       if (isTrustedSender(event.senderFrame) && typeof path === 'string' && isAbsolute(path)) {

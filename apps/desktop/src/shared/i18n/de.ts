@@ -1,4 +1,5 @@
 import { boardDe } from './board.de';
+import { outputsDe } from './outputs.de';
 import { libeditDe } from './libedit.de';
 import { schematicDe } from './schematic.de';
 import type { Messages } from './types';
@@ -117,12 +118,15 @@ export const de: Messages = {
     designRules: 'Platine: Designregeln und Netzklassen',
     importDxf: 'Platine: DXF-Zeichnung importieren',
     placeFootprint: 'Platine: Footprint platzieren',
+    generateOutputs: 'Ausgaben: Fertigungsdaten erzeugen (Ausgabejob)',
+    gerberViewer: 'Gerber-Viewer: Gerber- und Bohrdateien öffnen …',
   },
   project: {
     save: 'Speichern',
     saveAs: 'Speichern unter …',
     saveCopy: 'Kopie speichern …',
     archive: 'Archivieren …',
+    outputs: 'Ausgaben',
     close: 'Projekt schließen',
     undo: 'Rückgängig',
     redo: 'Wiederholen',
@@ -323,7 +327,7 @@ export const de: Messages = {
       'Doppelklicke die Platine im Projektbaum, um sie anzusehen. Der Layout-Editor kommt mit Version 0.8, die Live-3D-Ansicht mit Version 0.10.',
     comingLibrary: 'Die Bibliotheksverwaltung kommt mit Version 0.5.',
     comingRules: 'Der Regeleditor kommt zusammen mit dem Layout-Editor in Version 0.8.',
-    comingOutputs: 'Das Erzeugen von Fertigungsdaten kommt mit Version 0.9.',
+    openJob: 'Ausgabejob öffnen',
   },
   outputKinds: {
     gerber: 'Gerber X2',
@@ -337,6 +341,7 @@ export const de: Messages = {
     ipc356: 'IPC-D-356-Netzliste',
     ipc2581: 'IPC-2581',
     netlist: 'Netzliste',
+    archive: 'ZIP-Paket',
   },
   colors: {
     white: 'Weiß',
@@ -356,8 +361,11 @@ export const de: Messages = {
     outputDrill: 'Bohrdaten',
     outputBom: 'Stückliste',
     outputPickAndPlace: 'Bestückungsdaten',
+    outputDrillMap: 'Bohrplan',
+    outputIpc356: 'IPC-D-356-Netzliste',
     outputPdf: 'Schaltplan-PDF',
-    outputStep: '3D-Modell',
+    outputAssembly: 'Bestückungszeichnung',
+    outputPackage: 'Fertigungspaket',
   },
   units: {
     mm: 'Millimeter (mm)',
@@ -529,6 +537,9 @@ export const de: Messages = {
     importLibraryFolderTitle: 'KiCad-Bibliotheksordner wählen (.pretty oder .kicad_symdir)',
     importDxfTitle: 'DXF-Zeichnung importieren',
     dxfFilter: 'DXF-Zeichnungen',
+    gerberTitle: 'Gerber- und Bohrdateien öffnen',
+    gerberFilter: 'Gerber- und Bohrdateien',
+    allFiles: 'Alle Dateien',
   },
   languages: {
     de: 'Deutsch',
@@ -1061,4 +1072,5 @@ export const de: Messages = {
   schematic: schematicDe,
   libedit: libeditDe,
   board: boardDe,
+  outputs: outputsDe,
 };

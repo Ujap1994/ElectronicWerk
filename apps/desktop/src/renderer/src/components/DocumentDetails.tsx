@@ -824,10 +824,12 @@ const OUTPUT_KINDS: Readonly<Record<string, MessageKey>> = {
   ipc356: 'outputKinds.ipc356',
   ipc2581: 'outputKinds.ipc2581',
   netlist: 'outputKinds.netlist',
+  archive: 'outputKinds.archive',
 };
 
 function OutputJobDetails({ document }: { readonly document: DocumentSummary }): ReactNode {
   const { t } = useAppState();
+  const open = useOpenDocument();
   const props = useDocumentProps(document);
   const outputs = Array.isArray(props?.['outputs']) ? props['outputs'].map(record) : [];
   return (
@@ -866,7 +868,20 @@ function OutputJobDetails({ document }: { readonly document: DocumentSummary }):
           </table>
         </Section>
       )}
-      <Coming text="details.comingOutputs" />
+      {open !== null && (
+        <div className="details__actions">
+          <button
+            type="button"
+            className="button button--primary"
+            data-testid="details-open-job"
+            onClick={() => {
+              open(document);
+            }}
+          >
+            <Icon name="output" size={16} /> {t('details.openJob')}
+          </button>
+        </div>
+      )}
     </div>
   );
 }

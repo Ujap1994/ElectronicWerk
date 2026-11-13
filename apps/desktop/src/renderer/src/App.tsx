@@ -20,6 +20,7 @@ import { UpdateDialog, type UpdateDialogState } from './components/UpdateDialog'
 import { LibraryManager } from './library/LibraryManager';
 import { useProject } from './project/ProjectProvider';
 import { activeBoard } from './board/stores';
+import { outputCommands } from './outputs/stores';
 import { activeSheet } from './schematic/stores';
 import { useAppState } from './state';
 
@@ -162,6 +163,7 @@ export function App(): ReactNode {
 
   const sheet = useSyncExternalStore(activeSheet.subscribe, activeSheet.get);
   const boardCommands = useSyncExternalStore(activeBoard.subscribe, activeBoard.get);
+  const outputs = useSyncExternalStore(outputCommands.subscribe, outputCommands.get);
   const commands = useMemo<Command[]>(
     () => [
       ...(sheet === null
@@ -189,6 +191,12 @@ export function App(): ReactNode {
               label: 'commands.placeFootprint',
               run: boardCommands.placeFootprint,
             },
+          ] satisfies Command[])),
+      ...(outputs === null
+        ? []
+        : ([
+            { id: 'generate-outputs', label: 'commands.generateOutputs', run: outputs.openJob },
+            { id: 'gerber-viewer', label: 'commands.gerberViewer', run: outputs.openGerbers },
           ] satisfies Command[])),
       { id: 'new-project', label: 'commands.newProject', run: newProject },
       {
@@ -364,6 +372,7 @@ export function App(): ReactNode {
       newProject,
       openLibrary,
       openProject,
+      outputs,
       startKicadImport,
       project,
       redo,

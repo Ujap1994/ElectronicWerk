@@ -53,6 +53,7 @@ const api: EwApi = {
       ipcRenderer.invoke(IPC.dialogChooseFolder, defaultPath, purpose),
     saveArchive: (defaultPath) => ipcRenderer.invoke(IPC.dialogSaveArchive, defaultPath),
     chooseImport: (kind) => ipcRenderer.invoke(IPC.dialogChooseImport, kind),
+    chooseGerbers: () => ipcRenderer.invoke(IPC.dialogChooseGerbers),
     saveExport: (kind, defaultPath, content) =>
       ipcRenderer.invoke(IPC.exportSave, kind, defaultPath, content),
   },
@@ -66,6 +67,9 @@ const api: EwApi = {
     onRecentChanged: (listener) => subscribe(IPC.recentChanged, listener),
     showInFolder: (path) => {
       ipcRenderer.send(IPC.showItem, path);
+    },
+    openFile: (path) => {
+      ipcRenderer.send(IPC.openFile, path);
     },
     takePendingOpen: () => ipcRenderer.invoke(IPC.pendingOpen),
     onOpenPath: (listener) => subscribe(IPC.openPath, listener),

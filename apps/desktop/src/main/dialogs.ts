@@ -123,6 +123,59 @@ export async function chooseImport(
   return result.canceled ? null : (result.filePaths[0] ?? null);
 }
 
+/** Extensions of Gerber and drill files. */
+export const GERBER_EXTENSIONS = [
+  'gbr',
+  'ger',
+  'gtl',
+  'gbl',
+  'gts',
+  'gbs',
+  'gto',
+  'gbo',
+  'gtp',
+  'gbp',
+  'gta',
+  'gba',
+  'gm1',
+  'gko',
+  'gml',
+  'g1',
+  'g2',
+  'g3',
+  'g4',
+  'g5',
+  'g6',
+  'drl',
+  'xln',
+  'exc',
+  'txt',
+] as const;
+
+/** Asks for Gerber and drill files (several at once). */
+export async function chooseGerbers(
+  window: BrowserWindow | null,
+  t: Translate,
+): Promise<readonly string[] | null> {
+  const stub = takeQueued();
+  if (stub !== null) {
+    return stub.answer === null ? null : stub.answer.split('\n').filter((p) => p !== '');
+  }
+  const options: Electron.OpenDialogOptions = {
+    title: t('dialogs.gerberTitle'),
+    properties: ['openFile', 'multiSelections'],
+    filters: [
+      { name: t('dialogs.gerberFilter'), extensions: [...GERBER_EXTENSIONS] },
+      { name: t('dialogs.allFiles'), extensions: ['*'] },
+    ],
+  };
+  const result =
+    window === null
+      ? await dialog.showOpenDialog(options)
+      : await dialog.showOpenDialog(window, options);
+  return result.canceled || result.filePaths.length === 0 ? null : result.filePaths;
+}
+
 export async function chooseArchiveFile(
   window: BrowserWindow | null,
   t: Translate,

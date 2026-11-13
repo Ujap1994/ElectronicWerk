@@ -456,8 +456,11 @@ export function ProjectProvider({ children }: { readonly children: ReactNode }):
                 drill: t('defaults.outputDrill'),
                 bom: t('defaults.outputBom'),
                 pickAndPlace: t('defaults.outputPickAndPlace'),
+                drillMap: t('defaults.outputDrillMap'),
+                ipc356: t('defaults.outputIpc356'),
                 pdf: t('defaults.outputPdf'),
-                step: t('defaults.outputStep'),
+                assemblyDrawing: t('defaults.outputAssembly'),
+                archive: t('defaults.outputPackage'),
               },
             },
             ...(options.board === null ? {} : { board: options.board }),
@@ -486,8 +489,11 @@ export function ProjectProvider({ children }: { readonly children: ReactNode }):
         drill: t('defaults.outputDrill'),
         bom: t('defaults.outputBom'),
         pickAndPlace: t('defaults.outputPickAndPlace'),
+        drillMap: t('defaults.outputDrillMap'),
+        ipc356: t('defaults.outputIpc356'),
         pdf: t('defaults.outputPdf'),
-        step: t('defaults.outputStep'),
+        assemblyDrawing: t('defaults.outputAssembly'),
+        archive: t('defaults.outputPackage'),
       },
     }),
     [t],
@@ -736,12 +742,15 @@ export function ProjectProvider({ children }: { readonly children: ReactNode }):
 
   const addDocument = useCallback(
     async (kind: DocumentKind, name: string, parent?: string): Promise<string | null> => {
+      // New output jobs start with the generic preset.
       const result = await run(null, () =>
-        engine.call<{ id: string }>('document.add', {
-          kind,
-          name,
-          ...(parent === undefined ? {} : { parent }),
-        }),
+        kind === 'outputJob'
+          ? engine.call<{ id: string }>('outputs.create', { name, preset: 'generic' })
+          : engine.call<{ id: string }>('document.add', {
+              kind,
+              name,
+              ...(parent === undefined ? {} : { parent }),
+            }),
       );
       return result?.id ?? null;
     },

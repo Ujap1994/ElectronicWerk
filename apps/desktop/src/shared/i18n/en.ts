@@ -5,6 +5,7 @@
  * Placeholders use `{name}` syntax and must be identical in every language.
  */
 import { boardEn } from './board.en';
+import { outputsEn } from './outputs.en';
 import { libeditEn } from './libedit.en';
 import { schematicEn } from './schematic.en';
 
@@ -120,12 +121,15 @@ export const en = {
     designRules: 'Board: design rules and net classes',
     importDxf: 'Board: import a DXF drawing',
     placeFootprint: 'Board: place a footprint',
+    generateOutputs: 'Outputs: generate manufacturing files (output job)',
+    gerberViewer: 'Gerber viewer: open Gerber and drill files…',
   },
   project: {
     save: 'Save',
     saveAs: 'Save as…',
     saveCopy: 'Save a copy…',
     archive: 'Archive…',
+    outputs: 'Outputs',
     close: 'Close project',
     undo: 'Undo',
     redo: 'Redo',
@@ -326,7 +330,7 @@ export const en = {
       'Double-click the board in the project tree to view it. The layout editor arrives in version 0.8 and the live 3D view in version 0.10.',
     comingLibrary: 'The library manager arrives in version 0.5.',
     comingRules: 'The rule editor arrives together with the layout editor in version 0.8.',
-    comingOutputs: 'Generating manufacturing files arrives in version 0.9.',
+    openJob: 'Open the output job',
   },
   outputKinds: {
     gerber: 'Gerber X2',
@@ -340,6 +344,7 @@ export const en = {
     ipc356: 'IPC-D-356 netlist',
     ipc2581: 'IPC-2581',
     netlist: 'Netlist',
+    archive: 'ZIP package',
   },
   colors: {
     white: 'White',
@@ -359,8 +364,11 @@ export const en = {
     outputDrill: 'Drill',
     outputBom: 'Bill of materials',
     outputPickAndPlace: 'Pick and place',
+    outputDrillMap: 'Drill map',
+    outputIpc356: 'IPC-D-356 netlist',
     outputPdf: 'Schematic PDF',
-    outputStep: '3D model',
+    outputAssembly: 'Assembly drawing',
+    outputPackage: 'Fabrication package',
   },
   units: {
     mm: 'Millimetres (mm)',
@@ -524,6 +532,9 @@ export const en = {
     importLibraryFolderTitle: 'Choose a KiCad library folder (.pretty or .kicad_symdir)',
     importDxfTitle: 'Import a DXF drawing',
     dxfFilter: 'DXF drawings',
+    gerberTitle: 'Open Gerber and drill files',
+    gerberFilter: 'Gerber and drill files',
+    allFiles: 'All files',
   },
   languages: {
     de: 'Deutsch',
@@ -1053,4 +1064,5 @@ export const en = {
   schematic: schematicEn,
   libedit: libeditEn,
   board: boardEn,
+  outputs: outputsEn,
 } as const;

@@ -13,5 +13,10 @@ export function useOpenDocument(): ((document: DocumentSummary) => void) | null 
 
 /** Documents that open in a tab: sheets and boards in the viewer, libraries in the library editor. */
 export function isViewable(document: DocumentSummary): boolean {
-  return document.kind === 'schematic' || document.kind === 'pcb' || document.kind === 'library';
+  return (
+    document.kind === 'schematic' ||
+    document.kind === 'pcb' ||
+    document.kind === 'library' ||
+    document.kind === 'outputJob'
+  );
 }

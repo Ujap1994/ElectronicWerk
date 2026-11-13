@@ -3,6 +3,9 @@ import { useCallback, useEffect, useState, type ReactNode } from 'react';
 import type { DocumentSummary } from '@shared/project';
 
 import { LibraryEditor } from '../libedit/LibraryEditor';
+import { GerberViewer } from '../outputs/GerberViewer';
+import { forgetOutputRuns, OpenGerberContext, OutputJobEditor } from '../outputs/OutputJobEditor';
+import { outputCommands } from '../outputs/stores';
 import { historyLabel } from '../project/labels';
 import { useProject } from '../project/ProjectProvider';
 import { selectionKey, type TreeTarget } from '../project/tree';
@@ -48,6 +51,23 @@ function ToolButton({
   );
 }
 
+/** An open tab: a document or a Gerber view. */
+interface OpenTab {
+  readonly id: string;
+  readonly name: string;
+  readonly kind: string;
+  readonly document: DocumentSummary | null;
+  readonly gerber: { readonly name: string; readonly paths: readonly string[] } | null;
+}
+
+const TAB_ICONS: Readonly<Record<string, IconName>> = {
+  pcb: 'board',
+  library: 'library',
+  schematic: 'schematic',
+  outputJob: 'output',
+  gerber: 'layers',
+};
+
 /**
  * The open project: toolbar, project tree and details. Increasing
  * `projectView` selects the project properties (menu command).
@@ -60,10 +80,13 @@ export function ProjectWorkspace({
   readonly onOpenLibrary: () => void;
 }): ReactNode {
   const { t, appInfo } = useAppState();
-  const { project, save, undo, redo, validate, archive, closeProject } = useProject();
+  const { project, save, undo, redo, validate, archive, closeProject, addDocument } = useProject();
   const [target, setTarget] = useState<TreeTarget>({ type: 'project' });
   const [shownView, setShownView] = useState(projectView);
   const [tabs, setTabs] = useState<readonly string[]>([]);
+  const [gerberTabs, setGerberTabs] = useState<
+    Readonly<Record<string, { readonly name: string; readonly paths: readonly string[] }>>
+  >({});
   const [activeTab, setActiveTab] = useState<string | null>(null);
   if (shownView !== projectView) {
     setShownView(projectView);
@@ -74,6 +97,7 @@ export function ProjectWorkspace({
   useEffect(
     () => () => {
       forgetViewMemories();
+      forgetOutputRuns();
       resetSchematicStores();
       resetBoardStores();
     },
@@ -83,14 +107,65 @@ export function ProjectWorkspace({
     setTabs((current) => (current.includes(document.id) ? current : [...current, document.id]));
     setActiveTab(document.id);
   }, []);
+  const openGerber = useCallback((name: string, paths: readonly string[]) => {
+    const id = `gerber:${name}`;
+    setGerberTabs((current) => ({ ...current, [id]: { name, paths } }));
+    setTabs((current) => (current.includes(id) ? current : [...current, id]));
+    setActiveTab(id);
+  }, []);
+  const firstJob = project?.documents.find((document) => document.kind === 'outputJob') ?? null;
+  const jobName = t('defaults.outputJob');
+  useEffect(() => {
+    outputCommands.set({
+      openJob: () => {
+        if (firstJob !== null) {
+          openDocument(firstJob);
+          return;
+        }
+        void addDocument('outputJob', jobName).then((id) => {
+          if (id !== null) {
+            setTabs((current) => (current.includes(id) ? current : [...current, id]));
+            setActiveTab(id);
+          }
+        });
+      },
+      openGerbers: () => {
+        void window.ew.dialogs.chooseGerbers().then((paths) => {
+          if (paths !== null && paths.length > 0) {
+            const first = paths[0] ?? '';
+            const name = first.split(/[\\/]/u).pop() ?? first;
+            openGerber(name, paths);
+          }
+        });
+      },
+    });
+    return () => {
+      outputCommands.set(null);
+    };
+  }, [addDocument, firstJob, jobName, openDocument, openGerber]);
   if (project === null) {
     return null;
   }
   // Tabs of removed documents disappear.
   const openTabs = tabs
-    .map((id) => project.documents.find((document) => document.id === id))
-    .filter((document) => document !== undefined);
-  const active = openTabs.find((document) => document.id === activeTab) ?? null;
+    .map((id): OpenTab | undefined => {
+      const gerber = gerberTabs[id];
+      if (gerber !== undefined) {
+        return {
+          id,
+          name: t('outputs.viewer.tab', { name: gerber.name }),
+          kind: 'gerber',
+          document: null,
+          gerber,
+        };
+      }
+      const document = project.documents.find((entry) => entry.id === id);
+      return document === undefined
+        ? undefined
+        : { id, name: document.name, kind: document.kind, document, gerber: null };
+    })
+    .filter((tab) => tab !== undefined);
+  const active = openTabs.find((tab) => tab.id === activeTab) ?? null;
   const closeTab = (id: string): void => {
     const index = openTabs.findIndex((document) => document.id === id);
     setTabs((current) => current.filter((entry) => entry !== id));
@@ -166,6 +241,15 @@ export function ProjectWorkspace({
               void archive();
             }}
           />
+          <ToolButton
+            icon="output"
+            label={t('project.outputs')}
+            title={t('commands.generateOutputs')}
+            testId="toolbar-outputs"
+            onClick={() => {
+              outputCommands.get()?.openJob();
+            }}
+          />
         </div>
         <div className="toolbar__group">
           <ToolButton
@@ -188,97 +272,103 @@ export function ProjectWorkspace({
         />
       </header>
       <OpenDocumentContext value={openDocument}>
-        <div className="workspace__body">
-          <aside className="workspace__sidebar">
-            <ProjectTree
-              selected={selectionKey(target)}
-              onSelect={(next) => {
-                setTarget(next);
-                if (active !== null) {
-                  setActiveTab(null);
-                }
-              }}
-            />
-          </aside>
-          <div className="workspace__main">
-            {openTabs.length > 0 && (
-              <div className="tabs" role="tablist" aria-label={t('viewer.tabs')}>
-                <button
-                  type="button"
-                  role="tab"
-                  className="tabs__tab"
-                  aria-selected={active === null}
-                  data-testid="tab-details"
-                  onClick={() => {
+        <OpenGerberContext value={openGerber}>
+          <div className="workspace__body">
+            <aside className="workspace__sidebar">
+              <ProjectTree
+                selected={selectionKey(target)}
+                onSelect={(next) => {
+                  setTarget(next);
+                  if (active !== null) {
                     setActiveTab(null);
-                  }}
-                >
-                  <Icon name="info" size={16} />
-                  <span>{t('viewer.details')}</span>
-                </button>
-                {openTabs.map((document) => (
-                  <div
-                    key={document.id}
-                    className="tabs__item"
-                    data-selected={document.id === active?.id}
+                  }
+                }}
+              />
+            </aside>
+            <div className="workspace__main">
+              {openTabs.length > 0 && (
+                <div className="tabs" role="tablist" aria-label={t('viewer.tabs')}>
+                  <button
+                    type="button"
+                    role="tab"
+                    className="tabs__tab"
+                    aria-selected={active === null}
+                    data-testid="tab-details"
+                    onClick={() => {
+                      setActiveTab(null);
+                    }}
                   >
-                    <button
-                      type="button"
-                      role="tab"
-                      className="tabs__tab"
-                      aria-selected={document.id === active?.id}
-                      data-testid={`tab-${document.id}`}
-                      onClick={() => {
-                        setActiveTab(document.id);
-                      }}
+                    <Icon name="info" size={16} />
+                    <span>{t('viewer.details')}</span>
+                  </button>
+                  {openTabs.map((document) => (
+                    <div
+                      key={document.id}
+                      className="tabs__item"
+                      data-selected={document.id === active?.id}
                     >
-                      <Icon
-                        name={
-                          document.kind === 'pcb'
-                            ? 'board'
-                            : document.kind === 'library'
-                              ? 'library'
-                              : 'schematic'
-                        }
-                        size={16}
-                      />
-                      <span>{document.name}</span>
-                    </button>
-                    <button
-                      type="button"
-                      className="tabs__close"
-                      aria-label={t('viewer.closeTab', { name: document.name })}
-                      title={t('viewer.closeTab', { name: document.name })}
-                      data-testid={`tab-close-${document.id}`}
-                      onClick={() => {
-                        closeTab(document.id);
-                      }}
-                    >
-                      <Icon name="close" size={14} />
-                    </button>
-                  </div>
-                ))}
-              </div>
-            )}
-            {active === null ? (
-              <main className="workspace__details" data-testid="details">
-                <DocumentDetails target={target} />
-              </main>
-            ) : (
-              <main className="workspace__viewer">
-                {active.kind === 'library' ? (
-                  <LibraryEditor key={active.id} document={active} units={project.settings.units} />
-                ) : (
-                  <DocumentViewer
-                    key={active.id}
-                    document={active}
-                    units={project.settings.units}
-                  />
-                )}
-              </main>
-            )}
+                      <button
+                        type="button"
+                        role="tab"
+                        className="tabs__tab"
+                        aria-selected={document.id === active?.id}
+                        data-testid={`tab-${document.id}`}
+                        onClick={() => {
+                          setActiveTab(document.id);
+                        }}
+                      >
+                        <Icon name={TAB_ICONS[document.kind] ?? 'schematic'} size={16} />
+                        <span>{document.name}</span>
+                      </button>
+                      <button
+                        type="button"
+                        className="tabs__close"
+                        aria-label={t('viewer.closeTab', { name: document.name })}
+                        title={t('viewer.closeTab', { name: document.name })}
+                        data-testid={`tab-close-${document.id}`}
+                        onClick={() => {
+                          closeTab(document.id);
+                        }}
+                      >
+                        <Icon name="close" size={14} />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+              {active === null ? (
+                <main className="workspace__details" data-testid="details">
+                  <DocumentDetails target={target} />
+                </main>
+              ) : (
+                <main className="workspace__viewer">
+                  {active.gerber !== null ? (
+                    <GerberViewer
+                      key={`${active.id}:${active.gerber.paths.join('|')}`}
+                      name={active.gerber.name}
+                      paths={active.gerber.paths}
+                      units={project.settings.units}
+                    />
+                  ) : active.document === null ? null : active.document.kind === 'library' ? (
+                    <LibraryEditor
+                      key={active.id}
+                      document={active.document}
+                      units={project.settings.units}
+                    />
+                  ) : active.document.kind === 'outputJob' ? (
+                    <OutputJobEditor key={active.id} document={active.document} />
+                  ) : (
+                    <DocumentViewer
+                      key={active.id}
+                      document={active.document}
+                      units={project.settings.units}
+                    />
+                  )}
+                </main>
+              )}
+            </div>
           </div>
-        </div>
+        </OpenGerberContext>
       </OpenDocumentContext>
     </div>
   );
