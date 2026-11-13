@@ -140,9 +140,10 @@ NAME …] [--json]` runs an output job, `ewerk outputs list` lists the jobs
   test project; the engine writes a job into a project folder; end-to-end
   tests generate the outputs of the demo project, check the BOM preview and
   apply a preset with undo.
-- The performance budget of the full design rules check takes the best of
-  two runs after a warm-up, as the online check already did: shared CI
-  runners varied between 2.1 s and 3.5 s for the same code.
+- The performance budget of the full design rules check of the L board is
+  5 s (half the 10 s of the requirement) instead of 3 s, measured as the
+  best of two runs after a warm-up: shared CI runners took between 2.1 s and
+  3.5 s for the same code, so the old budget failed at random.
 
 ## [0.8.0] - 2026-11-12
 

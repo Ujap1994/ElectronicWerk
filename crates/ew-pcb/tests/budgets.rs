@@ -1,7 +1,8 @@
 //! Performance budgets of the board checks (ROADMAP M7): the full design
 //! rules check of an L board (5,000 parts, 200,000 track segments) stays
-//! within a few seconds; the online check after a local edit of an M board
-//! (500 parts, 20,000 track segments) stays below 100 ms.
+//! below 5 s, half the 10 s of the requirement (about 1.6 s on a current
+//! desktop, 2–3.5 s on shared CI runners); the online check after a local
+//! edit of an M board (500 parts, 20,000 track segments) stays below 100 ms.
 //!
 //! Ignored by default because it only makes sense in release builds. CI runs
 //! it with `cargo test --release -p ew-pcb --test budgets -- --ignored`.
@@ -20,7 +21,7 @@ use ew_pcb::drc::{Options, check, merge};
 use ew_pcb::geom::{BBox, V};
 use ew_synth::{DesignSize, generate};
 
-const FULL_BUDGET: Duration = Duration::from_millis(3_000);
+const FULL_BUDGET: Duration = Duration::from_millis(5_000);
 const ONLINE_BUDGET: Duration = Duration::from_millis(100);
 
 fn board(size: DesignSize) -> Pcb {
