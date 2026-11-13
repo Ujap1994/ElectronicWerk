@@ -15,7 +15,8 @@ use std::time::{Duration, Instant};
 use ew_library::dedup::{Class, Decision};
 use ew_library::index::{Library, Query};
 use ew_library::{Built, Kind, LibraryError, Source};
-use serde::Deserialize;
+use ew_model::library::{FootprintDef, SymbolDef};
+use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};
 
 use crate::error::{EngineError, ErrorCode};
@@ -198,7 +199,7 @@ fn parse<T: serde::de::DeserializeOwned>(params: &Value) -> Result<T, EngineErro
     serde_json::from_value(value).map_err(|error| EngineError::invalid_params(error.to_string()))
 }
 
-fn to_value<T: serde::Serialize>(value: &T) -> Result<Value, EngineError> {
+fn to_value<T: Serialize>(value: &T) -> Result<Value, EngineError> {
     serde_json::to_value(value).map_err(EngineError::internal)
 }
 
@@ -276,7 +277,112 @@ pub struct LibraryModel {
     pub file: Option<PathBuf>,
 }
 
+/// A base library entry that duplicates a part from outside the library.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Duplicate {
+    /// Entry id.
+    pub id: i64,
+    /// `library:name`.
+    pub name: String,
+    /// `exact` (the same drawing or footprint), `pads` (footprints: the same
+    /// pads, other graphics), `near` (footprints: pads within 0.05 mm) or
+    /// `pins` (symbols: the same pins, another body).
+    pub class: &'static str,
+}
+
+/// Candidates checked per part (entries with the same number of pins).
+const DUPLICATE_CANDIDATES: usize = 2_000;
+
+fn pin_count<'a>(numbers: impl Iterator<Item = &'a str>) -> u32 {
+    let distinct: std::collections::BTreeSet<&str> = numbers.collect();
+    u32::try_from(distinct.len()).unwrap_or(u32::MAX)
+}
+
 impl LibraryState {
+    /// The base library's best match for a footprint from outside the
+    /// library, if a library is installed: identical, the same pads, or
+    /// pads within the near-duplicate tolerance.
+    pub fn footprint_duplicate(&mut self, def: &FootprintDef) -> Option<Duplicate> {
+        use ew_library::fingerprint;
+        let own = fingerprint::footprint(def);
+        let pins = pin_count(def.pads.iter().map(|p| p.number.as_str()));
+        let candidates = self
+            .index()
+            .ok()?
+            .with_pins(Kind::Footprint, pins, DUPLICATE_CANDIDATES)
+            .ok()?;
+        let mut best: Option<Duplicate> = None;
+        let rank = |class: &str| match class {
+            "exact" => 3,
+            "pads" => 2,
+            _ => 1,
+        };
+        for (id, name, value) in candidates {
+            let Ok(other) = serde_json::from_value::<FootprintDef>(value) else {
+                continue;
+            };
+            let print = fingerprint::footprint(&other);
+            let class = if print.exact == own.exact {
+                "exact"
+            } else if print.pads == own.pads {
+                "pads"
+            } else if print.coarse == own.coarse
+                && fingerprint::pads_close(&own.canon, &print.canon, fingerprint::TOLERANCE_UM)
+            {
+                "near"
+            } else {
+                continue;
+            };
+            if best.as_ref().is_none_or(|b| rank(class) > rank(b.class)) {
+                best = Some(Duplicate { id, name, class });
+                if class == "exact" {
+                    break;
+                }
+            }
+        }
+        best
+    }
+
+    /// The base library's best match for a symbol from outside the library:
+    /// the same drawing, or the same pins with another body.
+    pub fn symbol_duplicate(&mut self, def: &SymbolDef) -> Option<Duplicate> {
+        use ew_library::fingerprint;
+        let own = fingerprint::symbol(def);
+        let pins = pin_count(
+            def.units
+                .iter()
+                .flat_map(|unit| unit.pins.iter().map(|pin| pin.number.as_str())),
+        );
+        let candidates = self
+            .index()
+            .ok()?
+            .with_pins(Kind::Symbol, pins, DUPLICATE_CANDIDATES)
+            .ok()?;
+        let mut best: Option<Duplicate> = None;
+        for (id, name, value) in candidates {
+            let Ok(other) = serde_json::from_value::<SymbolDef>(value) else {
+                continue;
+            };
+            let print = fingerprint::symbol(&other);
+            if print.drawing == own.drawing {
+                return Some(Duplicate {
+                    id,
+                    name,
+                    class: "exact",
+                });
+            }
+            if best.is_none() && print.pins == own.pins {
+                best = Some(Duplicate {
+                    id,
+                    name,
+                    class: "pins",
+                });
+            }
+        }
+        best
+    }
+
     /// The base library's model of a footprint's model path, if a library
     /// is installed and has it.
     pub fn model(&mut self, path: &str) -> Option<LibraryModel> {

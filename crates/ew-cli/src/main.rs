@@ -213,6 +213,27 @@ enum ImportCommand {
         #[arg(long)]
         json: bool,
     },
+    /// Add a part downloaded from `SnapEDA` or Ultra Librarian (a KiCad ZIP)
+    /// to a project's library, with its 3D models.
+    Archive {
+        /// The downloaded `.zip` (or a single `.kicad_sym`, `.kicad_mod`).
+        source: PathBuf,
+        /// Project folder or `.ewproj` file.
+        #[arg(long)]
+        project: PathBuf,
+        /// Prefix of the names (default: the online library or the file name).
+        #[arg(long)]
+        nickname: Option<String>,
+        /// Use the base library's footprint where it has the same one.
+        #[arg(long)]
+        use_library: bool,
+        /// Only show what the download contains.
+        #[arg(long)]
+        dry_run: bool,
+        /// Print the result as JSON.
+        #[arg(long)]
+        json: bool,
+    },
     /// Compare a netlist with a project's board, or apply it (`--apply`).
     Netlist {
         /// KiCad `.net`, XML or CSV netlist.

@@ -18,6 +18,7 @@
 
 pub mod board3d;
 pub mod change;
+pub mod downloads;
 pub mod error;
 pub mod history;
 pub mod import;

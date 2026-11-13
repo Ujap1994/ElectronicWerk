@@ -1,5 +1,6 @@
 //! Implementation of the `ewerk` commands.
 
+use std::fmt::Write as _;
 use std::io::{self, Write};
 use std::path::Path;
 use std::process::ExitCode;
@@ -284,6 +285,56 @@ fn import(command: ImportCommand, out: &mut impl Write) -> Outcome {
             }
             Ok(ExitCode::SUCCESS)
         }
+        ImportCommand::Archive {
+            source,
+            project,
+            nickname,
+            use_library,
+            dry_run,
+            json,
+        } => {
+            call(&mut engine, "project.open", json!({"path": project}))?;
+            let mut params = json!({"path": absolute(&source)?});
+            if let Some(nickname) = nickname {
+                params["nickname"] = Value::String(nickname);
+            }
+            let preview = call(&mut engine, "import.archivePreview", params.clone())?;
+            if dry_run {
+                if json {
+                    print_json(out, &preview)?;
+                } else {
+                    print_download(&preview, out)?;
+                }
+                return Ok(ExitCode::SUCCESS);
+            }
+            if use_library {
+                let replace: Vec<Value> = preview["footprints"]
+                    .as_array()
+                    .into_iter()
+                    .flatten()
+                    .filter(|f| f.get("duplicate").is_some())
+                    .map(|f| f["name"].clone())
+                    .collect();
+                params["useLibrary"] = Value::Array(replace);
+            }
+            let result = call(&mut engine, "import.archive", params)?;
+            call(&mut engine, "project.save", Value::Null)?;
+            if json {
+                print_json(out, &result)?;
+            } else {
+                print_download(&preview, out)?;
+                writeln!(
+                    out,
+                    "Added {} symbols, {} footprints and {} 3D models ({} replaced by the base library, {} already there).",
+                    result["symbols"],
+                    result["footprints"],
+                    result["models"],
+                    result["replaced"],
+                    result["skipped"]
+                )?;
+            }
+            Ok(ExitCode::SUCCESS)
+        }
         ImportCommand::Netlist {
             source,
             project,
@@ -319,6 +370,57 @@ fn import(command: ImportCommand, out: &mut impl Write) -> Outcome {
             })
         }
     }
+}
+
+/// An absolute path (engine requests are not relative to the shell).
+fn absolute(path: &Path) -> Result<std::path::PathBuf, Failure> {
+    Ok(if path.is_absolute() {
+        path.to_path_buf()
+    } else {
+        std::env::current_dir()?.join(path)
+    })
+}
+
+fn print_download(preview: &Value, out: &mut impl Write) -> io::Result<()> {
+    writeln!(
+        out,
+        "{} ({})",
+        preview["file"].as_str().unwrap_or_default(),
+        preview["provider"].as_str().unwrap_or("unknown source")
+    )?;
+    for (label, key) in [("symbol", "symbols"), ("footprint", "footprints")] {
+        for item in preview[key].as_array().into_iter().flatten() {
+            let mut line = format!("  {label:<9} {}", item["name"].as_str().unwrap_or_default());
+            if item["exists"] == true {
+                line.push_str(" (already in the library)");
+            }
+            if let Some(duplicate) = item.get("duplicate") {
+                let _ = write!(
+                    line,
+                    " — base library: {} ({})",
+                    duplicate["name"].as_str().unwrap_or_default(),
+                    duplicate["class"].as_str().unwrap_or_default()
+                );
+            }
+            writeln!(out, "{line}")?;
+        }
+    }
+    for model in preview["models"].as_array().into_iter().flatten() {
+        writeln!(
+            out,
+            "  3D model  {}{}",
+            model["file"].as_str().unwrap_or_default(),
+            if model["used"] == true {
+                ""
+            } else {
+                " (not used)"
+            }
+        )?;
+    }
+    for problem in preview["problems"].as_array().into_iter().flatten() {
+        writeln!(out, "  problem   {}", problem.as_str().unwrap_or_default())?;
+    }
+    Ok(())
 }
 
 fn print_netlist(result: &Value, apply: bool, out: &mut impl Write) -> io::Result<()> {
@@ -1072,6 +1174,48 @@ mod tests {
             run_to_string(Command::Project(ProjectCommand::Upgrade { path: target }));
         assert_eq!(code, ExitCode::SUCCESS);
         assert!(output.contains("Already current"), "{output}");
+    }
+
+    #[test]
+    fn imports_part_downloads() {
+        let dir = tempfile::tempdir().unwrap();
+        let target = dir.path().join("Parts");
+        let _ = run_to_string(Command::Project(ProjectCommand::New(NewArgs {
+            dir: target.clone(),
+            name: Some("Parts".into()),
+            template: "empty".into(),
+            width: None,
+            height: None,
+            layers: None,
+            thickness: None,
+            units: "mm".into(),
+            json: true,
+        })));
+        let download = Path::new(env!("CARGO_MANIFEST_DIR"))
+            .join("../ew-core/tests/fixtures/parts/ul_OPAMP-DEMO.zip");
+        let (code, output) = run_to_string(Command::Import(ImportCommand::Archive {
+            source: download.clone(),
+            project: target.clone(),
+            nickname: None,
+            use_library: false,
+            dry_run: true,
+            json: false,
+        }));
+        assert_eq!(code, ExitCode::SUCCESS, "{output}");
+        assert!(output.contains("UltraLibrarian:DBV0005A"), "{output}");
+        assert!(!target.join("3d").exists(), "a dry run writes nothing");
+        let (code, output) = run_to_string(Command::Import(ImportCommand::Archive {
+            source: download,
+            project: target.clone(),
+            nickname: None,
+            use_library: true,
+            dry_run: false,
+            json: true,
+        }));
+        assert_eq!(code, ExitCode::SUCCESS, "{output}");
+        let value: Value = serde_json::from_str(&output).unwrap();
+        assert_eq!(value["symbols"], 1);
+        assert!(target.join("3d/UltraLibrarian/DBV0005A.step").is_file());
     }
 
     #[test]

@@ -820,6 +820,54 @@ impl Library {
             .map_err(sql_error)
     }
 
+    /// Visible entries of a kind with a number of pins (footprints: distinct
+    /// pad numbers) and their definitions: the candidates when parts from
+    /// outside the library are checked for duplicates. At most `limit`.
+    ///
+    /// # Errors
+    ///
+    /// Fails on database errors.
+    pub fn with_pins(
+        &self,
+        kind: Kind,
+        pins: u32,
+        limit: usize,
+    ) -> Result<Vec<(i64, String, serde_json::Value)>, LibraryError> {
+        let mut statement = self
+            .conn
+            .prepare(
+                "SELECT i.id, i.library || ':' || i.name, b.data FROM items i
+                 JOIN blobs b ON b.id = i.data
+                 WHERE i.kind = ?1 AND i.pins = ?2 AND i.canonical IS NULL
+                 ORDER BY i.library, i.name LIMIT ?3",
+            )
+            .map_err(sql_error)?;
+        let rows = statement
+            .query_map(
+                params![kind.code(), pins, i64::try_from(limit).unwrap_or(i64::MAX)],
+                |row| {
+                    Ok((
+                        row.get::<_, i64>(0)?,
+                        row.get::<_, String>(1)?,
+                        row.get::<_, Vec<u8>>(2)?,
+                    ))
+                },
+            )
+            .map_err(sql_error)?;
+        let mut out = Vec::new();
+        for row in rows {
+            let (id, full_name, data) = row.map_err(sql_error)?;
+            let Some(mut value) =
+                decompress(&data).and_then(|text| serde_json::from_str(&text).ok())
+            else {
+                continue;
+            };
+            crate::entry::restore_ids(kind, &full_name, &mut value);
+            out.push((id, full_name, value));
+        }
+        Ok(out)
+    }
+
     /// One duplicate group by key.
     ///
     /// # Errors

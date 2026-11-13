@@ -23,6 +23,7 @@ use serde::{Deserialize, Serialize};
 use serde_json::{Map, Value, json};
 
 use crate::change::Request;
+use crate::downloads;
 use crate::error::{EngineError, ErrorCode};
 use crate::import;
 use crate::info::EngineInfo;
@@ -91,6 +92,8 @@ pub const METHODS: &[&str] = &[
     "engine.methods",
     "engine.ping",
     "gerber.scene",
+    "import.archive",
+    "import.archivePreview",
     "import.kicad",
     "import.kicadProbe",
     "import.library",
@@ -210,6 +213,8 @@ pub mod labels {
     pub const SET_PROJECT_PROPERTIES: &str = "set-project-properties";
     /// `import.library`.
     pub const IMPORT_LIBRARY: &str = "import-library";
+    /// `import.archive` (a download of an online part library).
+    pub const IMPORT_DOWNLOAD: &str = "import-download";
     /// `import.netlist` with `apply`.
     pub const IMPORT_NETLIST: &str = "import-netlist";
     /// `library.add`.
@@ -1103,6 +1108,86 @@ impl Engine {
         }))
     }
 
+    /// What a download of an online part library contains.
+    fn archive_preview(&mut self, params: &downloads::PreviewParams) -> Result<Value, EngineError> {
+        let unpacked = downloads::unpack(&params.path)?;
+        let parts = downloads::read(&unpacked, params.nickname.as_deref());
+        let target = self.session.as_ref().and_then(|session| {
+            let project = session.project();
+            let doc = params.doc.or_else(|| {
+                project
+                    .documents_of(DocumentKind::Library)
+                    .next()
+                    .map(|entry| entry.id)
+            })?;
+            match project.document(doc) {
+                Some(Document::Library(library)) => Some(library),
+                _ => None,
+            }
+        });
+        to_value(&downloads::preview(
+            &parts,
+            &unpacked.name,
+            target,
+            &mut self.library,
+        ))
+    }
+
+    /// Imports a download of an online part library into a project library.
+    fn import_archive(&mut self, params: &downloads::ImportParams) -> Result<Value, EngineError> {
+        let unpacked = downloads::unpack(&params.path)?;
+        let mut parts = downloads::read(&unpacked, params.nickname.as_deref());
+        let (doc, root) = {
+            let session = self.open()?;
+            let project = session.project();
+            let doc = match params.doc {
+                Some(doc) => doc,
+                None => project
+                    .documents_of(DocumentKind::Library)
+                    .next()
+                    .map(|entry| entry.id)
+                    .ok_or_else(|| EngineError::not_found("the project has no library"))?,
+            };
+            if !matches!(project.document(doc), Some(Document::Library(_))) {
+                return Err(EngineError::invalid_params("the target must be a library"));
+            }
+            (doc, session.root().to_path_buf())
+        };
+        // Footprints the base library already has, replaced by its own.
+        let replaced = downloads::use_library(&mut parts, &params.use_library, &mut self.library)?;
+        let models = downloads::copy_models(&unpacked, &parts, &root)?;
+        let mut report = ew_kicad::ImportReport::new(unpacked.name.clone());
+        let imported = ew_kicad::library::Library {
+            symbols: std::mem::take(&mut parts.symbols),
+            footprints: std::mem::take(&mut parts.footprints),
+        };
+        let session = self.open()?;
+        let (symbols, footprints, requests) =
+            import::library_changes(session.project(), doc, imported, &mut report);
+        let skipped: usize = report
+            .findings
+            .iter()
+            .filter(|f| f.code == "already-in-library")
+            .map(|f| f.count)
+            .sum();
+        report.finish();
+        let history = if requests.is_empty() {
+            self.open()?.history_state()
+        } else {
+            self.commit(labels::IMPORT_DOWNLOAD, requests)?.history
+        };
+        Ok(json!({
+            "symbols": symbols,
+            "footprints": footprints,
+            "models": models,
+            "replaced": replaced,
+            "skipped": skipped,
+            "nickname": parts.nickname,
+            "problems": parts.problems,
+            "history": to_value(&history)?,
+        }))
+    }
+
     fn call_import(&mut self, method: &str, params: &Value) -> Result<Value, EngineError> {
         match method {
             "import.kicadProbe" => {
@@ -1171,6 +1256,8 @@ impl Engine {
                     "history": to_value(&history)?,
                 }))
             }
+            "import.archivePreview" => self.archive_preview(&parse(params)?),
+            "import.archive" => self.import_archive(&parse(params)?),
             "import.netlist" => {
                 let params: ImportNetlistParams = parse(params)?;
                 let (list, format) = import::read_netlist(&params.source)?;
