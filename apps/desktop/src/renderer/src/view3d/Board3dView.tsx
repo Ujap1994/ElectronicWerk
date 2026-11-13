@@ -138,6 +138,7 @@ export function Board3dView({
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [warnings, setWarnings] = useState<readonly string[]>([]);
+  const [bounds, setBounds] = useState<readonly number[]>([]);
   const [parts, setParts] = useState<readonly Part3d[]>([]);
   // Applied part updates (live updates; for tests).
   const [updates, setUpdates] = useState(0);
@@ -251,6 +252,7 @@ export function Board3dView({
         scene.setParts(reply.parts);
         setParts(reply.parts);
         setWarnings(reply.board.warnings);
+        setBounds(reply.board.bounds);
         setError(null);
       } catch (reason) {
         if (!cancelled) {
@@ -440,6 +442,26 @@ export function Board3dView({
   const done = Math.min(total, modelState.loaded + missing.length);
   const selectedPart =
     selected.length === 1 ? (parts.find((p) => p.id === selected[0]) ?? null) : null;
+
+  // Where the board's top face is on screen (for tests and tools).
+  const boardRect = ((): string => {
+    if (scene === null || bounds.length !== 6) {
+      return '';
+    }
+    const [x0 = 0, y0 = 0, , x1 = 0, y1 = 0, z1 = 0] = bounds;
+    const corners = [
+      [x0, y0],
+      [x1, y0],
+      [x1, y1],
+      [x0, y1],
+    ].map(([x = 0, y = 0]) => scene.project([x, y, z1]));
+    if (corners.some((c) => c === null)) {
+      return '';
+    }
+    return corners
+      .map((c) => `${String(Math.round(c?.x ?? 0))},${String(Math.round(c?.y ?? 0))}`)
+      .join(' ');
+  })();
 
   const measureLabel = (): ReactNode => {
     const [a, b] = measure;
@@ -706,6 +728,7 @@ export function Board3dView({
           data-ready={!loading && error === null}
           data-models={`${done}/${total}`}
           data-updates={updates}
+          data-board={boardRect}
           onKeyDown={(event) => {
             if (event.key === 'Home') {
               scene?.fit();

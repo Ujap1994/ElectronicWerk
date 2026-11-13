@@ -39,6 +39,11 @@ export interface LaunchOptions {
    * (an empty folder by default: no library release).
    */
   readonly libraryFeed?: string;
+  /**
+   * Use the 3D models of a KiCad installation on this computer (off by
+   * default, so tests see the same models on every machine).
+   */
+  readonly kicadModels?: boolean;
 }
 
 /** A GitHub API release object for tests. */
@@ -89,6 +94,7 @@ export async function launchApp(options: LaunchOptions = {}): Promise<LaunchedAp
       EW_UPDATE_DELAY_MS: '0',
       EW_PROJECTS_DIR: projectsDir,
       EW_LIBRARY_FEED: libraryFeed,
+      ...(options.kicadModels === true ? {} : { EW_KICAD_3DMODEL_DIRS: '' }),
       ELECTRON_RENDERER_URL: '',
     },
   });

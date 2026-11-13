@@ -53,7 +53,8 @@ const NEXT_VERSION = (() => {
 })();
 
 async function start(options: LaunchOptions = {}): Promise<LaunchedApp> {
-  const launched = await launchApp({ projectsDir: PROJECTS, ...options });
+  // The 3D views show the models of a local KiCad installation, if any.
+  const launched = await launchApp({ projectsDir: PROJECTS, kicadModels: true, ...options });
   await launched.page.setViewportSize({ width: 1280, height: 800 });
   await expect(launched.page.getByTestId('engine-status')).toHaveAttribute('data-state', 'ready');
   return launched;

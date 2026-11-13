@@ -63,8 +63,15 @@ impl ModelSource {
 }
 
 /// Folders of the 3D models of KiCad installations on this system.
+/// `EW_KICAD_3DMODEL_DIRS` replaces the search (a path list; empty: none),
+/// for tests and unusual installations.
 #[must_use]
 pub fn kicad_model_dirs() -> Vec<PathBuf> {
+    if let Some(list) = std::env::var_os("EW_KICAD_3DMODEL_DIRS") {
+        return std::env::split_paths(&list)
+            .filter(|dir| dir.is_dir())
+            .collect();
+    }
     let mut dirs: Vec<PathBuf> = Vec::new();
     if cfg!(target_os = "macos") {
         dirs.push("/Applications/KiCad/KiCad.app/Contents/SharedSupport/3dmodels".into());

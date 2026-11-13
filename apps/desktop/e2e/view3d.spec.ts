@@ -47,6 +47,22 @@ function view3d(page: Page): ReturnType<Page['locator']> {
   return page.locator('[data-testid="view3d-canvas"][data-ready="true"]');
 }
 
+/**
+ * The screen position of a point on the board's top face, given as
+ * fractions of its width (x) and depth (y, 0 at the front edge).
+ */
+async function boardPoint(page: Page, fx: number, fy: number): Promise<Point> {
+  const canvas = view3d(page);
+  const box = await canvas.boundingBox();
+  const corners = ((await canvas.getAttribute('data-board')) ?? '')
+    .split(' ')
+    .map((pair) => pair.split(',').map(Number));
+  const [a = [0, 0], b = [0, 0], , d = [0, 0]] = corners;
+  const x = (a[0] ?? 0) + ((b[0] ?? 0) - (a[0] ?? 0)) * fx + ((d[0] ?? 0) - (a[0] ?? 0)) * fy;
+  const y = (a[1] ?? 0) + ((b[1] ?? 0) - (a[1] ?? 0)) * fx + ((d[1] ?? 0) - (a[1] ?? 0)) * fy;
+  return [(box?.x ?? 0) + x, (box?.y ?? 0) + y];
+}
+
 test('shows the board in 3D, live and in its own window', async () => {
   launched = await launchApp();
   const { app, page, projectsDir } = launched;
@@ -90,11 +106,11 @@ test('shows the board in 3D, live and in its own window', async () => {
   await page.getByTestId('view3d-view-top').click();
   await page.getByTestId('view3d-measure').click();
   await expect(page.getByTestId('view3d-measure-hint')).toBeVisible();
-  const box = await view3d(page).boundingBox();
-  const cx = (box?.x ?? 0) + (box?.width ?? 0) / 2;
-  const cy = (box?.y ?? 0) + (box?.height ?? 0) / 2;
-  await page.mouse.click(cx - 60, cy);
-  await page.mouse.click(cx + 60, cy);
+  // Two free spots near the board's upper corners (no parts, no holes).
+  const at = await boardPoint(page, 0.1, 0.9);
+  const to = await boardPoint(page, 0.9, 0.9);
+  await page.mouse.click(at[0], at[1]);
+  await page.mouse.click(to[0], to[1]);
   await expect(page.getByTestId('view3d-measure-label')).toContainText('Distance');
   await page.keyboard.press('Escape');
   await expect(page.getByTestId('view3d-measure-label')).toHaveCount(0);
