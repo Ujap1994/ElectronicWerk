@@ -390,12 +390,35 @@ fn board_page(art: &BoardArt<'_>, name: String, paper: Paper, mirror: bool) -> (
     (Page::new(name, width, height), view)
 }
 
+/// The English name of a board layer (captions of prints).
+#[must_use]
+pub fn layer_name(layer: Layer) -> String {
+    let side = |s: Side| if s == Side::Top { "Top" } else { "Bottom" };
+    match layer {
+        Layer::Copper(CopperLayer::Top) => "Top copper".to_owned(),
+        Layer::Copper(CopperLayer::Bottom) => "Bottom copper".to_owned(),
+        Layer::Copper(CopperLayer::Inner(n)) => format!("Inner copper {n}"),
+        Layer::Silkscreen(s) => format!("{} silkscreen", side(s)),
+        Layer::SolderMask(s) => format!("{} solder mask", side(s)),
+        Layer::Paste(s) => format!("{} paste", side(s)),
+        Layer::Adhesive(s) => format!("{} adhesive", side(s)),
+        Layer::Fabrication(s) => format!("{} fabrication", side(s)),
+        Layer::Courtyard(s) => format!("{} courtyard", side(s)),
+        Layer::Outline => "Board outline".to_owned(),
+        Layer::Mechanical(n) => format!("Mechanical {n}"),
+        Layer::User(n) => format!("User {n}"),
+    }
+}
+
+/// A caption at the bottom of a page, small enough to fit its width.
 fn caption(page: &mut Page, text: &str) {
+    let chars = text.chars().count().max(1) as f64;
+    let size = ((page.width - 20.0 * MM) / (chars * font::ADVANCE)).clamp(0.8 * MM, 2.0 * MM);
     page.text(
         &TextSpec {
             text,
             at: [10.0 * MM, 5.0 * MM],
-            size: 2.0 * MM,
+            size,
             rotation: 0.0,
             h: -1,
             v: -1,
@@ -403,7 +426,7 @@ fn caption(page: &mut Page, text: &str) {
             italic: false,
         },
         Color::BLACK,
-        0.25 * MM,
+        size * 0.125,
     );
 }
 
@@ -417,7 +440,7 @@ pub fn board_pages(art: &BoardArt<'_>, print: &BoardPrint, title: &str) -> Vec<P
     };
     let mut pages = Vec::new();
     for layers in groups {
-        let names: Vec<String> = layers.iter().map(ToString::to_string).collect();
+        let names: Vec<String> = layers.iter().map(|l| layer_name(*l)).collect();
         let name = names.join(", ");
         let (mut page, view) = board_page(art, name.clone(), print.paper, print.mirror);
         let mut order = layers.clone();

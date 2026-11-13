@@ -330,7 +330,6 @@ export const en = {
       'Double-click the board in the project tree to view it. The layout editor arrives in version 0.8 and the live 3D view in version 0.10.',
     comingLibrary: 'The library manager arrives in version 0.5.',
     comingRules: 'The rule editor arrives together with the layout editor in version 0.8.',
-    openJob: 'Open the output job',
   },
   outputKinds: {
     gerber: 'Gerber X2',

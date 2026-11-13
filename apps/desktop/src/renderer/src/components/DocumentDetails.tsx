@@ -829,7 +829,6 @@ const OUTPUT_KINDS: Readonly<Record<string, MessageKey>> = {
 
 function OutputJobDetails({ document }: { readonly document: DocumentSummary }): ReactNode {
   const { t } = useAppState();
-  const open = useOpenDocument();
   const props = useDocumentProps(document);
   const outputs = Array.isArray(props?.['outputs']) ? props['outputs'].map(record) : [];
   return (
@@ -867,20 +866,6 @@ function OutputJobDetails({ document }: { readonly document: DocumentSummary }):
             </tbody>
           </table>
         </Section>
-      )}
-      {open !== null && (
-        <div className="details__actions">
-          <button
-            type="button"
-            className="button button--primary"
-            data-testid="details-open-job"
-            onClick={() => {
-              open(document);
-            }}
-          >
-            <Icon name="output" size={16} /> {t('details.openJob')}
-          </button>
-        </div>
       )}
     </div>
   );

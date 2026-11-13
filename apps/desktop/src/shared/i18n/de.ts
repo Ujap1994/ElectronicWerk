@@ -327,7 +327,6 @@ export const de: Messages = {
       'Doppelklicke die Platine im Projektbaum, um sie anzusehen. Der Layout-Editor kommt mit Version 0.8, die Live-3D-Ansicht mit Version 0.10.',
     comingLibrary: 'Die Bibliotheksverwaltung kommt mit Version 0.5.',
     comingRules: 'Der Regeleditor kommt zusammen mit dem Layout-Editor in Version 0.8.',
-    openJob: 'Ausgabejob öffnen',
   },
   outputKinds: {
     gerber: 'Gerber X2',
