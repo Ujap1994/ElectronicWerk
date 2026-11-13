@@ -508,7 +508,10 @@ export class Board3dScene {
       }
       box.expandByScalar(0.15);
       const helper = new Box3Helper(box, new Color(0xf59e0b));
-      (helper.material as LineBasicMaterial).depthTest = false;
+      // Drawn with the transparent objects, after the solder mask.
+      const material = helper.material as LineBasicMaterial;
+      material.depthTest = false;
+      material.transparent = true;
       helper.renderOrder = 10;
       this.selectionBoxes.push(helper);
       this.overlay.add(helper);
@@ -568,7 +571,8 @@ export class Board3dScene {
     const radius = box.getSize(new Vector3()).length() / 2 || 10;
     const [dx, dy, dz] = DIRECTIONS[preset];
     const direction = new Vector3(dx, dy, dz).normalize();
-    const distance = (radius / Math.sin((this.perspective.fov * Math.PI) / 360)) * 1.05;
+    // The bounding sphere is generous for flat boards.
+    const distance = (radius / Math.sin((this.perspective.fov * Math.PI) / 360)) * 0.85;
     this.camera.position.copy(centre).addScaledVector(direction, distance);
     this.controls.target.copy(centre);
     for (const camera of [this.perspective, this.orthographic]) {
@@ -589,7 +593,7 @@ export class Board3dScene {
     const centre = box.getCenter(new Vector3());
     const radius = box.getSize(new Vector3()).length() / 2 || 10;
     const direction = this.camera.position.clone().sub(this.controls.target).normalize();
-    const distance = (radius / Math.sin((this.perspective.fov * Math.PI) / 360)) * 1.05;
+    const distance = (radius / Math.sin((this.perspective.fov * Math.PI) / 360)) * 0.85;
     this.camera.position.copy(centre).addScaledVector(direction, distance);
     this.controls.target.copy(centre);
     this.orthographic.zoom = 1;
@@ -699,7 +703,13 @@ export class Board3dScene {
     );
     const points = new Points(
       geometry,
-      new PointsMaterial({ color: 0xef4444, size: 8, sizeAttenuation: false, depthTest: false }),
+      new PointsMaterial({
+        color: 0xef4444,
+        size: 9,
+        sizeAttenuation: false,
+        depthTest: false,
+        transparent: true,
+      }),
     );
     points.userData['measure'] = true;
     points.renderOrder = 11;
@@ -707,7 +717,7 @@ export class Board3dScene {
     if (this.measurePoints.length === 2) {
       const line = new Line(
         geometry.clone(),
-        new LineBasicMaterial({ color: 0xef4444, depthTest: false }),
+        new LineBasicMaterial({ color: 0xef4444, depthTest: false, transparent: true }),
       );
       line.userData['measure'] = true;
       line.renderOrder = 11;
