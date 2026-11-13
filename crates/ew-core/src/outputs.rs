@@ -125,9 +125,12 @@ fn preset_outputs(name: &str) -> Result<Value, EngineError> {
 fn inside(root: &Path, relative: &str) -> Result<PathBuf, EngineError> {
     let path = Path::new(relative);
     if path.is_absolute()
-        || path
-            .components()
-            .any(|c| matches!(c, Component::ParentDir | Component::Prefix(_)))
+        || path.components().any(|c| {
+            matches!(
+                c,
+                Component::ParentDir | Component::Prefix(_) | Component::RootDir
+            )
+        })
     {
         return Err(EngineError::invalid_params(format!(
             "`{relative}` is not inside the project folder"
