@@ -98,6 +98,12 @@ const PATHS = {
   lock: 'M6 11h12v9H6zM9 11V8a3 3 0 0 1 6 0v3',
   ratsnest: 'M5 6l7 12 7-9M5 6h.01M12 18h.01M19 9h.01',
   corner90: 'M5 4v15h15M9 15h.01',
+  section: 'M4 7l8-4 8 4v10l-8 4-8-4zM12 3v18',
+  measure: 'M3 17 17 3l4 4L7 21zM7 13l2 2M10 10l2 2M13 7l2 2',
+  camera: 'M4 8h4l2-3h4l2 3h4v11H4zM12 17a4 4 0 1 0 0-8 4 4 0 0 0 0 8z',
+  window: 'M4 5h16v14H4zM4 9h16M7 7h.01',
+  perspective: 'M3 6l18-3v18L3 18zM9 5v14M15 4v16',
+  views: 'M12 3v9l8 4.5M12 12l-8 4.5M12 3l-2 2M12 3l2 2',
 } as const;
 
 export type IconName = keyof typeof PATHS;

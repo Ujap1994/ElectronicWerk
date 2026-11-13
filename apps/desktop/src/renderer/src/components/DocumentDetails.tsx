@@ -16,7 +16,7 @@ import {
 import { useProject } from '../project/ProjectProvider';
 import type { GroupId, TreeTarget } from '../project/tree';
 import { useAppState } from '../state';
-import { isViewable, useOpenDocument } from '../viewer/open-context';
+import { isViewable, useOpen3d, useOpenDocument } from '../viewer/open-context';
 import { Icon } from './Icon';
 
 // --- Small building blocks --------------------------------------------------
@@ -174,20 +174,36 @@ function DocumentHeader({ document }: { readonly document: DocumentSummary }): R
   const { t } = useAppState();
   const { renameDocument, showInFolder } = useProject();
   const open = useOpenDocument();
+  const open3d = useOpen3d();
   return (
     <>
       {open !== null && isViewable(document) && (
-        <button
-          type="button"
-          className="button button--primary details__open"
-          data-testid="details-open"
-          onClick={() => {
-            open(document);
-          }}
-        >
-          <Icon name="eye" />
-          <span>{t('viewer.open')}</span>
-        </button>
+        <div className="details__buttons">
+          <button
+            type="button"
+            className="button button--primary details__open"
+            data-testid="details-open"
+            onClick={() => {
+              open(document);
+            }}
+          >
+            <Icon name="eye" />
+            <span>{t('viewer.open')}</span>
+          </button>
+          {document.kind === 'pcb' && open3d !== null && (
+            <button
+              type="button"
+              className="button details__open"
+              data-testid="details-open-3d"
+              onClick={() => {
+                open3d(document);
+              }}
+            >
+              <Icon name="cube" />
+              <span>{t('view3d.open')}</span>
+            </button>
+          )}
+        </div>
       )}
       <CommitField
         key={document.name}

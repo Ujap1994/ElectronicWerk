@@ -1,6 +1,6 @@
 import { dialog, type BrowserWindow } from 'electron';
 
-import type { ExportKind, FolderPurpose, ImportKind } from '@shared/api';
+import type { ExportKind, FolderPurpose, ImportKind, ModelFormat } from '@shared/api';
 import type { Translate } from '@shared/i18n';
 
 import { testHooksEnabled } from './paths';
@@ -204,6 +204,55 @@ const EXPORT_FILTERS = {
   svg: ['dialogs.exportSvg', 'svg'],
   pdf: ['dialogs.exportPdf', 'pdf'],
 } as const satisfies Record<ExportKind, readonly [Parameters<Translate>[0], string]>;
+
+const MODEL_FILTERS = {
+  step: ['dialogs.exportStep', ['step', 'stp']],
+  glb: ['dialogs.exportGlb', ['glb']],
+  vrml: ['dialogs.exportVrml', ['wrl']],
+} as const satisfies Record<ModelFormat, readonly [Parameters<Translate>[0], readonly string[]]>;
+
+async function askSavePath(
+  window: BrowserWindow | null,
+  options: Electron.SaveDialogOptions,
+): Promise<string | null> {
+  const stub = takeQueued();
+  if (stub !== null) {
+    return stub.answer;
+  }
+  const result =
+    window === null
+      ? await dialog.showSaveDialog(options)
+      : await dialog.showSaveDialog(window, options);
+  return result.canceled || result.filePath === '' ? null : result.filePath;
+}
+
+/** Asks where to save a 3D model; the engine writes it. */
+export function chooseModelFile(
+  window: BrowserWindow | null,
+  t: Translate,
+  format: ModelFormat,
+  defaultPath: string,
+): Promise<string | null> {
+  const [filter, extensions] = MODEL_FILTERS[format];
+  return askSavePath(window, {
+    title: t('dialogs.exportTitle'),
+    defaultPath,
+    filters: [{ name: t(filter), extensions: [...extensions] }],
+  });
+}
+
+/** Asks where to save a PNG image. */
+export function chooseImageFile(
+  window: BrowserWindow | null,
+  t: Translate,
+  defaultPath: string,
+): Promise<string | null> {
+  return askSavePath(window, {
+    title: t('dialogs.exportTitle'),
+    defaultPath,
+    filters: [{ name: t('dialogs.exportPng'), extensions: ['png'] }],
+  });
+}
 
 export async function chooseExportFile(
   window: BrowserWindow | null,

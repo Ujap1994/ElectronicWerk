@@ -94,9 +94,12 @@ export function setRoutingCorners(corners: Corners): void {
   }
 }
 
-/** A selection made on one side, to show on the other. */
+/**
+ * A selection made in one view, to show in the others: the layout editor,
+ * the schematic and the 3D view (in any window).
+ */
 export interface CrossSelection {
-  readonly source: 'board' | 'schematic';
+  readonly source: 'board' | 'schematic' | '3d';
   readonly footprints: readonly string[];
   readonly symbols: readonly { readonly doc: string; readonly id: string }[];
 }

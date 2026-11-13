@@ -44,7 +44,38 @@ export const IPC = {
   libraryRelease: 'library:release',
   libraryDownload: 'library:download',
   libraryProgress: 'library:download-progress',
+  dialogChooseModel: 'dialog:choose-model',
+  exportSaveImage: 'export:save-image',
+  view3dOpen: 'view3d:open',
+  syncPublish: 'sync:publish',
+  syncMessage: 'sync:message',
 } as const;
+
+/** 3D model file formats the 3D view exports. */
+export type ModelFormat = 'step' | 'glb' | 'vrml';
+
+export function isModelFormat(value: unknown): value is ModelFormat {
+  return value === 'step' || value === 'glb' || value === 'vrml';
+}
+
+/**
+ * A message shared between the app's windows: the selection, or a new
+ * window asking for the current state.
+ */
+export interface SyncMessage {
+  readonly topic: 'selection' | 'request';
+  readonly payload: unknown;
+}
+
+export function isSyncMessage(value: unknown): value is SyncMessage {
+  if (typeof value !== 'object' || value === null) {
+    return false;
+  }
+  const message = value as Record<string, unknown>;
+  return (
+    (message['topic'] === 'selection' || message['topic'] === 'request') && 'payload' in message
+  );
+}
 
 /** `window.postMessage` tag used by the preload to hand over the engine port. */
 export const ENGINE_PORT_MESSAGE = 'ew:engine-port';
@@ -173,6 +204,19 @@ export interface EwApi {
      * document (HTML) as PDF. Returns the path, or `null` if cancelled.
      */
     saveExport: (kind: ExportKind, defaultPath: string, content: string) => Promise<string | null>;
+    /** Asks where to save a 3D model (the engine writes it). */
+    chooseModelFile: (format: ModelFormat, defaultPath: string) => Promise<string | null>;
+    /** Asks where to save a PNG image and writes it. */
+    saveImage: (defaultPath: string, data: Uint8Array) => Promise<string | null>;
+  };
+  readonly view3d: {
+    /** Shows the 3D view of a board in its own window. */
+    open: (doc: string, name: string) => void;
+  };
+  readonly sync: {
+    /** Sends a message to the app's other windows. */
+    publish: (message: SyncMessage) => void;
+    onMessage: (listener: (message: SyncMessage) => void) => Unsubscribe;
   };
   readonly projects: {
     /** Default folder for new projects. */

@@ -20,3 +20,10 @@ export function isViewable(document: DocumentSummary): boolean {
     document.kind === 'outputJob'
   );
 }
+
+/** Opens the 3D view of a board in a tab (provided by the workspace). */
+export const Open3dContext = createContext<((document: DocumentSummary) => void) | null>(null);
+
+export function useOpen3d(): ((document: DocumentSummary) => void) | null {
+  return use(Open3dContext);
+}

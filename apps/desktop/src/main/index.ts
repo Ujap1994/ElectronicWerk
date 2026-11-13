@@ -1,3 +1,4 @@
+import { writeFile } from 'node:fs/promises';
 import { isAbsolute, join } from 'node:path';
 
 import {
@@ -16,6 +17,8 @@ import {
   isExportKind,
   isFolderPurpose,
   isImportKind,
+  isModelFormat,
+  isSyncMessage,
   type AppInfo,
   type MenuAction,
   type SettingsSnapshot,
@@ -28,6 +31,8 @@ import type { Settings } from '@shared/settings';
 import {
   chooseArchiveFile,
   chooseExportFile,
+  chooseImageFile,
+  chooseModelFile,
   chooseFolder,
   chooseGerbers,
   chooseImport,
@@ -56,7 +61,7 @@ import { createSenderCheck, hardenApp, openExternalSafely } from './security';
 import { SettingsStore } from './settings-store';
 import { runSmokeTest, SMOKE_TEST_FLAG } from './smoke-test';
 import { UpdateService } from './updates';
-import { createMainWindow } from './window';
+import { createMainWindow, createViewWindow } from './window';
 
 // Tests and screenshot automation run with an isolated profile. This must
 // happen before the single-instance lock, which lives in the profile folder.
@@ -122,6 +127,14 @@ function main(): void {
   app.commandLine.appendSwitch('enable-unsafe-swiftshader');
 
   let mainWindow: BrowserWindow | null = null;
+  /** Windows with a view of the open project (3D views), by board. */
+  const viewWindows = new Map<string, BrowserWindow>();
+  const closeViewWindows = (): void => {
+    for (const window of viewWindows.values()) {
+      window.close();
+    }
+    viewWindows.clear();
+  };
   let settingsStore: SettingsStore | null = null;
   let recentStore: RecentStore | null = null;
   let windowState: WindowState = NO_PROJECT;
@@ -222,6 +235,10 @@ function main(): void {
   const applyWindowState = (state: WindowState): void => {
     const previous = windowState;
     windowState = state;
+    // Views of another (or no) project close.
+    if (!state.projectOpen || previous.manifestPath !== state.manifestPath) {
+      closeViewWindows();
+    }
     const window = mainWindow;
     if (window !== null) {
       const name = state.projectOpen && state.projectName !== null ? state.projectName : null;
@@ -453,8 +470,93 @@ function main(): void {
     });
 
     ipcMain.on(IPC.windowState, (event, state: unknown) => {
-      if (isTrustedSender(event.senderFrame) && isWindowState(state)) {
+      // Only the main window has a project to report.
+      if (
+        isTrustedSender(event.senderFrame) &&
+        event.sender === mainWindow?.webContents &&
+        isWindowState(state)
+      ) {
         applyWindowState(state);
+      }
+    });
+
+    // --- 3D view --------------------------------------------------------
+
+    ipcMain.handle(IPC.dialogChooseModel, (event, format: unknown, defaultPath: unknown) => {
+      if (
+        !isTrustedSender(event.senderFrame) ||
+        !isModelFormat(format) ||
+        typeof defaultPath !== 'string'
+      ) {
+        return null;
+      }
+      return chooseModelFile(BrowserWindow.fromWebContents(event.sender), t, format, defaultPath);
+    });
+
+    ipcMain.handle(IPC.exportSaveImage, async (event, defaultPath: unknown, data: unknown) => {
+      if (
+        !isTrustedSender(event.senderFrame) ||
+        typeof defaultPath !== 'string' ||
+        !(data instanceof Uint8Array) ||
+        !isPng(data)
+      ) {
+        return null;
+      }
+      const path = await chooseImageFile(
+        BrowserWindow.fromWebContents(event.sender),
+        t,
+        defaultPath,
+      );
+      if (path === null) {
+        return null;
+      }
+      await writeFile(path, data);
+      return path;
+    });
+
+    ipcMain.on(IPC.view3dOpen, (event, doc: unknown, name: unknown) => {
+      if (
+        !isTrustedSender(event.senderFrame) ||
+        typeof doc !== 'string' ||
+        !/^[0-9a-f-]{36}$/u.test(doc) ||
+        typeof name !== 'string' ||
+        name.length > 200 ||
+        !windowState.projectOpen
+      ) {
+        return;
+      }
+      const open = viewWindows.get(doc);
+      if (open !== undefined && !open.isDestroyed()) {
+        open.focus();
+        return;
+      }
+      const fragment = `view3d=${encodeURIComponent(doc)}&name=${encodeURIComponent(name)}`;
+      const window = createViewWindow(
+        devUrl,
+        app.isPackaged,
+        fragment,
+        t('view3d.windowTitle', { name }),
+      );
+      viewWindows.set(doc, window);
+      window.on('closed', () => {
+        if (viewWindows.get(doc) === window) {
+          viewWindows.delete(doc);
+        }
+      });
+    });
+
+    // The selection travels between the windows.
+    ipcMain.on(IPC.syncPublish, (event, message: unknown) => {
+      if (!isTrustedSender(event.senderFrame) || !isSyncMessage(message)) {
+        return;
+      }
+      if (JSON.stringify(message).length > 256_000) {
+        return;
+      }
+      for (const window of BrowserWindow.getAllWindows()) {
+        if (window.webContents !== event.sender && !window.isDestroyed()) {
+          window.webContents.send(IPC.syncMessage, message);
+        }
       }
     });
 
@@ -541,6 +643,7 @@ function main(): void {
           queueDialogAnswer,
           windowState: () => windowState,
           windowTitle: () => mainWindow?.getTitle() ?? null,
+          viewWindows: () => [...viewWindows.keys()],
         },
       });
     }
@@ -566,9 +669,17 @@ function main(): void {
     });
     window.on('closed', () => {
       mainWindow = null;
+      // The views belong to the main window: the program ends with it.
+      closeViewWindows();
     });
     return window;
   }
+}
+
+/** `true` for PNG data (the signature). */
+function isPng(data: Uint8Array): boolean {
+  const signature = [137, 80, 78, 71, 13, 10, 26, 10];
+  return data.length > 8 && signature.every((byte, index) => data[index] === byte);
 }
 
 // Only one instance may run. A second launch focuses the existing window.

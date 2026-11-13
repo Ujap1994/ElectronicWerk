@@ -1,5 +1,6 @@
 import { boardDe } from './board.de';
 import { outputsDe } from './outputs.de';
+import { view3dDe } from './view3d.de';
 import { libeditDe } from './libedit.de';
 import { schematicDe } from './schematic.de';
 import type { Messages } from './types';
@@ -120,6 +121,7 @@ export const de: Messages = {
     placeFootprint: 'Platine: Footprint platzieren',
     generateOutputs: 'Ausgaben: Fertigungsdaten erzeugen (Ausgabejob)',
     gerberViewer: 'Gerber-Viewer: Gerber- und Bohrdateien öffnen …',
+    view3d: '3D-Ansicht zeigen',
   },
   project: {
     save: 'Speichern',
@@ -527,6 +529,10 @@ export const de: Messages = {
     exportCsv: 'CSV-Dateien',
     exportSvg: 'SVG-Grafiken',
     exportPdf: 'PDF-Dokumente',
+    exportStep: 'STEP-Modelle',
+    exportGlb: 'GLB-Modelle',
+    exportVrml: 'VRML-Modelle',
+    exportPng: 'PNG-Bilder',
     importKicadTitle: 'KiCad-Projekt importieren',
     kicadProjectFilter: 'KiCad-Projekte',
     importNetlistTitle: 'Netzliste importieren',
@@ -1072,4 +1078,5 @@ export const de: Messages = {
   libedit: libeditDe,
   board: boardDe,
   outputs: outputsDe,
+  view3d: view3dDe,
 };

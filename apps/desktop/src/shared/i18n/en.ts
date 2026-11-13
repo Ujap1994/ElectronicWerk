@@ -6,6 +6,7 @@
  */
 import { boardEn } from './board.en';
 import { outputsEn } from './outputs.en';
+import { view3dEn } from './view3d.en';
 import { libeditEn } from './libedit.en';
 import { schematicEn } from './schematic.en';
 
@@ -123,6 +124,7 @@ export const en = {
     placeFootprint: 'Board: place a footprint',
     generateOutputs: 'Outputs: generate manufacturing files (output job)',
     gerberViewer: 'Gerber viewer: open Gerber and drill files…',
+    view3d: 'Show the 3D view',
   },
   project: {
     save: 'Save',
@@ -522,6 +524,10 @@ export const en = {
     exportCsv: 'CSV files',
     exportSvg: 'SVG images',
     exportPdf: 'PDF documents',
+    exportStep: 'STEP models',
+    exportGlb: 'GLB models',
+    exportVrml: 'VRML models',
+    exportPng: 'PNG images',
     importKicadTitle: 'Import a KiCad project',
     kicadProjectFilter: 'KiCad projects',
     importNetlistTitle: 'Import a netlist',
@@ -1064,4 +1070,5 @@ export const en = {
   libedit: libeditEn,
   board: boardEn,
   outputs: outputsEn,
+  view3d: view3dEn,
 } as const;

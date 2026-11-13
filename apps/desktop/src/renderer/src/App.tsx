@@ -21,6 +21,7 @@ import { LibraryManager } from './library/LibraryManager';
 import { useProject } from './project/ProjectProvider';
 import { activeBoard } from './board/stores';
 import { outputCommands } from './outputs/stores';
+import { open3dCommand } from './view3d/stores';
 import { activeSheet } from './schematic/stores';
 import { useAppState } from './state';
 
@@ -164,6 +165,7 @@ export function App(): ReactNode {
   const sheet = useSyncExternalStore(activeSheet.subscribe, activeSheet.get);
   const boardCommands = useSyncExternalStore(activeBoard.subscribe, activeBoard.get);
   const outputs = useSyncExternalStore(outputCommands.subscribe, outputCommands.get);
+  const open3d = useSyncExternalStore(open3dCommand.subscribe, open3dCommand.get);
   const commands = useMemo<Command[]>(
     () => [
       ...(sheet === null
@@ -198,6 +200,9 @@ export function App(): ReactNode {
             { id: 'generate-outputs', label: 'commands.generateOutputs', run: outputs.openJob },
             { id: 'gerber-viewer', label: 'commands.gerberViewer', run: outputs.openGerbers },
           ] satisfies Command[])),
+      ...(open3d === null
+        ? []
+        : ([{ id: 'view-3d', label: 'commands.view3d', run: open3d }] satisfies Command[])),
       { id: 'new-project', label: 'commands.newProject', run: newProject },
       {
         id: 'open-project',
@@ -373,6 +378,7 @@ export function App(): ReactNode {
       openLibrary,
       openProject,
       outputs,
+      open3d,
       startKicadImport,
       project,
       redo,

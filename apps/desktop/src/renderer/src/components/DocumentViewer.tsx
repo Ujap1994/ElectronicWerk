@@ -40,7 +40,7 @@ import { zoomPercent } from '../viewer/camera';
 import { ViewerController, type ViewMemory } from '../viewer/controller';
 import { loadCanvasFont } from '../viewer/glyph-atlas';
 import { typeLabel } from '../viewer/labels';
-import { useOpenDocument } from '../viewer/open-context';
+import { useOpen3d, useOpenDocument } from '../viewer/open-context';
 import type { SceneReply } from '../viewer/types';
 import { Icon, type IconName } from './Icon';
 import { Inspector } from './Inspector';
@@ -244,6 +244,7 @@ export function DocumentViewer({
   const { t, engine } = useAppState();
   const { project, notify } = useProject();
   const openDocument = useOpenDocument();
+  const open3d = useOpen3d();
   const controller = useMemo(() => new ViewerController(), []);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const areaRef = useRef<HTMLDivElement>(null);
@@ -562,6 +563,16 @@ export function DocumentViewer({
                   controller.toggleFlip();
                 }}
               />
+              {open3d !== null && (
+                <ToolButton
+                  icon="cube"
+                  label={t('view3d.openTip')}
+                  testId="viewer-open-3d"
+                  onClick={() => {
+                    open3d(document);
+                  }}
+                />
+              )}
             </>
           )}
         </div>

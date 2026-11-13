@@ -139,7 +139,7 @@ export function useBoardEditor({
     }
     let last = '';
     const offController = controller.subscribe(() => {
-      if (applyingRef.current || !crossProbing.get()) {
+      if (applyingRef.current) {
         return;
       }
       const footprints = selectedOfType(controller, 'footprint');
@@ -148,19 +148,27 @@ export function useBoardEditor({
         return;
       }
       last = key;
-      if (footprints.length === 0) {
+      // The 3D view always follows; the schematic only with cross-probing.
+      crossSelection.set({ source: 'board', footprints, symbols: [] });
+      if (footprints.length === 0 || !crossProbing.get()) {
         return;
       }
       engine
         .call<{ symbols: { doc: string; id: string }[] }>('pcb.crossProbe', { doc, footprints })
         .then((reply) => {
-          crossSelection.set({ source: 'board', footprints, symbols: reply.symbols });
+          if (crossSelection.get()?.footprints.join(',') === key) {
+            crossSelection.set({ source: 'board', footprints, symbols: reply.symbols });
+          }
         })
         .catch(() => undefined);
     });
     const apply = (): void => {
       const selection = crossSelection.get();
-      if (selection?.source !== 'schematic' || !crossProbing.get()) {
+      if (
+        selection === null ||
+        selection.source === 'board' ||
+        (selection.source === 'schematic' && !crossProbing.get())
+      ) {
         return;
       }
       applyingRef.current = true;
@@ -320,10 +328,14 @@ export function useSchematicCrossProbe(
     });
     const apply = (): void => {
       const selection = crossSelection.get();
-      if (selection?.source !== 'board' || !crossProbing.get()) {
+      if (selection === null || selection.source === 'schematic' || !crossProbing.get()) {
         return;
       }
       const ids = selection.symbols.filter((s) => s.doc === doc).map((s) => s.id);
+      if (ids.length === 0 && selection.footprints.length > 0) {
+        // Symbols arrive with a second update.
+        return;
+      }
       applyingRef.current = true;
       if (controller.currentScene === null) {
         controller.selectAfterReload(ids);

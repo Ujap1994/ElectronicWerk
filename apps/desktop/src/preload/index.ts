@@ -56,6 +56,20 @@ const api: EwApi = {
     chooseGerbers: () => ipcRenderer.invoke(IPC.dialogChooseGerbers),
     saveExport: (kind, defaultPath, content) =>
       ipcRenderer.invoke(IPC.exportSave, kind, defaultPath, content),
+    chooseModelFile: (format, defaultPath) =>
+      ipcRenderer.invoke(IPC.dialogChooseModel, format, defaultPath),
+    saveImage: (defaultPath, data) => ipcRenderer.invoke(IPC.exportSaveImage, defaultPath, data),
+  },
+  view3d: {
+    open: (doc, name) => {
+      ipcRenderer.send(IPC.view3dOpen, doc, name);
+    },
+  },
+  sync: {
+    publish: (message) => {
+      ipcRenderer.send(IPC.syncPublish, message);
+    },
+    onMessage: (listener) => subscribe(IPC.syncMessage, listener),
   },
   projects: {
     defaultLocation: () => ipcRenderer.invoke(IPC.projectsLocation),
