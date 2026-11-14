@@ -1,7 +1,7 @@
 # ElectronicWerk Roadmap
 
-> **Status:** v0.16 (2026-11-13). M0 to M10 are complete (releases v0.1.0 to
-> v0.11.0; M0, M1 and M3 accepted by the maintainer); M11 is next.
+> **Status:** v0.17 (2026-11-14). M0 to M11 are complete (releases v0.1.0 to
+> v0.12.0; M0, M1 and M3 accepted by the maintainer); M12 is next.
 > This roadmap is a living document. It **must** be updated with every feature
 > (requirement D5). Every change to it is listed in the
 > [roadmap changelog](#13-roadmap-changelog).
@@ -246,7 +246,7 @@ own work only. Maintainer test cycles and feedback come on top. Status values:
 | M8  | Manufacturing outputs and output jobs                 | v0.9.0  | F10               | 7–10 S          | ✅     |
 | M9  | Live 3D view and STEP export                          | v0.10.0 | F8                | 7–10 S          | ✅     |
 | M10 | Online part libraries: SnapEDA, Ultra Librarian       | v0.11.0 | F1                | 6–9 S           | ✅     |
-| M11 | GitHub integration                                    | v0.12.0 | F9                | 4–6 S           | ⬜     |
+| M11 | GitHub integration                                    | v0.12.0 | F9                | 4–6 S           | ✅     |
 | M12 | CLI and AI automation (complete)                      | v0.13.0 | F12               | 4–6 S           | ⬜     |
 | M13 | Assembly assistant and extras                         | v0.14.0 | F11               | 4–6 S           | ⬜     |
 | M14 | Interoperability: further open formats                | v0.15.0 | F3                | 5–8 S           | ⬜     |
@@ -768,17 +768,27 @@ Delivered:
 - [x] Accounts in Settings: sign in, sign out (clears the provider's
       profile), terms of use.
 
-### M11 — GitHub integration (v0.12.0, 4–6 S)
+### M11 — GitHub integration (v0.12.0, 4–6 S) ✅
 
-- Sign in with the OAuth device flow (no secret stored in the app), or with a
-  personal access token as an alternative. The token is stored in the OS
-  keychain.
-- New-project wizard: **Local** or **GitHub**. With GitHub, the user picks an
-  existing repository or ElectronicWerk creates a new one (public or private,
-  with `.gitignore`, README and project structure).
-- Clone/open from GitHub, commit and push from the project tree, pull, branch
-  switch, history view, and a visual diff of schematic and PCB revisions
-  (later).
+Delivered (ADR-0011):
+
+- [x] Sign in with the OAuth device flow (no secret stored in the app), or
+      with a personal access token as an alternative. The token is encrypted
+      with the OS keychain (Keychain, DPAPI, Secret Service; a warning when
+      Linux has no keyring) and is sent to GitHub only. The browser sign-in
+      is offered once the OAuth app's client id is configured.
+- [x] New-project wizard: **Local** or **GitHub**. With GitHub,
+      ElectronicWerk creates a new repository (public or private) or uses an
+      existing empty one, with `.gitignore`, README and the project, and
+      pushes the first commit. Local projects can be put on GitHub later.
+- [x] Open from GitHub (clone), and a **Source control** view in the project
+      tree and toolbar: changed files, commit (all or chosen files), push,
+      pull (fast-forward, or a merge commit for different files; the same
+      file changed on both sides is a conflict that changes nothing), branch
+      switch and new branches, history. Git runs in the app
+      (isomorphic-git): no git installation needed.
+- [ ] Visual diff of schematic and PCB revisions and a semantic merge
+      (later, on top of the engine's document model).
 
 ### M12 — CLI and AI automation, complete (v0.13.0, 4–6 S)
 
@@ -940,3 +950,4 @@ The CLI grows with every milestone. This milestone completes it.
 | 2026-11-13 | v0.14      | M9 complete: v0.10.0 with the live 3D view (tab or own window, shared selection, sections, measuring, screenshots) and STEP/GLB/VRML exports. STEP is written in Rust instead of native OpenCASCADE (no C++ build for five targets, no LGPL linking, smaller packages); OpenCASCADE (WebAssembly) verifies the export in CI. Part placement verified against KiCad 10.                                                                                     |
 | 2026-11-13 | v0.15      | M10 narrowed by the maintainer to SnapEDA and Ultra Librarian (provider window and import of the user's downloads; no distributor APIs, no automated access, as both providers' terms require). Added the acceptance on real designs before v1.0 (M16) and the datasheet part generator as a later advanced feature.                                                                                                                                       |
 | 2026-11-13 | v0.16      | M10 complete: v0.11.0 with SnapEDA and Ultra Librarian in isolated provider windows, the import of their downloads (symbols, footprints, 3D models) with the duplicate check against the base library, accounts in the settings and `ewerk import archive`.                                                                                                                                                                                                |
+| 2026-11-14 | v0.17      | M11 complete: v0.12.0 with the GitHub sign-in (device flow and tokens, keychain), projects on GitHub from the wizard, Open from GitHub and the source control view (commit, push, pull, branches, history). Git runs in the app with isomorphic-git; pulls merge whole files only, so conflicts never leave a half-merged design. The visual diff stays a later item.                                                                                      |

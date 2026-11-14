@@ -6,6 +6,48 @@ project uses [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.12.0] - 2026-11-14
+
+GitHub and source control: projects go to GitHub from the new-project
+wizard, and the new **Source control** view commits, pushes and pulls them,
+switches branches and shows the history. Projects open from GitHub on any
+computer. Git runs inside ElectronicWerk, so no git installation is needed.
+
+### Added
+
+- **Sign-in to GitHub** in the settings (and wherever it is needed): with the
+  browser through GitHub's device flow (a code confirmed on github.com, no
+  password in the app; offered once ElectronicWerk's GitHub app is
+  configured) or with a personal access token, checked with GitHub before it
+  is kept. The token is encrypted with the system keychain (macOS Keychain,
+  Windows DPAPI, Linux Secret Service), with a warning when Linux has no
+  keyring, and is sent to GitHub only. See
+  [GitHub and source control](https://ujap1994.github.io/ElectronicWerk/guide/github).
+- **On GitHub** in the new-project wizard: a new repository (name, description,
+  private by default) or an existing empty one. ElectronicWerk creates the
+  project, a README, the first commit and the repository, and pushes.
+- **Source control** view (at the end of the project tree and in the
+  toolbar, with the number of changed files): the repository with **Open on
+  GitHub**, the branch and how it compares with GitHub, the changed files
+  (new, changed, deleted; all or chosen files are committed), the commit
+  message, **Commit**, **Commit and push**, **Check GitHub**, **Pull**,
+  **Push** and the history.
+- **Pull** fast-forwards, or creates a merge commit when both sides changed
+  different files. A file changed here and on GitHub is reported as a
+  conflict and nothing changes; ElectronicWerk never merges inside a file.
+  After a pull the project is read again.
+- **Branches**: switch to a local branch or a branch that exists only on
+  GitHub, and create new branches.
+- **Put the project on GitHub** for projects created on this computer.
+- **Open from GitHub** on the start screen: a filtered list of the account's
+  repositories, cloned into a folder of choice and opened.
+- Commands **Open from GitHub**, **Sign in to GitHub** and **Source control**
+  in the command palette.
+
+### Changed
+
+- Buttons with an icon keep a small gap between icon and label.
+
 ## [0.11.0] - 2026-11-13
 
 The online part libraries: parts from **SnapEDA** and **Ultra Librarian**,
@@ -854,7 +896,8 @@ quality gates and the delivery pipeline that every later feature builds on.
   process ([ujap1994.github.io/ElectronicWerk](https://ujap1994.github.io/ElectronicWerk/)).
   **Help → Documentation** opens it.
 
-[Unreleased]: https://github.com/Ujap1994/ElectronicWerk/compare/v0.11.0...HEAD
+[Unreleased]: https://github.com/Ujap1994/ElectronicWerk/compare/v0.12.0...HEAD
+[0.12.0]: https://github.com/Ujap1994/ElectronicWerk/compare/v0.11.0...v0.12.0
 [0.11.0]: https://github.com/Ujap1994/ElectronicWerk/compare/v0.10.0...v0.11.0
 [0.10.0]: https://github.com/Ujap1994/ElectronicWerk/compare/v0.9.0...v0.10.0
 [0.9.0]: https://github.com/Ujap1994/ElectronicWerk/compare/v0.8.0...v0.9.0

@@ -106,6 +106,11 @@ B.netclass != 'HV'`)
 - **Online part libraries:** parts downloaded from **SnapEDA** and **Ultra
   Librarian** (in an isolated provider window or any browser) are imported
   with symbol, footprint and 3D model, and checked against the base library
+- **GitHub and source control** without installing git: new projects on
+  GitHub (new or existing empty repository), commit, push, pull, branches,
+  history and "Open from GitHub"; sign-in with the browser or a token kept in
+  the system keychain. Pulls never merge inside a file, so a design is never
+  half merged
 - **Duplicate detection** independent of the source: exact duplicates are
   merged, near duplicates (pads within 0.05 mm, same mesh in other colours, …)
   are reviewed side by side, with a reproducible report
