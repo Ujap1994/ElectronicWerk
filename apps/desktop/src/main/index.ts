@@ -64,6 +64,7 @@ import { SettingsStore } from './settings-store';
 import { runSmokeTest, SMOKE_TEST_FLAG } from './smoke-test';
 import { UpdateService } from './updates';
 import { ProviderWindows } from './providers';
+import { registerGithubIpc, type GithubIpc } from './github/ipc';
 import { createMainWindow, createViewWindow } from './window';
 
 // Tests and screenshot automation run with an isolated profile. This must
@@ -610,6 +611,17 @@ function main(): void {
         : null,
     );
 
+    // --- GitHub ---------------------------------------------------------
+
+    const github: GithubIpc = registerGithubIpc({
+      userData: app.getPath('userData'),
+      appVersion: app.getVersion(),
+      testHooks: testHooksEnabled(),
+      isTrustedSender,
+      openProject: () => (windowState.projectOpen ? windowState.manifestPath : null),
+      broadcast: sendToWindows,
+    });
+
     // The selection travels between the windows.
     ipcMain.on(IPC.syncPublish, (event, message: unknown) => {
       if (!isTrustedSender(event.senderFrame) || !isSyncMessage(message)) {
@@ -710,6 +722,7 @@ function main(): void {
           windowTitle: () => mainWindow?.getTitle() ?? null,
           viewWindows: () => [...viewWindows.keys()],
           providerWindows: () => providerWindows?.openIds() ?? [],
+          githubPages: () => [...github.openedPages],
         },
       });
     }

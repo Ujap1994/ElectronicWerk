@@ -5,6 +5,19 @@ import type { RecentState } from './recent';
 import type { Settings, SettingsPatch } from './settings';
 import type { UpdateCheckResult } from './update';
 import type { ProviderDownload, ProviderId, ProviderPage, ProviderStatus } from './providers';
+import type {
+  DeviceResult,
+  DeviceStart,
+  GitBranches,
+  GitCommit,
+  GithubAccount,
+  GithubRepo,
+  GithubStatus,
+  GitResult,
+  GitStatus,
+  PublishTarget,
+  PullResult,
+} from './github';
 
 /** IPC channel names (renderer ↔ main). */
 export const IPC = {
@@ -56,6 +69,25 @@ export const IPC = {
   providersStatus: 'providers:status',
   providersDownload: 'providers:download',
   dialogChooseDownload: 'dialog:choose-download',
+  githubStatus: 'github:status',
+  githubChanged: 'github:changed',
+  githubSignInToken: 'github:sign-in-token',
+  githubDeviceStart: 'github:device-start',
+  githubDeviceWait: 'github:device-wait',
+  githubDeviceCancel: 'github:device-cancel',
+  githubSignOut: 'github:sign-out',
+  githubRepos: 'github:repos',
+  githubOpenPage: 'github:open-page',
+  gitStatus: 'git:status',
+  gitPublish: 'git:publish',
+  gitCommit: 'git:commit',
+  gitPush: 'git:push',
+  gitFetch: 'git:fetch',
+  gitPull: 'git:pull',
+  gitBranches: 'git:branches',
+  gitCheckout: 'git:checkout',
+  gitLog: 'git:log',
+  gitClone: 'git:clone',
 } as const;
 
 /** 3D model file formats the 3D view exports. */
@@ -232,6 +264,48 @@ export interface EwApi {
     onDownload: (listener: (download: ProviderDownload) => void) => Unsubscribe;
     /** Lets the user pick a downloaded part file to import. */
     chooseDownload: () => Promise<string | null>;
+  };
+  readonly github: {
+    /** The account (checked with GitHub once per start). */
+    status: () => Promise<GithubStatus>;
+    /** Signs in with a personal access token. */
+    signInWithToken: (token: string) => Promise<GitResult<GithubAccount>>;
+    /** Starts the device flow: the user enters the code on GitHub. */
+    deviceStart: () => Promise<GitResult<DeviceStart>>;
+    /** Waits for the device flow to end. */
+    deviceWait: () => Promise<DeviceResult>;
+    deviceCancel: () => void;
+    signOut: () => Promise<void>;
+    /** The account's repositories, newest first. */
+    repos: () => Promise<GitResult<readonly GithubRepo[]>>;
+    /** Opens a page of a repository (`owner/name`) or the device sign-in in the browser. */
+    openPage: (page: 'repo' | 'device' | 'tokens', fullName?: string) => void;
+    /** The account changed (sign-in or sign-out in any window). */
+    onChanged: (listener: (status: GithubStatus) => void) => Unsubscribe;
+  };
+  /** Git for the open project (`manifestPath` must be the open project). */
+  readonly git: {
+    status: (manifestPath: string) => Promise<GitResult<GitStatus>>;
+    /** Puts the project on GitHub (new or existing empty repository). */
+    publish: (manifestPath: string, target: PublishTarget) => Promise<GitResult<GitStatus>>;
+    /** Commits the changed files (all without `paths`). */
+    commit: (
+      manifestPath: string,
+      message: string,
+      paths?: readonly string[],
+    ) => Promise<GitResult<GitStatus>>;
+    push: (manifestPath: string) => Promise<GitResult<GitStatus>>;
+    fetch: (manifestPath: string) => Promise<GitResult<GitStatus>>;
+    pull: (manifestPath: string) => Promise<GitResult<PullResult>>;
+    branches: (manifestPath: string) => Promise<GitResult<GitBranches>>;
+    checkout: (
+      manifestPath: string,
+      branch: string,
+      create: boolean,
+    ) => Promise<GitResult<GitStatus>>;
+    log: (manifestPath: string) => Promise<GitResult<readonly GitCommit[]>>;
+    /** Clones a repository into a folder; returns the project manifest. */
+    clone: (fullName: string, parent: string) => Promise<GitResult<string>>;
   };
   readonly sync: {
     /** Sends a message to the app's other windows. */

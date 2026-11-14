@@ -77,6 +77,35 @@ const api: EwApi = {
     onDownload: (listener) => subscribe(IPC.providersDownload, listener),
     chooseDownload: () => ipcRenderer.invoke(IPC.dialogChooseDownload),
   },
+  github: {
+    status: () => ipcRenderer.invoke(IPC.githubStatus),
+    signInWithToken: (token) => ipcRenderer.invoke(IPC.githubSignInToken, token),
+    deviceStart: () => ipcRenderer.invoke(IPC.githubDeviceStart),
+    deviceWait: () => ipcRenderer.invoke(IPC.githubDeviceWait),
+    deviceCancel: () => {
+      ipcRenderer.send(IPC.githubDeviceCancel);
+    },
+    signOut: () => ipcRenderer.invoke(IPC.githubSignOut),
+    repos: () => ipcRenderer.invoke(IPC.githubRepos),
+    openPage: (page, fullName) => {
+      ipcRenderer.send(IPC.githubOpenPage, page, fullName ?? '');
+    },
+    onChanged: (listener) => subscribe(IPC.githubChanged, listener),
+  },
+  git: {
+    status: (manifestPath) => ipcRenderer.invoke(IPC.gitStatus, manifestPath),
+    publish: (manifestPath, target) => ipcRenderer.invoke(IPC.gitPublish, manifestPath, target),
+    commit: (manifestPath, message, paths) =>
+      ipcRenderer.invoke(IPC.gitCommit, manifestPath, message, paths ?? null),
+    push: (manifestPath) => ipcRenderer.invoke(IPC.gitPush, manifestPath),
+    fetch: (manifestPath) => ipcRenderer.invoke(IPC.gitFetch, manifestPath),
+    pull: (manifestPath) => ipcRenderer.invoke(IPC.gitPull, manifestPath),
+    branches: (manifestPath) => ipcRenderer.invoke(IPC.gitBranches, manifestPath),
+    checkout: (manifestPath, branch, create) =>
+      ipcRenderer.invoke(IPC.gitCheckout, manifestPath, branch, create),
+    log: (manifestPath) => ipcRenderer.invoke(IPC.gitLog, manifestPath),
+    clone: (fullName, parent) => ipcRenderer.invoke(IPC.gitClone, fullName, parent),
+  },
   sync: {
     publish: (message) => {
       ipcRenderer.send(IPC.syncPublish, message);
