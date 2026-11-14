@@ -52,6 +52,15 @@ The appearance also applies to native elements such as menus and dialogs.
 
 The [Updates](./updates) page explains the update notice in detail.
 
+## GitHub
+
+Your GitHub account for [GitHub and source control](./github): **Sign in to
+GitHub…** opens the sign-in (browser or personal access token), **Sign out**
+deletes the token from this computer. The line below tells how the token is
+protected (system keychain, or a warning when no keyring is available).
+
+![The GitHub section of the settings](/screenshots/github-settings.png)
+
 ## Online part libraries
 
 The accounts of the [online part libraries](./online-parts) SnapEDA and Ultra

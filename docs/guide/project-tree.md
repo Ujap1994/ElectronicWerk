@@ -29,6 +29,7 @@ Designer.
 | **Output jobs**     | Which manufacturing files to generate.                                                                                                                                |
 | **Other files**     | Every other file in the project folder (notes, datasheets, `.gitignore`).                                                                                             |
 | **Generated files** | Files produced by output jobs.                                                                                                                                        |
+| **Source control**  | Commits, branches and GitHub, see [GitHub and source control](./github#the-source-control-view). A dot **●** marks files changed since the last commit.               |
 
 The number next to a group is the number of documents in it. A dot **●** marks
 documents with unsaved changes.

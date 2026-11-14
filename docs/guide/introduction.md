@@ -9,9 +9,12 @@ DipTrace and Eagle, but it is written from scratch and released under the
 
 ## What you can do today
 
-Version 0.11 adds the **online part libraries**: parts downloaded from
-SnapEDA and Ultra Librarian are imported into the project with their 3D
-models and checked against the base library. Version 0.10 added the **live
+Version 0.12 adds **GitHub**: create projects on GitHub, commit, push and
+pull, switch branches, look at the history and open projects from GitHub on
+another computer, without installing git. Version 0.11 added the **online
+part libraries**: parts downloaded from SnapEDA and Ultra Librarian are
+imported into the project with their 3D models and checked against the base
+library. Version 0.10 added the **live
 3D view**: the board with its laminate, copper,
 solder mask, silkscreen and the 3D models of its parts, following every edit
 at once, in a tab or in its own window for a second monitor, with sections,
@@ -49,6 +52,7 @@ and the model the enclosure is designed around.
 | Gerber viewer                                    | Available | [The Gerber viewer](./gerber-viewer)                   |
 | Live 3D view, STEP/GLB/VRML export               | Available | [The 3D view](./view-3d), [3D models](./export-3d)     |
 | Online part libraries (SnapEDA, Ultra Librarian) | Available | [Online part libraries](./online-parts)                |
+| GitHub: commit, push, pull, branches, clone      | Available | [GitHub and source control](./github)                  |
 
 The [roadmap](https://github.com/Ujap1994/ElectronicWerk/blob/main/ROADMAP.md)
 lists every milestone with its scope and status. It is updated with every

@@ -80,6 +80,12 @@ The [2D view](./viewer) is drawn by the graphics card with WebGL 2.
 
 The [Updates](./updates) page has more details.
 
+## GitHub: sign-in, push or pull fail
+
+The [GitHub page](./github#troubleshooting) explains every message of the
+source control view. Firewalls or proxies must allow `github.com` and
+`api.github.com`.
+
 ## Resetting all settings
 
 Quit ElectronicWerk and delete `settings.json` from the settings folder

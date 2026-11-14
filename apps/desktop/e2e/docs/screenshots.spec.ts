@@ -4,7 +4,7 @@
  * demo data is shown, so the images are safe to publish.
  */
 import { cpSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
-import { execFileSync } from 'node:child_process';
+import { execFile, execFileSync } from 'node:child_process';
 import { homedir } from 'node:os';
 import { join, resolve } from 'node:path';
 
@@ -20,6 +20,7 @@ import {
   type LaunchedApp,
   type LaunchOptions,
 } from '../fixtures';
+import { startFakeGithub, type FakeGithub } from '../../test/github-server';
 import {
   openDocument,
   settle,
@@ -1714,4 +1715,153 @@ test('online parts', async () => {
   await page.getByTestId('open-settings').click();
   await shoot(page.getByTestId('settings-providers'), 'parts-settings');
   await close();
+});
+
+// --- GitHub (M11) -------------------------------------------------------------
+
+/** Closes the notices (they would cover the panels). */
+async function clearNotices(page: Page): Promise<void> {
+  const close = page.locator('.toast__close');
+  while ((await close.count()) > 0) {
+    await close.first().click();
+  }
+}
+
+/** A repository with one commit (for the "Open from GitHub" list). */
+function sampleRepo(github: FakeGithub, name: string, description: string, secret: boolean): void {
+  const dir = join(PROJECTS, '..', 'Sources', name);
+  rmSync(dir, { recursive: true, force: true });
+  mkdirSync(dir, { recursive: true });
+  writeFileSync(join(dir, 'README.md'), `# ${name}\n`);
+  const git = (...args: string[]): void => {
+    execFileSync('git', args, { cwd: dir });
+  };
+  git('init', '--initial-branch=main');
+  git('add', '.');
+  git('-c', 'user.name=Octo Maker', '-c', 'user.email=octo@example.com', 'commit', '-m', 'Start');
+  github.addRepo({ owner: 'octo-maker', name, private: secret, description }, dir);
+}
+
+test('github', async () => {
+  test.setTimeout(240_000);
+  freshProjects();
+  const github = await startFakeGithub();
+  try {
+    const { page, close } = await start({
+      settings: { theme: 'light' },
+      env: {
+        EW_GITHUB_API: github.api,
+        EW_GITHUB_WEB: github.url,
+        EW_GITHUB_CLIENT_ID: 'Iv1.docs-client',
+      },
+    });
+    await page.setViewportSize({ width: 1400, height: 900 });
+
+    // Sign in with the device flow.
+    await page.getByTestId('open-settings').click();
+    await page.getByTestId('github-sign-in-open').click();
+    await page.getByTestId('github-device-start').click();
+    await expect(page.getByTestId('github-device-code')).toBeVisible();
+    await page.mouse.move(5, 5);
+    await shoot(page.getByTestId('github-sign-in'), 'github-sign-in');
+    github.approveDevice();
+    await expect(page.getByTestId('github-sign-in')).toBeHidden();
+    await expect(page.getByTestId('github-account')).toContainText('octo-maker');
+    await shoot(page.getByTestId('settings-github'), 'github-settings');
+    await page.keyboard.press('Escape');
+
+    // A new project on GitHub.
+    await page.getByTestId('new-project').click();
+    await page.getByTestId('wizard-name').fill('Bench Supply');
+    await page.getByTestId('wizard-storage-github').click();
+    await page.getByTestId('repo-target-description').fill('Adjustable 0–30 V bench supply');
+    await page.mouse.move(5, 5);
+    await shoot(page.getByTestId('wizard'), 'wizard-github');
+    await page.getByTestId('wizard-next').click();
+    await page.getByTestId('template-demo').click();
+    await page.getByTestId('wizard-create').click();
+    await expect(page.getByText('The project is on GitHub: octo-maker/Bench-Supply')).toBeVisible();
+
+    // Work, save, commit.
+    await page.getByTestId('tree-project').click();
+    const revision = page.getByTestId('project-revision');
+    await revision.fill('B');
+    await revision.press('Enter');
+    await page.getByTestId('toolbar-save').click();
+    await expect(page.getByTestId('dirty-indicator')).toHaveAttribute('data-dirty', 'false');
+    const folder = join(PROJECTS, 'Bench Supply');
+    writeFileSync(join(folder, 'NOTES.md'), '# Notes\n\nOrder 10 boards after the review.\n');
+    // Coming back to the window reads the git state again.
+    await page.evaluate(() => window.dispatchEvent(new Event('focus')));
+    await page.getByTestId('toolbar-git').click();
+    await expect(page.getByTestId('toolbar-git-count')).toHaveText('2');
+    await page.getByTestId('git-message').fill('Revision B: notes for the order');
+    await clearNotices(page);
+    await page.mouse.move(5, 5);
+    await shoot(page, 'github-source-control');
+    await shoot(page.getByTestId('toolbar-git'), 'github-toolbar');
+    await page.getByTestId('git-commit-push').click();
+    await expect(page.getByTestId('git-no-changes')).toBeVisible();
+
+    // Someone else changes the same file on GitHub: a conflict.
+    const other = join(PROJECTS, '..', 'Other');
+    rmSync(other, { recursive: true, force: true });
+    mkdirSync(other, { recursive: true });
+    const authed = `${github.url.replace('http://', `http://x-access-token:${github.token}@`)}/octo-maker/Bench-Supply.git`;
+    const run = (cwd: string, ...args: string[]): Promise<void> =>
+      new Promise((done, fail) => {
+        const env = { ...process.env, GIT_TERMINAL_PROMPT: '0' };
+        execFile('git', ['-c', 'credential.helper=', ...args], { cwd, env }, (error) => {
+          if (error === null) {
+            done();
+          } else {
+            fail(new Error(error.message));
+          }
+        });
+      });
+    await run(other, 'clone', authed, 'copy');
+    writeFileSync(join(other, 'copy', 'NOTES.md'), '# Notes\n\nOrder 25 boards.\n');
+    await run(
+      join(other, 'copy'),
+      '-c',
+      'user.name=Ada',
+      '-c',
+      'user.email=ada@example.com',
+      'commit',
+      '-am',
+      'More boards',
+    );
+    await run(join(other, 'copy'), 'push', 'origin', 'main');
+    writeFileSync(join(folder, 'NOTES.md'), '# Notes\n\nOrder 12 boards after the review.\n');
+    await page.evaluate(() => window.dispatchEvent(new Event('focus')));
+    await page.getByTestId('git-message').fill('Two more boards');
+    await page.getByTestId('git-commit').click();
+    await page.getByTestId('git-fetch').click();
+    await expect(page.getByTestId('git-sync')).toContainText('Commits to pull: 1');
+    await page.getByTestId('git-pull').click();
+    await expect(page.getByTestId('git-problem')).toBeVisible();
+    await clearNotices(page);
+    await page.mouse.move(5, 5);
+    await shoot(page.getByTestId('source-control'), 'github-conflict');
+
+    // A new branch.
+    await page.getByTestId('git-branch').selectOption('::new');
+    await page.getByTestId('git-new-branch-name').fill('rev-c');
+    await shoot(page.getByTestId('git-new-branch'), 'github-new-branch');
+    await page.getByTestId('toolbar-close').click();
+
+    // Open from GitHub.
+    sampleRepo(github, 'led-matrix', '8×8 LED matrix with a shift register driver', false);
+    sampleRepo(github, 'sensor-node', 'Battery powered sensor node', true);
+    await page.getByTestId('open-github').click();
+    await page.locator('[data-repo="octo-maker/Bench-Supply"]').click();
+    await page.mouse.move(5, 5);
+    await shoot(page.getByTestId('github-clone'), 'github-clone');
+    await page.keyboard.press('Escape');
+    await close();
+    rmSync(other, { recursive: true, force: true });
+    rmSync(join(PROJECTS, '..', 'Sources'), { recursive: true, force: true });
+  } finally {
+    await github.close();
+  }
 });

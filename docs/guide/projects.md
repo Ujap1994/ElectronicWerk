@@ -49,12 +49,12 @@ the remaining steps keep their defaults.
 
 ![Step 1: name and location](/screenshots/wizard-project.png)
 
-| Field         | Meaning                                                                                                                                                            |
-| ------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| Project name  | Any name up to 100 characters. It is shown in the title bar and used in title blocks as `${PROJECT_NAME}`.                                                         |
-| Location      | The folder in which the project folder is created. **Choose…** opens a folder dialog; you can also type or paste a path. ElectronicWerk remembers the last folder. |
-| Folder (hint) | The full path of the new project folder. Characters that are not allowed in file names are replaced by `_`.                                                        |
-| Storage       | **On this computer** creates a local folder. **On GitHub** (create or choose a repository) arrives in version 0.12.                                                |
+| Field         | Meaning                                                                                                                                                                    |
+| ------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Project name  | Any name up to 100 characters. It is shown in the title bar and used in title blocks as `${PROJECT_NAME}`.                                                                 |
+| Location      | The folder in which the project folder is created. **Choose…** opens a folder dialog; you can also type or paste a path. ElectronicWerk remembers the last folder.         |
+| Folder (hint) | The full path of the new project folder. Characters that are not allowed in file names are replaced by `_`.                                                                |
+| Storage       | **On this computer** creates a local folder. **On GitHub** also puts it into a new or an existing empty GitHub repository, see [GitHub](./github#a-new-project-on-github). |
 
 The project folder must not exist yet, or it must be empty. ElectronicWerk
 never overwrites existing files.

@@ -104,6 +104,10 @@ GPU, as recorded in
 - New windows, embedded web views, navigation to other sites and permission
   requests (camera, microphone, location, …) are denied.
 - Links open in the browser only if they point to this project on GitHub.
+  GitHub pages of the user's repositories and the sign-in pages are built by
+  the main process from a checked `owner/name`, never taken from the UI.
+- The GitHub token is encrypted with the operating system's keychain and
+  never reaches the user interface; git gets it only for GitHub's host.
 - Packaged apps use hardened Electron fuses (for example, no "run as Node.js"
   mode and integrity checks for the application archive).
 
@@ -262,3 +266,19 @@ recorded in
    files merged as they are, mesh-only models as faceted surfaces. A vitest
    reads the reference export back with OpenCASCADE. GLB and VRML carry
    the meshes.
+
+## GitHub and source control
+
+[GitHub and source control](../guide/github) is recorded in
+[ADR-0011: GitHub integration and source control](https://github.com/Ujap1994/ElectronicWerk/blob/main/docs/adr/0011-github-integration.md):
+
+1. The main process runs git with isomorphic-git (no git installation
+   needed) over Electron's `net.fetch`, and the GitHub REST API and the
+   device flow with the token from `safeStorage` (`src/main/github/`).
+2. The UI calls `git.*` with the manifest path of the open project; the main
+   process accepts nothing else. After a pull or a branch switch the UI
+   reopens the project in the engine.
+3. Pulls never merge inside a file: different files are merged, the same
+   file changed on both sides is a conflict that changes nothing.
+4. Tests use a local stand-in for GitHub (REST API, device flow and
+   `git http-backend`).

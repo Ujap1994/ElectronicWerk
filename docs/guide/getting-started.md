@@ -13,12 +13,13 @@ The header shows the ElectronicWerk icon and a short welcome text.
 
 ### Actions
 
-The three cards are the entry points into your work:
+The cards are the entry points into your work:
 
 | Card                     | What it does                                                                  | Available in |
 | ------------------------ | ----------------------------------------------------------------------------- | ------------ |
 | **New project**          | Create a project with the [new-project wizard](./projects#creating-a-project) | v0.2         |
 | **Open project**         | Open an existing ElectronicWerk project (`.ewproj` file)                      | v0.2         |
+| **Open from GitHub**     | [Download a project](./github#opening-a-project-from-github) from GitHub      | v0.12        |
 | **Import KiCad project** | Convert a KiCad project into an ElectronicWerk project                        | v0.4         |
 
 Cards for features that are not finished yet are greyed out and show the
