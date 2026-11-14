@@ -282,3 +282,17 @@ recorded in
    file changed on both sides is a conflict that changes nothing.
 4. Tests use a local stand-in for GitHub (REST API, device flow and
    `git http-backend`).
+
+## Scripts and AI agents
+
+[Scripts and AI agents](../guide/automation) are recorded in
+[ADR-0012: Automation and AI agents](https://github.com/Ujap1994/ElectronicWerk/blob/main/docs/adr/0012-automation-and-ai-agents.md):
+
+1. `ew-core::design` adds `design.*` methods with designators, pin names,
+   millimetres and degrees, built from the editors' edits; each call is one
+   undo step (staged on a copy of the project).
+2. The CLI wraps them (`ewerk schematic`, `ewerk board`, `ewerk script`);
+   `ewerk rpc` speaks JSON-RPC 2.0, `ewerk mcp` the Model Context Protocol.
+3. `project.save` refuses to overwrite files another program changed
+   (`changedOnDisk`), so the app and an agent can never lose each other's
+   work.

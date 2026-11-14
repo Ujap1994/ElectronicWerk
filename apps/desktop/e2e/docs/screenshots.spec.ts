@@ -3,7 +3,16 @@
  * Run with `npm run docs:screenshots` after building the app. Only synthetic
  * demo data is shown, so the images are safe to publish.
  */
-import { cpSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import {
+  cpSync,
+  existsSync,
+  mkdirSync,
+  readdirSync,
+  readFileSync,
+  rmSync,
+  statSync,
+  writeFileSync,
+} from 'node:fs';
 import { execFile, execFileSync } from 'node:child_process';
 import { homedir } from 'node:os';
 import { join, resolve } from 'node:path';
@@ -1864,4 +1873,72 @@ test('github', async () => {
   } finally {
     await github.close();
   }
+});
+
+// --- Scripts and AI agents (M12) ---------------------------------------------
+
+/** The newest `ewerk` binary built by cargo. */
+function ewerkBinary(): string {
+  const target = resolve(import.meta.dirname, '../../../../target');
+  const name = process.platform === 'win32' ? 'ewerk.exe' : 'ewerk';
+  const found = ['release', 'debug']
+    .map((profile) => join(target, profile, name))
+    .filter((path) => existsSync(path))
+    .sort((a, b) => statSync(b).mtimeMs - statSync(a).mtimeMs)[0];
+  if (found === undefined) {
+    throw new Error('build the command-line tool first: cargo build -p ew-cli');
+  }
+  return found;
+}
+
+test('automation', async () => {
+  test.setTimeout(240_000);
+  freshProjects();
+  // The cookbook's status LED, built with the command-line tool.
+  const project = join(PROJECTS, 'Status LED');
+  const ewerk = (...args: string[]): void => {
+    execFileSync(ewerkBinary(), args, {
+      env: { ...process.env, EW_LIBRARY_DIR: join(PROJECTS, '..', 'no-library') },
+    });
+  };
+  ewerk('project', 'new', project, '--width', '30', '--height', '20');
+  ewerk(
+    'script',
+    resolve(import.meta.dirname, '../../../../examples/automation/status-led.jsonl'),
+    '--project',
+    project,
+  );
+
+  const { app, page, close } = await start({ settings: { theme: 'light' } });
+  await page.setViewportSize({ width: 1400, height: 860 });
+  await page.getByTestId('open-settings').click();
+  await shoot(page.getByTestId('settings-automation'), 'automation-settings');
+  await page.keyboard.press('Escape');
+
+  await queueDialogAnswer(app, join(project, 'Status LED.ewproj'));
+  await page.getByTestId('open-project').click();
+  await page.getByTestId('workspace').waitFor();
+  const sheet = await openDocument(page, 'Root');
+  // The three parts, in the middle of the view.
+  const parts: Point = [55_880_000, 180_340_000];
+  await zoomAt(page, parts, 6);
+  const [x, y] = await toScreen(sheet, parts);
+  const box = await sheet.boundingBox();
+  await page.mouse.move(x, y);
+  await page.mouse.down({ button: 'middle' });
+  await page.mouse.move(
+    (box?.x ?? 0) + (box?.width ?? 0) / 2,
+    (box?.y ?? 0) + (box?.height ?? 0) / 2,
+    {
+      steps: 5,
+    },
+  );
+  await page.mouse.up({ button: 'middle' });
+  await settle(page);
+  await page.mouse.move(5, 5);
+  await shoot(sheet, 'automation-schematic');
+  const board = await openDocument(page, 'Status LED');
+  await page.mouse.move(5, 5);
+  await shoot(board, 'automation-board');
+  await close();
 });

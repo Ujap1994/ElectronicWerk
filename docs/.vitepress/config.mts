@@ -67,6 +67,7 @@ export default defineConfig({
           { text: 'The base library', link: '/guide/library' },
           { text: 'Online part libraries', link: '/guide/online-parts' },
           { text: 'GitHub and source control', link: '/guide/github' },
+          { text: 'Scripts and AI agents', link: '/guide/automation' },
           { text: 'Duplicates', link: '/guide/duplicates' },
           { text: 'Undo, autosave and recovery', link: '/guide/undo-and-recovery' },
           { text: 'Settings', link: '/guide/settings' },
@@ -80,6 +81,7 @@ export default defineConfig({
         text: 'Reference',
         items: [
           { text: 'Command-line tool (ewerk)', link: '/reference/cli' },
+          { text: 'Scripting cookbook', link: '/reference/cookbook' },
           { text: 'Engine API', link: '/reference/engine-api' },
           { text: 'File format', link: '/reference/file-format' },
         ],

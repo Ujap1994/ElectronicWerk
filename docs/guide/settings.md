@@ -71,6 +71,14 @@ the provider window, never by ElectronicWerk.
 
 ![The online part libraries in the settings](/screenshots/parts-settings.png)
 
+## AI agents and scripts
+
+How AI agents and scripts use ElectronicWerk through the command-line tool
+`ewerk`: the MCP configuration to copy into your agent (**Copy**), the
+download of `ewerk` and the [guide](./automation).
+
+![AI agents and scripts in the settings](/screenshots/automation-settings.png)
+
 ## Where the settings are stored
 
 The settings are saved as `settings.json` in your user folder:

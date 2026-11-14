@@ -48,6 +48,7 @@ The reply is either a result or an error:
 | `ioError`         | A file could not be read or written                                      |
 | `formatError`     | A file is not a valid ElectronicWerk file                                |
 | `newerFormat`     | A file was written by a newer ElectronicWerk                             |
+| `changedOnDisk`   | `project.save`: another program changed files this save would write      |
 | `internal`        | An unexpected internal error                                             |
 
 The desktop app adds `hostError` (the engine process reported an exception),
@@ -86,6 +87,107 @@ these events to every window; `ewerk rpc --events` prints them.
   updates. Views use this to update without reloading.
 - `truncated`: `true` if the change set was too large to list (more than
   1,000 changes); views reload instead.
+
+## Design
+
+The `design.*` methods are made for scripts, the command line and AI agents.
+They address what a designer names instead of object ids and nanometres:
+
+- parts by **designator** (`R1`), **pins** as `designator.pin` with the pin
+  number or name (`R1.2`, `U1.VCC`; `U1.RST` also finds KiCad's overlined
+  `~{RST}`), sheets and boards by **name**, nets by **name**;
+- lengths in **millimetres** (`[x, y]`, y up) and angles in **degrees**
+  (counter-clockwise).
+
+Every call that changes the design is **one undo step** and returns `seq` and
+`history` like other edits. They need an open project, except
+`design.presets`.
+
+### `design.components` / `design.nets`
+
+`design.components` → `{"components": [{"designator", "value", "symbol",
+"footprint", "sheet", "pins": [{"number", "name", "net"}]}]}`, sorted by
+designator (all units of a part together). `design.nets` → `{"nets": [{"name",
+"named", "pins": ["R1.2", …]}]}`. Local nets carry the sheet path (`/LED_A`).
+
+### `design.place`
+
+```json
+{ "symbol": "R", "value": "330", "footprint": "0805", "at": [50.8, 120], "rotation": 90 }
+```
+
+Places a symbol: `symbol` (project library, or base library by full name such
+as `Device:R`, which is copied into the project library with its default
+footprint) or `component` (a component of the project library). Optional:
+`designator` (default: the next free one), `value`, `footprint`, `sheet`
+(name or id, default: the top sheet), `at` (default: a free place on the
+sheet), `rotation`, `mirror`, `unit`. The position is snapped to the sheet
+grid. Returns `{"designator", "value", "symbol", "footprint", "sheet", "at",
+"id", "pins": [{"number", "name"}]}` (`place-symbol`).
+
+A `footprint` is a footprint of the project library, a footprint wizard
+preset (`0805`, `SOIC-8`, `pin header 1x04 2.54 mm`; `preset:0805` makes it
+explicit) generated into the project library, or a base library footprint.
+
+### `design.set`
+
+`{"designator", "value"?, "footprint"?, "rename"?, "properties"?: {"MPN":
+"…"}}` changes a part on every sheet and unit; an empty property text removes
+the property (`edit-part`).
+
+### `design.connect` / `design.noConnect`
+
+`{"net": "LED_A", "pins": ["R1.2", "D1.A"], "style"?: "auto" | "label" |
+"global" | "power"}` draws a 2.54 mm wire from each pin, away from the body,
+and puts a net label at its end: `auto` uses a local label, or a global
+label when the net spans several sheets (or is global already); `power` uses
+a power port (ground style for nets starting with `GND` or `VSS`). A name
+shared by several pins (`U1.GND`) connects all of them. Returns
+`{"net", "connected": ["R1.2", "D1.2"], "already": […], "style"}`; pins on
+the net already are listed in `already`, a pin on another named net fails
+with `invalidParams` (`connect-pins`).
+
+`design.noConnect` `{"pins": [...]}` puts no-connect flags on pins →
+`{"marked"}` (`add-no-connect`).
+
+### `design.footprint` / `design.presets`
+
+`design.footprint` `{"name"}` makes sure a footprint is in the project
+library (as it is, from a wizard preset or from the base library) →
+`{"footprint"}` with the name in the project (`add-footprint`).
+`design.presets` lists the wizard presets: `{"footprints": ["0402", …]}`.
+
+### `design.board`
+
+`{"board"?}` → `{"board", "id", "outline": {"min", "max"} | null,
+"copperLayers", "footprints": [{"designator", "value", "footprint", "at",
+"rotation", "side", "onBoard"}], "tracks", "vias", "unrouted"}`.
+
+### `design.updateBoard`
+
+`{"board"?}` applies every change of the schematic to the board, like
+`pcb.syncApply` with all changes → `{"changes"}` (`update-board`).
+
+### `design.placeFootprint` / `design.arrange`
+
+`design.placeFootprint` `{"designator", "at": [x, y], "rotation"?, "side"?:
+"top" | "bottom", "board"?}` moves, turns and flips a footprint to an exact
+place → `{"designator", "at", "rotation", "side"}`.
+
+`design.arrange` `{"designators"?, "gap"? (mm, default 2), "board"?}` puts
+footprints in rows inside the board outline, in designator order (default:
+every unlocked footprint that is not on the board) → `{"placed", "noRoom"}`.
+Both are `place-footprints`.
+
+### `design.route`
+
+`{"nets"?, "layers"?: ["top", "bottom"], "width"? (mm), "board"?}` routes the
+unrouted connections one at a time with the walkaround router: one copper
+layer per connection (the first layer in `layers` on which both ends have
+copper and a path exists), 45° bends, no vias, the preferred track width of
+the design rules. A net name also finds its local net (`LED_A` → `/LED_A`).
+Returns `{"routed", "nets": {"/LED_A": 1}, "failed": [{"net", "from", "to"}],
+"unrouted"}` (`auto-route`, one undo step for all tracks).
 
 ## Projects
 

@@ -41,6 +41,10 @@ macOS quarantines downloaded programs. Run
 | [`ewerk project archive`](#ewerk-project-archive)       | Write a ZIP archive of a project                     |
 | [`ewerk project upgrade`](#ewerk-project-upgrade)       | Rewrite a project in the current file format         |
 | [`ewerk project templates`](#ewerk-project-templates)   | List the project templates                           |
+| [`ewerk schematic …`](#schematics)                      | Place parts, connect pins, run the ERC               |
+| [`ewerk board …`](#boards)                              | Update, place, route and check a board               |
+| [`ewerk script`](#ewerk-script)                         | Run engine calls from a file                         |
+| [`ewerk mcp`](#ewerk-mcp)                               | MCP server for AI agents                             |
 | [`ewerk import kicad`](#ewerk-import-kicad)             | Import a KiCad project as a new project              |
 | [`ewerk import library`](#ewerk-import-library)         | Add a KiCad library to a project library             |
 | [`ewerk import archive`](#ewerk-import-archive)         | Import a SnapEDA or Ultra Librarian download         |
@@ -57,7 +61,7 @@ macOS quarantines downloaded programs. Run
 | [`ewerk library install`](#ewerk-library-install)       | Install a library pack                               |
 | [`ewerk rpc`](#ewerk-rpc)                               | Run an engine session over standard input and output |
 | [`ewerk call`](#ewerk-call-method-params)               | Call one engine method                               |
-| [`ewerk methods`](#ewerk-methods)                       | List every engine method                             |
+| [`ewerk methods`](#ewerk-methods)                       | List every engine method (with summaries)            |
 | [`ewerk synth`](#ewerk-synth)                           | Generate a synthetic reference design                |
 | [`ewerk bench`](#ewerk-bench)                           | Measure opening and saving a synthetic design        |
 | [`ewerk info`](#ewerk-info)                             | Show information about the engine build              |
@@ -179,6 +183,176 @@ board-2l         100.000 mm × 100.000 mm, 2 layers
 board-4l         100.000 mm × 100.000 mm, 4 layers
 arduino-shield   68.580 mm × 53.340 mm, 2 layers
 demo             no board
+```
+
+## Schematics
+
+The `schematic` commands edit a project's schematic with designators, pin
+names and millimetres; see [Scripts and AI agents](../guide/automation). Each
+command opens the project, makes its change, saves it and closes it. All of
+them take `--json` for the full result.
+
+### `ewerk schematic place`
+
+```text
+ewerk schematic place <project> <symbol> [--component] [--ref <designator>]
+    [--value <text>] [--footprint <name>] [--sheet <name>] [--at <x,y>]
+    [--rotate <degrees>] [--mirror] [--unit <n>]
+```
+
+Places a symbol of the project library (`R`, `LED`, …) or of the base
+library (`Device:R`, copied into the project library first). With
+`--component`, the name is a component of the project library (with its
+value, footprint and part numbers).
+
+| Option        | Meaning                                                                                                     |
+| ------------- | ----------------------------------------------------------------------------------------------------------- |
+| `--ref`       | Designator (default: the next free one, `R4`)                                                               |
+| `--value`     | Value (default: the symbol's)                                                                               |
+| `--footprint` | Project footprint, base library footprint, or wizard preset (`0805`, `SOIC-8`; `ewerk call design.presets`) |
+| `--sheet`     | Sheet name (default: the top sheet)                                                                         |
+| `--at`        | Position in millimetres, `x,y` (y up); snapped to the sheet grid. Default: a free place                     |
+| `--rotate`    | Rotation in degrees, counter-clockwise                                                                      |
+
+```console
+$ ewerk schematic place "Status LED" R --value 330 --footprint 0805
+Placed R1 (330) at [30.48,179.52] mm on sheet Root
+```
+
+### `ewerk schematic connect`
+
+```text
+ewerk schematic connect <project> <net> <pin>… [--style auto|label|global|power]
+```
+
+Connects pins to a net: a 2.54 mm wire from each pin and a net label at its
+end (`auto`: a local label, a global label when the net spans sheets), or a
+power port (`power`; nets starting with GND or VSS get the ground symbol). A
+pin is `designator.pin` with the pin number or name: `R1.2`, `U1.VCC`; a name
+shared by several pins (`U1.GND`) connects all of them. Pins on the net
+already are skipped; a pin on another named net is an error.
+
+```console
+$ ewerk schematic connect "Status LED" LED_A R1.2 D1.A
+Connected R1.2, D1.2 to LED_A
+```
+
+### `ewerk schematic set`
+
+```text
+ewerk schematic set <project> <designator> [--value <text>] [--footprint <name>]
+    [--rename <designator>] [--property KEY=VALUE]…
+```
+
+Changes a part on every sheet (all its units). `--property MPN=…` sets a
+property; an empty value (`--property MPN=`) removes it.
+
+### `ewerk schematic list` / `nets`
+
+`list` prints every part with its value, footprint and the net of each pin;
+`nets` prints every net with its pins. Local nets carry the sheet path
+(`/LED_A`); power and global nets do not.
+
+```console
+$ ewerk schematic list "Status LED"
+C1       100n         Chip_0603_1608Metric         1=VCC 2=GND
+D1       green        Chip_0805_2013Metric         1=GND 2=/LED_A
+R1       330          Chip_0805_2013Metric         1=VCC 2=/LED_A
+```
+
+### `ewerk schematic no-connect`
+
+```text
+ewerk schematic no-connect <project> <pin>…
+```
+
+Puts no-connect flags on pins that stay open on purpose (the ERC then accepts
+them).
+
+### `ewerk schematic annotate`
+
+Numbers the parts whose designator ends in `?`; `--all` numbers every part
+again.
+
+### `ewerk schematic erc`
+
+Runs the [electrical rules check](../guide/erc). Exit code `1` if there are
+errors.
+
+```console
+$ ewerk schematic erc "Status LED"
+ERC: 0 errors, 0 warnings
+```
+
+### `ewerk schematic netlist`
+
+```text
+ewerk schematic netlist <project> [--format kicad|csv] [-o <file>]
+```
+
+Writes the netlist to standard output or a file.
+
+## Boards
+
+The `board` commands work on the first board of a project (`--board <name>`
+for another one). Positions are millimetres, rotations degrees.
+
+### `ewerk board update`
+
+Brings the board up to date with the schematic, like
+[Update board from schematic](../guide/schematic-to-board): new footprints
+(below the board outline), nets, values and footprint changes.
+
+### `ewerk board place`
+
+```text
+ewerk board place <project> <designator> --at <x,y> [--rotate <degrees>] [--side top|bottom]
+```
+
+Puts a footprint at an exact position, rotation and side.
+
+### `ewerk board arrange`
+
+```text
+ewerk board arrange <project> [<designator>…] [--gap <mm>]
+```
+
+Puts footprints in rows inside the board outline, in designator order:
+the given ones, or all that are not on the board yet.
+
+### `ewerk board route`
+
+```text
+ewerk board route <project> [--net <name>]… [--layer top|bottom]… [--width <mm>]
+```
+
+Routes the unrouted connections one by one with the
+[walkaround router](../guide/routing): 45° bends, one copper layer per
+connection (in the order of `--layer`, default top then bottom), no vias,
+the track width of the design rules (or `--width`). `--net LED_A` also finds
+the local net `/LED_A`. Connections without a path are listed; the routing is
+one undo step.
+
+```console
+$ ewerk board route "Status LED"
+Routed 3 connections; 0 still unrouted
+```
+
+### `ewerk board info`
+
+The board outline, copper layers, every footprint with position, rotation and
+side, and the number of tracks, vias and unrouted connections.
+
+### `ewerk board fill-zones` / `drc`
+
+`fill-zones` fills the copper zones. `drc` runs the
+[design rules check](../guide/drc); exit code `1` if there are errors.
+
+```console
+$ ewerk board drc "Status LED"
+warning silk-width       Silkscreen line width 0.12 mm is less than 0.15 mm (board constraints)
+…
+DRC: 0 errors, 3 warnings, 0 unrouted
 ```
 
 ## Import
@@ -509,8 +683,15 @@ standard input, write one JSON reply per line to standard output. This is how
 scripts and AI agents edit projects step by step, with undo and the autosave
 journal, exactly like the desktop app.
 
-- A request is `{"id": …, "method": "…", "params": …}`; the reply carries the
-  same `id` plus `result` or `error` (see the [Engine API](./engine-api)).
+- **JSON-RPC 2.0**: requests with `"jsonrpc": "2.0"` get JSON-RPC 2.0 replies.
+  Errors have numeric codes (`-32700` parse error, `-32600` invalid request,
+  `-32601` method not found, `-32602` invalid params, `-32603` internal,
+  `-32000` every other engine error) and the engine's code in
+  `error.data.code` (for example `noProject`). Notifications (no `id`) get no
+  reply; a batch (a JSON array) gets an array of replies.
+- **Short form**: `{"id": …, "method": "…", "params": …}`; the reply carries
+  the same `id` plus `result` or `error` with the engine's error code (see the
+  [Engine API](./engine-api)).
 - `--events` also writes the engine's events as `{"event": …}` lines.
 - `--no-journal` disables the autosave journal (useful for throw-away edits).
 
@@ -570,6 +751,61 @@ In PowerShell, wrap JSON in single quotes and escape inner double quotes:
 ### `ewerk methods`
 
 Lists every engine method, one per line (see the [Engine API](./engine-api)).
+With `--json`, every method with a one-line summary:
+
+```console
+$ ewerk methods --json | jq '.methods[] | select(.name == "design.route")'
+{
+  "name": "design.route",
+  "summary": "{\"nets\"?, \"layers\"?: [\"top\", \"bottom\"], \"width\"? (mm), \"board\"?}. Routes the unrouted connections one by one …"
+}
+```
+
+### `ewerk script`
+
+```text
+ewerk script <file> [--project <folder>] [--keep-going] [--dry-run] [--json]
+```
+
+Runs engine calls from a file in one session. The file is JSON Lines (one
+`{"method", "params"}` per line; empty lines and lines starting with `#` or
+`//` are skipped), a JSON list of steps, or `{"project", "steps"}` (the
+project relative to the script). `-` reads standard input.
+
+- `--project` opens a project first and saves it at the end (if something
+  changed).
+- The first failing step stops the script and the exit code is `1`;
+  `--keep-going` runs the rest (and still saves).
+- `--dry-run` does not save; `--json` prints every step's result.
+
+```console
+$ ewerk script status-led.jsonl --project "Status LED"
+ok    design.place             R1 330
+…
+ok    design.route             3 routed, 0 unrouted
+11 steps, 0 failed, project saved
+```
+
+See the [scripting cookbook](./cookbook) for complete scripts.
+
+### `ewerk mcp`
+
+```text
+ewerk mcp [--project <folder>] [--no-autosave]
+```
+
+A [Model Context Protocol](https://modelcontextprotocol.io) server on standard
+input and output (JSON-RPC 2.0, one message per line) for AI agents. It
+offers tools to open and create projects, read and draw schematics, update,
+place, route and check boards and generate outputs, plus `call_engine` for
+any engine method; see [AI agents (MCP)](../guide/automation#ai-agents-mcp).
+
+- Changes are saved after every tool call; `--no-autosave` keeps them in
+  memory until the agent calls `save_project`.
+- `--project` opens a project at the start.
+- Tool failures (an unknown pin, a missing project) are returned as tool
+  results with `isError`, so the agent can correct itself.
+- Protocol versions 2025-11-25, 2025-06-18, 2025-03-26 and 2024-11-05.
 
 ## Development tools
 
@@ -620,11 +856,14 @@ With `--json`, the same information is printed as JSON.
 
 ## Exit codes
 
-| Code | Meaning                                                                               |
-| ---- | ------------------------------------------------------------------------------------- |
-| `0`  | Success                                                                               |
-| `1`  | The engine reported an error, the project has validation errors, or input was invalid |
-| `2`  | Wrong command-line usage (unknown command or option)                                  |
+| Code | Meaning                                                                                               |
+| ---- | ----------------------------------------------------------------------------------------------------- |
+| `0`  | Success                                                                                               |
+| `1`  | A check found errors: project validation, ERC, DRC, import findings, a failed output or a script step |
+| `2`  | Wrong command-line usage (unknown command or option, invalid value)                                   |
+| `3`  | The command could not run: an engine error (unknown part, missing project, …), a file or JSON problem |
+
+Before version 0.13, errors of the third kind also had the exit code `1`.
 
 ## Using `ewerk` in scripts
 
