@@ -200,6 +200,17 @@ export const de: Messages = {
     editLibraryItem: 'Eigenschaften des Bibliothekselements ändern',
     editSymbol: 'Symbol bearbeiten',
     editFootprint: 'Footprint bearbeiten',
+    connectPins: 'Pins verbinden',
+    editPart: 'Bauteil bearbeiten',
+    addFootprint: 'Footprint hinzufügen',
+    updateBoard: 'Platine aus Schaltplan aktualisieren',
+    updateSchematic: 'Schaltplan aus Platine aktualisieren',
+    placeFootprint: 'Footprint platzieren',
+    placeFootprints: 'Footprints platzieren',
+    route: 'Routen',
+    autoRoute: 'Automatisch routen',
+    fillZones: 'Zonen füllen',
+    unfillZones: 'Zonen leeren',
   },
   kinds: {
     schematic: 'Schaltplan',
@@ -513,6 +524,8 @@ export const de: Messages = {
     recoveryPending:
       'Entscheide zuerst, ob die ungesicherten Änderungen wiederhergestellt werden sollen.',
     conflict: 'Die Änderung passt nicht zum aktuellen Projekt: {message}',
+    changedOnDisk:
+      'Nicht gespeichert: Ein anderes Programm (ein KI-Agent, die Kommandozeile oder ein anderes Fenster) hat {files} geändert, nachdem das Projekt geöffnet wurde. Sichere deine Arbeit mit „Kopie speichern“ und öffne das Projekt dann neu.',
     notFound: 'Nicht gefunden: {message}',
     alreadyExists:
       'Der Ordner existiert bereits und ist nicht leer. Wähle einen anderen Namen oder Speicherort.',
@@ -1093,4 +1106,15 @@ export const de: Messages = {
   view3d: view3dDe,
   parts: partsDe,
   github: githubDe,
+  automation: {
+    title: 'KI-Agenten und Skripte',
+    intro:
+      'KI-Agenten (Claude, Cursor, VS Code und andere MCP-Clients) und Skripte nutzen ElectronicWerk über das Kommandozeilenwerkzeug ewerk. Installiere ewerk und trage dies in die MCP-Konfiguration deines Agenten ein:',
+    copy: 'Kopieren',
+    copied: 'Kopiert',
+    download: 'ewerk herunterladen',
+    guide: 'Anleitung',
+    safety:
+      'Ein Agent bearbeitet die Projektdateien direkt. ElectronicWerk überschreibt nie Änderungen eines anderen Programms: Öffne das Projekt neu, um sie zu sehen.',
+  },
 };

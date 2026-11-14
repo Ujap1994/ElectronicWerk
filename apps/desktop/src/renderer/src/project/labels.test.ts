@@ -12,6 +12,8 @@ describe('historyLabel', () => {
     expect(historyLabel(t, 'rename-document')).toBe('Rename document');
     expect(historyLabel(createTranslator('de'), 'add-sheet')).toBe('Blatt hinzufügen');
     expect(historyLabel(t, 'route bus')).toBe('route bus');
+    expect(historyLabel(t, 'auto-route')).toBe('Route automatically');
+    expect(historyLabel(createTranslator('de'), 'connect-pins')).toBe('Pins verbinden');
   });
 });
 
@@ -29,6 +31,12 @@ describe('errorMessage', () => {
     expect(errorMessage(t, new EngineError({ code: 'internal', message: 'boom' }))).toBe(
       'Unexpected error: boom',
     );
+    expect(
+      errorMessage(
+        t,
+        new EngineError({ code: 'changedOnDisk', message: 'changed by another program: a.ewsch' }),
+      ),
+    ).toContain('changed a.ewsch after the project was opened');
     expect(errorMessage(t, new Error('plain'))).toBe('Unexpected error: plain');
     expect(errorMessage(t, 'text')).toBe('Unexpected error: text');
   });

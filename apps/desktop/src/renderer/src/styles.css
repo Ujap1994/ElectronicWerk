@@ -5035,3 +5035,16 @@ textarea.field__control {
   color: var(--color-text-muted);
   font-size: var(--font-size-s);
 }
+
+/* --- AI agents and scripts --------------------------------------------- */
+
+.automation__config {
+  margin: 0;
+  padding: var(--space-2) var(--space-3);
+  overflow: auto;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-s);
+  background: var(--color-surface-muted);
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: var(--font-size-s);
+}

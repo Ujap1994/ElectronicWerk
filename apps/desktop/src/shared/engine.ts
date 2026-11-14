@@ -48,6 +48,7 @@ export type EngineApiErrorCode =
   | 'ioError'
   | 'formatError'
   | 'newerFormat'
+  | 'changedOnDisk'
   | 'internal';
 
 /** Engine errors plus problems outside the engine (host and transport). */

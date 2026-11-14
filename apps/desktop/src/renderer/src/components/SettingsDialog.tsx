@@ -4,6 +4,7 @@ import { LANGUAGES, isLanguage, type LanguageSetting } from '@shared/i18n';
 import type { ThemeSetting } from '@shared/settings';
 
 import { useAppState } from '../state';
+import { AutomationSettings } from '../automation/AutomationSettings';
 import { GithubSettings } from '../github/GithubSettings';
 import { ProviderSettings } from '../parts/OnlineParts';
 import { Modal } from './Modal';
@@ -114,6 +115,8 @@ export function SettingsDialog({ onClose, onCheckUpdates }: SettingsDialogProps)
       <GithubSettings />
 
       <ProviderSettings />
+
+      <AutomationSettings />
     </Modal>
   );
 }

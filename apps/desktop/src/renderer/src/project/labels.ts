@@ -44,6 +44,17 @@ const HISTORY_LABELS: Readonly<Record<string, MessageKey>> = {
   'edit-library-item': 'history.editLibraryItem',
   'edit-symbol': 'history.editSymbol',
   'edit-footprint': 'history.editFootprint',
+  'connect-pins': 'history.connectPins',
+  'edit-part': 'history.editPart',
+  'add-footprint': 'history.addFootprint',
+  'update-board': 'history.updateBoard',
+  'update-schematic': 'history.updateSchematic',
+  'place-footprint': 'history.placeFootprint',
+  'place-footprints': 'history.placeFootprints',
+  route: 'history.route',
+  'auto-route': 'history.autoRoute',
+  'fill-zones': 'history.fillZones',
+  'unfill-zones': 'history.unfillZones',
 };
 
 /** A readable name for an undo/redo step (scripts may use their own labels). */
@@ -84,6 +95,8 @@ export function errorMessage(t: Translate, error: unknown): string {
       return t('errors.formatError', { message });
     case 'newerFormat':
       return t('errors.newerFormat');
+    case 'changedOnDisk':
+      return t('errors.changedOnDisk', { files: message.replace(/^[^:]*:\s*/u, '') });
     case 'invalidParams':
       return t('errors.invalidParams', { message });
     case 'internal':

@@ -203,6 +203,17 @@ export const en = {
     editLibraryItem: 'Change library item properties',
     editSymbol: 'Edit symbol',
     editFootprint: 'Edit footprint',
+    connectPins: 'Connect pins',
+    editPart: 'Edit part',
+    addFootprint: 'Add footprint',
+    updateBoard: 'Update board from schematic',
+    updateSchematic: 'Update schematic from board',
+    placeFootprint: 'Place footprint',
+    placeFootprints: 'Place footprints',
+    route: 'Route',
+    autoRoute: 'Route automatically',
+    fillZones: 'Fill zones',
+    unfillZones: 'Empty zones',
   },
   kinds: {
     schematic: 'Schematic',
@@ -510,6 +521,8 @@ export const en = {
     unsavedChanges: 'The project has unsaved changes.',
     recoveryPending: 'First decide whether to restore the unsaved changes.',
     conflict: 'The change does not fit the current project: {message}',
+    changedOnDisk:
+      'Not saved: another program (an AI agent, the command line or another window) changed {files} after the project was opened. Save your work with “Save Copy”, then reopen the project.',
     notFound: 'Not found: {message}',
     alreadyExists: 'The folder already exists and is not empty. Choose another name or location.',
     ioError: 'A file could not be read or written: {message}',
@@ -1085,4 +1098,15 @@ export const en = {
   view3d: view3dEn,
   parts: partsEn,
   github: githubEn,
+  automation: {
+    title: 'AI agents and scripts',
+    intro:
+      'AI agents (Claude, Cursor, VS Code and other MCP clients) and scripts use ElectronicWerk through its command-line tool ewerk. Install ewerk, then add this to the MCP configuration of your agent:',
+    copy: 'Copy',
+    copied: 'Copied',
+    download: 'Download ewerk',
+    guide: 'Guide',
+    safety:
+      'An agent edits the project files directly. ElectronicWerk never overwrites changes made by another program: reopen the project to see them.',
+  },
 } as const;
