@@ -1,7 +1,7 @@
 # ElectronicWerk Roadmap
 
-> **Status:** v0.17 (2026-11-14). M0 to M11 are complete (releases v0.1.0 to
-> v0.12.0; M0, M1 and M3 accepted by the maintainer); M12 is next.
+> **Status:** v0.18 (2026-11-14). M0 to M12 are complete (releases v0.1.0 to
+> v0.13.0; M0, M1 and M3 accepted by the maintainer); M13 is next.
 > This roadmap is a living document. It **must** be updated with every feature
 > (requirement D5). Every change to it is listed in the
 > [roadmap changelog](#13-roadmap-changelog).
@@ -247,7 +247,7 @@ own work only. Maintainer test cycles and feedback come on top. Status values:
 | M9  | Live 3D view and STEP export                          | v0.10.0 | F8                | 7–10 S          | ✅     |
 | M10 | Online part libraries: SnapEDA, Ultra Librarian       | v0.11.0 | F1                | 6–9 S           | ✅     |
 | M11 | GitHub integration                                    | v0.12.0 | F9                | 4–6 S           | ✅     |
-| M12 | CLI and AI automation (complete)                      | v0.13.0 | F12               | 4–6 S           | ⬜     |
+| M12 | CLI and AI automation (complete)                      | v0.13.0 | F12               | 4–6 S           | ✅     |
 | M13 | Assembly assistant and extras                         | v0.14.0 | F11               | 4–6 S           | ⬜     |
 | M14 | Interoperability: further open formats                | v0.15.0 | F3                | 5–8 S           | ⬜     |
 | M15 | Advanced layout                                       | v0.16.0 | F7                | 12–20 S         | ⬜     |
@@ -790,17 +790,24 @@ Delivered (ADR-0011):
 - [ ] Visual diff of schematic and PCB revisions and a semantic merge
       (later, on top of the engine's document model).
 
-### M12 — CLI and AI automation, complete (v0.13.0, 4–6 S)
+### M12 — CLI and AI automation, complete (v0.13.0, 4–6 S) ✅
 
-The CLI grows with every milestone. This milestone completes it.
+The CLI grows with every milestone. This milestone completes it (ADR-0012).
 
-- Every engine command is available in the CLI: create projects, place
-  components, connect nets, place footprints, route, run ERC/DRC, generate
-  outputs.
-- JSON input and output for scripting, batch scripts, and exit codes for CI.
-- JSON-RPC server mode and an **MCP server**, so AI agents can use
-  ElectronicWerk directly.
-- A documented scripting cookbook with examples.
+- [x] Every engine command is available in the CLI (`ewerk call`, `ewerk
+rpc`, `ewerk methods --json` with a summary per method), and the design
+      steps have their own commands with designators, pin names and
+      millimetres (new engine layer `design.*`): create projects, place
+      components (project or base library; footprints from the wizard
+      presets), connect nets, place and arrange footprints, route (walkaround
+      router, 45°), run ERC/DRC, generate outputs.
+- [x] JSON output everywhere, batch scripts (`ewerk script`, JSON or JSON
+      Lines), exit codes for CI (`1` check errors, `3` could not run).
+- [x] JSON-RPC 2.0 server mode (`ewerk rpc`) and an **MCP server** (`ewerk
+mcp`, 26 tools, autosave), so AI agents can use ElectronicWerk
+      directly; the app refuses to overwrite files an agent changed.
+- [x] A documented scripting cookbook; its examples (shell, script, Python)
+      run as tests.
 
 ### M13 — Assembly assistant and extras (v0.14.0, 4–6 S)
 
@@ -951,3 +958,4 @@ The CLI grows with every milestone. This milestone completes it.
 | 2026-11-13 | v0.15      | M10 narrowed by the maintainer to SnapEDA and Ultra Librarian (provider window and import of the user's downloads; no distributor APIs, no automated access, as both providers' terms require). Added the acceptance on real designs before v1.0 (M16) and the datasheet part generator as a later advanced feature.                                                                                                                                       |
 | 2026-11-13 | v0.16      | M10 complete: v0.11.0 with SnapEDA and Ultra Librarian in isolated provider windows, the import of their downloads (symbols, footprints, 3D models) with the duplicate check against the base library, accounts in the settings and `ewerk import archive`.                                                                                                                                                                                                |
 | 2026-11-14 | v0.17      | M11 complete: v0.12.0 with the GitHub sign-in (device flow and tokens, keychain), projects on GitHub from the wizard, Open from GitHub and the source control view (commit, push, pull, branches, history). Git runs in the app with isomorphic-git; pulls merge whole files only, so conflicts never leave a half-merged design. The visual diff stays a later item.                                                                                      |
+| 2026-11-14 | v0.18      | M12 complete: v0.13.0 with the `design.*` engine layer (designators, pin names, millimetres; one undo step per call), `ewerk schematic`/`board`/`script`, JSON-RPC 2.0, the MCP server for AI agents, CI exit codes, the save guard against overwriting other programs' changes and the scripting cookbook. `design.route` is a simple walkaround autorouter; the full autorouter stays in M15.                                                            |

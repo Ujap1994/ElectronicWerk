@@ -116,11 +116,12 @@ B.netclass != 'HV'`)
   are reviewed side by side, with a reproducible report
 - An open, **git-friendly file format**: readable JSON, one object per line,
   with schema versions and migrations
-- A **CLI** (`ewerk`) to create, inspect, check and archive projects, import
-  KiCad projects, libraries and netlists, run output jobs, export 3D models,
-  build, search and
-  distribute the base library, and a JSON-RPC session for scripts and AI
-  agents
+- A **CLI** (`ewerk`) for everything: create projects, place parts and
+  connect pins by name (`R1.2`, `U1.VCC`), update, place and route boards, run
+  the ERC and DRC with exit codes for CI, generate outputs, import KiCad
+  projects and libraries, export 3D models and manage the base library;
+  scripts in JSON Lines, a JSON-RPC 2.0 session and an **MCP server** so AI
+  agents (Claude, Cursor, VS Code, …) can design boards
 - A German and English UI, light and dark appearance, a command palette and
   an update notice
 - Builds for Windows, macOS and Linux

@@ -6,6 +6,50 @@ project uses [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.13.0] - 2026-11-14
+
+Scripts and AI agents: boards can be designed without the window — from a
+terminal, in CI pipelines and by AI agents over the Model Context Protocol —
+with designators, pin names and millimetres, from the first part to the
+routed board and the Gerber files.
+
+### Added
+
+- **Design methods** in the engine (`design.*`): place parts (from the
+  project or the base library, footprints also from the footprint wizard
+  presets such as `0805` or `SOIC-8`), change them, connect pins by number or
+  name (`R1.2`, `U1.VCC`) with net labels or power ports, mark pins as
+  unconnected, list parts and nets, update the board, place and arrange
+  footprints and route the unrouted connections (walkaround router, 45°
+  bends). Every call is one undo step. See
+  [Scripts and AI agents](https://ujap1994.github.io/ElectronicWerk/guide/automation).
+- **`ewerk schematic`** (`list`, `nets`, `place`, `set`, `connect`,
+  `no-connect`, `annotate`, `erc`, `netlist`) and **`ewerk board`** (`info`,
+  `update`, `place`, `arrange`, `route`, `fill-zones`, `drc`), with `--json`.
+- **`ewerk script`**: engine calls from a JSON or JSON Lines file in one
+  session, with `--project`, `--keep-going`, `--dry-run` and `--json`.
+- **`ewerk mcp`**: an MCP server for AI agents (Claude Desktop, Claude Code,
+  VS Code, Cursor, …) with 26 tools from opening a project to generating the
+  manufacturing files; changes are saved after every tool call.
+- **JSON-RPC 2.0** in `ewerk rpc`: numeric error codes with the engine's code
+  in `data`, notifications and batches; the short form still works.
+- `ewerk methods --json`: every engine method with a summary.
+- **AI agents and scripts** in the settings: the MCP configuration to copy,
+  the download of `ewerk` and the guide.
+- The **scripting cookbook** (shell, scripts, Python, Node.js, GitHub
+  Actions, batch jobs, jq) with examples that run as tests.
+- History labels of board edits in the undo menu (update board, place,
+  route, fill zones) are translated.
+
+### Changed
+
+- **Exit codes** of `ewerk`: `1` now only means that a check found errors
+  (validation, ERC, DRC, failed outputs, script steps); a command that could
+  not run (unknown part, missing project, invalid JSON) exits with `3`.
+- Saving refuses to overwrite files that another program (an AI agent, the
+  command line, another window) changed since the project was opened (new
+  error code `changedOnDisk`); the app explains how to keep both.
+
 ## [0.12.0] - 2026-11-14
 
 GitHub and source control: projects go to GitHub from the new-project
@@ -896,7 +940,8 @@ quality gates and the delivery pipeline that every later feature builds on.
   process ([ujap1994.github.io/ElectronicWerk](https://ujap1994.github.io/ElectronicWerk/)).
   **Help → Documentation** opens it.
 
-[Unreleased]: https://github.com/Ujap1994/ElectronicWerk/compare/v0.12.0...HEAD
+[Unreleased]: https://github.com/Ujap1994/ElectronicWerk/compare/v0.13.0...HEAD
+[0.13.0]: https://github.com/Ujap1994/ElectronicWerk/compare/v0.12.0...v0.13.0
 [0.12.0]: https://github.com/Ujap1994/ElectronicWerk/compare/v0.11.0...v0.12.0
 [0.11.0]: https://github.com/Ujap1994/ElectronicWerk/compare/v0.10.0...v0.11.0
 [0.10.0]: https://github.com/Ujap1994/ElectronicWerk/compare/v0.9.0...v0.10.0
