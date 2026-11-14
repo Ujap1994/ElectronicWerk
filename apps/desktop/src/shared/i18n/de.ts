@@ -1,6 +1,7 @@
 import { boardDe } from './board.de';
 import { outputsDe } from './outputs.de';
 import { view3dDe } from './view3d.de';
+import { githubDe } from './github.de';
 import { partsDe } from './parts.de';
 import { libeditDe } from './libedit.de';
 import { schematicDe } from './schematic.de';
@@ -21,6 +22,8 @@ export const de: Messages = {
     openProjectHint: 'Ein vorhandenes ElectronicWerk-Projekt öffnen.',
     importKicad: 'KiCad-Projekt importieren',
     importKicadHint: 'Ein KiCad-Projekt in ein ElectronicWerk-Projekt umwandeln.',
+    openGithub: 'Von GitHub öffnen',
+    openGithubHint: 'Ein Projekt aus einem GitHub-Repository herunterladen.',
     comingIn: 'Kommt in {version}',
     recentTitle: 'Zuletzt geöffnet',
     recentEmpty: 'Noch keine Projekte geöffnet. Geöffnete Projekte erscheinen hier.',
@@ -123,6 +126,9 @@ export const de: Messages = {
     generateOutputs: 'Ausgaben: Fertigungsdaten erzeugen (Ausgabejob)',
     gerberViewer: 'Gerber-Viewer: Gerber- und Bohrdateien öffnen …',
     onlineParts: 'Bauteile online finden (SnapEDA, Ultra Librarian)',
+    sourceControl: 'Versionsverwaltung: committen, hochladen, abholen (GitHub)',
+    openFromGithub: 'Von GitHub öffnen',
+    githubSignIn: 'Bei GitHub anmelden',
     view3d: '3D-Ansicht zeigen',
   },
   project: {
@@ -211,6 +217,7 @@ export const de: Messages = {
     outputJobs: 'Ausgabejobs',
     otherFiles: 'Weitere Dateien',
     generatedFiles: 'Erzeugte Dateien',
+    sourceControl: 'Versionsverwaltung',
     emptyGroup: 'Leer',
     addSheet: 'Blatt hinzufügen',
     addSubSheet: 'Unterblatt hinzufügen',
@@ -391,7 +398,7 @@ export const de: Messages = {
     local: 'Auf diesem Computer',
     localHint: 'Ein Projektordner auf deinem Laufwerk.',
     github: 'Auf GitHub',
-    githubHint: 'Repository anlegen oder auswählen. Verfügbar ab Version 0.12.',
+    githubHint: 'Ein GitHub-Repository: Verlauf, Sicherung und Teilen.',
     errorEmpty: 'Bitte einen Namen eingeben.',
     errorTooLong: 'Der Name ist zu lang (höchstens 100 Zeichen).',
     errorInvalid: 'Der Name enthält nicht erlaubte Zeichen.',
@@ -1085,4 +1092,5 @@ export const de: Messages = {
   outputs: outputsDe,
   view3d: view3dDe,
   parts: partsDe,
+  github: githubDe,
 };

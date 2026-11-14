@@ -386,6 +386,12 @@ select {
   background: var(--color-surface-muted);
 }
 
+.button:has(> .icon) {
+  display: inline-flex;
+  gap: 6px;
+  align-items: center;
+}
+
 .button--primary {
   border-color: var(--color-accent);
   background: var(--color-accent);
@@ -4786,4 +4792,246 @@ textarea.field__control {
   gap: 6px;
   align-self: flex-start;
   margin: var(--space-1) 0;
+}
+
+/* --- GitHub ------------------------------------------------------------- */
+
+.toolbar__badge {
+  min-width: 18px;
+  padding: 0 5px;
+  border-radius: 9px;
+  background: var(--color-accent);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 18px;
+  text-align: center;
+}
+
+.github-account {
+  align-items: center;
+}
+
+.github-account__name {
+  display: grid;
+  flex: 1;
+  gap: 2px;
+}
+
+.github-device {
+  display: grid;
+  gap: var(--space-2);
+  justify-items: start;
+}
+
+.github-device__code {
+  padding: var(--space-2) var(--space-4);
+  border: 1px dashed var(--color-accent);
+  border-radius: var(--radius-m);
+  background: var(--color-accent-soft);
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 24px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+}
+
+.github-target {
+  display: grid;
+  gap: var(--space-3);
+  margin-top: var(--space-3);
+}
+
+.github-target__owner {
+  color: var(--color-text-muted);
+  white-space: nowrap;
+}
+
+.github-repos {
+  display: grid;
+  gap: 2px;
+  max-height: 260px;
+  margin: 0;
+  padding: var(--space-1);
+  overflow: auto;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-m);
+  list-style: none;
+}
+
+.github-repos__item {
+  display: flex;
+  gap: var(--space-2);
+  align-items: center;
+  width: 100%;
+  padding: var(--space-2);
+  border: 1px solid transparent;
+  border-radius: var(--radius-s);
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.github-repos__item:hover {
+  background: var(--color-surface-muted);
+}
+
+.github-repos__item[aria-selected='true'] {
+  border-color: var(--color-accent);
+  background: var(--color-accent-soft);
+}
+
+.github-repos__text {
+  display: grid;
+  flex: 1;
+  min-width: 0;
+}
+
+.github-repos__name {
+  font-weight: 600;
+}
+
+.github-repos__description,
+.github-repos__date {
+  overflow: hidden;
+  color: var(--color-text-muted);
+  font-size: var(--font-size-s);
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.source-control__title {
+  display: flex;
+  gap: var(--space-2);
+  align-items: center;
+  margin: 0;
+  font-size: 18px;
+}
+
+.source-control__bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  align-items: flex-end;
+}
+
+.source-control__remote {
+  display: inline-flex;
+  gap: var(--space-2);
+  align-items: center;
+  font-weight: 600;
+}
+
+.source-control__branch {
+  min-width: 220px;
+  margin: 0;
+}
+
+.source-control__sync {
+  padding-bottom: 6px;
+  color: var(--color-text-muted);
+}
+
+.source-control__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.source-control__heading {
+  display: flex;
+  gap: var(--space-2);
+  align-items: center;
+}
+
+.source-control__changes {
+  display: grid;
+  gap: 2px;
+  max-height: 280px;
+  margin: 0;
+  padding: 0;
+  overflow: auto;
+  list-style: none;
+}
+
+.source-control__changes .checkbox {
+  display: flex;
+  gap: var(--space-2);
+  align-items: center;
+}
+
+.source-control__path {
+  flex: 1;
+  overflow: hidden;
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: var(--font-size-s);
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.source-control__state {
+  padding: 0 6px;
+  border-radius: 9px;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.source-control__state--added {
+  background: color-mix(in srgb, var(--color-ok) 18%, transparent);
+  color: var(--color-ok);
+}
+
+.source-control__state--modified {
+  background: color-mix(in srgb, var(--color-warn) 18%, transparent);
+  color: var(--color-warn);
+}
+
+.source-control__state--deleted {
+  background: color-mix(in srgb, var(--color-error) 15%, transparent);
+  color: var(--color-error);
+}
+
+.source-control__message {
+  min-height: 60px;
+  resize: vertical;
+}
+
+.source-control__save {
+  align-items: center;
+}
+
+.source-control__save .button {
+  margin-left: auto;
+}
+
+.source-control__problem p,
+.source-control__problem ul {
+  margin: 0 0 var(--space-1);
+}
+
+.source-control__log {
+  display: grid;
+  gap: var(--space-2);
+  max-height: 360px;
+  margin: 0;
+  padding: 0;
+  overflow: auto;
+  list-style: none;
+}
+
+.source-control__commit {
+  display: grid;
+  gap: 2px;
+  padding-left: var(--space-3);
+  border-left: 2px solid var(--color-border);
+}
+
+.source-control__subject {
+  font-weight: 600;
+}
+
+.source-control__meta {
+  color: var(--color-text-muted);
+  font-size: var(--font-size-s);
 }

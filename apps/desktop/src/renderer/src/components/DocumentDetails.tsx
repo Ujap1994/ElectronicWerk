@@ -13,6 +13,7 @@ import {
   type Units,
 } from '@shared/project';
 
+import { SourceControl } from '../github/SourceControl';
 import { useProject } from '../project/ProjectProvider';
 import type { GroupId, TreeTarget } from '../project/tree';
 import { useAppState } from '../state';
@@ -980,6 +981,8 @@ export function DocumentDetails({ target }: { readonly target: TreeTarget }): Re
       return <GroupDetails group={target.group} />;
     case 'file':
       return <FileDetails file={target.file} />;
+    case 'git':
+      return <SourceControl />;
     case 'document': {
       // Always show the latest summary of the selected document.
       const document = project.documents.find((entry) => entry.id === target.document.id);

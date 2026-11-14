@@ -34,6 +34,8 @@ test('shows the start screen with a secure, sandboxed renderer', async () => {
       'app',
       'dialogs',
       'engine',
+      'git',
+      'github',
       'library',
       'projects',
       'providers',

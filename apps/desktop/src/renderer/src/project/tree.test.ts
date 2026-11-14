@@ -116,8 +116,16 @@ describe('buildTree', () => {
     expect(keys).toContain('project');
     expect(keys).toContain('group:schematics');
     expect(keys).toContain('group:schematics/r');
-    expect(visibleNodes(tree, new Set(['project'])).length).toBe(8);
+    // Seven groups and source control.
+    expect(visibleNodes(tree, new Set(['project'])).length).toBe(9);
     const all = visibleNodes(tree, new Set(keys));
     expect(all.find((entry) => entry.node.key === 'group:schematics/r/s')?.depth).toBe(3);
+  });
+
+  it('ends with source control, marked while files are not committed', () => {
+    const clean = buildTree(project([], null), []);
+    expect(labels(clean.children.at(-1)!)).toEqual({ key: 'git', badges: [], children: [] });
+    const changed = buildTree(project([], null), [], 3);
+    expect(changed.children.at(-1)?.badges).toEqual(['modified']);
   });
 });

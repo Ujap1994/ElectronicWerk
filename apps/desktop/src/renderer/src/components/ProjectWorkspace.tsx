@@ -6,6 +6,7 @@ import { LibraryEditor } from '../libedit/LibraryEditor';
 import { GerberViewer } from '../outputs/GerberViewer';
 import { forgetOutputRuns, OpenGerberContext, OutputJobEditor } from '../outputs/OutputJobEditor';
 import { outputCommands } from '../outputs/stores';
+import { refreshProjectGit, sourceControlCommand, useProjectGit } from '../github/stores';
 import { historyLabel } from '../project/labels';
 import { useProject } from '../project/ProjectProvider';
 import { selectionKey, type TreeTarget } from '../project/tree';
@@ -83,7 +84,18 @@ export function ProjectWorkspace({
   readonly onOpenLibrary: () => void;
 }): ReactNode {
   const { t, appInfo } = useAppState();
-  const { project, save, undo, redo, validate, archive, closeProject, addDocument } = useProject();
+  const {
+    project,
+    files,
+    reloads,
+    save,
+    undo,
+    redo,
+    validate,
+    archive,
+    closeProject,
+    addDocument,
+  } = useProject();
   const [target, setTarget] = useState<TreeTarget>({ type: 'project' });
   const [shownView, setShownView] = useState(projectView);
   const [tabs, setTabs] = useState<readonly string[]>([]);
@@ -91,9 +103,17 @@ export function ProjectWorkspace({
     Readonly<Record<string, { readonly name: string; readonly paths: readonly string[] }>>
   >({});
   const [activeTab, setActiveTab] = useState<string | null>(null);
+  const [shownReloads, setShownReloads] = useState(reloads);
   if (shownView !== projectView) {
     setShownView(projectView);
     setTarget({ type: 'project' });
+    setActiveTab(null);
+  }
+  // After git changed the files (pull, branch switch) the views start over.
+  if (shownReloads !== reloads) {
+    setShownReloads(reloads);
+    setTabs([]);
+    setGerberTabs({});
     setActiveTab(null);
   }
   const projectId = project?.id ?? null;
@@ -104,8 +124,49 @@ export function ProjectWorkspace({
       resetSchematicStores();
       resetBoardStores();
     },
-    [projectId],
+    [projectId, reloads],
   );
+
+  // The git state follows saves, file changes and the window coming back.
+  const manifestPath = project?.manifestPath ?? null;
+  const dirty = project?.history.dirty ?? false;
+  const fileCount = files.length;
+  useEffect(() => {
+    if (manifestPath === null) {
+      return undefined;
+    }
+    const timer = setTimeout(() => {
+      void refreshProjectGit(manifestPath);
+    }, 150);
+    return () => {
+      clearTimeout(timer);
+    };
+  }, [manifestPath, dirty, fileCount, reloads]);
+  useEffect(() => {
+    if (manifestPath === null) {
+      return undefined;
+    }
+    const onFocus = (): void => {
+      void refreshProjectGit(manifestPath);
+    };
+    window.addEventListener('focus', onFocus);
+    return () => {
+      window.removeEventListener('focus', onFocus);
+    };
+  }, [manifestPath]);
+  const git = useProjectGit();
+  const gitChanges =
+    git !== null && git.manifestPath === manifestPath ? (git.status?.changes.length ?? 0) : 0;
+  const showSourceControl = useCallback(() => {
+    setTarget({ type: 'git' });
+    setActiveTab(null);
+  }, []);
+  useEffect(() => {
+    sourceControlCommand.set(showSourceControl);
+    return () => {
+      sourceControlCommand.set(null);
+    };
+  }, [showSourceControl]);
   const openDocument = useCallback((document: DocumentSummary) => {
     setTabs((current) => (current.includes(document.id) ? current : [...current, document.id]));
     setActiveTab(document.id);
@@ -285,6 +346,21 @@ export function ProjectWorkspace({
           />
         </div>
         <div className="toolbar__group">
+          <button
+            type="button"
+            className="toolbar__button"
+            title={t('github.panel.tip')}
+            data-testid="toolbar-git"
+            onClick={showSourceControl}
+          >
+            <Icon name="branch" />
+            <span className="toolbar__label">{t('github.panel.title')}</span>
+            {gitChanges > 0 && (
+              <span className="toolbar__badge" data-testid="toolbar-git-count">
+                {gitChanges}
+              </span>
+            )}
+          </button>
           <ToolButton
             icon="library"
             label={t('library.open')}

@@ -21,6 +21,7 @@ import {
   type TreeNode,
   type TreeTarget,
 } from '../project/tree';
+import { useProjectGit } from '../github/stores';
 import { useAppState } from '../state';
 import { isViewable, useOpenDocument } from '../viewer/open-context';
 import { Icon, type IconName } from './Icon';
@@ -105,9 +106,14 @@ export function ProjectTree({ selected, onSelect }: ProjectTreeProps): ReactNode
   } | null>(null);
   const treeRef = useRef<HTMLUListElement>(null);
 
+  const git = useProjectGit();
+  const gitChanges =
+    git !== null && git.manifestPath === project?.manifestPath
+      ? (git.status?.changes.length ?? 0)
+      : 0;
   const tree = useMemo(
-    () => (project === null ? null : buildTree(project, files)),
-    [project, files],
+    () => (project === null ? null : buildTree(project, files, gitChanges)),
+    [project, files, gitChanges],
   );
   const expanded = useMemo(
     () => new Set(tree === null ? [] : expandableKeys(tree).filter((key) => !collapsed.has(key))),
@@ -155,6 +161,8 @@ export function ProjectTree({ selected, onSelect }: ProjectTreeProps): ReactNode
         return node.target.document.name;
       case 'file':
         return baseName(node.target.file.path);
+      case 'git':
+        return t('tree.sourceControl');
     }
   };
 
@@ -168,6 +176,8 @@ export function ProjectTree({ selected, onSelect }: ProjectTreeProps): ReactNode
         return KIND_ICON[node.target.document.kind];
       case 'file':
         return 'file';
+      case 'git':
+        return 'branch';
     }
   };
 
@@ -309,6 +319,8 @@ export function ProjectTree({ selected, onSelect }: ProjectTreeProps): ReactNode
       }
       case 'file':
         return [reveal(target.file.path)];
+      case 'git':
+        return [];
     }
   };
 

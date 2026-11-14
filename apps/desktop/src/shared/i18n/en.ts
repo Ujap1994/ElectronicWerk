@@ -7,6 +7,7 @@
 import { boardEn } from './board.en';
 import { outputsEn } from './outputs.en';
 import { view3dEn } from './view3d.en';
+import { githubEn } from './github.en';
 import { partsEn } from './parts.en';
 import { libeditEn } from './libedit.en';
 import { schematicEn } from './schematic.en';
@@ -25,6 +26,8 @@ export const en = {
     openProjectHint: 'Open an existing ElectronicWerk project.',
     importKicad: 'Import KiCad project',
     importKicadHint: 'Convert a KiCad project into an ElectronicWerk project.',
+    openGithub: 'Open from GitHub',
+    openGithubHint: 'Download a project from a GitHub repository.',
     comingIn: 'Coming in {version}',
     recentTitle: 'Recent projects',
     recentEmpty: 'No recent projects yet. Projects you open appear here.',
@@ -126,6 +129,9 @@ export const en = {
     generateOutputs: 'Outputs: generate manufacturing files (output job)',
     gerberViewer: 'Gerber viewer: open Gerber and drill files…',
     onlineParts: 'Find parts online (SnapEDA, Ultra Librarian)',
+    sourceControl: 'Source control: commit, push, pull (GitHub)',
+    openFromGithub: 'Open from GitHub',
+    githubSignIn: 'Sign in to GitHub',
     view3d: 'Show the 3D view',
   },
   project: {
@@ -214,6 +220,7 @@ export const en = {
     outputJobs: 'Output jobs',
     otherFiles: 'Other files',
     generatedFiles: 'Generated files',
+    sourceControl: 'Source control',
     emptyGroup: 'Empty',
     addSheet: 'Add sheet',
     addSubSheet: 'Add sub-sheet',
@@ -394,7 +401,7 @@ export const en = {
     local: 'On this computer',
     localHint: 'A project folder on your disk.',
     github: 'On GitHub',
-    githubHint: 'Create or choose a repository. Available in version 0.12.',
+    githubHint: 'A GitHub repository: history, backup and sharing.',
     errorEmpty: 'Enter a name.',
     errorTooLong: 'The name is too long (100 characters at most).',
     errorInvalid: 'The name contains characters that are not allowed.',
@@ -1077,4 +1084,5 @@ export const en = {
   outputs: outputsEn,
   view3d: view3dEn,
   parts: partsEn,
+  github: githubEn,
 } as const;

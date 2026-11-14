@@ -15,6 +15,13 @@ import {
   type Units,
 } from '@shared/project';
 
+import {
+  DEFAULT_REPO_CHOICE,
+  publishTarget,
+  RepoTarget,
+  type RepoChoice,
+} from '../github/RepoTarget';
+import { useGithubStatus } from '../github/stores';
 import { useProject } from '../project/ProjectProvider';
 import { useAppState } from '../state';
 import { Icon } from './Icon';
@@ -143,6 +150,9 @@ export function NewProjectWizard(): ReactNode {
   const [templateId, setTemplateId] = useState<TemplateId>('board-2l');
   const [units, setUnits] = useState<Units>('mm');
   const [board, setBoard] = useState<BoardFields | null>(null);
+  const [storage, setStorage] = useState<'local' | 'github'>('local');
+  const [repo, setRepo] = useState<RepoChoice>(DEFAULT_REPO_CHOICE);
+  const signedIn = (useGithubStatus()?.account ?? null) !== null;
 
   useEffect(() => {
     let cancelled = false;
@@ -193,7 +203,9 @@ export function NewProjectWizard(): ReactNode {
     'wizard.stepTemplate',
     'wizard.stepBoard',
   ];
-  const projectValid = nameProblem === null && !locationMissing;
+  const github = storage === 'github' ? publishTarget(repo, name) : null;
+  const githubReady = storage === 'local' || (signedIn && github !== null);
+  const projectValid = nameProblem === null && !locationMissing && githubReady;
   const canCreate = projectValid && (boardCheck === null || boardCheck.ok) && busy === null;
 
   const next = (): void => {
@@ -215,6 +227,7 @@ export function NewProjectWizard(): ReactNode {
       template: templateId,
       board: boardCheck?.ok === true ? boardCheck.board : null,
       units,
+      github,
     });
   };
 
@@ -351,20 +364,45 @@ export function NewProjectWizard(): ReactNode {
           </div>
           <fieldset className="field field--group">
             <legend className="field__label">{t('wizard.storage')}</legend>
-            <div className="choice-grid choice-grid--two">
-              <label className="choice" data-selected="true">
-                <input type="radio" name={`${formId}-storage`} checked readOnly />
+            <div className="choice-grid choice-grid--two" role="radiogroup">
+              <label
+                className="choice"
+                data-selected={storage === 'local'}
+                data-testid="wizard-storage-local"
+              >
+                <input
+                  type="radio"
+                  name={`${formId}-storage`}
+                  checked={storage === 'local'}
+                  onChange={() => {
+                    setStorage('local');
+                  }}
+                />
                 <Icon name="computer" size={22} />
                 <span className="choice__title">{t('wizard.local')}</span>
                 <span className="choice__hint">{t('wizard.localHint')}</span>
               </label>
-              <label className="choice" data-disabled="true">
-                <input type="radio" name={`${formId}-storage`} disabled />
+              <label
+                className="choice"
+                data-selected={storage === 'github'}
+                data-testid="wizard-storage-github"
+              >
+                <input
+                  type="radio"
+                  name={`${formId}-storage`}
+                  checked={storage === 'github'}
+                  onChange={() => {
+                    setStorage('github');
+                  }}
+                />
                 <Icon name="github" size={22} />
                 <span className="choice__title">{t('wizard.github')}</span>
                 <span className="choice__hint">{t('wizard.githubHint')}</span>
               </label>
             </div>
+            {storage === 'github' && (
+              <RepoTarget choice={repo} projectName={name} onChange={setRepo} />
+            )}
           </fieldset>
         </div>
       )}

@@ -4,6 +4,7 @@ import type { MessageKey } from '@shared/i18n';
 import type { ProbeResult } from '@shared/project';
 import type { RecentProject } from '@shared/recent';
 
+import { cloneOpen } from '../github/stores';
 import { useProject } from '../project/ProjectProvider';
 import { useAppState } from '../state';
 import { Icon } from './Icon';
@@ -31,6 +32,15 @@ const ACTIONS: readonly Action[] = [
     hint: 'start.openProjectHint',
     availableIn: null,
     icon: <path d="M3 7h6l2 2h10v10H3zM3 7V5h6" />,
+  },
+  {
+    id: 'open-github',
+    title: 'start.openGithub',
+    hint: 'start.openGithubHint',
+    availableIn: null,
+    icon: (
+      <path d="M9 19c-4 1.5-4-2-6-2.5M15 21v-3.5a3 3 0 0 0-.9-2.4c3-.3 6-1.5 6-6.6a5.2 5.2 0 0 0-1.4-3.6 4.8 4.8 0 0 0-.1-3.6s-1.1-.3-3.6 1.4a12.4 12.4 0 0 0-6.6 0C5.9 1 4.8 1.3 4.8 1.3a4.8 4.8 0 0 0-.1 3.6A5.2 5.2 0 0 0 3.3 8.5c0 5.1 3 6.3 6 6.6a3 3 0 0 0-.9 2.4V21" />
+    ),
   },
   {
     id: 'import-kicad',
@@ -186,6 +196,9 @@ export function StartScreen({ onOpenLibrary }: { readonly onOpenLibrary: () => v
     'new-project': newProject,
     'open-project': () => {
       void openProject();
+    },
+    'open-github': () => {
+      cloneOpen.set(true);
     },
     'import-kicad': () => {
       void startKicadImport();

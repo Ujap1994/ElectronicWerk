@@ -22,6 +22,8 @@ import { useProject } from './project/ProjectProvider';
 import { activeBoard } from './board/stores';
 import { outputCommands } from './outputs/stores';
 import { open3dCommand } from './view3d/stores';
+import { GithubHost } from './github/GithubHost';
+import { cloneOpen, signInOpen, sourceControlCommand } from './github/stores';
 import { PartsHost } from './parts/PartsHost';
 import { openOnlineParts } from './parts/stores';
 import { activeSheet } from './schematic/stores';
@@ -168,6 +170,10 @@ export function App(): ReactNode {
   const boardCommands = useSyncExternalStore(activeBoard.subscribe, activeBoard.get);
   const outputs = useSyncExternalStore(outputCommands.subscribe, outputCommands.get);
   const open3d = useSyncExternalStore(open3dCommand.subscribe, open3dCommand.get);
+  const sourceControl = useSyncExternalStore(
+    sourceControlCommand.subscribe,
+    sourceControlCommand.get,
+  );
   const commands = useMemo<Command[]>(
     () => [
       ...(sheet === null
@@ -216,7 +222,26 @@ export function App(): ReactNode {
               },
             },
           ] satisfies Command[])),
+      ...(sourceControl === null
+        ? []
+        : ([
+            { id: 'source-control', label: 'commands.sourceControl', run: sourceControl },
+          ] satisfies Command[])),
       { id: 'new-project', label: 'commands.newProject', run: newProject },
+      {
+        id: 'open-from-github',
+        label: 'commands.openFromGithub',
+        run: () => {
+          cloneOpen.set(true);
+        },
+      },
+      {
+        id: 'github-sign-in',
+        label: 'commands.githubSignIn',
+        run: () => {
+          signInOpen.set(true);
+        },
+      },
       {
         id: 'open-project',
         label: 'commands.openProject',
@@ -392,6 +417,7 @@ export function App(): ReactNode {
       openProject,
       outputs,
       open3d,
+      sourceControl,
       startKicadImport,
       project,
       redo,
@@ -423,6 +449,7 @@ export function App(): ReactNode {
       </main>
       <ProjectDialogs />
       <PartsHost />
+      <GithubHost />
       <StatusBar
         onOpenSettings={() => {
           setSettingsOpen(true);

@@ -18,7 +18,8 @@ export type TreeTarget =
   | { readonly type: 'project' }
   | { readonly type: 'group'; readonly group: GroupId }
   | { readonly type: 'document'; readonly document: DocumentSummary }
-  | { readonly type: 'file'; readonly file: FileEntry };
+  | { readonly type: 'file'; readonly file: FileEntry }
+  | { readonly type: 'git' };
 
 export interface TreeNode {
   /** Unique key (a path of ids, as a sheet can be placed more than once). */
@@ -39,6 +40,8 @@ export function selectionKey(target: TreeTarget): string {
       return `doc:${target.document.id}`;
     case 'file':
       return `file:${target.file.path}`;
+    case 'git':
+      return 'git';
   }
 }
 
@@ -69,8 +72,15 @@ function group(id: GroupId, children: readonly TreeNode[]): TreeNode {
   return { key: `group:${id}`, target: { type: 'group', group: id }, badges: [], children };
 }
 
-/** Builds the project tree: schematic hierarchy, documents by kind and files. */
-export function buildTree(project: ProjectSnapshot, files: readonly FileEntry[]): TreeNode {
+/**
+ * Builds the project tree: schematic hierarchy, documents by kind, files
+ * and source control (`gitChanges`: files changed since the last commit).
+ */
+export function buildTree(
+  project: ProjectSnapshot,
+  files: readonly FileEntry[],
+  gitChanges = 0,
+): TreeNode {
   const byId = new Map(project.documents.map((document) => [document.id, document]));
   const schematics = project.documents.filter((document) => document.kind === 'schematic');
   const placed = new Set(schematics.flatMap((document) => document.stats.children ?? []));
@@ -115,6 +125,12 @@ export function buildTree(project: ProjectSnapshot, files: readonly FileEntry[])
       group('outputJobs', ofKind('outputJob')),
       group('otherFiles', fileNodes('other', 'otherFiles')),
       group('generatedFiles', fileNodes('generated', 'generatedFiles')),
+      {
+        key: 'git',
+        target: { type: 'git' },
+        badges: gitChanges > 0 ? ['modified'] : [],
+        children: [],
+      },
     ],
   };
 }

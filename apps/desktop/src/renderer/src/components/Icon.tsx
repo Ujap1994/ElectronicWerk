@@ -104,6 +104,11 @@ const PATHS = {
   window: 'M4 5h16v14H4zM4 9h16M7 7h.01',
   perspective: 'M3 6l18-3v18L3 18zM9 5v14M15 4v16',
   views: 'M12 3v9l8 4.5M12 12l-8 4.5M12 3l-2 2M12 3l2 2',
+  branch:
+    'M6 3v12M6 21a3 3 0 1 0 0-6 3 3 0 0 0 0 6zM18 9a3 3 0 1 0 0-6 3 3 0 0 0 0 6zM18 9a9 9 0 0 1-9 9',
+  commit: 'M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6zM3 12h6M15 12h6',
+  upload: 'M12 20V9m0 0-4 4m4-4 4 4M4 5h16',
+  history: 'M3 12a9 9 0 1 0 2.6-6.4M3 4v4h4M12 7v5l3 2',
 } as const;
 
 export type IconName = keyof typeof PATHS;

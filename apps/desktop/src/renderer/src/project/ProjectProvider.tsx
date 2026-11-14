@@ -9,6 +9,7 @@ import {
   type ReactNode,
 } from 'react';
 
+import type { PublishTarget } from '@shared/github';
 import type { MessageKey } from '@shared/i18n';
 import {
   dirName,
@@ -30,6 +31,7 @@ import {
 } from '@shared/project';
 
 import { EngineError } from '../engine-client';
+import { describeGitError } from '../github/stores';
 import { useAppState } from '../state';
 import { errorMessage } from './labels';
 
@@ -51,6 +53,8 @@ export interface NewProjectOptions {
   readonly template: TemplateId;
   readonly board: BoardOptions | null;
   readonly units: Units;
+  /** Put the new project on GitHub (`null`: only on this computer). */
+  readonly github: PublishTarget | null;
 }
 
 /** Dialogs the project flow needs (rendered by the workspace). */
@@ -90,6 +94,13 @@ export interface ProjectApi {
   readonly closeWizard: () => void;
   readonly createProject: (options: NewProjectOptions) => Promise<boolean>;
   readonly openProject: (manifestPath?: string) => Promise<void>;
+  /**
+   * Reads the open project again from disk (after git changed its files).
+   * It must be saved.
+   */
+  readonly reloadProject: () => Promise<void>;
+  /** Counts the reloads (views drop what they remembered of the files). */
+  readonly reloads: number;
   readonly save: () => Promise<boolean>;
   readonly saveAs: () => Promise<void>;
   readonly saveCopy: () => Promise<void>;
@@ -135,6 +146,18 @@ export interface ProjectApi {
 
 const ProjectContext = createContext<ProjectApi | null>(null);
 
+/** Tells the main process what the window shows (title, menus, close prompt, git). */
+function reportWindowState(project: ProjectSnapshot | null): void {
+  window.ew.window.setState({
+    projectOpen: project !== null,
+    projectName: project?.name ?? null,
+    manifestPath: project?.manifestPath ?? null,
+    dirty: project?.history.dirty ?? false,
+    canUndo: project?.history.canUndo ?? false,
+    canRedo: project?.history.canRedo ?? false,
+  });
+}
+
 export function useProject(): ProjectApi {
   const api = use(ProjectContext);
   if (api === null) {
@@ -170,6 +193,7 @@ export function ProjectProvider({ children }: { readonly children: ReactNode }):
   const [files, setFiles] = useState<readonly FileEntry[]>([]);
   const [templates, setTemplates] = useState<readonly TemplateInfo[]>([]);
   const [busy, setBusy] = useState<MessageKey | null>(null);
+  const [reloads, setReloads] = useState(0);
   const [notices, setNotices] = useState<readonly Notice[]>([]);
   const [prompts, setPrompts] = useState<ProjectPrompts>(EMPTY_PROMPTS);
   const nextNoticeRef = useRef(1);
@@ -320,14 +344,7 @@ export function ProjectProvider({ children }: { readonly children: ReactNode }):
 
   // Window title, menus and the close prompt follow the project state.
   useEffect(() => {
-    window.ew.window.setState({
-      projectOpen: project !== null,
-      projectName: project?.name ?? null,
-      manifestPath: project?.manifestPath ?? null,
-      dirty: project?.history.dirty ?? false,
-      canUndo: project?.history.canUndo ?? false,
-      canRedo: project?.history.canRedo ?? false,
-    });
+    reportWindowState(project);
   }, [project]);
 
   const askClose = useCallback(
@@ -474,10 +491,50 @@ export function ProjectProvider({ children }: { readonly children: ReactNode }):
       void window.ew.projects.setLastLocation(options.location);
       setPrompts((current) => ({ ...current, wizard: false }));
       await adopt(snapshot);
+      if (options.github !== null) {
+        const target = options.github;
+        // The main process accepts git actions for the open project only.
+        reportWindowState(snapshot);
+        const result = await run('github.publish.working', () =>
+          window.ew.git.publish(snapshot.manifestPath, target),
+        );
+        if (result?.ok === true) {
+          notify(t('github.publish.done', { repo: result.value.github ?? '' }));
+        } else if (result !== null) {
+          notify(
+            t('github.publish.failed', { reason: describeGitError(t, result.error) }),
+            'error',
+          );
+        }
+      }
       return true;
     },
-    [adopt, appInfo.platform, engine, run, t],
+    [adopt, appInfo.platform, engine, notify, run, t],
   );
+
+  const reloadProject = useCallback(async () => {
+    const current = projectRef.current;
+    if (current === null) {
+      return;
+    }
+    const snapshot = await run('project.opening', async () => {
+      await engine.call('project.close', { discard: false });
+      return engine.call<ProjectSnapshot>(
+        'project.open',
+        { path: current.manifestPath },
+        LONG_CALL_MS,
+      );
+    });
+    setReloads((count) => count + 1);
+    if (snapshot === null) {
+      // The files on disk are no project any more: the project closes.
+      projectRef.current = null;
+      setProject(null);
+      setFiles([]);
+      return;
+    }
+    await adopt(snapshot);
+  }, [adopt, engine, run]);
 
   const localizedNames = useCallback(
     () => ({
@@ -879,6 +936,8 @@ export function ProjectProvider({ children }: { readonly children: ReactNode }):
       closeWizard,
       createProject,
       openProject,
+      reloadProject,
+      reloads,
       save,
       saveAs,
       saveCopy,
@@ -921,6 +980,8 @@ export function ProjectProvider({ children }: { readonly children: ReactNode }):
       closeWizard,
       createProject,
       openProject,
+      reloadProject,
+      reloads,
       save,
       saveAs,
       saveCopy,

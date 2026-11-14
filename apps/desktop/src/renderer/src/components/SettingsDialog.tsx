@@ -4,6 +4,7 @@ import { LANGUAGES, isLanguage, type LanguageSetting } from '@shared/i18n';
 import type { ThemeSetting } from '@shared/settings';
 
 import { useAppState } from '../state';
+import { GithubSettings } from '../github/GithubSettings';
 import { ProviderSettings } from '../parts/OnlineParts';
 import { Modal } from './Modal';
 
@@ -109,6 +110,8 @@ export function SettingsDialog({ onClose, onCheckUpdates }: SettingsDialogProps)
           </button>
         </div>
       </fieldset>
+
+      <GithubSettings />
 
       <ProviderSettings />
     </Modal>
