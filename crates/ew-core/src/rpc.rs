@@ -77,6 +77,19 @@ pub const METHODS: &[&str] = &[
     "board3d.parts",
     "board3d.resolve",
     "board3d.scene",
+    "design.arrange",
+    "design.board",
+    "design.components",
+    "design.connect",
+    "design.footprint",
+    "design.nets",
+    "design.noConnect",
+    "design.place",
+    "design.placeFootprint",
+    "design.presets",
+    "design.route",
+    "design.set",
+    "design.updateBoard",
     "document.add",
     "document.get",
     "document.object",
@@ -644,6 +657,7 @@ impl Engine {
             _ if method.starts_with("libedit.") => self.call_libedit(method, params),
             _ if method.starts_with("pcb.") => self.call_pcb(method, params),
             _ if method.starts_with("outputs.") => self.call_outputs(method, params),
+            _ if method.starts_with("design.") => self.call_design(method, params),
             "board3d.scene" => {
                 let session = self.session.as_ref().ok_or_else(EngineError::no_project)?;
                 let (mut meta, data) = crate::board3d::scene(session, &mut self.library, params)?;
@@ -1336,6 +1350,30 @@ impl Engine {
         }
     }
 
+    fn call_design(&mut self, method: &str, params: &Value) -> Result<Value, EngineError> {
+        if method == "design.presets" {
+            // Needs no project.
+            return Ok(crate::design::presets());
+        }
+        let session = self.session.as_ref().ok_or_else(EngineError::no_project)?;
+        let mut base = BaseLibraryAccess(&mut self.library);
+        match crate::design::call(session.project(), &mut base, method, params)? {
+            crate::design::Outcome::Read(value) => Ok(value),
+            crate::design::Outcome::Commit {
+                label,
+                requests,
+                reply,
+            } => {
+                let change_set = self.commit(label, requests)?;
+                let mut out = json!({"seq": change_set.seq, "history": change_set.history});
+                if let (Some(out), Value::Object(extra)) = (out.as_object_mut(), reply) {
+                    out.extend(extra);
+                }
+                Ok(out)
+            }
+        }
+    }
+
     fn call_schematic(&mut self, method: &str, params: &Value) -> Result<Value, EngineError> {
         let outcome = crate::schematic::call(self.open()?.project(), method, params)?;
         match outcome {
@@ -1466,6 +1504,44 @@ fn encode(response: &Response) -> String {
     serde_json::to_string(response).unwrap_or_else(|_| {
         r#"{"error":{"code":"internal","message":"could not encode response"}}"#.to_owned()
     })
+}
+
+/// The base library for `design.*` (symbols with their footprints).
+struct BaseLibraryAccess<'a>(&'a mut LibraryState);
+
+impl BaseLibraryAccess<'_> {
+    fn footprint_def(&mut self, name: &str) -> Option<ew_model::library::FootprintDef> {
+        let id = self
+            .0
+            .find(ew_library::Kind::Footprint, name)
+            .ok()
+            .flatten()?;
+        let (_, definition, _) = self.0.definition(id).ok()?;
+        serde_json::from_value(definition).ok()
+    }
+}
+
+impl crate::design::BaseLibrary for BaseLibraryAccess<'_> {
+    fn symbol(&mut self, name: &str) -> Option<ew_kicad::library::Library> {
+        let id = self.0.find(ew_library::Kind::Symbol, name).ok().flatten()?;
+        let (_, definition, _) = self.0.definition(id).ok()?;
+        let def: ew_model::library::SymbolDef = serde_json::from_value(definition).ok()?;
+        let mut library = ew_kicad::library::Library::default();
+        if let Some(footprint) = def.footprint.clone()
+            && let Some(fp) = self.footprint_def(&footprint)
+        {
+            library.footprints.push(fp);
+        }
+        library.symbols.push(def);
+        Some(library)
+    }
+
+    fn footprint(&mut self, name: &str) -> Option<ew_kicad::library::Library> {
+        let fp = self.footprint_def(name)?;
+        let mut library = ew_kicad::library::Library::default();
+        library.footprints.push(fp);
+        Some(library)
+    }
 }
 
 #[cfg(test)]

@@ -18,6 +18,8 @@
 
 pub mod board3d;
 pub mod change;
+pub mod design;
+pub mod docs;
 pub mod downloads;
 pub mod error;
 pub mod history;

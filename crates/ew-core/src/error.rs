@@ -34,6 +34,9 @@ pub enum ErrorCode {
     FormatError,
     /// A file was written by a newer ElectronicWerk.
     NewerFormat,
+    /// Another program changed project files since they were read: saving
+    /// would overwrite that work.
+    ChangedOnDisk,
     /// An unexpected internal error.
     Internal,
 }

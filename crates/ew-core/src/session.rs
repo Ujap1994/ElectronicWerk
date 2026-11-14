@@ -639,6 +639,7 @@ impl Session {
                 .collect(),
             delete: self.saved_paths.difference(&current).cloned().collect(),
         };
+        self.check_unchanged_on_disk(&plan)?;
         for file in &self.migrated {
             let backup = self
                 .root
@@ -662,6 +663,43 @@ impl Session {
             .reset(&self.hashes)
             .map_err(|error| EngineError::io("could not reset the autosave journal", &error))?;
         Ok(report)
+    }
+
+    /// Fails with `conflict` if a file this save would write or delete was
+    /// changed by another program (another ElectronicWerk window, the
+    /// command line, an AI agent, git) since the project was read or saved:
+    /// saving would throw that work away.
+    fn check_unchanged_on_disk(&self, plan: &SavePlan) -> Result<(), EngineError> {
+        let mut paths: Vec<String> = Vec::new();
+        if plan.manifest {
+            paths.push(self.manifest_file.clone());
+        }
+        for id in &plan.documents {
+            if let Some(entry) = self.project.manifest.documents.iter().find(|e| e.id == *id) {
+                paths.push(entry.path.clone());
+            }
+        }
+        paths.extend(plan.delete.iter().cloned());
+        let mut changed = Vec::new();
+        for path in paths {
+            let Ok(bytes) = std::fs::read(store::resolve(&self.root, &path)) else {
+                // Missing files are written again; nothing is lost.
+                continue;
+            };
+            match self.hashes.get(&path) {
+                Some(hash) if *hash == fsio::fnv1a(&bytes) => {}
+                // A file of a new document that already exists on disk, or
+                // a file that another program changed.
+                _ => changed.push(path),
+            }
+        }
+        if changed.is_empty() {
+            return Ok(());
+        }
+        Err(EngineError::new(
+            ErrorCode::ChangedOnDisk,
+            format!("changed by another program: {}", changed.join(", ")),
+        ))
     }
 
     /// Writes the project to another folder (which must be new or empty),
