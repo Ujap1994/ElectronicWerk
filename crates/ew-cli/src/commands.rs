@@ -78,12 +78,23 @@ pub fn run(command: Command, out: &mut impl Write) -> Outcome {
     match command {
         Command::Info { json } => info(json, out),
         Command::Call { method, params } => call_once(&method, &params, out),
-        Command::Methods => {
-            for method in ew_core::rpc::METHODS {
-                writeln!(out, "{method}")?;
+        Command::Methods { json } => {
+            if json {
+                print_json(out, &ew_core::docs::methods())?;
+            } else {
+                for method in ew_core::rpc::METHODS {
+                    writeln!(out, "{method}")?;
+                }
             }
             Ok(ExitCode::SUCCESS)
         }
+        Command::Mcp(args) => {
+            let stdin = io::stdin().lock();
+            crate::mcp::serve(stdin, out, &args)
+        }
+        Command::Script(args) => crate::script::run(&args, out),
+        Command::Schematic(command) => crate::design::schematic(command, out),
+        Command::Board(command) => crate::design::board(command, out),
         Command::Rpc { events, no_journal } => {
             let stdin = io::stdin().lock();
             rpc(stdin, out, events, !no_journal)
@@ -135,8 +146,10 @@ fn call_once(method: &str, params: &str, out: &mut impl Write) -> Outcome {
     })
 }
 
-/// Line-based JSON-RPC session: `{"id": 1, "method": …, "params": …}` in,
-/// `{"id": 1, "result": …}` out.
+/// Line-based session: `{"id": 1, "method": …, "params": …}` in,
+/// `{"id": 1, "result": …}` out. Requests with `"jsonrpc": "2.0"` (and
+/// batches) get JSON-RPC 2.0 replies with numeric error codes;
+/// notifications (no `id`) get none.
 pub fn rpc(
     input: impl io::BufRead,
     out: &mut impl Write,
@@ -153,26 +166,31 @@ pub fn rpc(
         if line.trim().is_empty() {
             continue;
         }
-        let parsed: Result<Value, _> = serde_json::from_str(&line);
-        let (id, reply) = match parsed {
-            Ok(mut value) => {
-                let id = value
-                    .as_object_mut()
-                    .and_then(|object| object.remove("id"))
-                    .unwrap_or(Value::Null);
-                let reply: Value = serde_json::from_str(&engine.dispatch(&value.to_string()))?;
-                (id, reply)
+        let reply = match serde_json::from_str::<Value>(&line) {
+            Ok(Value::Array(batch)) if !batch.is_empty() => {
+                let replies: Vec<Value> = batch
+                    .into_iter()
+                    .filter_map(|request| rpc2_request(&mut engine, request))
+                    .collect();
+                (!replies.is_empty()).then_some(Value::Array(replies))
             }
-            Err(err) => (
-                Value::Null,
-                json!({"error": {"code": "invalidRequest", "message": format!("malformed request: {err}")}}),
-            ),
+            Ok(value) if value.get("jsonrpc").is_some() => rpc2_request(&mut engine, value),
+            Ok(value) => Some(short_request(&mut engine, value)?),
+            Err(err) if line.contains("\"jsonrpc\"") || line.trim_start().starts_with('[') => {
+                Some(json!({
+                    "jsonrpc": "2.0",
+                    "id": null,
+                    "error": {"code": -32700, "message": format!("parse error: {err}")},
+                }))
+            }
+            Err(err) => Some(json!({
+                "id": null,
+                "error": {"code": "invalidRequest", "message": format!("malformed request: {err}")},
+            })),
         };
-        let mut message = json!({"id": id});
-        if let (Some(target), Some(source)) = (message.as_object_mut(), reply.as_object()) {
-            target.extend(source.clone());
+        if let Some(reply) = reply {
+            writeln!(out, "{reply}")?;
         }
-        writeln!(out, "{message}")?;
         for event in engine.take_events() {
             if events {
                 writeln!(out, "{}", json!({"event": event}))?;
@@ -181,6 +199,66 @@ pub fn rpc(
         out.flush()?;
     }
     Ok(ExitCode::SUCCESS)
+}
+
+/// The short form: the engine's reply plus the request's `id`.
+fn short_request(engine: &mut Engine, mut value: Value) -> Result<Value, Failure> {
+    let id = value
+        .as_object_mut()
+        .and_then(|object| object.remove("id"))
+        .unwrap_or(Value::Null);
+    let reply: Value = serde_json::from_str(&engine.dispatch(&value.to_string()))?;
+    let mut message = json!({"id": id});
+    if let (Some(target), Some(source)) = (message.as_object_mut(), reply.as_object()) {
+        target.extend(source.clone());
+    }
+    Ok(message)
+}
+
+/// A JSON-RPC 2.0 request; `None` for notifications.
+fn rpc2_request(engine: &mut Engine, value: Value) -> Option<Value> {
+    let Value::Object(mut object) = value else {
+        return Some(json!({
+            "jsonrpc": "2.0",
+            "id": null,
+            "error": {"code": -32600, "message": "a request is an object"},
+        }));
+    };
+    let id = object.remove("id");
+    if object.get("jsonrpc").and_then(Value::as_str) != Some("2.0")
+        || !object.get("method").is_some_and(Value::is_string)
+    {
+        return Some(json!({
+            "jsonrpc": "2.0",
+            "id": id.unwrap_or(Value::Null),
+            "error": {"code": -32600, "message": "not a JSON-RPC 2.0 request"},
+        }));
+    }
+    let request = json!({
+        "method": object["method"],
+        "params": object.get("params").cloned().unwrap_or(Value::Null),
+    });
+    let reply: Value = serde_json::from_str(&engine.dispatch(&request.to_string()))
+        .unwrap_or_else(|_| json!({"error": {"code": "internal", "message": "bad engine reply"}}));
+    let id = id?;
+    Some(match reply.get("error") {
+        None => json!({"jsonrpc": "2.0", "id": id, "result": reply["result"]}),
+        Some(error) => {
+            let code = error["code"].as_str().unwrap_or("internal");
+            let number = match code {
+                "invalidRequest" => -32600,
+                "methodNotFound" => -32601,
+                "invalidParams" => -32602,
+                "internal" => -32603,
+                _ => -32000,
+            };
+            json!({
+                "jsonrpc": "2.0",
+                "id": id,
+                "error": {"code": number, "message": error["message"], "data": {"code": code}},
+            })
+        }
+    })
 }
 
 fn print_findings(report: &Value, out: &mut impl Write) -> io::Result<()> {
@@ -1097,7 +1175,7 @@ mod tests {
             )
             .is_err()
         );
-        let (_, output) = run_to_string(Command::Methods);
+        let (_, output) = run_to_string(Command::Methods { json: false });
         assert_eq!(output.lines().count(), ew_core::rpc::METHODS.len());
     }
 

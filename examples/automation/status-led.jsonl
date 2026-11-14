@@ -1,0 +1,14 @@
+# A status LED as an ewerk script (one engine call per line).
+# Usage: ewerk project new "Status LED" --width 30 --height 20
+#        ewerk script status-led.jsonl --project "Status LED"
+{"method": "design.place", "params": {"symbol": "R", "value": "330", "footprint": "0805"}}
+{"method": "design.place", "params": {"symbol": "LED", "value": "green", "footprint": "0805"}}
+{"method": "design.place", "params": {"symbol": "C", "value": "100n", "footprint": "0603"}}
+{"method": "design.connect", "params": {"net": "VCC", "pins": ["R1.1", "C1.1"], "style": "power"}}
+{"method": "design.connect", "params": {"net": "LED_A", "pins": ["R1.2", "D1.A"]}}
+{"method": "design.connect", "params": {"net": "GND", "pins": ["D1.K", "C1.2"], "style": "power"}}
+{"method": "design.updateBoard"}
+{"method": "design.placeFootprint", "params": {"designator": "R1", "at": [10, 8]}}
+{"method": "design.placeFootprint", "params": {"designator": "D1", "at": [20, 8], "rotation": 180}}
+{"method": "design.placeFootprint", "params": {"designator": "C1", "at": [15, 14]}}
+{"method": "design.route"}

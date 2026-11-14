@@ -4,7 +4,10 @@
 //! agents can drive ElectronicWerk without the desktop app.
 
 mod commands;
+mod design;
 mod library;
+mod mcp;
+mod script;
 
 use std::io::Write as _;
 use std::path::PathBuf;
@@ -36,10 +39,14 @@ enum Command {
         #[arg(default_value = "null")]
         params: String,
     },
-    /// List all engine methods.
-    Methods,
+    /// List all engine methods (with `--json`: with a summary each).
+    Methods {
+        /// Print machine-readable JSON.
+        #[arg(long)]
+        json: bool,
+    },
     /// Run a session: read one JSON request per line from standard input and
-    /// write one JSON reply per line.
+    /// write one JSON reply per line (JSON-RPC 2.0 or the short form).
     Rpc {
         /// Also write engine events (`{"event": …}` lines).
         #[arg(long)]
@@ -48,9 +55,21 @@ enum Command {
         #[arg(long)]
         no_journal: bool,
     },
+    /// Run an MCP server on standard input and output, so AI agents can
+    /// use ElectronicWerk.
+    Mcp(mcp::McpArgs),
+    /// Run a script: engine calls from a JSON or JSON Lines file, in one
+    /// session.
+    Script(script::ScriptArgs),
     /// Create, inspect, check and archive projects.
     #[command(subcommand)]
     Project(ProjectCommand),
+    /// Edit schematics: place parts, connect pins, run the ERC.
+    #[command(subcommand)]
+    Schematic(design::SchematicCommand),
+    /// Edit boards: update from the schematic, place, route, run the DRC.
+    #[command(subcommand)]
+    Board(design::BoardCommand),
     /// Import KiCad projects, libraries and netlists.
     #[command(subcommand)]
     Import(ImportCommand),
@@ -382,7 +401,8 @@ fn main() -> ExitCode {
         Err(err) => {
             let _ = out.flush();
             let _ = writeln!(std::io::stderr().lock(), "ewerk: {err}");
-            ExitCode::FAILURE
+            // 1 is for checks that found errors; 3: the command could not run.
+            ExitCode::from(3)
         }
     }
 }
