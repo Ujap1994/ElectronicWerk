@@ -1,6 +1,6 @@
 # ElectronicWerk Roadmap
 
-> **Status:** v0.24 (2026-11-15). M0 to M14 are complete (releases v0.1.0 to
+> **Status:** v0.25 (2026-11-15). M0 to M14 are complete (releases v0.1.0 to
 > v0.15.1; M0, M1 and M3 accepted by the maintainer); M15 is next. The GitHub
 > integration (M11) is switched off since v0.14.1 until the maintainer
 > decides to offer it (ADR-0014).
@@ -1033,8 +1033,10 @@ joined by cables.
 
 ### Deferred items
 
-- **Post-1.0 candidates:** real-time collaboration, a plugin API,
-  signal-integrity helpers.
+- **Post-1.0 candidates:** a plugin API, signal-integrity helpers.
+- **Collaboration (several people on one design):** taken off the plan by
+  the maintainer. It is taken up again, and planned properly, only once
+  v1.0.0 runs cleanly in the maintainer's daily work.
 
 ## 13. Roadmap changelog
 
@@ -1064,3 +1066,4 @@ joined by cables.
 | 2026-11-15 | v0.22      | Added the mechanical assembly and enclosure check (STEP enclosures around the board, collision and clearance check, outline and keep-outs from the enclosure) as an advanced feature requested by the maintainer.                                                                                                                                                                                                                                          |
 | 2026-11-15 | v0.23      | New milestones between M15 and v1.0, requested by the maintainer: M16 part generator from datasheets, M17 mechanical assembly and enclosure check, M18 multi-board design; hardening and v1.0 move to M19. SPICE simulation and the DipTrace import are dropped.                                                                                                                                                                                           |
 | 2026-11-15 | v0.24      | v0.15.1: the external autorouter tested with a real Freerouting 2.5.0 run (replayed in CI); unlocked routing is no longer passed as fixed, protected wires of a session are kept.                                                                                                                                                                                                                                                                          |
+| 2026-11-15 | v0.25      | Real-time collaboration taken off the post-1.0 candidates: it is planned again only once v1.0.0 runs cleanly in the maintainer's daily work.                                                                                                                                                                                                                                                                                                               |
