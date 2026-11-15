@@ -1,6 +1,6 @@
 # ElectronicWerk Roadmap
 
-> **Status:** v0.21 (2026-11-15). M0 to M14 are complete (releases v0.1.0 to
+> **Status:** v0.22 (2026-11-15). M0 to M14 are complete (releases v0.1.0 to
 > v0.15.0; M0, M1 and M3 accepted by the maintainer); M15 is next. The GitHub
 > integration (M11) is switched off since v0.14.1 until the maintainer
 > decides to offer it (ADR-0014).
@@ -965,6 +965,20 @@ Delivered (ADR-0015):
   picks the package, the generator extracts pins, functions, package
   dimensions and land pattern. Builds on the footprint wizards (M6) and the
   STEP writer (M9).
+- **Advanced feature: mechanical assembly and enclosure check** (requested
+  by the maintainer): enclosures and other mechanical parts come in as STEP
+  files and are placed around the board in its 3D assembly (position,
+  rotation, several bodies such as the bottom shell, the lid, a front panel,
+  screws or the carrier board a shield sits on). A **collision and clearance
+  check** tests the board body and every component model against these
+  bodies with a minimum distance; the findings are listed like DRC findings,
+  shown in the 3D view and the layout editor and updated while parts move.
+  Helpers derived from the enclosure: the board outline and keep-out and
+  height areas from its cross-section at the board plane, mounting holes
+  checked against the screw bosses, connector positions against the
+  openings. The whole assembly is exported as STEP for mechanical CAD. Parts
+  without a 3D model use their courtyard and a height. Builds on the 3D
+  view, the mesh cache and the STEP writer (M9) and the DRC (M7).
 
 ## 13. Roadmap changelog
 
@@ -991,3 +1005,4 @@ Delivered (ADR-0015):
 | 2026-11-15 | v0.19      | M13 complete: v0.14.0 with the assembly assistant (steps from the BOM, highlighted board view, checklist saved in `assembly.json`, workbench mode and own window), panels made by the output job (mouse bites or V-score, rails, fiducials, tooling holes), design statistics and the HTML project documentation output. Panels are a setting of the output job, not a document: they cannot be edited by hand yet.                                        |
 | 2026-11-15 | v0.20      | v0.14.1: the GitHub integration is switched off until the maintainer decides to offer it; its browser sign-in now uses a GitHub App with access to the chosen repositories only and short-lived tokens (ADR-0014).                                                                                                                                                                                                                                         |
 | 2026-11-15 | v0.21      | M14 complete: v0.15.0 with the KiCad export (KiCad 8 format, verified by a round trip and by kicad-cli), the Eagle XML import, Specctra DSN/SES for external autorouters, Gerber files as a reference drawing and the DXF output. The DXF import no longer mirrors drawings (the board's y axis points up).                                                                                                                                                |
+| 2026-11-15 | v0.22      | Added the mechanical assembly and enclosure check (STEP enclosures around the board, collision and clearance check, outline and keep-outs from the enclosure) as an advanced feature requested by the maintainer.                                                                                                                                                                                                                                          |
