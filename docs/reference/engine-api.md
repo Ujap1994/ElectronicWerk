@@ -829,21 +829,27 @@ placed symbols and the placed symbols (with their sheets) of footprints.
 
 `{"doc", "op", …}`. Operations (label in brackets):
 
-| `op`         | Parameters                | What it does                                                      |
-| ------------ | ------------------------- | ----------------------------------------------------------------- |
-| `move`       | `ids`, `offset`           | Moves objects (`move`); locked ones stay.                         |
-| `rotate`     | `ids`, `angle`, `center`? | Turns objects (`rotate`) around the centre of the selection.      |
-| `flip`       | `ids`, `centerX`?         | Puts objects on the other side (`flip`).                          |
-| `delete`     | `ids`                     | Deletes unlocked objects (`delete`).                              |
-| `lock`       | `ids`, `locked`           | Locks or unlocks (`lock`).                                        |
-| `align`      | `ids`, `mode`             | `left`, `right`, `top`, `bottom`, `centerX`, `centerY` (`align`). |
-| `distribute` | `ids`, `axis`             | `x` or `y`, equal gaps (`distribute`).                            |
-| `setLayer`   | `ids`, `layer`            | Tracks to a copper layer (`set-layer`).                           |
-| `setWidth`   | `ids`, `width`            | Track width (`set-width`).                                        |
-| `setNet`     | `ids`, `net`?             | Net of tracks, vias and zones (`set-net`).                        |
-| `dragTrack`  | `id`, `offset`            | Moves a segment, its neighbours follow (`drag-track`).            |
+| `op`         | Parameters                | What it does                                                                                                                             |
+| ------------ | ------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
+| `move`       | `ids`, `offset`           | Moves objects (`move`); locked ones stay.                                                                                                |
+| `rotate`     | `ids`, `angle`, `center`? | Turns objects (`rotate`) around the centre of the selection.                                                                             |
+| `flip`       | `ids`, `centerX`?         | Puts objects on the other side (`flip`).                                                                                                 |
+| `delete`     | `ids`                     | Deletes unlocked objects (`delete`).                                                                                                     |
+| `lock`       | `ids`, `locked`           | Locks or unlocks (`lock`).                                                                                                               |
+| `align`      | `ids`, `mode`             | `left`, `right`, `top`, `bottom`, `centerX`, `centerY` (`align`).                                                                        |
+| `distribute` | `ids`, `axis`             | `x` or `y`, equal gaps (`distribute`).                                                                                                   |
+| `setLayer`   | `ids`, `layer`            | Tracks to a copper layer (`set-layer`).                                                                                                  |
+| `setWidth`   | `ids`, `width`            | Track width (`set-width`).                                                                                                               |
+| `setNet`     | `ids`, `net`?             | Net of tracks, vias and zones (`set-net`).                                                                                               |
+| `dragTrack`  | `id`, `offset`            | Moves a straight segment sideways; its neighbours keep their directions, ends at pads, vias or branches get a 45° joiner (`drag-track`). |
 
 The reply has `select` and `changes`.
+
+`pcb.editPreview` takes the same parameters as `pcb.edit` and changes
+nothing: it returns `{"tracks": [{"layer", "width", "start", "end"}],
+"hidden": [ids]}`, the tracks the edit would leave and the objects they
+replace or remove. The layout editor draws a drag with it before the drag is
+applied.
 
 ### `pcb.place`
 

@@ -117,9 +117,22 @@ the [design rules check](./drc) reports tracks thinner than the minimum.
 
 ## Dragging tracks
 
-With the select tool, **drag a single track segment** to move it sideways:
-the tracks attached to its ends stretch to follow, and vias at its ends move
-with it (together with the tracks on other layers that end at those vias).
+With the select tool, **drag a single straight track segment** to move it
+sideways (only the part of the movement across the segment counts). The
+tracks attached to its ends **keep their directions**: their ends slide
+along their own lines to the moved segment, so a route of 45° bends stays a
+route of 45° bends. While you drag, the result is drawn over the board.
+
+| At an end of the segment                                                              | What happens                                                    |
+| ------------------------------------------------------------------------------------- | --------------------------------------------------------------- |
+| One straight track                                                                    | Its end slides along it to the moved segment.                   |
+| Nothing                                                                               | The end moves with the segment.                                 |
+| A pad, a via, a branch (several tracks), a locked or curved track, or a track in line | The end stays; a short 45° track joins it to the moved segment. |
+
+A drag that would turn the segment round (its ends would pass each other)
+does nothing. Curved tracks are moved as a whole, and the tracks and vias at
+their ends follow.
+
 Press **D** with a track selected to do the same with the cursor, and click
 to drop it. Press **M** instead to move the segment alone, without its
 neighbours.

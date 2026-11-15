@@ -25,6 +25,11 @@ project uses [Semantic Versioning](https://semver.org/).
 
 ### Changed
 
+- **Dragging a track keeps 45° routing:** the tracks attached to a dragged
+  segment keep their directions and slide along their own lines; ends at
+  pads, vias or branches get a short 45° joiner. The result is drawn while
+  you drag (new engine method `pcb.editPreview`). Before, the neighbours
+  were stretched to any angle.
 - The router no longer treats zone fills of other nets as obstacles: tracks
   and vias may cross a filled zone, which keeps its clearance again when it
   is filled the next time (as in KiCad).
