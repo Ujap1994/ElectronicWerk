@@ -1,6 +1,6 @@
 # ElectronicWerk Roadmap
 
-> **Status:** v0.22 (2026-11-15). M0 to M14 are complete (releases v0.1.0 to
+> **Status:** v0.23 (2026-11-15). M0 to M14 are complete (releases v0.1.0 to
 > v0.15.0; M0, M1 and M3 accepted by the maintainer); M15 is next. The GitHub
 > integration (M11) is switched off since v0.14.1 until the maintainer
 > decides to offer it (ADR-0014).
@@ -253,15 +253,20 @@ own work only. Maintainer test cycles and feedback come on top. Status values:
 | M13 | Assembly assistant and extras                         | v0.14.0 | F11               | 4–6 S           | ✅     |
 | M14 | Interoperability: further open formats                | v0.15.0 | F3                | 5–8 S           | ✅     |
 | M15 | Advanced layout                                       | v0.16.0 | F7                | 12–20 S         | ⬜     |
-| M16 | Hardening, UX audit, final docs and videos            | v1.0.0  | T3–T5, D1         | 6–10 S          | ⬜     |
-|     | **Total to v1.0**                                     |         |                   | **≈ 120–180 S** |        |
+| M16 | Part generator from datasheets                        | v0.17.0 | F13               | 8–12 S          | ⬜     |
+| M17 | Mechanical assembly and enclosure check               | v0.18.0 | F14               | 6–10 S          | ⬜     |
+| M18 | Multi-board design                                    | v0.19.0 | F15               | 8–12 S          | ⬜     |
+| M19 | Hardening, UX audit, final docs and videos            | v1.0.0  | T3–T5, D1         | 6–10 S          | ⬜     |
+|     | **Total to v1.0**                                     |         |                   | **≈ 140–215 S** |        |
 
 **Stages:**
 
 - After **M3**: KiCad projects can be opened and viewed.
 - After **M8** (≈ 75–105 S): the full workflow schematic → layout → Gerber
   works.
-- **M16**: v1.0.0.
+- After **M18**: parts from datasheets, the board in its enclosure and
+  systems of several boards.
+- **M19**: v1.0.0.
 
 Expected code size by v1.0: about 150,000–250,000 lines (Rust + TypeScript,
 including tests).
@@ -864,7 +869,81 @@ Delivered (ADR-0015):
   vias.
 - Design variants, rooms and channels for repeated blocks.
 
-### M16 — Hardening, UX audit, final docs and videos (v1.0.0, 6–10 S)
+### M16 — Part generator from datasheets (v0.17.0, 8–12 S)
+
+Requested by the maintainer: a part is made from its datasheet instead of
+being drawn by hand.
+
+- Open a datasheet (PDF) next to the generator; extract the **pin table**
+  (number, name, type and function) and the **packages** with their
+  dimension tables (JEDEC/IPC names such as SOIC-8, TSSOP-20, QFN-32,
+  LQFP-64, BGA, SOT-23, TO-220, DIP).
+- For parts in several packages the user only **picks the package**; pins
+  that differ per package follow the choice.
+- Every extracted value links to its place in the datasheet, and the user
+  confirms or corrects it in a table before anything is generated.
+- **Symbol** with pins grouped by function (power, ground, ports, buses),
+  split into units for large parts; **footprint** from the package
+  dimensions with the IPC-7351 land pattern calculation of the footprint
+  wizards (M6); **3D STEP model** from parametric package bodies written
+  with the STEP writer (M9); the component with manufacturer, MPN and a
+  link to the datasheet.
+- The library checks (M6) run on the result: symbol pins against pads,
+  footprint against the package dimensions, courtyard and 3D body.
+- Tests on synthetic datasheets generated for the tests (no copyrighted
+  datasheets in the repository).
+- **Decided at the start of the milestone:** extraction only on the
+  computer (PDF text and table recognition, OCR for scanned datasheets) or
+  optionally with AI help (the user's own API key, or the user's AI agent
+  through the MCP server of M12).
+
+### M17 — Mechanical assembly and enclosure check (v0.18.0, 6–10 S)
+
+Requested by the maintainer: find collisions between the board and its
+enclosure before anything is built.
+
+- Enclosures and other mechanical parts come in as **STEP files** (copied
+  into the project) and are placed around the board in its **3D assembly**:
+  position, rotation, several bodies such as the bottom shell, the lid, a
+  front panel, screws or the carrier board a shield sits on; each body can
+  be shown, hidden, made transparent or cut by the section view.
+- **Collision and clearance check** of the board body and every component
+  model against these bodies with a minimum distance (a design rule); the
+  findings are listed like DRC findings, shown in the 3D view and the
+  layout editor and updated while parts move. Parts without a 3D model use
+  their courtyard and a height.
+- **Helpers from the enclosure:** the board outline and keep-out and height
+  areas from its cross-section at the board plane; mounting holes checked
+  against the screw bosses; connector positions checked against the
+  openings.
+- The whole assembly (board and enclosure) exported as **STEP** for
+  mechanical CAD, and the check in the CLI and the engine API.
+- Builds on the 3D view, the mesh cache and the STEP writer (M9) and the
+  DRC (M7).
+
+### M18 — Multi-board design (v0.19.0, 8–12 S)
+
+Requested by the maintainer: systems of several boards, for example a
+shield on a carrier board, a main board with a front panel board, or boards
+joined by cables.
+
+- A **system** in the project lists its boards (boards of this project,
+  other ElectronicWerk projects, or reference boards imported from their
+  open design files) and how they connect: stacked through headers or
+  board-to-board connectors, or through **cables**.
+- **Connection check across the boards:** mating connectors carry the same
+  signals on the same pins; swapped or missing signals, power on signal
+  pins, different pin counts and unconnected cable wires are reported, and
+  renaming a signal on one board offers to rename it on the others.
+- **System assembly in 3D:** boards stacked or placed by their mating
+  connectors, checked for collisions with each other and with the
+  enclosure (M17); exported as one STEP file.
+- **Cables and harnesses:** wires, connectors and lengths, a wiring list
+  and a harness drawing (PDF).
+- System outputs: a system BOM, the connection report, the 3D assembly;
+  the system in the CLI and the engine API.
+
+### M19 — Hardening, UX audit, final docs and videos (v1.0.0, 6–10 S)
 
 - Performance and stability campaign on XL designs, fuzzing of every importer,
   a memory-leak audit.
@@ -880,30 +959,29 @@ Delivered (ADR-0015):
 
 ## 10. File format matrix
 
-| Format                                                                         | Import               | Export             | Milestone      |
-| ------------------------------------------------------------------------------ | -------------------- | ------------------ | -------------- |
-| ElectronicWerk native (`.ewproj`, `.ewsch`, `.ewpcb`, `.ewrules`, `.ewout`, …) | ✔                    | ✔                  | M1             |
-| KiCad project, schematic, PCB, rules, library tables                           | ✔                    | ✔ (KiCad 8)        | M3 / M14       |
-| KiCad symbols and footprints                                                   | ✔                    | ✔                  | M3 / M6        |
-| KiCad netlist (`.net`), generic CSV/XML netlist                                | ✔                    | ✔                  | M3 / M5        |
-| STEP / WRL 3D models                                                           | ✔                    | ✔ (board assembly) | M4 / M9        |
-| glTF / GLB 3D models                                                           | ✔ (mesh cache)       | ✔ (board assembly) | M4 / M9        |
-| DXF (outline, mechanical layers)                                               | ✔                    | ✔                  | M7 / M14       |
-| Gerber X2, Excellon                                                            | ✔ (reference/viewer) | ✔                  | M8 / M14       |
-| BOM (CSV/XLSX/HTML), pick-and-place                                            | —                    | ✔                  | M8             |
-| PDF / SVG                                                                      | —                    | ✔                  | M5 / M8        |
-| IPC-D-356, IPC-2581                                                            | —                    | ✔                  | M8             |
-| ODB++                                                                          | —                    | — (not justified)  | M8 (ADR-0009)  |
-| Specctra DSN / SES                                                             | ✔ SES                | ✔ DSN              | M14            |
-| Eagle XML (`.sch`, `.brd`, `.lbr`)                                             | ✔                    | —                  | M14            |
-| DipTrace (undocumented binary format)                                          | ⏸ deferred           | —                  | see section 12 |
+| Format                                                                         | Import               | Export             | Milestone     |
+| ------------------------------------------------------------------------------ | -------------------- | ------------------ | ------------- |
+| ElectronicWerk native (`.ewproj`, `.ewsch`, `.ewpcb`, `.ewrules`, `.ewout`, …) | ✔                    | ✔                  | M1            |
+| KiCad project, schematic, PCB, rules, library tables                           | ✔                    | ✔ (KiCad 8)        | M3 / M14      |
+| KiCad symbols and footprints                                                   | ✔                    | ✔                  | M3 / M6       |
+| KiCad netlist (`.net`), generic CSV/XML netlist                                | ✔                    | ✔                  | M3 / M5       |
+| STEP / WRL 3D models                                                           | ✔                    | ✔ (board assembly) | M4 / M9       |
+| glTF / GLB 3D models                                                           | ✔ (mesh cache)       | ✔ (board assembly) | M4 / M9       |
+| DXF (outline, mechanical layers)                                               | ✔                    | ✔                  | M7 / M14      |
+| Gerber X2, Excellon                                                            | ✔ (reference/viewer) | ✔                  | M8 / M14      |
+| BOM (CSV/XLSX/HTML), pick-and-place                                            | —                    | ✔                  | M8            |
+| PDF / SVG                                                                      | —                    | ✔                  | M5 / M8       |
+| IPC-D-356, IPC-2581                                                            | —                    | ✔                  | M8            |
+| ODB++                                                                          | —                    | — (not justified)  | M8 (ADR-0009) |
+| Specctra DSN / SES                                                             | ✔ SES                | ✔ DSN              | M14           |
+| Eagle XML (`.sch`, `.brd`, `.lbr`)                                             | ✔                    | —                  | M14           |
 
 ## 11. Requirements traceability
 
 | Req.  | Summary                                                                                          | Milestone(s)                                   |
 | ----- | ------------------------------------------------------------------------------------------------ | ---------------------------------------------- |
 | P1    | Open-source alternative (MIT) modelled on Altium/KiCad/DipTrace/Eagle, everything self-developed | whole project                                  |
-| P2    | Target audience: beginners and advanced hobbyists                                                | M5–M7, M16 (UX)                                |
+| P2    | Target audience: beginners and advanced hobbyists                                                | M5–M7, M19 (UX)                                |
 | F1    | Online part search (SnapEDA, Ultra Librarian, …) with accounts in Settings                       | M10                                            |
 | F2    | Deduplicate and merge base libraries                                                             | M4 (KiCad; other sources pluggable)            |
 | F3    | Import projects cleanly, edit them, save them as own projects                                    | M1, M3 (KiCad), M14 (Eagle and others)         |
@@ -916,13 +994,16 @@ Delivered (ADR-0015):
 | F10   | ERC, DRC, rules and standard features                                                            | M5, M7, M8                                     |
 | F11   | Assembly assistant and extras                                                                    | M13                                            |
 | F12   | CLI for scripts and AI agents                                                                    | M0–M12 (grows), M12 (complete)                 |
+| F13   | Part generator from datasheets (symbol, footprint, 3D model)                                     | M16                                            |
+| F14   | Mechanical assembly: STEP enclosures, collision and clearance check                              | M17                                            |
+| F15   | Multi-board design: systems of boards, connections across boards, cables                         | M18                                            |
 | T1    | Electron + Rust/TypeScript/C++                                                                   | M0 (ADR-0001)                                  |
 | T2    | 100 % lint from the start                                                                        | M0 onwards                                     |
 | T3/T4 | Efficiency and performance at any design size                                                    | section 6, every milestone                     |
-| T5    | Absolute usability                                                                               | every milestone, M16 audit                     |
+| T5    | Absolute usability                                                                               | every milestone, M19 audit                     |
 | T6    | Future-proof and extensible                                                                      | sections 2–4                                   |
 | T7    | Update notice with release notes and "skip version"                                              | M0                                             |
-| D1    | Detailed docs with screenshots for every feature; videos at the end                              | every milestone, M16                           |
+| D1    | Detailed docs with screenshots for every feature; videos at the end                              | every milestone, M19                           |
 | D2    | Everything anonymized                                                                            | every milestone (synthetic demo projects only) |
 | D3    | Commit, CI and release after every tested feature                                                | every milestone                                |
 | D4    | Packages for Windows, macOS and Linux                                                            | M0 (section 7)                                 |
@@ -952,33 +1033,8 @@ Delivered (ADR-0015):
 
 ### Deferred items
 
-- **DipTrace import (projects and libraries):** deferred. DipTrace stores
-  schematics, boards and libraries in an undocumented binary format.
-  Re-evaluate after v1.0, for example through DipTrace's own export formats.
-  The deduplication engine (M4) is source-independent, so DipTrace libraries
-  can be added later without redesign.
-- **Post-1.0 candidates:** SPICE simulation (ngspice), real-time collaboration,
-  a plugin API, multi-board/harness design, signal-integrity helpers.
-- **Advanced feature: part generator from datasheets** (requested by the
-  maintainer): reads a part's datasheet and generates the symbol, the
-  footprint and a 3D STEP model; for parts in several packages the user only
-  picks the package, the generator extracts pins, functions, package
-  dimensions and land pattern. Builds on the footprint wizards (M6) and the
-  STEP writer (M9).
-- **Advanced feature: mechanical assembly and enclosure check** (requested
-  by the maintainer): enclosures and other mechanical parts come in as STEP
-  files and are placed around the board in its 3D assembly (position,
-  rotation, several bodies such as the bottom shell, the lid, a front panel,
-  screws or the carrier board a shield sits on). A **collision and clearance
-  check** tests the board body and every component model against these
-  bodies with a minimum distance; the findings are listed like DRC findings,
-  shown in the 3D view and the layout editor and updated while parts move.
-  Helpers derived from the enclosure: the board outline and keep-out and
-  height areas from its cross-section at the board plane, mounting holes
-  checked against the screw bosses, connector positions against the
-  openings. The whole assembly is exported as STEP for mechanical CAD. Parts
-  without a 3D model use their courtyard and a height. Builds on the 3D
-  view, the mesh cache and the STEP writer (M9) and the DRC (M7).
+- **Post-1.0 candidates:** real-time collaboration, a plugin API,
+  signal-integrity helpers.
 
 ## 13. Roadmap changelog
 
@@ -1006,3 +1062,4 @@ Delivered (ADR-0015):
 | 2026-11-15 | v0.20      | v0.14.1: the GitHub integration is switched off until the maintainer decides to offer it; its browser sign-in now uses a GitHub App with access to the chosen repositories only and short-lived tokens (ADR-0014).                                                                                                                                                                                                                                         |
 | 2026-11-15 | v0.21      | M14 complete: v0.15.0 with the KiCad export (KiCad 8 format, verified by a round trip and by kicad-cli), the Eagle XML import, Specctra DSN/SES for external autorouters, Gerber files as a reference drawing and the DXF output. The DXF import no longer mirrors drawings (the board's y axis points up).                                                                                                                                                |
 | 2026-11-15 | v0.22      | Added the mechanical assembly and enclosure check (STEP enclosures around the board, collision and clearance check, outline and keep-outs from the enclosure) as an advanced feature requested by the maintainer.                                                                                                                                                                                                                                          |
+| 2026-11-15 | v0.23      | New milestones between M15 and v1.0, requested by the maintainer: M16 part generator from datasheets, M17 mechanical assembly and enclosure check, M18 multi-board design; hardening and v1.0 move to M19. SPICE simulation and the DipTrace import are dropped.                                                                                                                                                                                           |
