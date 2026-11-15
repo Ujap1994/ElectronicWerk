@@ -6,7 +6,7 @@
 //! lines, arcs, circles and 2D polylines on one DXF layer per board layer.
 //! Shapes are written as their centre lines; line widths and fills are not
 //! drawn. Coordinates are relative to the board's drill and placement
-//! origin, with DXF's y axis pointing up.
+//! origin; DXF's y axis points up like the board's.
 
 use std::f64::consts::TAU;
 use std::fmt::Write as _;
@@ -124,11 +124,11 @@ impl<'a> Drawing<'a> {
         }
     }
 
-    /// A board point in DXF coordinates (y up).
+    /// A board point in DXF coordinates (both with y up).
     fn map(&self, p: V) -> V {
         V::new(
             (p.x - self.origin.x as f64) / self.unit,
-            -(p.y - self.origin.y as f64) / self.unit,
+            (p.y - self.origin.y as f64) / self.unit,
         )
     }
 

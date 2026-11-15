@@ -589,12 +589,12 @@ fn placing_editing_routing_presets_and_dxf() {
         .filter(|s| s["layer"] == "outline")
         .collect();
     assert_eq!(outlines.len(), 1);
-    // The lower left corner lies at the origin: y runs from -40 mm to 0.
+    // The lower left corner lies at the origin: y runs from 0 to 40 mm.
     let points = outlines[0]["geometry"]["polygon"]["points"]
         .as_array()
         .unwrap();
     assert!(points.contains(&json!([0, 0])));
-    assert!(points.contains(&json!([60 * MM, -40 * MM])));
+    assert!(points.contains(&json!([60 * MM, 40 * MM])));
 }
 
 #[test]
@@ -635,17 +635,17 @@ fn specctra_export_and_session_import() {
         tracks.len(),
         tracks_before - imported["removedTracks"].as_u64().unwrap() as usize + 2
     );
-    // 10 mm along x, then 5 mm down on the board (y up in the file).
+    // 10 mm along x, then 5 mm down (y up in the file and on the board).
     assert!(
         tracks
             .iter()
-            .any(|t| t["start"] == json!([10 * MM, 0]) && t["end"] == json!([10 * MM, 5 * MM]))
+            .any(|t| t["start"] == json!([10 * MM, 0]) && t["end"] == json!([10 * MM, -5 * MM]))
     );
     let via = pcb["vias"]
         .as_array()
         .unwrap()
         .iter()
-        .find(|v| v["at"] == json!([10 * MM, 5 * MM]))
+        .find(|v| v["at"] == json!([10 * MM, -5 * MM]))
         .unwrap()
         .clone();
     assert_eq!(via["diameter"], 600_000);
@@ -698,9 +698,9 @@ fn gerber_files_as_a_reference_drawing() {
     let (first, second) = (files[0]["layer"].clone(), files[1]["layer"].clone());
     assert!(first.as_str().unwrap().starts_with("user."));
     assert_ne!(first, second);
-    // Board orientation: y runs from -15 to -9.5 mm (the track is 1 mm wide).
-    assert_eq!(files[0]["bounds"][1], -15_000_000);
-    assert_eq!(files[0]["bounds"][3], -9_500_000);
+    // y runs from 9.5 to 15 mm (the track is 1 mm wide).
+    assert_eq!(files[0]["bounds"][1], 9_500_000);
+    assert_eq!(files[0]["bounds"][3], 15_000_000);
 
     let imported = call(
         &mut engine,
@@ -737,7 +737,7 @@ fn gerber_files_as_a_reference_drawing() {
         })
         .map(|p| p[1].as_i64().unwrap())
         .collect();
-    assert_eq!(*ys.iter().max().unwrap(), 0);
+    assert_eq!(*ys.iter().min().unwrap(), 0);
     let xs_min = copper_shapes
         .iter()
         .flat_map(|s| {

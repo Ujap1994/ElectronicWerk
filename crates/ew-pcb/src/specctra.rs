@@ -11,7 +11,8 @@
 //! Parts are written as placed: every part has an image of its own with
 //! the pads where they are on the board (placed at rotation 0 on the
 //! front), so rotation and mirroring conventions of routers do not matter.
-//! DSN coordinates are micrometres with the y axis pointing up.
+//! DSN coordinates are micrometres with the y axis pointing up, like the
+//! board's.
 
 use std::collections::{BTreeMap, BTreeSet, HashMap};
 use std::fmt::Write as _;
@@ -98,7 +99,7 @@ fn num(value: f64) -> String {
 
 /// A board point in DSN coordinates.
 fn xy(p: V) -> String {
-    format!("{} {}", num(p.x), num(-p.y))
+    format!("{} {}", num(p.x), num(p.y))
 }
 
 /// A relative offset in DSN coordinates (pads around their pin).
@@ -757,7 +758,7 @@ pub fn read_ses(text: &str) -> Result<Session, SpecctraError> {
         .ok_or_else(|| SpecctraError("the session has no routes".into()))?;
     let scale = resolution(routes.child("resolution"));
     let point =
-        |x: &Node, y: &Node| -> Option<V> { Some(V::new(number(x)? * scale, -number(y)? * scale)) };
+        |x: &Node, y: &Node| -> Option<V> { Some(V::new(number(x)? * scale, number(y)? * scale)) };
     let mut session = Session::default();
     if let Some(library) = routes.child("library_out") {
         for padstack in library.children("padstack") {
@@ -982,12 +983,12 @@ mod tests {
         assert_eq!(
             net.wires[0].points,
             [
-                V::new(1_000_000.0, 2_000_000.0),
-                V::new(3_000_000.0, 2_000_000.0)
+                V::new(1_000_000.0, -2_000_000.0),
+                V::new(3_000_000.0, -2_000_000.0)
             ]
         );
         assert!(net.wires[1].protect);
-        assert_eq!(net.vias[0].at, V::new(3_000_000.0, 2_000_000.0));
+        assert_eq!(net.vias[0].at, V::new(3_000_000.0, -2_000_000.0));
         assert!(read_ses("(pcb x)").is_err());
         assert!(read_ses("(session x").is_err());
     }

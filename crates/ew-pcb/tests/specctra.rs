@@ -35,7 +35,7 @@ fn rules() -> RuleSet {
 }
 
 /// Writes a session (as Freerouting does) from the routing of a board:
-/// resolution 0.1 µm, y up.
+/// resolution 0.1 µm, y up like the board.
 fn session_of(pcb: &Pcb) -> String {
     let v = |nm: i64| (nm as f64 / 100.0).round() as i64;
     let mut out = String::from("(session \"x.ses\" (routes (resolution um 10) (network_out\n");
@@ -48,9 +48,9 @@ fn session_of(pcb: &Pcb) -> String {
                 layer_name(track.layer),
                 v(track.width),
                 v(track.start.x),
-                -v(track.start.y),
+                v(track.start.y),
                 v(track.end.x),
-                -v(track.end.y)
+                v(track.end.y)
             );
         }
         for via in pcb.vias.iter().filter(|via| via.net == Some(net.id)) {
@@ -61,7 +61,7 @@ fn session_of(pcb: &Pcb) -> String {
                 via.diameter / 1000,
                 via.drill / 1000,
                 v(via.at.x),
-                -v(via.at.y)
+                v(via.at.y)
             );
         }
         out.push_str(")\n");

@@ -3,7 +3,7 @@
 //! Reads the entities of an ASCII DXF file: lines, circles, arcs, light
 //! and classic polylines (with bulges), splines (through their fit or
 //! control points) and ellipses. Block inserts are not expanded. DXF's y
-//! axis points up, the board's down, so y is mirrored.
+//! axis points up, like the board's, so coordinates are taken as they are.
 
 use std::collections::BTreeSet;
 use std::f64::consts::TAU;
@@ -155,7 +155,7 @@ pub fn read(text: &str, scale: Option<f64>) -> Result<Drawing, DxfError> {
             entity.groups.push((*code, value.clone()));
         }
     }
-    let p = |x: f64, y: f64| V::new(x * k, -y * k);
+    let p = |x: f64, y: f64| V::new(x * k, y * k);
     let mut shapes: Vec<(String, Geometry)> = Vec::new();
     let mut skipped: std::collections::BTreeMap<String, usize> = std::collections::BTreeMap::new();
     let mut layers = BTreeSet::new();
@@ -374,15 +374,15 @@ mod tests {
                 _ => None,
             })
             .unwrap();
-        // From (50, 30) to (0, 30) counter-clockwise in DXF (y up): the
-        // half circle lies above, at y = 30 + 25 mm; mirrored: y = -55 mm.
-        assert_eq!(arc.0, Point::new(50_000_000, -30_000_000));
-        assert_eq!(arc.1, Point::new(25_000_000, -55_000_000));
+        // From (50, 30) to (0, 30) counter-clockwise (y up): the half
+        // circle lies above, at y = 30 + 25 mm.
+        assert_eq!(arc.0, Point::new(50_000_000, 30_000_000));
+        assert_eq!(arc.1, Point::new(25_000_000, 55_000_000));
         let circle = drawing.shapes.iter().find(|(l, _)| l == "HOLES").unwrap();
         assert_eq!(
             circle.1,
             Geometry::Circle {
-                center: Point::new(5_000_000, -5_000_000),
+                center: Point::new(5_000_000, 5_000_000),
                 radius: 1_600_000
             }
         );

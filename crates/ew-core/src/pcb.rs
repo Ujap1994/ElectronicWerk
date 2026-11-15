@@ -862,9 +862,10 @@ pub fn call(
                 ));
             }
             let bounds = ew_model::units::Rect::from_points(shapes.iter().flat_map(|g| g.points()));
+            // The board's y axis points up: the lower left corner is the minimum.
             let shift = match (params.origin, bounds) {
                 (Some(origin), Some(b)) => {
-                    ew_model::units::Point::new(origin.x - b.min.x, origin.y - b.max.y)
+                    ew_model::units::Point::new(origin.x - b.min.x, origin.y - b.min.y)
                 }
                 _ => ew_model::units::Point::ORIGIN,
             };
@@ -980,8 +981,9 @@ pub fn call(
                     image: image.clone(),
                 });
                 // In board orientation (y down), nanometres.
+                // Gerber and the board both have y pointing up.
                 let bounds = image.bounds().map(|[x0, y0, x1, y1]| {
-                    let (low, high) = (V::new(x0, -y1).point(), V::new(x1, -y0).point());
+                    let (low, high) = (V::new(x0, y0).point(), V::new(x1, y1).point());
                     [low.x, low.y, high.x, high.y]
                 });
                 files.push(json!({
@@ -1005,14 +1007,10 @@ pub fn call(
             let mut drawings = Vec::new();
             for file in &params.files {
                 let (name, _, image) = read_gerber(&file.path)?;
-                // File coordinates have y up; the board's y points down.
+                // File coordinates and the board both have y pointing up.
                 let areas: Vec<Vec<ew_model::units::Point>> = ew_output::reference::areas(&image)
                     .into_iter()
-                    .map(|ring| {
-                        ring.into_iter()
-                            .map(|p| V::new(p.x, -p.y).point())
-                            .collect()
-                    })
+                    .map(|ring| ring.into_iter().map(V::point).collect())
                     .collect();
                 drawings.push((name, file.layer, areas));
             }
@@ -1023,7 +1021,7 @@ pub fn call(
             );
             let shift = match (params.origin, bounds) {
                 (Some(origin), Some(b)) => {
-                    ew_model::units::Point::new(origin.x - b.min.x, origin.y - b.max.y)
+                    ew_model::units::Point::new(origin.x - b.min.x, origin.y - b.min.y)
                 }
                 _ => ew_model::units::Point::ORIGIN,
             };
