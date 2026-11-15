@@ -17,7 +17,8 @@
 //! - [`viewer`]: Gerber and drill files as a scene for the viewer.
 //! - [`fracture`]: polygons with holes as one contour.
 //! - [`read`]: reads Gerber and Excellon files; [`raster`] draws them into
-//!   bitmaps for comparisons.
+//!   bitmaps for comparisons; [`reference`] turns them into areas for a
+//!   reference drawing on a board.
 
 #![allow(
     clippy::cast_precision_loss,
@@ -47,6 +48,7 @@ pub mod placement;
 pub mod print;
 pub mod raster;
 pub mod read;
+pub mod reference;
 pub mod statistics;
 pub mod svg;
 pub mod viewer;

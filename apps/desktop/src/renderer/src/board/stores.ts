@@ -118,6 +118,7 @@ export interface BoardCommands {
   readonly rules: () => void;
   readonly importDxf: () => void;
   readonly autorouter: () => void;
+  readonly gerberReference: () => void;
   readonly placeFootprint: () => void;
 }
 

@@ -326,6 +326,34 @@ test('routes tracks, draws zones, updates from the schematic and imports DXF', a
   await page.getByTestId('toolbar-undo').click();
   await save(page);
   expect(readBoard(project).vias?.length ?? 0).toBe(before.vias?.length ?? 0);
+
+  // Gerber and drill files as a reference drawing on user layers.
+  const gerber = join(project, 'old-F_Cu.gbr');
+  writeFileSync(
+    gerber,
+    '%TF.FileFunction,Copper,L1,Top*%\n%FSLAX46Y46*%\n%MOMM*%\n%ADD10C,0.500000*%\n' +
+      'D10*X0Y0D02*X20000000Y0D01*X20000000Y10000000D01*\nM02*\n',
+  );
+  const drills = join(project, 'old.drl');
+  writeFileSync(drills, 'M48\nMETRIC\nT1C1.000\n%\nG90\nT1\nX5.0Y5.0\nX15.0Y5.0\nM30\n');
+  const otherUser = (shapes: Board['shapes']): number =>
+    (shapes ?? []).filter((s) => s.layer.startsWith('user.') && s.layer !== 'user.9').length;
+  const userBefore = otherUser(readBoard(project).shapes);
+  await queueDialogAnswer(app, `${gerber}\n${drills}`);
+  await page.getByTestId('board-gerber-ref').click();
+  await page.getByTestId('gerber-ref-choose').click();
+  const rows = page.getByTestId('gerber-ref-files').locator('tbody tr');
+  await expect(rows).toHaveCount(2);
+  await expect(rows.first()).toContainText('Copper,L1,Top');
+  await expect(rows.nth(1)).toContainText('Plated');
+  await page.getByTestId('gerber-ref-layer-old.drl').selectOption('user.9');
+  await page.getByTestId('gerber-ref-import').click();
+  await expect(page.getByTestId('gerber-ref-dialog')).toBeHidden();
+  await save(page);
+  const shapes = readBoard(project).shapes ?? [];
+  expect(shapes.filter((s) => s.layer === 'user.9')).toHaveLength(2);
+  // The copper drawing went to the suggested free user layer: one area.
+  expect(otherUser(shapes)).toBe(userBefore + 1);
 });
 
 test('cross-probes between schematic and board', async () => {

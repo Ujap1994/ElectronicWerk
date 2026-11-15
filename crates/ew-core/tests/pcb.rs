@@ -664,3 +664,115 @@ fn specctra_export_and_session_import() {
     .unwrap();
     assert_eq!(reply["error"]["code"], "invalidParams");
 }
+
+#[test]
+fn gerber_files_as_a_reference_drawing() {
+    let dir = tempfile::tempdir().unwrap();
+    let (mut engine, board) = project(dir.path(), "demo");
+    // A copper layer: a 10 × 5 mm area and a 1 mm track beside it.
+    let copper = dir.path().join("ref-F_Cu.gbr");
+    std::fs::write(
+        &copper,
+        "%TF.FileFunction,Copper,L1,Top*%\n%FSLAX46Y46*%\n%MOMM*%\n%ADD10C,1.000000*%\n\
+         G36*X10000000Y10000000D02*X20000000Y10000000D01*X20000000Y15000000D01*\
+         X10000000Y15000000D01*X10000000Y10000000D01*G37*\n\
+         D10*X30000000Y10000000D02*X40000000Y10000000D01*\nM02*\n",
+    )
+    .unwrap();
+    let drill = dir.path().join("ref.drl");
+    std::fs::write(
+        &drill,
+        "M48\nMETRIC\nT1C0.800\n%\nG90\nT1\nX15.0Y12.5\nM30\n",
+    )
+    .unwrap();
+    let preview = call(
+        &mut engine,
+        "pcb.gerberPreview",
+        json!({"doc": board, "paths": [copper, drill]}),
+    );
+    let files = preview["files"].as_array().unwrap();
+    assert_eq!(files[0]["kind"], "gerber");
+    assert_eq!(files[0]["function"], "Copper,L1,Top");
+    assert_eq!(files[1]["kind"], "drill");
+    // Two different free user layers are suggested.
+    let (first, second) = (files[0]["layer"].clone(), files[1]["layer"].clone());
+    assert!(first.as_str().unwrap().starts_with("user."));
+    assert_ne!(first, second);
+    // Board orientation: y runs from -15 to -9.5 mm (the track is 1 mm wide).
+    assert_eq!(files[0]["bounds"][1], -15_000_000);
+    assert_eq!(files[0]["bounds"][3], -9_500_000);
+
+    let imported = call(
+        &mut engine,
+        "pcb.importGerbers",
+        json!({"doc": board, "files": [
+            {"path": copper, "layer": "user.5"},
+            {"path": drill, "layer": "user.6"},
+        ], "origin": [0, 0]}),
+    );
+    // The area and the track; one hole.
+    assert_eq!(imported["layers"][0]["shapes"], 2);
+    assert_eq!(imported["layers"][1]["shapes"], 1);
+    let pcb = call(&mut engine, "document.get", json!({"doc": board}));
+    let on = |layer: &str| -> Vec<Value> {
+        pcb["shapes"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .filter(|s| s["layer"] == layer)
+            .cloned()
+            .collect()
+    };
+    let copper_shapes = on("user.5");
+    assert_eq!(copper_shapes.len(), 2);
+    assert!(copper_shapes.iter().all(|s| s["filled"] == true));
+    // The lower left corner of both files lies at the origin.
+    let ys: Vec<i64> = copper_shapes
+        .iter()
+        .flat_map(|s| {
+            s["geometry"]["polygon"]["points"]
+                .as_array()
+                .unwrap()
+                .clone()
+        })
+        .map(|p| p[1].as_i64().unwrap())
+        .collect();
+    assert_eq!(*ys.iter().max().unwrap(), 0);
+    let xs_min = copper_shapes
+        .iter()
+        .flat_map(|s| {
+            s["geometry"]["polygon"]["points"]
+                .as_array()
+                .unwrap()
+                .clone()
+        })
+        .map(|p| p[0].as_i64().unwrap())
+        .min()
+        .unwrap();
+    assert_eq!(xs_min, 0);
+    assert_eq!(on("user.6").len(), 1);
+
+    // Replacing the drawing of a layer, and one undo step.
+    call(
+        &mut engine,
+        "pcb.importGerbers",
+        json!({"doc": board, "files": [{"path": drill, "layer": "user.5"}], "replace": true}),
+    );
+    let pcb = call(&mut engine, "document.get", json!({"doc": board}));
+    let count = pcb["shapes"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .filter(|s| s["layer"] == "user.5")
+        .count();
+    assert_eq!(count, 1);
+    call(&mut engine, "edit.undo", Value::Null);
+    let pcb = call(&mut engine, "document.get", json!({"doc": board}));
+    let count = pcb["shapes"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .filter(|s| s["layer"] == "user.5")
+        .count();
+    assert_eq!(count, 2);
+}

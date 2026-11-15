@@ -125,6 +125,7 @@ export const de: Messages = {
     designRules: 'Platine: Designregeln und Netzklassen',
     importDxf: 'Platine: DXF-Zeichnung importieren',
     autorouter: 'Platine: externer Autorouter (Specctra DSN/SES, Freerouting)',
+    gerberReference: 'Platine: Gerber-Dateien als Referenzzeichnung importieren',
     placeFootprint: 'Platine: Footprint platzieren',
     generateOutputs: 'Ausgaben: Fertigungsdaten erzeugen (Ausgabejob)',
     gerberViewer: 'Gerber-Viewer: Gerber- und Bohrdateien öffnen …',

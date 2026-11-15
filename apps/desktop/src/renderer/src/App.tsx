@@ -200,6 +200,11 @@ export function App(): ReactNode {
             { id: 'import-dxf', label: 'commands.importDxf', run: boardCommands.importDxf },
             { id: 'autorouter', label: 'commands.autorouter', run: boardCommands.autorouter },
             {
+              id: 'gerber-reference',
+              label: 'commands.gerberReference',
+              run: boardCommands.gerberReference,
+            },
+            {
               id: 'place-footprint',
               label: 'commands.placeFootprint',
               run: boardCommands.placeFootprint,

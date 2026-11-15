@@ -128,6 +128,7 @@ export const en = {
     designRules: 'Board: design rules and net classes',
     importDxf: 'Board: import a DXF drawing',
     autorouter: 'Board: external autorouter (Specctra DSN/SES, Freerouting)',
+    gerberReference: 'Board: import Gerber files as a reference drawing',
     placeFootprint: 'Board: place a footprint',
     generateOutputs: 'Outputs: generate manufacturing files (output job)',
     gerberViewer: 'Gerber viewer: open Gerber and drill files…',

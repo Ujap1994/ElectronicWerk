@@ -20,6 +20,7 @@ import {
   type ZoneJson,
 } from './dialogs';
 import { AutorouterDialog } from './AutorouterDialog';
+import { GerberReferenceDialog } from './GerberReferenceDialog';
 import { runDrc, useDrcUpdates } from './DrcPanel';
 import { BoardEditor, type Point } from './editor';
 import { RulesDialog } from './RulesDialog';
@@ -41,6 +42,7 @@ type Dialog =
   | { kind: 'rules'; tab?: 'checks' }
   | { kind: 'dxf' }
   | { kind: 'autorouter' }
+  | { kind: 'gerberReference' }
   | null;
 
 export interface BoardUi {
@@ -215,6 +217,9 @@ export function useBoardEditor({
       autorouter: () => {
         setDialog({ kind: 'autorouter' });
       },
+      gerberReference: () => {
+        setDialog({ kind: 'gerberReference' });
+      },
       placeFootprint: () => {
         setDialog({ kind: 'chooser' });
       },
@@ -273,6 +278,8 @@ export function useBoardEditor({
       <RulesDialog doc={doc} units={units} initialTab={dialog.tab ?? 'classes'} onClose={close} />
     ) : dialog.kind === 'autorouter' ? (
       <AutorouterDialog doc={doc} onClose={close} />
+    ) : dialog.kind === 'gerberReference' ? (
+      <GerberReferenceDialog doc={doc} onClose={close} />
     ) : (
       <DxfDialog doc={doc} units={units} onClose={close} />
     );

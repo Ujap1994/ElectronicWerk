@@ -351,8 +351,16 @@ pub const SUMMARIES: &[(&str, &str)] = &[
         "`{\"doc\", \"zones\"?: [\"…\"]}` (`fill-zones` / `unfill-zones`). Fills (or empties) all zones of the board, or the given ones. Returns `{\"zones\", \"areas\"}`: the number of changed zones and of filled areas.",
     ),
     (
+        "pcb.gerberPreview",
+        "`{\"doc\", \"paths\": [\"…\"]}` → `{\"files\": [{\"path\", \"name\", \"kind\": gerber | drill, \"function\", \"objects\", \"bounds\", \"layer\"}]}`: what Gerber and Excellon files hold, with a free user layer suggested for each.",
+    ),
+    (
         "pcb.importDxf",
         "`pcb.dxfPreview {\"path\", \"scale\"?}` → `{\"layers\", \"units\", \"count\", \"bounds\", \"skipped\"}`. `pcb.importDxf {\"doc\", \"path\", \"layer\", \"layers\"?, \"replace\"?, \"scale\"?, \"origin\"?, \"width\"?}` (`import-dxf`) imports the shapes of the chosen DXF layers onto a board layer (`outline`, `mech.1`, …); `scale` is nanometres per draw…",
+    ),
+    (
+        "pcb.importGerbers",
+        "`{\"doc\", \"files\": [{\"path\", \"layer\"}], \"origin\"?, \"replace\"?}` (`import-gerber`) → `{\"shapes\", \"layers\"}`: draws Gerber and Excellon files as filled areas on board layers (a reference for tracing or comparing); `origin` moves the lower left corner of all files there.",
     ),
     (
         "pcb.importSession",

@@ -43,6 +43,8 @@ pub mod labels {
     pub const DXF: &str = "import-dxf";
     /// `pcb.importSession`.
     pub const SESSION: &str = "import-session";
+    /// `pcb.importGerbers`.
+    pub const GERBER: &str = "import-gerber";
 
     /// The label of a `pcb.edit` operation.
     #[must_use]
@@ -305,6 +307,74 @@ struct DxfParams {
     /// Line width.
     #[serde(default)]
     width: Option<ew_model::units::Nm>,
+}
+
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+struct GerberPreviewParams {
+    doc: Id,
+    /// Gerber and Excellon files.
+    paths: Vec<String>,
+}
+
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+struct GerberFileParams {
+    path: String,
+    /// Board layer for the file's drawing (`user.3`, `mech.2`, …).
+    layer: ew_model::layer::Layer,
+}
+
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+struct GerberImportParams {
+    doc: Id,
+    files: Vec<GerberFileParams>,
+    /// Move the drawings so that the lower left corner of all of them lies
+    /// here (as in the files if missing).
+    #[serde(default)]
+    origin: Option<ew_model::units::Point>,
+    /// Remove the shapes already on the target layers.
+    #[serde(default)]
+    replace: bool,
+}
+
+/// A Gerber or Excellon file: its name, kind and image.
+fn read_gerber(path: &str) -> Result<(String, &'static str, ew_output::read::Image), EngineError> {
+    let bytes = std::fs::read(path)
+        .map_err(|error| EngineError::invalid_params(format!("cannot read {path}: {error}")))?;
+    let text = String::from_utf8_lossy(&bytes);
+    let name = std::path::Path::new(path)
+        .file_name()
+        .map_or_else(|| path.to_owned(), |n| n.to_string_lossy().into_owned());
+    let kind = match ew_output::read::detect(&text) {
+        Some(ew_output::read::FileKind::Gerber) => "gerber",
+        Some(ew_output::read::FileKind::Excellon) => "drill",
+        None => {
+            return Err(EngineError::invalid_params(format!(
+                "{name} is not a Gerber or Excellon file"
+            )));
+        }
+    };
+    let image = ew_output::read::read(&text).ok_or_else(|| {
+        EngineError::invalid_params(format!("{name} is not a Gerber or Excellon file"))
+    })?;
+    Ok((name, kind, image))
+}
+
+/// User layers without shapes, for reference drawings.
+fn free_user_layers(pcb: &Pcb) -> Vec<ew_model::layer::Layer> {
+    use ew_model::layer::Layer;
+    let used: std::collections::BTreeSet<Layer> = pcb
+        .shapes
+        .iter()
+        .map(|s| s.layer)
+        .chain(pcb.texts.iter().map(|t| t.layer))
+        .collect();
+    (1..=32)
+        .map(Layer::User)
+        .filter(|layer| !used.contains(layer))
+        .collect()
 }
 
 #[derive(Deserialize)]
@@ -896,6 +966,111 @@ pub fn call(
                 label: labels::SESSION,
                 requests,
                 reply,
+            })
+        }
+        "pcb.gerberPreview" => {
+            let params: GerberPreviewParams = parse(params)?;
+            let pcb = board(project, params.doc)?;
+            let mut free = free_user_layers(pcb).into_iter();
+            let mut files = Vec::new();
+            for path in &params.paths {
+                let (name, kind, image) = read_gerber(path)?;
+                let function = ew_output::viewer::function_of(&ew_output::viewer::ViewerFile {
+                    name: name.clone(),
+                    image: image.clone(),
+                });
+                // In board orientation (y down), nanometres.
+                let bounds = image.bounds().map(|[x0, y0, x1, y1]| {
+                    let (low, high) = (V::new(x0, -y1).point(), V::new(x1, -y0).point());
+                    [low.x, low.y, high.x, high.y]
+                });
+                files.push(json!({
+                    "path": path,
+                    "name": name,
+                    "kind": kind,
+                    "function": function,
+                    "objects": image.objects.len(),
+                    "bounds": bounds,
+                    "layer": free.next().map(|l| l.to_string()),
+                }));
+            }
+            Ok(Outcome::Read(json!({ "files": files })))
+        }
+        "pcb.importGerbers" => {
+            let params: GerberImportParams = parse(params)?;
+            board(project, params.doc)?;
+            if params.files.is_empty() {
+                return Err(EngineError::invalid_params("no files to import"));
+            }
+            let mut drawings = Vec::new();
+            for file in &params.files {
+                let (name, _, image) = read_gerber(&file.path)?;
+                // File coordinates have y up; the board's y points down.
+                let areas: Vec<Vec<ew_model::units::Point>> = ew_output::reference::areas(&image)
+                    .into_iter()
+                    .map(|ring| {
+                        ring.into_iter()
+                            .map(|p| V::new(p.x, -p.y).point())
+                            .collect()
+                    })
+                    .collect();
+                drawings.push((name, file.layer, areas));
+            }
+            let bounds = ew_model::units::Rect::from_points(
+                drawings
+                    .iter()
+                    .flat_map(|(_, _, areas)| areas.iter().flatten().copied()),
+            );
+            let shift = match (params.origin, bounds) {
+                (Some(origin), Some(b)) => {
+                    ew_model::units::Point::new(origin.x - b.min.x, origin.y - b.max.y)
+                }
+                _ => ew_model::units::Point::ORIGIN,
+            };
+            let pcb = board(project, params.doc)?;
+            let mut requests = Vec::new();
+            if params.replace {
+                let targets: Vec<ew_model::layer::Layer> =
+                    params.files.iter().map(|f| f.layer).collect();
+                for shape in pcb.shapes.iter().filter(|s| targets.contains(&s.layer)) {
+                    requests.push(Request::Delete {
+                        doc: params.doc,
+                        id: shape.id,
+                    });
+                }
+            }
+            let mut layers = Vec::new();
+            let mut total = 0;
+            for (name, layer, areas) in drawings {
+                let count = areas.len();
+                for ring in areas {
+                    let points = ring
+                        .into_iter()
+                        .map(|p| ew_model::units::Point::new(p.x + shift.x, p.y + shift.y))
+                        .collect();
+                    requests.push(Request::Insert {
+                        doc: params.doc,
+                        object: Object::BoardShape(ew_model::pcb::BoardShape {
+                            id: Id::random(),
+                            layer,
+                            geometry: ew_model::shape::Geometry::Polygon { points },
+                            width: 0,
+                            filled: true,
+                        }),
+                    });
+                }
+                total += count;
+                layers.push(json!({"file": name, "layer": layer.to_string(), "shapes": count}));
+            }
+            if total == 0 {
+                return Err(EngineError::invalid_params(
+                    "the files have nothing to draw",
+                ));
+            }
+            Ok(Outcome::Commit {
+                label: labels::GERBER,
+                requests,
+                reply: json!({"shapes": total, "layers": layers}),
             })
         }
         "pcb.validateRule" => {
