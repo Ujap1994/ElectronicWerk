@@ -30,7 +30,8 @@ import { activeSheet } from './schematic/stores';
 import { useAppState } from './state';
 
 export function App(): ReactNode {
-  const { updateSettings, t } = useAppState();
+  const { updateSettings, t, appInfo } = useAppState();
+  const githubOn = appInfo.features.github;
   const {
     project,
     newProject,
@@ -234,20 +235,24 @@ export function App(): ReactNode {
             { id: 'source-control', label: 'commands.sourceControl', run: sourceControl },
           ] satisfies Command[])),
       { id: 'new-project', label: 'commands.newProject', run: newProject },
-      {
-        id: 'open-from-github',
-        label: 'commands.openFromGithub',
-        run: () => {
-          cloneOpen.set(true);
-        },
-      },
-      {
-        id: 'github-sign-in',
-        label: 'commands.githubSignIn',
-        run: () => {
-          signInOpen.set(true);
-        },
-      },
+      ...(githubOn
+        ? ([
+            {
+              id: 'open-from-github',
+              label: 'commands.openFromGithub',
+              run: () => {
+                cloneOpen.set(true);
+              },
+            },
+            {
+              id: 'github-sign-in',
+              label: 'commands.githubSignIn',
+              run: () => {
+                signInOpen.set(true);
+              },
+            },
+          ] satisfies Command[])
+        : []),
       {
         id: 'open-project',
         label: 'commands.openProject',
@@ -425,6 +430,7 @@ export function App(): ReactNode {
       open3d,
       openAssembly,
       sourceControl,
+      githubOn,
       startKicadImport,
       project,
       redo,
@@ -456,7 +462,7 @@ export function App(): ReactNode {
       </main>
       <ProjectDialogs />
       <PartsHost />
-      <GithubHost />
+      {githubOn && <GithubHost />}
       <StatusBar
         onOpenSettings={() => {
           setSettingsOpen(true);

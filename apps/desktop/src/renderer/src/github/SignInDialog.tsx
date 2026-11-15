@@ -60,7 +60,11 @@ export function SignInDialog({ onClose }: { readonly onClose: () => void }): Rea
       }
       switch (end.state) {
         case 'done':
-          githubStatus.set({ ...(githubStatus.get() ?? fallbackStatus()), account: end.account });
+          githubStatus.set({
+            ...(githubStatus.get() ?? fallbackStatus()),
+            account: end.account,
+            method: 'app',
+          });
           signedIn(end.account.login);
           return;
         case 'denied':
@@ -93,7 +97,11 @@ export function SignInDialog({ onClose }: { readonly onClose: () => void }): Rea
         setTokenError(describeGitError(t, result.error));
         return;
       }
-      githubStatus.set({ ...(githubStatus.get() ?? fallbackStatus()), account: result.value });
+      githubStatus.set({
+        ...(githubStatus.get() ?? fallbackStatus()),
+        account: result.value,
+        method: 'token',
+      });
       signedIn(result.value.login);
     });
   };
@@ -224,5 +232,5 @@ export function SignInDialog({ onClose }: { readonly onClose: () => void }): Rea
 }
 
 function fallbackStatus(): NonNullable<ReturnType<typeof githubStatus.get>> {
-  return { account: null, deviceFlow: false, storage: 'keychain' };
+  return { account: null, method: null, deviceFlow: false, storage: 'keychain' };
 }

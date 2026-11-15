@@ -92,8 +92,8 @@ const api: EwApi = {
     },
     signOut: () => ipcRenderer.invoke(IPC.githubSignOut),
     repos: () => ipcRenderer.invoke(IPC.githubRepos),
-    openPage: (page, fullName) => {
-      ipcRenderer.send(IPC.githubOpenPage, page, fullName ?? '');
+    openPage: (page, name) => {
+      ipcRenderer.send(IPC.githubOpenPage, page, name ?? '');
     },
     onChanged: (listener) => subscribe(IPC.githubChanged, listener),
   },

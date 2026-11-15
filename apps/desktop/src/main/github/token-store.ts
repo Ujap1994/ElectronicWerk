@@ -1,7 +1,53 @@
 import { mkdirSync, readFileSync, renameSync, rmSync, writeFileSync } from 'node:fs';
 import { dirname } from 'node:path';
 
-import type { TokenStorage } from '@shared/github';
+import type { SignInMethod, TokenStorage } from '@shared/github';
+
+/** The sign-in kept on this computer. */
+export interface StoredToken {
+  readonly method: SignInMethod;
+  readonly token: string;
+  /** When the token expires (ms since 1970; `null`: it does not expire). */
+  readonly expiresAt: number | null;
+  /** Renews an expiring token (GitHub App only). */
+  readonly refreshToken: string | null;
+  /** When the refresh token expires (ms since 1970). */
+  readonly refreshExpiresAt: number | null;
+}
+
+/** A personal access token (it does not expire for ElectronicWerk). */
+export function personalToken(token: string): StoredToken {
+  return { method: 'token', token, expiresAt: null, refreshToken: null, refreshExpiresAt: null };
+}
+
+function parseStored(text: string): StoredToken | null {
+  if (text === '') {
+    return null;
+  }
+  // Versions up to 0.14 kept a bare personal access token.
+  if (!text.startsWith('{')) {
+    return personalToken(text);
+  }
+  try {
+    const data = JSON.parse(text) as Record<string, unknown>;
+    const number = (value: unknown): number | null => (typeof value === 'number' ? value : null);
+    const token = data['token'];
+    const method = data['method'];
+    if (typeof token !== 'string' || token === '' || (method !== 'app' && method !== 'token')) {
+      return null;
+    }
+    const refresh = data['refreshToken'];
+    return {
+      method,
+      token,
+      expiresAt: number(data['expiresAt']),
+      refreshToken: typeof refresh === 'string' && refresh !== '' ? refresh : null,
+      refreshExpiresAt: number(data['refreshExpiresAt']),
+    };
+  } catch {
+    return null;
+  }
+}
 
 /** The part of Electron's `safeStorage` the store uses. */
 export interface SecretBox {
@@ -22,7 +68,7 @@ export class TokenStore {
   private readonly box: SecretBox;
   private readonly platform: NodeJS.Platform;
   /** The token, if encryption is unavailable (never written to disk). */
-  private memory: string | null = null;
+  private memory: StoredToken | null = null;
 
   constructor(file: string, box: SecretBox, platform: NodeJS.Platform = process.platform) {
     this.file = file;
@@ -42,7 +88,7 @@ export class TokenStore {
     return 'keychain';
   }
 
-  get(): string | null {
+  get(): StoredToken | null {
     if (this.memory !== null) {
       return this.memory;
     }
@@ -50,22 +96,21 @@ export class TokenStore {
       return null;
     }
     try {
-      const token = this.box.decryptString(readFileSync(this.file));
-      return token === '' ? null : token;
+      return parseStored(this.box.decryptString(readFileSync(this.file)));
     } catch {
       // Missing, or encrypted by another user or computer.
       return null;
     }
   }
 
-  set(token: string): void {
+  set(token: StoredToken): void {
     if (!this.box.isEncryptionAvailable()) {
       this.memory = token;
       return;
     }
     mkdirSync(dirname(this.file), { recursive: true });
     const temporary = `${this.file}.tmp`;
-    writeFileSync(temporary, this.box.encryptString(token), { mode: 0o600 });
+    writeFileSync(temporary, this.box.encryptString(JSON.stringify(token)), { mode: 0o600 });
     renameSync(temporary, this.file);
     this.memory = null;
   }

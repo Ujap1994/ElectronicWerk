@@ -11,6 +11,7 @@ import type {
   GitBranches,
   GitCommit,
   GithubAccount,
+  GithubPage,
   GithubRepo,
   GithubStatus,
   GitResult,
@@ -134,6 +135,22 @@ export interface AppInfo {
   };
   /** Preferred system languages, most preferred first (BCP 47 tags). */
   readonly systemLanguages: readonly string[];
+  /** Optional parts of the app that are switched on. */
+  readonly features: Features;
+}
+
+/**
+ * Optional parts of the app. The GitHub integration is switched off unless
+ * ElectronicWerk starts with the environment variable `EW_ENABLE_GITHUB=1`:
+ * then only projects on this computer are offered.
+ */
+export interface Features {
+  readonly github: boolean;
+}
+
+/** The features of this run (from the environment of the main process). */
+export function featuresFromEnv(env: Readonly<Record<string, string | undefined>>): Features {
+  return { github: env['EW_ENABLE_GITHUB'] === '1' };
 }
 
 /** Settings together with the language actually in use. */
@@ -284,8 +301,12 @@ export interface EwApi {
     signOut: () => Promise<void>;
     /** The account's repositories, newest first. */
     repos: () => Promise<GitResult<readonly GithubRepo[]>>;
-    /** Opens a page of a repository (`owner/name`) or the device sign-in in the browser. */
-    openPage: (page: 'repo' | 'device' | 'tokens', fullName?: string) => void;
+    /**
+     * Opens a GitHub page in the browser: a repository (`name`: `owner/name`),
+     * the device sign-in, a new token, the repositories of the GitHub App or
+     * a new repository (`name`: its suggested name).
+     */
+    openPage: (page: GithubPage, name?: string) => void;
     /** The account changed (sign-in or sign-out in any window). */
     onChanged: (listener: (status: GithubStatus) => void) => Unsubscribe;
   };

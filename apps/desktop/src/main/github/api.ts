@@ -1,4 +1,11 @@
-import type { DeviceStart, GitError, GithubAccount, GithubRepo, NewRepo } from '@shared/github';
+import type {
+  DeviceStart,
+  GitError,
+  GithubAccount,
+  GithubRepo,
+  NewRepo,
+  SignInMethod,
+} from '@shared/github';
 
 export type Fetch = (url: string, init?: RequestInit) => Promise<Response>;
 
@@ -9,9 +16,8 @@ export interface GithubApiOptions {
   /** Website (device flow), `https://github.com`. */
   readonly web: string;
   readonly userAgent: string;
-  /** OAuth app for the device flow (empty: not available). */
+  /** Client id of the GitHub App for the device flow (empty: not available). */
   readonly clientId: string;
-  readonly scopes: string;
   readonly timeoutMs?: number;
 }
 
@@ -35,16 +41,26 @@ export interface DeviceFlow extends DeviceStart {
   readonly interval: number;
 }
 
+/** A token from GitHub (device flow or refresh). */
+export interface TokenGrant {
+  readonly token: string;
+  /** Seconds until the token expires (`null`: it does not expire). */
+  readonly expiresIn: number | null;
+  readonly refreshToken: string | null;
+  /** Seconds until the refresh token expires. */
+  readonly refreshExpiresIn: number | null;
+}
+
 /** How a device flow poll ended. */
 export type DevicePoll =
-  | { readonly state: 'token'; readonly token: string }
+  | { readonly state: 'token'; readonly grant: TokenGrant }
   | { readonly state: 'pending'; readonly interval: number }
   | { readonly state: 'denied' | 'expired' };
 
 /** Repositories read at most (5 pages of 100). */
 const MAX_REPO_PAGES = 5;
 
-/** The GitHub REST API and the OAuth device flow. */
+/** The GitHub REST API, the device flow and token refresh. */
 export class GithubApi {
   private readonly options: GithubApiOptions;
 
@@ -62,8 +78,14 @@ export class GithubApi {
     return parseAccount(raw);
   }
 
-  /** The repositories the account may push to, newest first. */
-  async repos(token: string): Promise<GithubRepo[]> {
+  /**
+   * The repositories the account may push to, newest first. Signed in with
+   * the GitHub App, only those the user chose for the app.
+   */
+  async repos(token: string, method: SignInMethod = 'token'): Promise<GithubRepo[]> {
+    if (method === 'app') {
+      return this.appRepos(token);
+    }
     const repos: GithubRepo[] = [];
     for (let page = 1; page <= MAX_REPO_PAGES; page += 1) {
       const raw = await this.request(
@@ -85,6 +107,58 @@ export class GithubApi {
       }
     }
     return repos;
+  }
+
+  /** The installations of the GitHub App the user can use (their ids). */
+  async installations(token: string): Promise<number[]> {
+    const raw = await this.request(token, 'GET', '/user/installations?per_page=100');
+    const list =
+      typeof raw === 'object' && raw !== null
+        ? (raw as Record<string, unknown>)['installations']
+        : null;
+    if (!Array.isArray(list)) {
+      throw new GithubError('failed', 'unexpected installation list from GitHub');
+    }
+    return list
+      .map((item: unknown) =>
+        typeof item === 'object' && item !== null ? (item as Record<string, unknown>)['id'] : null,
+      )
+      .filter((id): id is number => typeof id === 'number');
+  }
+
+  /** The repositories of every installation of the app (without doubles). */
+  private async appRepos(token: string): Promise<GithubRepo[]> {
+    const installations = await this.installations(token);
+    if (installations.length === 0) {
+      throw new GithubError('notInstalled', 'ElectronicWerk may not use any repository yet');
+    }
+    const byName = new Map<string, GithubRepo>();
+    for (const id of installations) {
+      for (let page = 1; page <= MAX_REPO_PAGES; page += 1) {
+        const raw = await this.request(
+          token,
+          'GET',
+          `/user/installations/${String(id)}/repositories?per_page=100&page=${String(page)}`,
+        );
+        const list =
+          typeof raw === 'object' && raw !== null
+            ? (raw as Record<string, unknown>)['repositories']
+            : null;
+        if (!Array.isArray(list)) {
+          throw new GithubError('failed', 'unexpected repository list from GitHub');
+        }
+        for (const item of list) {
+          const repo = parseRepo(item);
+          if (repo !== null && canPush(item)) {
+            byName.set(repo.fullName, repo);
+          }
+        }
+        if (list.length < 100) {
+          break;
+        }
+      }
+    }
+    return [...byName.values()].sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
   }
 
   async repo(token: string, fullName: string): Promise<GithubRepo> {
@@ -111,15 +185,15 @@ export class GithubApi {
     return repo;
   }
 
-  /** Starts the device flow: the user enters the code on GitHub. */
+  /**
+   * Starts the device flow: the user enters the code on GitHub. A GitHub App
+   * asks for no scopes: its permissions are fixed in its settings.
+   */
   async deviceStart(): Promise<DeviceFlow> {
     if (!this.deviceFlowAvailable) {
-      throw new GithubError('failed', 'no OAuth app is configured');
+      throw new GithubError('failed', 'no GitHub App is configured');
     }
-    const raw = await this.form('/login/device/code', {
-      client_id: this.options.clientId,
-      scope: this.options.scopes,
-    });
+    const raw = await this.form('/login/device/code', { client_id: this.options.clientId });
     const deviceCode = raw['device_code'];
     const userCode = raw['user_code'];
     const verificationUri = raw['verification_uri'];
@@ -149,9 +223,9 @@ export class GithubApi {
       device_code: flow.deviceCode,
       grant_type: 'urn:ietf:params:oauth:grant-type:device_code',
     });
-    const token = raw['access_token'];
-    if (typeof token === 'string' && token !== '') {
-      return { state: 'token', token };
+    const grant = parseGrant(raw);
+    if (grant !== null) {
+      return { state: 'token', grant };
     }
     switch (raw['error']) {
       case 'authorization_pending':
@@ -167,6 +241,26 @@ export class GithubApi {
       default:
         throw new GithubError('failed', describeOAuthError(raw, 'device flow failed'));
     }
+  }
+
+  /**
+   * Renews an expiring token of the GitHub App. The old token and refresh
+   * token stop working. A device-flow token needs no client secret for this.
+   */
+  async refresh(refreshToken: string): Promise<TokenGrant> {
+    const raw = await this.form('/login/oauth/access_token', {
+      client_id: this.options.clientId,
+      grant_type: 'refresh_token',
+      refresh_token: refreshToken,
+    });
+    const grant = parseGrant(raw);
+    if (grant !== null) {
+      return grant;
+    }
+    if (raw['error'] === 'bad_refresh_token' || raw['error'] === 'unauthorized') {
+      throw new GithubError('auth', describeOAuthError(raw, 'the sign-in has expired'));
+    }
+    throw new GithubError('failed', describeOAuthError(raw, 'the token could not be renewed'));
   }
 
   private async request(
@@ -245,6 +339,22 @@ export class GithubApi {
       );
     }
   }
+}
+
+function parseGrant(raw: Record<string, unknown>): TokenGrant | null {
+  const token = raw['access_token'];
+  if (typeof token !== 'string' || token === '') {
+    return null;
+  }
+  const seconds = (value: unknown): number | null =>
+    typeof value === 'number' && value > 0 ? value : null;
+  const refresh = raw['refresh_token'];
+  return {
+    token,
+    expiresIn: seconds(raw['expires_in']),
+    refreshToken: typeof refresh === 'string' && refresh !== '' ? refresh : null,
+    refreshExpiresIn: seconds(raw['refresh_token_expires_in']),
+  };
 }
 
 function parseAccount(raw: unknown): GithubAccount {

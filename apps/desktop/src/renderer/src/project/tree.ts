@@ -74,12 +74,13 @@ function group(id: GroupId, children: readonly TreeNode[]): TreeNode {
 
 /**
  * Builds the project tree: schematic hierarchy, documents by kind, files
- * and source control (`gitChanges`: files changed since the last commit).
+ * and source control (`gitChanges`: files changed since the last commit;
+ * `null`: no source control, the GitHub integration is off).
  */
 export function buildTree(
   project: ProjectSnapshot,
   files: readonly FileEntry[],
-  gitChanges = 0,
+  gitChanges: number | null = 0,
 ): TreeNode {
   const byId = new Map(project.documents.map((document) => [document.id, document]));
   const schematics = project.documents.filter((document) => document.kind === 'schematic');
@@ -125,12 +126,16 @@ export function buildTree(
       group('outputJobs', ofKind('outputJob')),
       group('otherFiles', fileNodes('other', 'otherFiles')),
       group('generatedFiles', fileNodes('generated', 'generatedFiles')),
-      {
-        key: 'git',
-        target: { type: 'git' },
-        badges: gitChanges > 0 ? ['modified'] : [],
-        children: [],
-      },
+      ...(gitChanges === null
+        ? []
+        : [
+            {
+              key: 'git',
+              target: { type: 'git' },
+              badges: gitChanges > 0 ? ['modified'] : [],
+              children: [],
+            } satisfies TreeNode,
+          ]),
     ],
   };
 }

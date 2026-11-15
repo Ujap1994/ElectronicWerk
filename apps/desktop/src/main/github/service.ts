@@ -17,14 +17,25 @@ import {
   type PullResult,
 } from '@shared/github';
 
-import { GithubApi, GithubError, type DeviceFlow, type GithubApiOptions } from './api';
+import {
+  GithubApi,
+  GithubError,
+  type DeviceFlow,
+  type GithubApiOptions,
+  type TokenGrant,
+} from './api';
 import { GitService, type Author } from './git';
 import { fetchHttpClient } from './http';
-import type { TokenStore } from './token-store';
+import { personalToken, type StoredToken, type TokenStore } from './token-store';
 
 export interface GithubServiceOptions extends GithubApiOptions {
   readonly tokens: TokenStore;
+  /** The clock (tests). */
+  readonly now?: () => number;
 }
+
+/** An expiring token is renewed this long before it expires. */
+export const REFRESH_MARGIN_MS = 5 * 60_000;
 
 /** Waits, unless aborted. */
 function delay(ms: number, signal: AbortSignal): Promise<void> {
@@ -61,21 +72,25 @@ export class GithubService {
   readonly git: GitService;
   private readonly tokens: TokenStore;
   private readonly web: string;
+  private readonly now: () => number;
   private account: GithubAccount | null = null;
   private device: { flow: DeviceFlow; abort: AbortController } | null = null;
+  /** A refresh in progress (one at a time: each refresh token works once). */
+  private refreshing: Promise<StoredToken> | null = null;
 
   constructor(options: GithubServiceOptions) {
     this.api = new GithubApi(options);
     this.tokens = options.tokens;
+    this.now = options.now ?? Date.now;
     this.web = options.web.replace(/\/+$/u, '');
     const webHost = new URL(this.web).host;
     this.git = new GitService({
       http: fetchHttpClient(options.fetch),
       web: this.web,
       // The token only goes to GitHub, never to another server.
-      token: (url) => {
+      token: async (url) => {
         try {
-          return new URL(url).host === webHost ? this.tokens.get() : null;
+          return new URL(url).host === webHost ? await this.optionalToken() : null;
         } catch {
           return null;
         }
@@ -84,7 +99,7 @@ export class GithubService {
   }
 
   async status(): Promise<GithubStatus> {
-    const token = this.tokens.get();
+    const token = await this.optionalToken();
     if (token !== null && this.account === null) {
       try {
         this.account = await this.api.user(token);
@@ -95,8 +110,10 @@ export class GithubService {
         }
       }
     }
+    const stored = this.tokens.get();
     return {
-      account: this.tokens.get() === null ? null : this.account,
+      account: stored === null ? null : this.account,
+      method: stored?.method ?? null,
       deviceFlow: this.api.deviceFlowAvailable,
       storage: this.tokens.storage(),
     };
@@ -105,9 +122,90 @@ export class GithubService {
   /** Signs in with a personal access token (checked with GitHub first). */
   async signInWithToken(token: string): Promise<GithubAccount> {
     const account = await this.api.user(token.trim());
-    this.tokens.set(token.trim());
+    this.tokens.set(personalToken(token.trim()));
     this.account = account;
     return account;
+  }
+
+  /** Keeps a token of the GitHub App (checked with GitHub first). */
+  private async signInWithGrant(grant: TokenGrant): Promise<GithubAccount> {
+    const account = await this.api.user(grant.token);
+    this.tokens.set(this.stored(grant));
+    this.account = account;
+    return account;
+  }
+
+  private stored(grant: TokenGrant): StoredToken {
+    const now = this.now();
+    return {
+      method: 'app',
+      token: grant.token,
+      expiresAt: grant.expiresIn === null ? null : now + grant.expiresIn * 1000,
+      refreshToken: grant.refreshToken,
+      refreshExpiresAt:
+        grant.refreshExpiresIn === null ? null : now + grant.refreshExpiresIn * 1000,
+    };
+  }
+
+  /**
+   * The token to use now: an expiring token of the GitHub App is renewed
+   * shortly before it expires. Throws `signedOut` without a sign-in, or when
+   * GitHub ended it.
+   */
+  async accessToken(): Promise<string> {
+    const stored = this.tokens.get();
+    if (stored === null) {
+      throw new GithubError('signedOut', 'not signed in to GitHub');
+    }
+    const now = this.now();
+    if (stored.expiresAt === null || stored.expiresAt - now > REFRESH_MARGIN_MS) {
+      return stored.token;
+    }
+    if (
+      stored.refreshToken === null ||
+      (stored.refreshExpiresAt !== null && stored.refreshExpiresAt <= now)
+    ) {
+      if (stored.expiresAt > now) {
+        return stored.token;
+      }
+      this.signOut();
+      throw new GithubError('signedOut', 'the GitHub sign-in has expired');
+    }
+    this.refreshing ??= this.renew(stored.refreshToken).finally(() => {
+      this.refreshing = null;
+    });
+    try {
+      return (await this.refreshing).token;
+    } catch (error) {
+      // Without network a token that is still valid keeps working.
+      if (error instanceof GithubError && error.code === 'network' && stored.expiresAt > now) {
+        return stored.token;
+      }
+      throw error;
+    }
+  }
+
+  private async renew(refreshToken: string): Promise<StoredToken> {
+    try {
+      const stored = this.stored(await this.api.refresh(refreshToken));
+      this.tokens.set(stored);
+      return stored;
+    } catch (error) {
+      if (error instanceof GithubError && error.code === 'auth') {
+        this.signOut();
+        throw new GithubError('signedOut', `GitHub ended the sign-in: ${error.message}`);
+      }
+      throw error;
+    }
+  }
+
+  /** The token, or `null` when signed out or it cannot be renewed. */
+  private async optionalToken(): Promise<string | null> {
+    try {
+      return await this.accessToken();
+    } catch {
+      return null;
+    }
   }
 
   async deviceStart(): Promise<DeviceStart> {
@@ -138,7 +236,7 @@ export class GithubService {
         }
         const poll = await this.api.devicePoll(flow, interval);
         if (poll.state === 'token') {
-          const account = await this.signInWithToken(poll.token);
+          const account = await this.signInWithGrant(poll.grant);
           return { state: 'done', account };
         }
         if (poll.state !== 'pending') {
@@ -168,7 +266,8 @@ export class GithubService {
   }
 
   async repos(): Promise<GithubRepo[]> {
-    return this.api.repos(this.requireToken());
+    const token = await this.accessToken();
+    return this.api.repos(token, this.tokens.get()?.method ?? 'token');
   }
 
   // --- Projects -----------------------------------------------------------
@@ -182,8 +281,13 @@ export class GithubService {
    * repository (new or an existing empty one) and the push.
    */
   async publish(manifestPath: string, target: PublishTarget): Promise<GitStatus> {
-    const token = this.requireToken();
     const author = await this.author(dirname(manifestPath));
+    // Taken right before use: a renewal makes the previous token invalid.
+    const token = await this.accessToken();
+    if (target.kind === 'new' && this.tokens.get()?.method === 'app') {
+      // The app may not create repositories: the user creates them on GitHub.
+      throw new GithubError('auth', 'create the repository on GitHub first');
+    }
     const dir = dirname(manifestPath);
     const name = projectName(manifestPath);
     let repo: GithubRepo;
@@ -225,7 +329,7 @@ export class GithubService {
 
   async push(manifestPath: string): Promise<GitStatus> {
     const dir = dirname(manifestPath);
-    this.requireTokenFor(await this.git.remoteUrl(dir));
+    await this.requireTokenFor(await this.git.remoteUrl(dir));
     await this.git.push(dir);
     return this.git.status(dir);
   }
@@ -260,7 +364,7 @@ export class GithubService {
    * manifest (`.ewproj`) in it.
    */
   async clone(fullName: string, parent: string): Promise<string> {
-    const token = this.requireToken();
+    const token = await this.accessToken();
     const repo = await this.api.repo(token, fullName);
     if (repo.empty) {
       throw new GithubError('notFound', `the repository ${repo.fullName} is empty`);
@@ -286,18 +390,10 @@ export class GithubService {
     return githubName(url, this.web);
   }
 
-  private requireToken(): string {
-    const token = this.tokens.get();
-    if (token === null) {
-      throw new GithubError('signedOut', 'not signed in to GitHub');
-    }
-    return token;
-  }
-
   /** GitHub remotes need the sign-in; other remotes are the user's business. */
-  private requireTokenFor(url: string | null): void {
+  private async requireTokenFor(url: string | null): Promise<void> {
     if (url !== null && this.repoName(url) !== null) {
-      this.requireToken();
+      await this.accessToken();
     }
   }
 

@@ -189,7 +189,10 @@ function RecentProjects(): ReactNode {
 }
 
 export function StartScreen({ onOpenLibrary }: { readonly onOpenLibrary: () => void }): ReactNode {
-  const { t } = useAppState();
+  const { t, appInfo } = useAppState();
+  const actions = appInfo.features.github
+    ? ACTIONS
+    : ACTIONS.filter((action) => action.id !== 'open-github');
   const { newProject, openProject, startKicadImport } = useProject();
   const run: Readonly<Record<string, () => void>> = {
     library: onOpenLibrary,
@@ -218,7 +221,7 @@ export function StartScreen({ onOpenLibrary }: { readonly onOpenLibrary: () => v
       </header>
 
       <ul className="start__actions">
-        {ACTIONS.map((action) => (
+        {actions.map((action) => (
           <li key={action.id}>
             <button
               type="button"

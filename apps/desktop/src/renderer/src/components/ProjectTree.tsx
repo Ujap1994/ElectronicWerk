@@ -85,7 +85,7 @@ interface ProjectTreeProps {
 }
 
 export function ProjectTree({ selected, onSelect }: ProjectTreeProps): ReactNode {
-  const { t } = useAppState();
+  const { t, appInfo } = useAppState();
   const {
     project,
     files,
@@ -111,9 +111,10 @@ export function ProjectTree({ selected, onSelect }: ProjectTreeProps): ReactNode
     git !== null && git.manifestPath === project?.manifestPath
       ? (git.status?.changes.length ?? 0)
       : 0;
+  const githubOn = appInfo.features.github;
   const tree = useMemo(
-    () => (project === null ? null : buildTree(project, files, gitChanges)),
-    [project, files, gitChanges],
+    () => (project === null ? null : buildTree(project, files, githubOn ? gitChanges : null)),
+    [project, files, gitChanges, githubOn],
   );
   const expanded = useMemo(
     () => new Set(tree === null ? [] : expandableKeys(tree).filter((key) => !collapsed.has(key))),

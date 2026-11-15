@@ -1759,9 +1759,11 @@ test('github', async () => {
     const { page, close } = await start({
       settings: { theme: 'light' },
       env: {
+        EW_ENABLE_GITHUB: '1',
         EW_GITHUB_API: github.api,
         EW_GITHUB_WEB: github.url,
         EW_GITHUB_CLIENT_ID: 'Iv1.docs-client',
+        EW_GITHUB_APP_SLUG: 'electronicwerk',
       },
     });
     await page.setViewportSize({ width: 1400, height: 900 });
@@ -1776,14 +1778,23 @@ test('github', async () => {
     github.approveDevice();
     await expect(page.getByTestId('github-sign-in')).toBeHidden();
     await expect(page.getByTestId('github-account')).toContainText('octo-maker');
+    await expect(page.getByTestId('github-method')).toBeVisible();
     await shoot(page.getByTestId('settings-github'), 'github-settings');
     await page.keyboard.press('Escape');
 
-    // A new project on GitHub.
+    // A new project on GitHub, in an empty repository made for it on GitHub
+    // and chosen for the app.
+    github.addRepo({
+      owner: 'octo-maker',
+      name: 'Bench-Supply',
+      private: true,
+      description: 'Adjustable 0–30 V bench supply',
+    });
+    github.installApp('all');
     await page.getByTestId('new-project').click();
     await page.getByTestId('wizard-name').fill('Bench Supply');
     await page.getByTestId('wizard-storage-github').click();
-    await page.getByTestId('repo-target-description').fill('Adjustable 0–30 V bench supply');
+    await page.getByTestId('repo-target-select').selectOption('octo-maker/Bench-Supply');
     await page.mouse.move(5, 5);
     await shoot(page.getByTestId('wizard'), 'wizard-github');
     await page.getByTestId('wizard-next').click();

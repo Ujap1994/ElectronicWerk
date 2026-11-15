@@ -7,8 +7,13 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 
 import type { GitResult } from '@shared/github';
 
-import { GithubService, attempt } from '../src/main/github/service';
-import { TEST_SECRET_BOX, TokenStore, type SecretBox } from '../src/main/github/token-store';
+import { GithubService, REFRESH_MARGIN_MS, attempt } from '../src/main/github/service';
+import {
+  personalToken,
+  TEST_SECRET_BOX,
+  TokenStore,
+  type SecretBox,
+} from '../src/main/github/token-store';
 import { FAKE_USER_CODE, startFakeGithub, type FakeGithub } from './github-server';
 
 let github: FakeGithub;
@@ -29,16 +34,35 @@ beforeEach(() => {
   };
 });
 
-function service(clientId = 'Iv1.test-client', file = join(work, 'token.bin')): GithubService {
+function service(
+  clientId = 'Iv1.test-client',
+  file = join(work, 'token.bin'),
+  options: { readonly now?: () => number; readonly server?: FakeGithub } = {},
+): GithubService {
+  const server = options.server ?? github;
   return new GithubService({
     fetch: (url, init) => fetch(url, init),
-    api: github.api,
-    web: github.url,
+    api: server.api,
+    web: server.url,
     userAgent: 'ElectronicWerk-test',
     clientId,
-    scopes: 'repo read:user',
     tokens: new TokenStore(file, TEST_SECRET_BOX),
+    ...(options.now === undefined ? {} : { now: options.now }),
   });
+}
+
+/** Signs in with the device flow (the GitHub App). */
+async function appSignedIn(gh: GithubService, server: FakeGithub = github): Promise<void> {
+  await gh.deviceStart();
+  const waiting = gh.deviceWait();
+  server.approveDevice();
+  expect((await waiting).state).toBe('done');
+}
+
+function storedToken(file = join(work, 'token.bin')): Record<string, unknown> {
+  const text = readFileSync(file, 'utf8');
+  expect(text.startsWith('test:')).toBe(true);
+  return JSON.parse(text.slice(5)) as Record<string, unknown>;
 }
 
 async function signedIn(): Promise<GithubService> {
@@ -75,13 +99,19 @@ describe('the GitHub account', () => {
 
     const account = await gh.signInWithToken(` ${github.token} `);
     expect(account).toMatchObject({ login: 'octo-maker', name: 'Octo Maker', id: 4242 });
-    const stored = readFileSync(join(work, 'token.bin'), 'utf8');
-    expect(stored).toBe(`test:${github.token}`);
+    expect(storedToken()).toEqual({
+      method: 'token',
+      token: github.token,
+      expiresAt: null,
+      refreshToken: null,
+      refreshExpiresAt: null,
+    });
 
     // A new start reads the token and the account again.
     const status = await service().status();
     expect(status).toMatchObject({
       account: { login: 'octo-maker' },
+      method: 'token',
       deviceFlow: true,
       storage: 'keychain',
     });
@@ -91,7 +121,19 @@ describe('the GitHub account', () => {
     expect((await service().status()).account).toBeNull();
   });
 
-  it('signs in with the device flow', async () => {
+  it('keeps a token of older versions', async () => {
+    writeFileSync(join(work, 'token.bin'), `test:${github.token}`);
+    expect(new TokenStore(join(work, 'token.bin'), TEST_SECRET_BOX).get()).toEqual(
+      personalToken(github.token),
+    );
+    expect(await service().status()).toMatchObject({
+      account: { login: 'octo-maker' },
+      method: 'token',
+    });
+  });
+
+  it('signs in with the GitHub App and lists only the repositories chosen for it', async () => {
+    github.installApp(null);
     const gh = service();
     const start = await gh.deviceStart();
     expect(start.userCode).toBe(FAKE_USER_CODE);
@@ -101,7 +143,99 @@ describe('the GitHub account', () => {
     github.approveDevice();
     const result = await waiting;
     expect(result).toMatchObject({ state: 'done', account: { login: 'octo-maker' } });
-    expect((await gh.status()).account?.login).toBe('octo-maker');
+    expect(await gh.status()).toMatchObject({
+      account: { login: 'octo-maker' },
+      method: 'app',
+    });
+    // An expiring token with its refresh token, encrypted.
+    const stored = storedToken();
+    expect(stored).toMatchObject({ method: 'app', token: github.appTokens().at(-1) });
+    expect(stored['refreshToken']).toMatch(/^ghr_/u);
+    expect(Number(stored['expiresAt']) - Date.now()).toBeGreaterThan(7.9 * 3600_000);
+
+    // Not installed yet: no repository.
+    const none = await attempt(() => gh.repos());
+    expect(none.ok ? null : none.error.code).toBe('notInstalled');
+
+    github.addRepo({ owner: 'octo-maker', name: 'chosen', private: true, description: '' });
+    github.addRepo({ owner: 'octo-maker', name: 'secret', private: true, description: '' });
+    github.installApp(['octo-maker/chosen']);
+    const names = (await gh.repos()).map((repo) => repo.fullName);
+    expect(names).toContain('octo-maker/chosen');
+    expect(names).not.toContain('octo-maker/secret');
+    // The app creates no repositories.
+    const created = await attempt(() =>
+      gh.publish(makeProject('NoRepo'), {
+        kind: 'new',
+        repo: { name: 'no-repo', private: true, description: '' },
+      }),
+    );
+    expect(created.ok ? null : created.error.code).toBe('auth');
+    expect(github.repos().some((repo) => repo.name === 'no-repo')).toBe(false);
+    github.installApp(null);
+  });
+
+  it('renews the token of the GitHub App before it expires', async () => {
+    // Tokens valid for a minute: shorter than the margin, so every use renews.
+    const short = await startFakeGithub({ appTokenLifetime: 60 });
+    try {
+      expect(60_000).toBeLessThan(REFRESH_MARGIN_MS);
+      short.installApp('all');
+      short.addRepo({ owner: 'octo-maker', name: 'renewed', private: true, description: '' });
+      const gh = service('Iv1.test-client', join(work, 'short.bin'), { server: short });
+      await appSignedIn(gh, short);
+      const first = short.appTokens().at(-1);
+      expect((await gh.repos()).map((repo) => repo.fullName)).toEqual(['octo-maker/renewed']);
+      expect(short.refreshes()).toBe(1);
+      const renewed = storedToken(join(work, 'short.bin'));
+      expect(renewed['token']).not.toBe(first);
+      expect(renewed['token']).toBe(short.appTokens().at(-1));
+
+      // Two requests at once renew once (a refresh token works only once).
+      await Promise.all([gh.repos(), gh.repos(), gh.status()]);
+      expect(short.refreshes()).toBe(2);
+
+      // git gets the renewed token too.
+      const manifest = makeProject('Renewed');
+      value(
+        await attempt(() =>
+          gh.publish(manifest, { kind: 'existing', fullName: 'octo-maker/renewed' }),
+        ),
+      );
+      expect(short.git('octo-maker/renewed', ['log', '--format=%s', 'main']).trim()).toBe(
+        'Create Renewed',
+      );
+    } finally {
+      await short.close();
+    }
+  });
+
+  it('signs out when GitHub ends the sign-in of the app', async () => {
+    let clock = Date.now();
+    const gh = service('Iv1.test-client', join(work, 'token.bin'), { now: () => clock });
+    await appSignedIn(gh);
+    expect((await gh.status()).method).toBe('app');
+
+    // Seven months later the refresh token has expired too.
+    clock += 214 * 24 * 3600_000;
+    const expired = await attempt(() => gh.repos());
+    expect(expired.ok ? null : expired.error.code).toBe('signedOut');
+    expect(existsSync(join(work, 'token.bin'))).toBe(false);
+
+    // A refresh token GitHub does not accept (revoked) signs out as well.
+    new TokenStore(join(work, 'token.bin'), TEST_SECRET_BOX).set({
+      method: 'app',
+      token: 'ghu_old',
+      expiresAt: clock - 1000,
+      refreshToken: 'ghr_revoked',
+      refreshExpiresAt: clock + 3600_000,
+    });
+    const revoked = await attempt(() => gh.repos());
+    expect(revoked.ok ? null : revoked.error).toMatchObject({
+      code: 'signedOut',
+      message: expect.stringContaining('refresh token') as unknown,
+    });
+    expect((await gh.status()).account).toBeNull();
   });
 
   it('reports a denied device flow and a missing OAuth app', async () => {
@@ -127,8 +261,8 @@ describe('the GitHub account', () => {
       },
     };
     const store = new TokenStore(join(work, 'plain.bin'), none);
-    store.set('secret');
-    expect(store.get()).toBe('secret');
+    store.set(personalToken('secret'));
+    expect(store.get()).toEqual(personalToken('secret'));
     expect(store.storage()).toBe('unavailable');
     expect(existsSync(join(work, 'plain.bin'))).toBe(false);
 

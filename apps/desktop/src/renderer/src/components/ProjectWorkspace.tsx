@@ -163,12 +163,16 @@ export function ProjectWorkspace({
     setTarget({ type: 'git' });
     setActiveTab(null);
   }, []);
+  const githubOn = appInfo.features.github;
   useEffect(() => {
+    if (!githubOn) {
+      return undefined;
+    }
     sourceControlCommand.set(showSourceControl);
     return () => {
       sourceControlCommand.set(null);
     };
-  }, [showSourceControl]);
+  }, [showSourceControl, githubOn]);
   const openDocument = useCallback((document: DocumentSummary) => {
     setTabs((current) => (current.includes(document.id) ? current : [...current, document.id]));
     setActiveTab(document.id);
@@ -373,21 +377,23 @@ export function ProjectWorkspace({
           />
         </div>
         <div className="toolbar__group">
-          <button
-            type="button"
-            className="toolbar__button"
-            title={t('github.panel.tip')}
-            data-testid="toolbar-git"
-            onClick={showSourceControl}
-          >
-            <Icon name="branch" />
-            <span className="toolbar__label">{t('github.panel.title')}</span>
-            {gitChanges > 0 && (
-              <span className="toolbar__badge" data-testid="toolbar-git-count">
-                {gitChanges}
-              </span>
-            )}
-          </button>
+          {githubOn && (
+            <button
+              type="button"
+              className="toolbar__button"
+              title={t('github.panel.tip')}
+              data-testid="toolbar-git"
+              onClick={showSourceControl}
+            >
+              <Icon name="branch" />
+              <span className="toolbar__label">{t('github.panel.title')}</span>
+              {gitChanges > 0 && (
+                <span className="toolbar__badge" data-testid="toolbar-git-count">
+                  {gitChanges}
+                </span>
+              )}
+            </button>
+          )}
           <ToolButton
             icon="library"
             label={t('library.open')}

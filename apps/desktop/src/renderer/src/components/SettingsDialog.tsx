@@ -29,7 +29,7 @@ function toThemeSetting(value: string): ThemeSetting {
 }
 
 export function SettingsDialog({ onClose, onCheckUpdates }: SettingsDialogProps): ReactNode {
-  const { t, snapshot, updateSettings } = useAppState();
+  const { t, snapshot, updateSettings, appInfo } = useAppState();
   const { settings } = snapshot;
 
   return (
@@ -112,7 +112,7 @@ export function SettingsDialog({ onClose, onCheckUpdates }: SettingsDialogProps)
         </div>
       </fieldset>
 
-      <GithubSettings />
+      {appInfo.features.github && <GithubSettings />}
 
       <ProviderSettings />
 

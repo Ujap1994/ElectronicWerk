@@ -362,48 +362,50 @@ export function NewProjectWizard(): ReactNode {
               </span>
             )}
           </div>
-          <fieldset className="field field--group">
-            <legend className="field__label">{t('wizard.storage')}</legend>
-            <div className="choice-grid choice-grid--two" role="radiogroup">
-              <label
-                className="choice"
-                data-selected={storage === 'local'}
-                data-testid="wizard-storage-local"
-              >
-                <input
-                  type="radio"
-                  name={`${formId}-storage`}
-                  checked={storage === 'local'}
-                  onChange={() => {
-                    setStorage('local');
-                  }}
-                />
-                <Icon name="computer" size={22} />
-                <span className="choice__title">{t('wizard.local')}</span>
-                <span className="choice__hint">{t('wizard.localHint')}</span>
-              </label>
-              <label
-                className="choice"
-                data-selected={storage === 'github'}
-                data-testid="wizard-storage-github"
-              >
-                <input
-                  type="radio"
-                  name={`${formId}-storage`}
-                  checked={storage === 'github'}
-                  onChange={() => {
-                    setStorage('github');
-                  }}
-                />
-                <Icon name="github" size={22} />
-                <span className="choice__title">{t('wizard.github')}</span>
-                <span className="choice__hint">{t('wizard.githubHint')}</span>
-              </label>
-            </div>
-            {storage === 'github' && (
-              <RepoTarget choice={repo} projectName={name} onChange={setRepo} />
-            )}
-          </fieldset>
+          {appInfo.features.github && (
+            <fieldset className="field field--group">
+              <legend className="field__label">{t('wizard.storage')}</legend>
+              <div className="choice-grid choice-grid--two" role="radiogroup">
+                <label
+                  className="choice"
+                  data-selected={storage === 'local'}
+                  data-testid="wizard-storage-local"
+                >
+                  <input
+                    type="radio"
+                    name={`${formId}-storage`}
+                    checked={storage === 'local'}
+                    onChange={() => {
+                      setStorage('local');
+                    }}
+                  />
+                  <Icon name="computer" size={22} />
+                  <span className="choice__title">{t('wizard.local')}</span>
+                  <span className="choice__hint">{t('wizard.localHint')}</span>
+                </label>
+                <label
+                  className="choice"
+                  data-selected={storage === 'github'}
+                  data-testid="wizard-storage-github"
+                >
+                  <input
+                    type="radio"
+                    name={`${formId}-storage`}
+                    checked={storage === 'github'}
+                    onChange={() => {
+                      setStorage('github');
+                    }}
+                  />
+                  <Icon name="github" size={22} />
+                  <span className="choice__title">{t('wizard.github')}</span>
+                  <span className="choice__hint">{t('wizard.githubHint')}</span>
+                </label>
+              </div>
+              {storage === 'github' && (
+                <RepoTarget choice={repo} projectName={name} onChange={setRepo} />
+              )}
+            </fieldset>
+          )}
         </div>
       )}
 

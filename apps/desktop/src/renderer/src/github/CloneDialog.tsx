@@ -8,6 +8,7 @@ import { Icon } from '../components/Icon';
 import { Modal } from '../components/Modal';
 import { useProject } from '../project/ProjectProvider';
 import { useAppState } from '../state';
+import { RepoAccess } from './RepoAccess';
 import { describeGitError, signInOpen, useGithubStatus } from './stores';
 
 /** "Open from GitHub": clones a repository and opens its project. */
@@ -23,6 +24,8 @@ export function CloneDialog({ onClose }: { readonly onClose: () => void }): Reac
   const [location, setLocation] = useState('');
   const [working, setWorking] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [reload, setReload] = useState(0);
+  const app = status?.method === 'app';
 
   useEffect(() => {
     let cancelled = false;
@@ -56,7 +59,7 @@ export function CloneDialog({ onClose }: { readonly onClose: () => void }): Reac
     return () => {
       cancelled = true;
     };
-  }, [login, t]);
+  }, [login, t, reload]);
 
   const shown = useMemo(() => {
     if (repos === null) {
@@ -156,6 +159,18 @@ export function CloneDialog({ onClose }: { readonly onClose: () => void }): Reac
           )}
           {repos !== null && shown.length === 0 && (
             <p className="field__hint">{t('github.clone.noRepos')}</p>
+          )}
+          {app && (
+            <>
+              <span className="field__hint">{t('github.clone.appHint')}</span>
+              <RepoAccess
+                onRefresh={() => {
+                  setRepos(null);
+                  setError(null);
+                  setReload((count) => count + 1);
+                }}
+              />
+            </>
           )}
           {shown.length > 0 && (
             <ul className="github-repos" role="listbox" data-testid="github-clone-list">

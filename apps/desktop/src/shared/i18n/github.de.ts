@@ -15,14 +15,19 @@ export const githubDe: Messages['github'] = {
     storageUnavailable:
       'Das Token kann auf diesem Computer nicht sicher gespeichert werden: Es bleibt nur bis zum Beenden von ElectronicWerk erhalten.',
     signedOutNotice: 'Von GitHub abgemeldet',
+    methodApp:
+      'Angemeldet mit der ElectronicWerk-App: Sie darf nur die Repositorys nutzen, die du für sie ausgewählt hast, und ihr Token wird alle 8 Stunden erneuert.',
+    methodToken: 'Angemeldet mit einem persönlichen Zugriffstoken.',
+    chooseRepos: 'Repositorys auswählen…',
+    chooseReposTip: 'Bei GitHub auswählen, welche Repositorys ElectronicWerk nutzen darf',
   },
   signIn: {
     title: 'Bei GitHub anmelden',
     intro:
-      'ElectronicWerk nutzt dein GitHub-Konto, um Repositorys anzulegen und deine Projekte hoch- und herunterzuladen. Es fragt nach Zugriff auf deine Repositorys und deinen Namen.',
+      'ElectronicWerk nutzt dein GitHub-Konto, um deine Projekte hoch- und herunterzuladen. Es kann nur die Repositorys nutzen, die du erlaubst, und nur deren Dateien.',
     device: 'Mit dem Browser',
     deviceHint:
-      'Bestätige die Anmeldung auf github.com. Dein Passwort gibst du nie in ElectronicWerk ein.',
+      'Bestätige die Anmeldung auf github.com und wähle dann die Repositorys aus, die ElectronicWerk nutzen darf. Dein Passwort gibst du nie in ElectronicWerk ein.',
     deviceStart: 'Mit dem Browser anmelden',
     deviceCode: 'Gib diesen Code bei GitHub ein:',
     copy: 'Code kopieren',
@@ -33,7 +38,7 @@ export const githubDe: Messages['github'] = {
     expired: 'Der Code ist abgelaufen. Starte neu.',
     token: 'Mit einem persönlichen Zugriffstoken',
     tokenHint:
-      'Erstelle ein klassisches Token mit den Bereichen „repo“ und „read:user“ oder ein feingranulares Token mit Lese- und Schreibzugriff auf Inhalte und Verwaltung deiner Repositorys.',
+      'Erstelle bei GitHub ein feingranulares Token: Wähle die Repositorys aus, die es nutzen darf, und behalte die vorgeschlagene Berechtigung „Contents: Read and write“.',
     tokenCreate: 'Token bei GitHub erstellen',
     tokenLabel: 'Token',
     tokenPlaceholder: 'ghp_… oder github_pat_…',
@@ -54,12 +59,15 @@ export const githubDe: Messages['github'] = {
     noAuthor: 'Melde dich bei GitHub an, um zu committen: Commits tragen deinen Namen.',
     notProject: 'Das Projekt ist nicht geöffnet.',
     notFound: 'Das Repository oder der Branch wurde nicht gefunden.',
+    notInstalled:
+      'ElectronicWerk darf noch keines deiner Repositorys nutzen. Wähle sie bei GitHub aus.',
     failed: 'Die Aktion ist fehlgeschlagen.',
     details: 'Details: {message}',
   },
   target: {
     newRepo: 'Neues Repository',
-    newRepoHint: 'ElectronicWerk legt es in deinem Konto an.',
+    newRepoHint:
+      'ElectronicWerk legt es in deinem Konto an (ein feingranulares Token braucht dafür die Berechtigung „Administration: Read and write“).',
     existing: 'Vorhandenes leeres Repository',
     existingHint: 'Ein Repository, das du ohne Dateien auf GitHub angelegt hast.',
     name: 'Name des Repositorys',
@@ -71,6 +79,10 @@ export const githubDe: Messages['github'] = {
     noEmpty: 'Dein Konto hat kein leeres Repository.',
     account: 'GitHub-Konto: {login}',
     signInFirst: 'Melde dich bei GitHub an, um das Projekt dort abzulegen.',
+    appHint:
+      'Die ElectronicWerk-App legt keine Repositorys an: Erstelle bei GitHub ein leeres Repository, erlaube ElectronicWerk den Zugriff darauf und wähle es dann hier aus.',
+    createOnGithub: 'Neues Repository bei GitHub…',
+    refresh: 'Aktualisieren',
   },
   publish: {
     title: 'Projekt auf GitHub ablegen',
@@ -92,6 +104,8 @@ export const githubDe: Messages['github'] = {
     working: '{repo} wird heruntergeladen…',
     loading: 'Repositorys werden geladen…',
     noRepos: 'Keine Repositorys gefunden.',
+    appHint:
+      'Fehlt ein Repository? Erlaube ElectronicWerk bei GitHub den Zugriff darauf und aktualisiere dann.',
     private: 'Privat',
     empty: 'Leer',
     updated: 'Geändert {date}',

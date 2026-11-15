@@ -18,7 +18,7 @@ export interface Author {
 export interface GitOptions {
   readonly http: HttpClient;
   /** The token for a remote URL, or `null` (only GitHub gets the token). */
-  readonly token: (url: string) => string | null;
+  readonly token: (url: string) => Promise<string | null>;
   /** GitHub's website, for `owner/name` of remotes. */
   readonly web: string;
 }
@@ -361,12 +361,12 @@ export class GitService {
   }
 
   private auth(url: string): {
-    onAuth: () => GitAuth;
+    onAuth: () => Promise<GitAuth>;
     onAuthFailure: () => GitAuth;
   } {
     return {
-      onAuth: () => {
-        const token = this.options.token(url);
+      onAuth: async () => {
+        const token = await this.options.token(url);
         return token === null ? { cancel: true } : { username: 'x-access-token', password: token };
       },
       // Never ask twice with the same token.

@@ -21,18 +21,74 @@ test.afterEach(async () => {
   await github.close();
 });
 
-/** Starts the app with the local GitHub (never github.com). */
+/**
+ * Starts the app with the GitHub integration switched on and the local
+ * GitHub (never github.com).
+ */
 async function launch(projectsDir?: string): Promise<LaunchedApp> {
   launched = await launchApp({
     ...(projectsDir === undefined ? {} : { projectsDir }),
     env: {
+      EW_ENABLE_GITHUB: '1',
       EW_GITHUB_API: github.api,
       EW_GITHUB_WEB: github.url,
       EW_GITHUB_CLIENT_ID: 'Iv1.e2e-client',
+      EW_GITHUB_APP_SLUG: 'electronicwerk-e2e',
     },
   });
   return launched;
 }
+
+function openedPages(app: LaunchedApp['app']): Promise<string[]> {
+  return app.evaluate(() =>
+    (globalThis as unknown as { __ewTest: { githubPages: () => string[] } }).__ewTest.githubPages(),
+  );
+}
+
+test('GitHub stays hidden unless it is switched on', async () => {
+  launched = await launchApp({
+    env: { EW_ENABLE_GITHUB: '', EW_GITHUB_API: github.api, EW_GITHUB_WEB: github.url },
+  });
+  const { page, app } = launched;
+  await expect(page.getByTestId('open-project')).toBeVisible();
+  await expect(page.getByTestId('open-github')).toHaveCount(0);
+
+  await page.getByTestId('open-settings').click();
+  await expect(page.getByTestId('settings-dialog')).toBeVisible();
+  await expect(page.getByTestId('settings-github')).toHaveCount(0);
+  await page.keyboard.press('Escape');
+
+  await page.getByTestId('open-palette').click();
+  await page.getByTestId('command-input').fill('github');
+  await expect(page.getByTestId('command-palette').getByRole('option')).toHaveCount(0);
+  await page.keyboard.press('Escape');
+
+  // New projects stay on this computer.
+  await page.getByTestId('new-project').click();
+  await page.getByTestId('wizard-name').fill('Local Only');
+  await expect(page.getByTestId('wizard-storage-local')).toHaveCount(0);
+  await expect(page.getByTestId('wizard-storage-github')).toHaveCount(0);
+  await page.getByTestId('wizard-next').click();
+  await page.getByTestId('template-empty').click();
+  await page.getByTestId('wizard-create').click();
+  await expect(page.getByTestId('workspace')).toBeVisible();
+  await expect(page.getByTestId('toolbar-git')).toHaveCount(0);
+  await expect(page.getByTestId('tree-project')).toBeVisible();
+  await expect(page.getByTestId('tree-git')).toHaveCount(0);
+
+  // The main process has no GitHub handlers at all (Electron keeps them in
+  // `_invokeHandlers`; if that ever changes, the check is skipped).
+  const channels = await app.evaluate(({ ipcMain }) => {
+    const handlers = (ipcMain as unknown as { _invokeHandlers?: Map<string, unknown> })
+      ._invokeHandlers;
+    return handlers === undefined ? null : [...handlers.keys()];
+  });
+  if (channels !== null) {
+    expect(channels).toContain('app:info');
+    expect(channels.filter((channel) => /^(github|git):/u.test(channel))).toEqual([]);
+  }
+  expect(github.repos()).toEqual([]);
+});
 
 async function openGithubSettings(page: Page): Promise<void> {
   await page.getByTestId('open-settings').click();
@@ -84,6 +140,9 @@ test('signs in with a token or the device flow and signs out', async () => {
   await signInWithToken(page);
   await expect(page.getByTestId('github-account')).toContainText('Signed in as octo-maker');
   await expect(page.getByTestId('github-account')).toContainText('Octo Maker');
+  await expect(page.getByTestId('github-method')).toHaveText(
+    'Signed in with a personal access token.',
+  );
 
   await page.getByTestId('github-sign-out').click();
   await expect(page.getByTestId('github-account')).toHaveText('Not signed in');
@@ -96,14 +155,54 @@ test('signs in with a token or the device flow and signs out', async () => {
   github.approveDevice();
   await expect(dialog).toBeHidden();
   await expect(page.getByTestId('github-account')).toContainText('Signed in as octo-maker');
+  await expect(page.getByTestId('github-method')).toContainText(
+    'Signed in with the ElectronicWerk app',
+  );
+  await page.getByTestId('github-choose-repos').click();
 
   // Pages open in the browser (recorded by the test hooks instead).
-  const pages = await app.evaluate(() =>
-    (globalThis as unknown as { __ewTest: { githubPages: () => string[] } }).__ewTest.githubPages(),
-  );
-  expect(pages).toEqual([
-    `${github.url}/settings/tokens/new?scopes=repo%2Cread%3Auser&description=ElectronicWerk`,
+  expect(await openedPages(app)).toEqual([
+    `${github.url}/settings/personal-access-tokens/new?name=ElectronicWerk&description=Push+and+pull+ElectronicWerk+projects&expires_in=90&contents=write`,
     `${github.url}/login/device`,
+    `${github.url}/apps/electronicwerk-e2e/installations/new`,
+  ]);
+});
+
+test('with the GitHub App, a project goes into a repository chosen on GitHub', async () => {
+  const { page, app } = await launch();
+  await page.getByTestId('new-project').click();
+  await page.getByTestId('wizard-name').fill('Tiny Clock');
+  await page.getByTestId('wizard-storage-github').click();
+  await page.getByTestId('repo-target-sign-in').click();
+  await page.getByTestId('github-device-start').click();
+  await expect(page.getByTestId('github-device-code')).toHaveText(FAKE_USER_CODE);
+  github.approveDevice();
+  await expect(page.getByTestId('github-sign-in')).toBeHidden();
+
+  // The app creates no repositories: only existing ones, chosen on GitHub.
+  const target = page.getByTestId('repo-target');
+  await expect(page.getByTestId('repo-target-app')).toContainText('does not create repositories');
+  await expect(page.getByTestId('repo-target-new')).toHaveCount(0);
+  await expect(target).toContainText('may not use any of your repositories yet');
+  await page.getByTestId('repo-access-new').click();
+  await page.getByTestId('repo-access-choose').click();
+  github.addRepo({ owner: 'octo-maker', name: 'Tiny-Clock', private: true, description: '' });
+  github.addRepo({ owner: 'octo-maker', name: 'not-chosen', private: true, description: '' });
+  github.installApp(['octo-maker/Tiny-Clock']);
+  await page.getByTestId('repo-access-refresh').click();
+  const select = page.getByTestId('repo-target-select');
+  await expect(select.locator('option')).toHaveText(['—', 'octo-maker/Tiny-Clock (Private)']);
+  await select.selectOption('octo-maker/Tiny-Clock');
+  await page.getByTestId('wizard-next').click();
+  await page.getByTestId('template-empty').click();
+  await page.getByTestId('wizard-create').click();
+  await expect(page.getByText('The project is on GitHub: octo-maker/Tiny-Clock')).toBeVisible();
+  const files = github.git('octo-maker/Tiny-Clock', ['ls-tree', '-r', '--name-only', 'main']);
+  expect(files).toContain('Tiny Clock.ewproj');
+
+  expect(await openedPages(app)).toEqual([
+    `${github.url}/new?name=Tiny-Clock&visibility=private`,
+    `${github.url}/apps/electronicwerk-e2e/installations/new`,
   ]);
 });
 

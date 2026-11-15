@@ -127,5 +127,9 @@ describe('buildTree', () => {
     expect(labels(clean.children.at(-1)!)).toEqual({ key: 'git', badges: [], children: [] });
     const changed = buildTree(project([], null), [], 3);
     expect(changed.children.at(-1)?.badges).toEqual(['modified']);
+    // Without the GitHub integration there is no source control.
+    const off = buildTree(project([], null), [], null);
+    expect(off.children.map((child) => child.key)).not.toContain('git');
+    expect(off.children).toHaveLength(7);
   });
 });

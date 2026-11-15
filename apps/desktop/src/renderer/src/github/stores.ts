@@ -9,6 +9,20 @@ import type { MessageKey, Translate } from '@shared/i18n';
 
 import { Store } from '../schematic/stores';
 
+/**
+ * The GitHub integration is switched on (`EW_ENABLE_GITHUB=1`). Off, the
+ * main process has no GitHub handlers: nothing here may call them.
+ */
+let enabled = false;
+
+export function setGithubEnabled(value: boolean): void {
+  enabled = value;
+}
+
+export function githubEnabled(): boolean {
+  return enabled;
+}
+
 /** The GitHub account (`null` until known). */
 export const githubStatus = new Store<GithubStatus | null>(null);
 
@@ -35,6 +49,9 @@ let loading: Promise<void> | null = null;
 
 /** Reads the account from the main process (once; again with `force`). */
 export function loadGithubStatus(force = false): Promise<void> {
+  if (!enabled) {
+    return Promise.resolve();
+  }
   if (loading !== null && !force) {
     return loading;
   }
@@ -60,6 +77,9 @@ let gitRequest = 0;
 
 /** Reads the git state of a project (newest request wins). */
 export async function refreshProjectGit(manifestPath: string): Promise<void> {
+  if (!enabled) {
+    return;
+  }
   const request = ++gitRequest;
   const result = await window.ew.git.status(manifestPath);
   if (request !== gitRequest) {
@@ -96,6 +116,7 @@ const ERROR_TEXT: Readonly<Record<GitErrorCode, MessageKey>> = {
   noAuthor: 'github.errors.noAuthor',
   notProject: 'github.errors.notProject',
   notFound: 'github.errors.notFound',
+  notInstalled: 'github.errors.notInstalled',
   failed: 'github.errors.failed',
 };
 

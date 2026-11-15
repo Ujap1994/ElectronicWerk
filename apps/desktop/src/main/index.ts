@@ -13,6 +13,7 @@ import {
 } from 'electron';
 
 import {
+  featuresFromEnv,
   IPC,
   isExportKind,
   isFolderPurpose,
@@ -148,6 +149,7 @@ function main(): void {
   // A project handed over by the OS before the window could take it.
   let pendingOpen: string | null = projectFromArgv(process.argv, process.cwd());
   const isTrustedSender = createSenderCheck(devUrl);
+  const features = featuresFromEnv(process.env);
 
   const snapshot = (settings: Settings): SettingsSnapshot => ({
     settings,
@@ -317,6 +319,7 @@ function main(): void {
           node: process.versions.node,
         },
         systemLanguages: app.getPreferredSystemLanguages(),
+        features,
       };
     });
 
@@ -635,14 +638,18 @@ function main(): void {
 
     // --- GitHub ---------------------------------------------------------
 
-    const github: GithubIpc = registerGithubIpc({
-      userData: app.getPath('userData'),
-      appVersion: app.getVersion(),
-      testHooks: testHooksEnabled(),
-      isTrustedSender,
-      openProject: () => (windowState.projectOpen ? windowState.manifestPath : null),
-      broadcast: sendToWindows,
-    });
+    // Switched off by default: then no GitHub handler exists at all, so
+    // nothing in the app can sign in, read a token or contact GitHub's API.
+    const github: GithubIpc | null = features.github
+      ? registerGithubIpc({
+          userData: app.getPath('userData'),
+          appVersion: app.getVersion(),
+          testHooks: testHooksEnabled(),
+          isTrustedSender,
+          openProject: () => (windowState.projectOpen ? windowState.manifestPath : null),
+          broadcast: sendToWindows,
+        })
+      : null;
 
     // The selection travels between the windows.
     ipcMain.on(IPC.syncPublish, (event, message: unknown) => {
@@ -744,7 +751,7 @@ function main(): void {
           windowTitle: () => mainWindow?.getTitle() ?? null,
           viewWindows: () => [...viewWindows.keys()],
           providerWindows: () => providerWindows?.openIds() ?? [],
-          githubPages: () => [...github.openedPages],
+          githubPages: () => [...(github?.openedPages ?? [])],
         },
       });
     }

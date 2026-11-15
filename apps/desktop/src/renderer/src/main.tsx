@@ -3,6 +3,7 @@ import { createRoot } from 'react-dom/client';
 
 import { App } from './App';
 import { AssemblyWindow, assemblyFromHash } from './assembly/AssemblyWindow';
+import { setGithubEnabled } from './github/stores';
 import { ProjectProvider } from './project/ProjectProvider';
 import { AppStateProvider } from './state';
 import { View3dWindow, viewFromHash } from './view3d/View3dWindow';
@@ -19,6 +20,7 @@ async function bootstrap(): Promise<void> {
   if (container === null) {
     throw new Error('missing #root element');
   }
+  setGithubEnabled(appInfo.features.github);
   installWindowSync();
   // A view window (3D view, assembly assistant on a second monitor) or the
   // main window.

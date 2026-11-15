@@ -13,14 +13,19 @@ export const githubEn = {
     storageUnavailable:
       'The token cannot be stored safely on this computer: it is kept only until ElectronicWerk closes.',
     signedOutNotice: 'Signed out of GitHub',
+    methodApp:
+      'Signed in with the ElectronicWerk app: it may only use the repositories you chose for it, and its token is renewed every 8 hours.',
+    methodToken: 'Signed in with a personal access token.',
+    chooseRepos: 'Choose repositories…',
+    chooseReposTip: 'Choose on GitHub which repositories ElectronicWerk may use',
   },
   signIn: {
     title: 'Sign in to GitHub',
     intro:
-      'ElectronicWerk uses your GitHub account to create repositories and to push and pull your projects. It asks for access to your repositories and your name.',
+      'ElectronicWerk uses your GitHub account to push and pull your projects. It can only use the repositories you allow, and only their files.',
     device: 'With your browser',
     deviceHint:
-      'Confirm the sign-in on github.com. You never enter your password in ElectronicWerk.',
+      'Confirm the sign-in on github.com, then choose the repositories ElectronicWerk may use. You never enter your password in ElectronicWerk.',
     deviceStart: 'Sign in with the browser',
     deviceCode: 'Enter this code on GitHub:',
     copy: 'Copy code',
@@ -31,7 +36,7 @@ export const githubEn = {
     expired: 'The code has expired. Start again.',
     token: 'With a personal access token',
     tokenHint:
-      'Create a classic token with the scopes “repo” and “read:user”, or a fine-grained token with read and write access to the contents and administration of your repositories.',
+      'Create a fine-grained token on GitHub: choose the repositories it may use and keep the suggested permission “Contents: Read and write”.',
     tokenCreate: 'Create a token on GitHub',
     tokenLabel: 'Token',
     tokenPlaceholder: 'ghp_… or github_pat_…',
@@ -52,12 +57,14 @@ export const githubEn = {
     noAuthor: 'Sign in to GitHub to commit: commits carry your name.',
     notProject: 'The project is not open.',
     notFound: 'The repository or branch was not found.',
+    notInstalled: 'ElectronicWerk may not use any of your repositories yet. Choose them on GitHub.',
     failed: 'The action failed.',
     details: 'Details: {message}',
   },
   target: {
     newRepo: 'New repository',
-    newRepoHint: 'ElectronicWerk creates it in your account.',
+    newRepoHint:
+      'ElectronicWerk creates it in your account (a fine-grained token needs the permission “Administration: Read and write” for this).',
     existing: 'Existing empty repository',
     existingHint: 'A repository you created on GitHub without files.',
     name: 'Repository name',
@@ -69,6 +76,10 @@ export const githubEn = {
     noEmpty: 'Your account has no empty repository.',
     account: 'GitHub account: {login}',
     signInFirst: 'Sign in to GitHub to put the project there.',
+    appHint:
+      'The ElectronicWerk app does not create repositories: create an empty repository on GitHub, let ElectronicWerk use it, then choose it here.',
+    createOnGithub: 'New repository on GitHub…',
+    refresh: 'Refresh',
   },
   publish: {
     title: 'Put the project on GitHub',
@@ -89,6 +100,7 @@ export const githubEn = {
     working: 'Downloading {repo}…',
     loading: 'Loading repositories…',
     noRepos: 'No repositories found.',
+    appHint: 'Missing a repository? Let ElectronicWerk use it on GitHub, then refresh.',
     private: 'Private',
     empty: 'Empty',
     updated: 'Updated {date}',

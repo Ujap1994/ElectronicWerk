@@ -4,6 +4,7 @@ import { repoName, type GithubRepo, type PublishTarget } from '@shared/github';
 
 import { Icon } from '../components/Icon';
 import { useAppState } from '../state';
+import { RepoAccess } from './RepoAccess';
 import { describeGitError, signInOpen, useGithubStatus } from './stores';
 
 /** The fields of a GitHub repository choice. */
@@ -42,7 +43,8 @@ export function publishTarget(choice: RepoChoice, projectName: string): PublishT
 
 /**
  * Chooses where a project goes on GitHub: a new repository of the account
- * or an existing empty one. Asks to sign in first.
+ * or an existing empty one. Asks to sign in first. Signed in with the GitHub
+ * App, which may not create repositories, only existing ones are offered.
  */
 export function RepoTarget({
   choice,
@@ -59,7 +61,15 @@ export function RepoTarget({
   const account = status?.account ?? null;
   const [repos, setRepos] = useState<readonly GithubRepo[] | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [reload, setReload] = useState(0);
   const login = account?.login ?? null;
+  const app = status?.method === 'app';
+
+  useEffect(() => {
+    if (app && choice.kind === 'new') {
+      onChange({ ...choice, kind: 'existing' });
+    }
+  }, [app, choice, onChange]);
 
   useEffect(() => {
     if (login === null || choice.kind !== 'existing') {
@@ -80,7 +90,7 @@ export function RepoTarget({
     return () => {
       cancelled = true;
     };
-  }, [login, choice.kind, t]);
+  }, [login, choice.kind, t, reload]);
 
   if (account === null) {
     return (
@@ -110,43 +120,60 @@ export function RepoTarget({
       <span className="field__hint" data-testid="repo-target-account">
         {t('github.target.account', { login: account.login })}
       </span>
-      <div className="choice-grid choice-grid--two" role="radiogroup">
-        <label
-          className="choice"
-          data-selected={choice.kind === 'new'}
-          data-testid="repo-target-new"
-        >
-          <input
-            type="radio"
-            name={`${id}-kind`}
-            checked={choice.kind === 'new'}
-            onChange={() => {
-              onChange({ ...choice, kind: 'new' });
+      {app && (
+        <>
+          <span className="field__hint" data-testid="repo-target-app">
+            {t('github.target.appHint')}
+          </span>
+          <RepoAccess
+            {...(name === '' ? {} : { newRepo: name })}
+            onRefresh={() => {
+              setRepos(null);
+              setError(null);
+              setReload((count) => count + 1);
             }}
           />
-          <Icon name="plus" size={20} />
-          <span className="choice__title">{t('github.target.newRepo')}</span>
-          <span className="choice__hint">{t('github.target.newRepoHint')}</span>
-        </label>
-        <label
-          className="choice"
-          data-selected={choice.kind === 'existing'}
-          data-testid="repo-target-existing"
-        >
-          <input
-            type="radio"
-            name={`${id}-kind`}
-            checked={choice.kind === 'existing'}
-            onChange={() => {
-              onChange({ ...choice, kind: 'existing' });
-            }}
-          />
-          <Icon name="github" size={20} />
-          <span className="choice__title">{t('github.target.existing')}</span>
-          <span className="choice__hint">{t('github.target.existingHint')}</span>
-        </label>
-      </div>
-      {choice.kind === 'new' ? (
+        </>
+      )}
+      {!app && (
+        <div className="choice-grid choice-grid--two" role="radiogroup">
+          <label
+            className="choice"
+            data-selected={choice.kind === 'new'}
+            data-testid="repo-target-new"
+          >
+            <input
+              type="radio"
+              name={`${id}-kind`}
+              checked={choice.kind === 'new'}
+              onChange={() => {
+                onChange({ ...choice, kind: 'new' });
+              }}
+            />
+            <Icon name="plus" size={20} />
+            <span className="choice__title">{t('github.target.newRepo')}</span>
+            <span className="choice__hint">{t('github.target.newRepoHint')}</span>
+          </label>
+          <label
+            className="choice"
+            data-selected={choice.kind === 'existing'}
+            data-testid="repo-target-existing"
+          >
+            <input
+              type="radio"
+              name={`${id}-kind`}
+              checked={choice.kind === 'existing'}
+              onChange={() => {
+                onChange({ ...choice, kind: 'existing' });
+              }}
+            />
+            <Icon name="github" size={20} />
+            <span className="choice__title">{t('github.target.existing')}</span>
+            <span className="choice__hint">{t('github.target.existingHint')}</span>
+          </label>
+        </div>
+      )}
+      {choice.kind === 'new' && !app ? (
         <>
           <label className="field">
             <span className="field__label">{t('github.target.name')}</span>

@@ -4,14 +4,22 @@
  */
 
 /**
- * Client id of the ElectronicWerk OAuth app for the device flow (public, no
- * secret). Empty while the app is not registered: then only personal access
+ * The ElectronicWerk GitHub App for the sign-in with the browser (device
+ * flow). The client id is public; the app has no secret in ElectronicWerk.
+ * Both stay empty while the app is not registered: then only personal access
  * tokens can be used.
  */
-export const GITHUB_CLIENT_ID = '';
+export const GITHUB_APP_CLIENT_ID = '';
+/** The app's URL name (`github.com/apps/<slug>`), for choosing repositories. */
+export const GITHUB_APP_SLUG = '';
 
-/** Scopes asked for: repositories (public and private) and the user's name. */
-export const GITHUB_SCOPES = 'repo read:user';
+/**
+ * The fine-grained personal access token ElectronicWerk suggests: read and
+ * write access to the contents of the repositories the user chooses on
+ * GitHub, valid for 90 days.
+ */
+export const TOKEN_TEMPLATE =
+  'name=ElectronicWerk&description=Push+and+pull+ElectronicWerk+projects&expires_in=90&contents=write';
 
 export interface GithubAccount {
   readonly id: number;
@@ -23,10 +31,18 @@ export interface GithubAccount {
 /** How the token is protected on this computer. */
 export type TokenStorage = 'keychain' | 'plain' | 'unavailable';
 
+/**
+ * How the account is signed in: the GitHub App (short-lived tokens, only the
+ * repositories the user chose for the app) or a personal access token.
+ */
+export type SignInMethod = 'app' | 'token';
+
 export interface GithubStatus {
   /** The signed-in account, `null` without a token. */
   readonly account: GithubAccount | null;
-  /** The device flow is available (an OAuth app is configured). */
+  /** How the account is signed in (`null` without a token). */
+  readonly method: SignInMethod | null;
+  /** The device flow is available (the GitHub App is configured). */
   readonly deviceFlow: boolean;
   readonly storage: TokenStorage;
 }
@@ -140,6 +156,8 @@ export type GitErrorCode =
   | 'notProject'
   /** The repository or branch was not found. */
   | 'notFound'
+  /** The GitHub App may not use any repository yet (choose them on GitHub). */
+  | 'notInstalled'
   | 'failed';
 
 export interface GitError {
@@ -153,6 +171,9 @@ export interface GitError {
 /** The answer of a GitHub or git action. */
 export type GitResult<T> =
   { readonly ok: true; readonly value: T } | { readonly ok: false; readonly error: GitError };
+
+/** Pages of GitHub the app opens in the browser. */
+export type GithubPage = 'repo' | 'device' | 'tokens' | 'install' | 'newRepo';
 
 export const GITHUB_WEB = 'https://github.com';
 export const GITHUB_API = 'https://api.github.com';

@@ -6,12 +6,14 @@ import { ipcMain, net, safeStorage, shell, type WebFrameMain } from 'electron';
 import { IPC } from '@shared/api';
 import {
   GITHUB_API,
-  GITHUB_CLIENT_ID,
-  GITHUB_SCOPES,
+  GITHUB_APP_CLIENT_ID,
+  GITHUB_APP_SLUG,
   GITHUB_WEB,
   isBranchName,
   isFullName,
   isPublishTarget,
+  repoName,
+  TOKEN_TEMPLATE,
   type GitResult,
 } from '@shared/github';
 
@@ -44,14 +46,16 @@ function env(name: string, testHooks: boolean): string | undefined {
 export function registerGithubIpc(options: GithubIpcOptions): GithubIpc {
   const { testHooks, isTrustedSender } = options;
   const web = env('EW_GITHUB_WEB', testHooks) ?? GITHUB_WEB;
-  const clientId = process.env['EW_GITHUB_CLIENT_ID'] ?? GITHUB_CLIENT_ID;
+  // The GitHub App: both are public. Without its URL name the user could not
+  // choose repositories for it, so the device flow needs both.
+  const slug = process.env['EW_GITHUB_APP_SLUG'] ?? GITHUB_APP_SLUG;
+  const clientId = slug === '' ? '' : (process.env['EW_GITHUB_CLIENT_ID'] ?? GITHUB_APP_CLIENT_ID);
   const service = new GithubService({
     fetch: (url, init) => net.fetch(url, init),
     api: env('EW_GITHUB_API', testHooks) ?? GITHUB_API,
     web,
     userAgent: `ElectronicWerk/${options.appVersion}`,
     clientId,
-    scopes: GITHUB_SCOPES,
     // Tests never touch the real keychain.
     tokens: new TokenStore(
       join(options.userData, 'github-token.bin'),
@@ -148,17 +152,24 @@ export function registerGithubIpc(options: GithubIpcOptions): GithubIpc {
     isTrustedSender(event.senderFrame) ? attempt(() => service.repos()) : notProject(),
   );
 
-  ipcMain.on(IPC.githubOpenPage, (event, page: unknown, fullName: unknown) => {
+  ipcMain.on(IPC.githubOpenPage, (event, page: unknown, name: unknown) => {
     if (!isTrustedSender(event.senderFrame)) {
       return;
     }
     let url: string | null = null;
-    if (page === 'repo' && isFullName(fullName)) {
-      url = `${web}/${fullName}`;
+    if (page === 'repo' && isFullName(name)) {
+      url = `${web}/${name}`;
     } else if (page === 'device') {
       url = `${web}/login/device`;
     } else if (page === 'tokens') {
-      url = `${web}/settings/tokens/new?scopes=${encodeURIComponent(GITHUB_SCOPES.replace(' ', ','))}&description=ElectronicWerk`;
+      // A fine-grained token: the user chooses the repositories on GitHub.
+      url = `${web}/settings/personal-access-tokens/new?${TOKEN_TEMPLATE}`;
+    } else if (page === 'install' && slug !== '') {
+      // Choose the repositories the app may use (installs it the first time).
+      url = `${web}/apps/${encodeURIComponent(slug)}/installations/new`;
+    } else if (page === 'newRepo' && typeof name === 'string') {
+      const repo = repoName(name);
+      url = `${web}/new?${new URLSearchParams({ name: repo, visibility: 'private' }).toString()}`;
     }
     if (url === null) {
       return;

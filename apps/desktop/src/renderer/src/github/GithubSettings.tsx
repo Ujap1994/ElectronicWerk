@@ -58,6 +58,31 @@ export function GithubSettings(): ReactNode {
           </button>
         )}
       </div>
+      {account !== null && status?.method === 'app' && (
+        <>
+          <span className="field__hint" data-testid="github-method">
+            {t('github.account.methodApp')}
+          </span>
+          <div>
+            <button
+              type="button"
+              className="button button--small"
+              title={t('github.account.chooseReposTip')}
+              data-testid="github-choose-repos"
+              onClick={() => {
+                window.ew.github.openPage('install');
+              }}
+            >
+              {t('github.account.chooseRepos')}
+            </button>
+          </div>
+        </>
+      )}
+      {account !== null && status?.method === 'token' && (
+        <span className="field__hint" data-testid="github-method">
+          {t('github.account.methodToken')}
+        </span>
+      )}
       {status !== null && (
         <span
           className={status.storage === 'keychain' ? 'field__hint' : 'field__error'}
