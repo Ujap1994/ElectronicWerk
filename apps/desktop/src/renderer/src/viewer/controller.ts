@@ -120,6 +120,8 @@ const HOVERED = 2;
 const MOVING = 4;
 const HIGHLIGHTED = 8;
 const HIDDEN = 16;
+/** Drawn faintly (the assembly assistant's parts that are not next). */
+const DIMMED = 32;
 
 export class ViewerController {
   readonly camera = new Camera();
@@ -167,6 +169,8 @@ export class ViewerController {
   private gridOverride: number | null = null;
   /** Objects of a highlighted net: ids and scene keys. */
   private highlight: ReadonlySet<string> = new Set();
+  /** Top-level objects drawn faintly. */
+  private dimmed: ReadonlySet<string> = new Set();
   /** Ids to select once the next scene arrives. */
   private pendingSelection: ReadonlySet<string> | null = null;
   /** A point (absolute) to show once the next scene arrives. */
@@ -743,6 +747,13 @@ export class ViewerController {
     this.requestRender();
   }
 
+  /** Draws these top-level objects (and their parts) faintly. */
+  setDimmed(ids: Iterable<string>): void {
+    this.dimmed = new Set(ids);
+    this.updateFlags();
+    this.requestRender();
+  }
+
   get highlighted(): boolean {
     return this.highlight.size > 0;
   }
@@ -831,6 +842,13 @@ export class ViewerController {
           mark(obj, HIDDEN);
         } else if (this.followerIds.has(id)) {
           mark(obj, MOVING);
+        }
+      }
+    }
+    if (this.dimmed.size > 0) {
+      for (let obj = 0; obj < scene.objectCount; obj += 1) {
+        if (scene.parentOf(obj) === null && this.dimmed.has(scene.idOf(obj))) {
+          mark(obj, DIMMED);
         }
       }
     }

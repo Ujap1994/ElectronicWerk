@@ -16,7 +16,8 @@ export type OutputKind =
   | 'ipc356'
   | 'ipc2581'
   | 'netlist'
-  | 'archive';
+  | 'archive'
+  | 'documentation';
 
 /** Kinds in the order of the "add output" menu. */
 export const OUTPUT_KINDS: readonly OutputKind[] = [
@@ -32,6 +33,7 @@ export const OUTPUT_KINDS: readonly OutputKind[] = [
   'netlist',
   'archive',
   'step',
+  'documentation',
 ];
 
 export interface OutputSpec {
@@ -43,10 +45,60 @@ export interface OutputSpec {
   readonly options: Readonly<Record<string, unknown>>;
 }
 
+export type Separation = 'mouseBites' | 'vScore';
+export type Rails = 'none' | 'topBottom' | 'leftRight' | 'all';
+
+/** A panel of the board (lengths in nanometres), engine `PanelSettings`. */
+export interface PanelSettings {
+  readonly columns: number;
+  readonly rows: number;
+  readonly separation: Separation;
+  readonly gap: number;
+  readonly rails: Rails;
+  readonly railWidth: number;
+  readonly fiducials: boolean;
+  readonly toolingHoles: boolean;
+  readonly tabs: number;
+  readonly tabWidth: number;
+}
+
+/** The engine's panel defaults. */
+export const PANEL_DEFAULTS: PanelSettings = {
+  columns: 2,
+  rows: 2,
+  separation: 'mouseBites',
+  gap: 2_000_000,
+  rails: 'topBottom',
+  railWidth: 5_000_000,
+  fiducials: true,
+  toolingHoles: true,
+  tabs: 2,
+  tabWidth: 2_000_000,
+};
+
+/** A panel read from the job file (missing fields take the defaults). */
+export function asPanel(value: unknown): PanelSettings | null {
+  if (value === null || typeof value !== 'object') {
+    return null;
+  }
+  return { ...PANEL_DEFAULTS, ...(value as Partial<PanelSettings>) };
+}
+
+/** What the engine's `outputs.panelPreview` returns. */
+export interface PanelPreview {
+  readonly size: readonly [number, number] | null;
+  readonly boards: number;
+  readonly warnings: readonly { readonly code: string; readonly message: string }[];
+  readonly svg: string | null;
+  readonly problem: { readonly code: string; readonly message: string } | null;
+}
+
 export interface OutputJobProps {
   readonly name: string;
   readonly directory: string;
   readonly outputs: readonly OutputSpec[];
+  /** Board outputs are made for this panel (`null`: single boards). */
+  readonly panel: PanelSettings | null;
 }
 
 export type OutputStatus = 'done' | 'skipped' | 'failed';
@@ -99,6 +151,7 @@ const FOLDERS: Readonly<Record<OutputKind, string>> = {
   ipc2581: '',
   netlist: 'netlists',
   archive: '',
+  documentation: 'documentation',
 };
 
 /** Option defaults per kind (missing options take these values). */
@@ -166,6 +219,16 @@ export const DEFAULTS: Readonly<Record<OutputKind, Readonly<Record<string, unkno
   ipc2581: { folder: FOLDERS.ipc2581 },
   netlist: { format: 'kicad', folder: FOLDERS.netlist },
   archive: { include: ['gerber', 'drill'], file: '{board}-fabrication.zip' },
+  documentation: {
+    schematic: true,
+    board: true,
+    assembly: true,
+    stackup: true,
+    bom: true,
+    drills: true,
+    statistics: true,
+    folder: FOLDERS.documentation,
+  },
 };
 
 /** An option of an output, or its default. */

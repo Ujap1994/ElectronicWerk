@@ -52,7 +52,9 @@ vec3 tint(vec3 c) {
 void emit(float coverage) {
   // Hidden while a drag preview draws it elsewhere (state bit 16).
   if (coverage <= 0.004 || (v_state & 16u) != 0u) { discard; }
-  o_color = vec4(tint(u_color), coverage);
+  // Faint (state bit 32): parts the assembly assistant does not show now.
+  float alpha = (v_state & 32u) != 0u ? coverage * 0.4 : coverage;
+  o_color = vec4(tint(u_color), alpha);
 }
 float cover(float dist) {
   return clamp(0.5 - dist * u_px, 0.0, 1.0);

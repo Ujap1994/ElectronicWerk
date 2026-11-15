@@ -109,6 +109,7 @@ const PATHS = {
   commit: 'M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6zM3 12h6M15 12h6',
   upload: 'M12 20V9m0 0-4 4m4-4 4 4M4 5h16',
   history: 'M3 12a9 9 0 1 0 2.6-6.4M3 4v4h4M12 7v5l3 2',
+  tweezers: 'M7 3l5 13M17 3l-5 13M12 16v5M9.5 9.5h5',
 } as const;
 
 export type IconName = keyof typeof PATHS;

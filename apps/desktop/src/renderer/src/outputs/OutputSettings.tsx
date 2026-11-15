@@ -422,6 +422,7 @@ const KIND_LABELS: Readonly<Record<OutputKind, MessageKey>> = {
   ipc2581: 'outputKinds.ipc2581',
   netlist: 'outputKinds.netlist',
   archive: 'outputKinds.archive',
+  documentation: 'outputKinds.documentation',
 };
 
 /** The translated name of an output kind. */
@@ -650,7 +651,9 @@ export function OutputSettings({
           <fieldset className="field field--group">
             <legend className="field__label">{t('outputs.archive.include')}</legend>
             <div className="outputs__layers">
-              {OUTPUT_KINDS.filter((k) => k !== 'archive' && k !== 'step').map((kind) => {
+              {OUTPUT_KINDS.filter(
+                (k) => k !== 'archive' && k !== 'step' && k !== 'documentation',
+              ).map((kind) => {
                 const include = option<readonly string[]>(spec, 'include');
                 return (
                   <Check
@@ -676,6 +679,27 @@ export function OutputSettings({
             }}
           />
         </>
+      )}
+      {spec.kind === 'documentation' && (
+        <fieldset className="field field--group">
+          <legend className="field__label">{t('outputs.documentation.sections')}</legend>
+          <div className="outputs__layers">
+            {(
+              ['schematic', 'board', 'assembly', 'stackup', 'bom', 'drills', 'statistics'] as const
+            ).map((section) => (
+              <Check
+                key={section}
+                label={t(`outputs.documentation.${section}`)}
+                checked={option<boolean>(spec, section, true)}
+                testId={`output-documentation-${section}`}
+                onChange={(on) => {
+                  set(section, on);
+                }}
+              />
+            ))}
+          </div>
+          <span className="field__hint">{t('outputs.documentation.hint')}</span>
+        </fieldset>
       )}
       {spec.kind === 'step' && (
         <>

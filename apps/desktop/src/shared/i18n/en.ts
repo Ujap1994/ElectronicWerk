@@ -4,6 +4,8 @@
  *
  * Placeholders use `{name}` syntax and must be identical in every language.
  */
+import { statisticsEn } from './statistics.en';
+import { assemblyEn } from './assembly.en';
 import { boardEn } from './board.en';
 import { outputsEn } from './outputs.en';
 import { view3dEn } from './view3d.en';
@@ -132,6 +134,7 @@ export const en = {
     sourceControl: 'Source control: commit, push, pull (GitHub)',
     openFromGithub: 'Open from GitHub',
     githubSignIn: 'Sign in to GitHub',
+    assembly: 'Assembly assistant: place parts by hand',
     view3d: 'Show the 3D view',
   },
   project: {
@@ -367,6 +370,7 @@ export const en = {
     ipc2581: 'IPC-2581',
     netlist: 'Netlist',
     archive: 'ZIP package',
+    documentation: 'Project documentation (HTML)',
   },
   colors: {
     white: 'White',
@@ -1098,6 +1102,8 @@ export const en = {
   view3d: view3dEn,
   parts: partsEn,
   github: githubEn,
+  assembly: assemblyEn,
+  statistics: statisticsEn,
   automation: {
     title: 'AI agents and scripts',
     intro:

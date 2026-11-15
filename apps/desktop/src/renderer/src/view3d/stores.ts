@@ -58,3 +58,6 @@ export function setView3dSettings(settings: View3dSettings): void {
 
 /** Opens the 3D view of the board shown right now (command palette). */
 export const open3dCommand = new Store<(() => void) | null>(null);
+
+/** Opens the assembly assistant of the first board (set by the workspace). */
+export const openAssemblyCommand = new Store<(() => void) | null>(null);

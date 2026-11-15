@@ -13,9 +13,10 @@ import { selectionKey, type TreeTarget } from '../project/tree';
 import { resetBoardStores } from '../board/stores';
 import { resetSchematicStores } from '../schematic/stores';
 import { useAppState } from '../state';
+import { AssemblyView } from '../assembly/AssemblyView';
 import { Board3dView } from '../view3d/Board3dView';
-import { open3dCommand } from '../view3d/stores';
-import { Open3dContext, OpenDocumentContext } from '../viewer/open-context';
+import { open3dCommand, openAssemblyCommand } from '../view3d/stores';
+import { Open3dContext, OpenAssemblyContext, OpenDocumentContext } from '../viewer/open-context';
 import { DocumentDetails } from './DocumentDetails';
 import { DocumentViewer, forgetViewMemories } from './DocumentViewer';
 import { Icon, type IconName } from './Icon';
@@ -70,6 +71,7 @@ const TAB_ICONS: Readonly<Record<string, IconName>> = {
   outputJob: 'output',
   gerber: 'layers',
   view3d: 'cube',
+  assembly: 'tweezers',
 };
 
 /**
@@ -176,6 +178,11 @@ export function ProjectWorkspace({
     setTabs((current) => (current.includes(id) ? current : [...current, id]));
     setActiveTab(id);
   }, []);
+  const openAssembly = useCallback((document: DocumentSummary) => {
+    const id = `asm:${document.id}`;
+    setTabs((current) => (current.includes(id) ? current : [...current, id]));
+    setActiveTab(id);
+  }, []);
   const openGerber = useCallback((name: string, paths: readonly string[]) => {
     const id = `gerber:${name}`;
     setGerberTabs((current) => ({ ...current, [id]: { name, paths } }));
@@ -192,10 +199,18 @@ export function ProjectWorkspace({
             open3d(firstBoard);
           },
     );
+    openAssemblyCommand.set(
+      firstBoard === null
+        ? null
+        : () => {
+            openAssembly(firstBoard);
+          },
+    );
     return () => {
       open3dCommand.set(null);
+      openAssemblyCommand.set(null);
     };
-  }, [firstBoard, open3d]);
+  }, [firstBoard, open3d, openAssembly]);
   const jobName = t('defaults.outputJob');
   useEffect(() => {
     outputCommands.set({
@@ -240,6 +255,18 @@ export function ProjectWorkspace({
           document: null,
           gerber,
         };
+      }
+      if (id.startsWith('asm:')) {
+        const board = project.documents.find((entry) => `asm:${entry.id}` === id);
+        return board === undefined
+          ? undefined
+          : {
+              id,
+              name: t('assembly.tab', { name: board.name }),
+              kind: 'assembly',
+              document: board,
+              gerber: null,
+            };
       }
       if (id.startsWith('3d:')) {
         const board = project.documents.find((entry) => `3d:${entry.id}` === id);
@@ -382,115 +409,129 @@ export function ProjectWorkspace({
       </header>
       <OpenDocumentContext value={openDocument}>
         <Open3dContext value={open3d}>
-          <OpenGerberContext value={openGerber}>
-            <div className="workspace__body">
-              <aside className="workspace__sidebar">
-                <ProjectTree
-                  selected={selectionKey(target)}
-                  onSelect={(next) => {
-                    setTarget(next);
-                    if (active !== null) {
-                      setActiveTab(null);
-                    }
-                  }}
-                />
-              </aside>
-              <div className="workspace__main">
-                {openTabs.length > 0 && (
-                  <div className="tabs" role="tablist" aria-label={t('viewer.tabs')}>
-                    <button
-                      type="button"
-                      role="tab"
-                      className="tabs__tab"
-                      aria-selected={active === null}
-                      data-testid="tab-details"
-                      onClick={() => {
+          <OpenAssemblyContext value={openAssembly}>
+            <OpenGerberContext value={openGerber}>
+              <div className="workspace__body">
+                <aside className="workspace__sidebar">
+                  <ProjectTree
+                    selected={selectionKey(target)}
+                    onSelect={(next) => {
+                      setTarget(next);
+                      if (active !== null) {
                         setActiveTab(null);
-                      }}
-                    >
-                      <Icon name="info" size={16} />
-                      <span>{t('viewer.details')}</span>
-                    </button>
-                    {openTabs.map((document) => (
-                      <div
-                        key={document.id}
-                        className="tabs__item"
-                        data-selected={document.id === active?.id}
-                      >
-                        <button
-                          type="button"
-                          role="tab"
-                          className="tabs__tab"
-                          aria-selected={document.id === active?.id}
-                          data-testid={`tab-${document.id}`}
-                          onClick={() => {
-                            setActiveTab(document.id);
-                          }}
-                        >
-                          <Icon name={TAB_ICONS[document.kind] ?? 'schematic'} size={16} />
-                          <span>{document.name}</span>
-                        </button>
-                        <button
-                          type="button"
-                          className="tabs__close"
-                          aria-label={t('viewer.closeTab', { name: document.name })}
-                          title={t('viewer.closeTab', { name: document.name })}
-                          data-testid={`tab-close-${document.id}`}
-                          onClick={() => {
-                            closeTab(document.id);
-                          }}
-                        >
-                          <Icon name="close" size={14} />
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                )}
-                {active === null ? (
-                  <main className="workspace__details" data-testid="details">
-                    <DocumentDetails target={target} />
-                  </main>
-                ) : (
-                  <main className="workspace__viewer">
-                    {active.gerber !== null ? (
-                      <GerberViewer
-                        key={`${active.id}:${active.gerber.paths.join('|')}`}
-                        name={active.gerber.name}
-                        paths={active.gerber.paths}
-                        units={project.settings.units}
-                      />
-                    ) : active.document === null ? null : active.kind === 'view3d' ? (
-                      <Board3dView
-                        key={active.id}
-                        doc={active.document.id}
-                        name={active.document.name}
-                        onDetach={() => {
-                          const board = active.document;
-                          if (board !== null) {
-                            window.ew.view3d.open(board.id, board.name);
-                          }
+                      }
+                    }}
+                  />
+                </aside>
+                <div className="workspace__main">
+                  {openTabs.length > 0 && (
+                    <div className="tabs" role="tablist" aria-label={t('viewer.tabs')}>
+                      <button
+                        type="button"
+                        role="tab"
+                        className="tabs__tab"
+                        aria-selected={active === null}
+                        data-testid="tab-details"
+                        onClick={() => {
+                          setActiveTab(null);
                         }}
-                      />
-                    ) : active.document.kind === 'library' ? (
-                      <LibraryEditor
-                        key={active.id}
-                        document={active.document}
-                        units={project.settings.units}
-                      />
-                    ) : active.document.kind === 'outputJob' ? (
-                      <OutputJobEditor key={active.id} document={active.document} />
-                    ) : (
-                      <DocumentViewer
-                        key={active.id}
-                        document={active.document}
-                        units={project.settings.units}
-                      />
-                    )}
-                  </main>
-                )}
+                      >
+                        <Icon name="info" size={16} />
+                        <span>{t('viewer.details')}</span>
+                      </button>
+                      {openTabs.map((document) => (
+                        <div
+                          key={document.id}
+                          className="tabs__item"
+                          data-selected={document.id === active?.id}
+                        >
+                          <button
+                            type="button"
+                            role="tab"
+                            className="tabs__tab"
+                            aria-selected={document.id === active?.id}
+                            data-testid={`tab-${document.id}`}
+                            onClick={() => {
+                              setActiveTab(document.id);
+                            }}
+                          >
+                            <Icon name={TAB_ICONS[document.kind] ?? 'schematic'} size={16} />
+                            <span>{document.name}</span>
+                          </button>
+                          <button
+                            type="button"
+                            className="tabs__close"
+                            aria-label={t('viewer.closeTab', { name: document.name })}
+                            title={t('viewer.closeTab', { name: document.name })}
+                            data-testid={`tab-close-${document.id}`}
+                            onClick={() => {
+                              closeTab(document.id);
+                            }}
+                          >
+                            <Icon name="close" size={14} />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  {active === null ? (
+                    <main className="workspace__details" data-testid="details">
+                      <DocumentDetails target={target} />
+                    </main>
+                  ) : (
+                    <main className="workspace__viewer">
+                      {active.gerber !== null ? (
+                        <GerberViewer
+                          key={`${active.id}:${active.gerber.paths.join('|')}`}
+                          name={active.gerber.name}
+                          paths={active.gerber.paths}
+                          units={project.settings.units}
+                        />
+                      ) : active.document === null ? null : active.kind === 'assembly' ? (
+                        <AssemblyView
+                          key={active.id}
+                          doc={active.document.id}
+                          name={active.document.name}
+                          onDetach={() => {
+                            const board = active.document;
+                            if (board !== null) {
+                              window.ew.assembly.open(board.id, board.name);
+                            }
+                          }}
+                        />
+                      ) : active.kind === 'view3d' ? (
+                        <Board3dView
+                          key={active.id}
+                          doc={active.document.id}
+                          name={active.document.name}
+                          onDetach={() => {
+                            const board = active.document;
+                            if (board !== null) {
+                              window.ew.view3d.open(board.id, board.name);
+                            }
+                          }}
+                        />
+                      ) : active.document.kind === 'library' ? (
+                        <LibraryEditor
+                          key={active.id}
+                          document={active.document}
+                          units={project.settings.units}
+                        />
+                      ) : active.document.kind === 'outputJob' ? (
+                        <OutputJobEditor key={active.id} document={active.document} />
+                      ) : (
+                        <DocumentViewer
+                          key={active.id}
+                          document={active.document}
+                          units={project.settings.units}
+                        />
+                      )}
+                    </main>
+                  )}
+                </div>
               </div>
-            </div>
-          </OpenGerberContext>
+            </OpenGerberContext>
+          </OpenAssemblyContext>
         </Open3dContext>
       </OpenDocumentContext>
     </div>

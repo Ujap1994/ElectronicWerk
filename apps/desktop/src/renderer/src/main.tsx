@@ -2,6 +2,7 @@ import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 
 import { App } from './App';
+import { AssemblyWindow, assemblyFromHash } from './assembly/AssemblyWindow';
 import { ProjectProvider } from './project/ProjectProvider';
 import { AppStateProvider } from './state';
 import { View3dWindow, viewFromHash } from './view3d/View3dWindow';
@@ -19,12 +20,16 @@ async function bootstrap(): Promise<void> {
     throw new Error('missing #root element');
   }
   installWindowSync();
-  // A view window (3D view on a second monitor) or the main window.
+  // A view window (3D view, assembly assistant on a second monitor) or the
+  // main window.
   const view = viewFromHash(window.location.hash);
+  const assembly = assemblyFromHash(window.location.hash);
   createRoot(container).render(
     <StrictMode>
       <AppStateProvider initial={{ appInfo, snapshot, engineStatus }}>
-        {view === null ? (
+        {assembly !== null ? (
+          <AssemblyWindow doc={assembly.doc} name={assembly.name} />
+        ) : view === null ? (
           <ProjectProvider>
             <App />
           </ProjectProvider>

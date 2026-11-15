@@ -519,7 +519,13 @@ function main(): void {
       return path;
     });
 
-    ipcMain.on(IPC.view3dOpen, (event, doc: unknown, name: unknown) => {
+    /** Opens (or focuses) a view window of a board of the open project. */
+    const openViewWindow = (
+      event: Electron.IpcMainEvent,
+      kind: 'view3d' | 'assembly',
+      doc: unknown,
+      name: unknown,
+    ): void => {
       if (
         !isTrustedSender(event.senderFrame) ||
         typeof doc !== 'string' ||
@@ -530,24 +536,40 @@ function main(): void {
       ) {
         return;
       }
-      const open = viewWindows.get(doc);
+      const key = kind === 'view3d' ? doc : `${kind}:${doc}`;
+      const open = viewWindows.get(key);
       if (open !== undefined && !open.isDestroyed()) {
         open.focus();
         return;
       }
-      const fragment = `view3d=${encodeURIComponent(doc)}&name=${encodeURIComponent(name)}`;
+      const fragment = `${kind}=${encodeURIComponent(doc)}&name=${encodeURIComponent(name)}`;
       const window = createViewWindow(
         devUrl,
         app.isPackaged,
         fragment,
-        t('view3d.windowTitle', { name }),
+        t(kind === 'view3d' ? 'view3d.windowTitle' : 'assembly.windowTitle', { name }),
       );
-      viewWindows.set(doc, window);
+      viewWindows.set(key, window);
       window.on('closed', () => {
-        if (viewWindows.get(doc) === window) {
-          viewWindows.delete(doc);
+        if (viewWindows.get(key) === window) {
+          viewWindows.delete(key);
         }
       });
+    };
+
+    ipcMain.on(IPC.view3dOpen, (event, doc: unknown, name: unknown) => {
+      openViewWindow(event, 'view3d', doc, name);
+    });
+
+    ipcMain.on(IPC.assemblyOpen, (event, doc: unknown, name: unknown) => {
+      openViewWindow(event, 'assembly', doc, name);
+    });
+
+    ipcMain.on(IPC.windowFullScreen, (event) => {
+      const window = BrowserWindow.fromWebContents(event.sender);
+      if (isTrustedSender(event.senderFrame) && window !== null) {
+        window.setFullScreen(!window.isFullScreen());
+      }
     });
 
     // --- Online part libraries ------------------------------------------

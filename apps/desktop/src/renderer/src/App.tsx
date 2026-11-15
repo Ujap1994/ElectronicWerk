@@ -21,7 +21,7 @@ import { LibraryManager } from './library/LibraryManager';
 import { useProject } from './project/ProjectProvider';
 import { activeBoard } from './board/stores';
 import { outputCommands } from './outputs/stores';
-import { open3dCommand } from './view3d/stores';
+import { open3dCommand, openAssemblyCommand } from './view3d/stores';
 import { GithubHost } from './github/GithubHost';
 import { cloneOpen, signInOpen, sourceControlCommand } from './github/stores';
 import { PartsHost } from './parts/PartsHost';
@@ -170,6 +170,7 @@ export function App(): ReactNode {
   const boardCommands = useSyncExternalStore(activeBoard.subscribe, activeBoard.get);
   const outputs = useSyncExternalStore(outputCommands.subscribe, outputCommands.get);
   const open3d = useSyncExternalStore(open3dCommand.subscribe, open3dCommand.get);
+  const openAssembly = useSyncExternalStore(openAssemblyCommand.subscribe, openAssemblyCommand.get);
   const sourceControl = useSyncExternalStore(
     sourceControlCommand.subscribe,
     sourceControlCommand.get,
@@ -211,6 +212,11 @@ export function App(): ReactNode {
       ...(open3d === null
         ? []
         : ([{ id: 'view-3d', label: 'commands.view3d', run: open3d }] satisfies Command[])),
+      ...(openAssembly === null
+        ? []
+        : ([
+            { id: 'assembly', label: 'commands.assembly', run: openAssembly },
+          ] satisfies Command[])),
       ...(project === null
         ? []
         : ([
@@ -417,6 +423,7 @@ export function App(): ReactNode {
       openProject,
       outputs,
       open3d,
+      openAssembly,
       sourceControl,
       startKicadImport,
       project,

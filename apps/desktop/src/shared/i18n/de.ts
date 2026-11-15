@@ -1,3 +1,5 @@
+import { statisticsDe } from './statistics.de';
+import { assemblyDe } from './assembly.de';
 import { boardDe } from './board.de';
 import { outputsDe } from './outputs.de';
 import { view3dDe } from './view3d.de';
@@ -129,6 +131,7 @@ export const de: Messages = {
     sourceControl: 'Versionsverwaltung: committen, hochladen, abholen (GitHub)',
     openFromGithub: 'Von GitHub öffnen',
     githubSignIn: 'Bei GitHub anmelden',
+    assembly: 'Bestückungsassistent: Bauteile von Hand bestücken',
     view3d: '3D-Ansicht zeigen',
   },
   project: {
@@ -364,6 +367,7 @@ export const de: Messages = {
     ipc2581: 'IPC-2581',
     netlist: 'Netzliste',
     archive: 'ZIP-Paket',
+    documentation: 'Projektdokumentation (HTML)',
   },
   colors: {
     white: 'Weiß',
@@ -1106,6 +1110,8 @@ export const de: Messages = {
   view3d: view3dDe,
   parts: partsDe,
   github: githubDe,
+  assembly: assemblyDe,
+  statistics: statisticsDe,
   automation: {
     title: 'KI-Agenten und Skripte',
     intro:

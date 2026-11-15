@@ -61,6 +61,8 @@ export const IPC = {
   dialogChooseModel: 'dialog:choose-model',
   exportSaveImage: 'export:save-image',
   view3dOpen: 'view3d:open',
+  assemblyOpen: 'assembly:open',
+  windowFullScreen: 'window:fullscreen',
   syncPublish: 'sync:publish',
   syncMessage: 'sync:message',
   providersOpen: 'providers:open',
@@ -252,6 +254,10 @@ export interface EwApi {
     /** Shows the 3D view of a board in its own window. */
     open: (doc: string, name: string) => void;
   };
+  readonly assembly: {
+    /** Shows the assembly assistant of a board in its own window. */
+    open: (doc: string, name: string) => void;
+  };
   readonly providers: {
     /** Opens a provider's website in its provider window. */
     open: (id: ProviderId, page: ProviderPage, query?: string) => void;
@@ -345,5 +351,7 @@ export interface EwApi {
     onCloseRequested: (listener: () => void) => Unsubscribe;
     /** The project is saved or closed: the window may close now. */
     confirmClose: () => void;
+    /** Switches this window to full screen and back. */
+    toggleFullScreen: () => void;
   };
 }

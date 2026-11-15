@@ -8,20 +8,27 @@ import { useProject } from '../project/ProjectProvider';
 import { errorMessage } from '../project/labels';
 import { useAppState } from '../state';
 import {
+  asPanel,
   isGerberFile,
   joinOutput,
   moved,
   newOutput,
   OUTPUT_KINDS,
+  PANEL_DEFAULTS,
   splitPath,
   type OutputJobProps,
   type OutputKind,
   type OutputResult,
   type OutputSpec,
+  type PanelSettings,
   type Preset,
   type RunReport,
 } from './model';
 import { kindLabel, OutputSettings, TextOption } from './OutputSettings';
+import { PanelForm } from './PanelForm';
+
+/** Selection of the panel entry in the list. */
+const PANEL = 'panel';
 
 /** Opens a Gerber viewer tab for a set of files. */
 export const OpenGerberContext = createContext<
@@ -45,6 +52,7 @@ function asJob(value: Record<string, unknown> | null): OutputJobProps | null {
       enabled: output.enabled ?? true,
       options: output.options ?? {},
     })),
+    panel: asPanel(value['panel']),
   };
 }
 
@@ -158,7 +166,15 @@ export function OutputJobEditor({ document }: { readonly document: DocumentSumma
     setJob({ ...job, outputs });
     void setDocumentProperties(document.id, { outputs });
   };
-  const current = job.outputs.find((o) => o.id === selected) ?? job.outputs[0] ?? null;
+  const savePanel = (panel: PanelSettings | null): void => {
+    setJob({ ...job, panel });
+    void setDocumentProperties(document.id, { panel });
+  };
+  const panelSelected = selected === PANEL;
+  const current = panelSelected
+    ? null
+    : (job.outputs.find((o) => o.id === selected) ?? job.outputs[0] ?? null);
+  const units = project?.settings.units ?? 'mm';
   const results = new Map((report?.results ?? []).map((r) => [r.id, r]));
   const separator = appInfo.platform === 'win32' ? '\\' : '/';
 
@@ -409,9 +425,52 @@ export function OutputJobEditor({ document }: { readonly document: DocumentSumma
               </>
             )}
           </div>
+          <h3 className="outputs__subtitle">{t('outputs.panel.title')}</h3>
+          <ul className="outputs__items">
+            <li
+              className={`outputs__item${panelSelected ? ' outputs__item--selected' : ''}`}
+              data-testid="outputs-panel"
+              data-enabled={job.panel !== null}
+            >
+              <input
+                type="checkbox"
+                checked={job.panel !== null}
+                aria-label={t('outputs.panel.enabled')}
+                data-testid="outputs-panel-enabled"
+                onChange={(event) => {
+                  savePanel(event.target.checked ? (job.panel ?? PANEL_DEFAULTS) : null);
+                }}
+              />
+              <button
+                type="button"
+                className="outputs__item-name"
+                onClick={() => {
+                  setSelected(PANEL);
+                }}
+              >
+                <span>{t('outputs.panel.title')}</span>
+                <span className="outputs__kind">
+                  {job.panel === null
+                    ? t('outputs.panel.off')
+                    : t('outputs.panel.summary', {
+                        columns: job.panel.columns,
+                        rows: job.panel.rows,
+                        separation: t(`outputs.panel.${job.panel.separation}`),
+                      })}
+                </span>
+              </button>
+            </li>
+          </ul>
         </section>
         <section className="outputs__settings" aria-label={t('outputs.settings')}>
-          {current === null ? (
+          {panelSelected ? (
+            <>
+              <div className="outputs__settings-header">
+                <h3 className="outputs__subtitle">{t('outputs.panel.title')}</h3>
+              </div>
+              <PanelForm panel={job.panel} boards={boards} units={units} onChange={savePanel} />
+            </>
+          ) : current === null ? (
             <p className="field__hint">{t('outputs.noSelection')}</p>
           ) : (
             <>

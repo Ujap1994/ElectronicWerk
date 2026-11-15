@@ -65,6 +65,11 @@ const api: EwApi = {
       ipcRenderer.send(IPC.view3dOpen, doc, name);
     },
   },
+  assembly: {
+    open: (doc, name) => {
+      ipcRenderer.send(IPC.assemblyOpen, doc, name);
+    },
+  },
   providers: {
     open: (id, page, query) => {
       ipcRenderer.send(IPC.providersOpen, id, page, query ?? '');
@@ -142,6 +147,9 @@ const api: EwApi = {
     onCloseRequested: (listener) => subscribe(IPC.closeRequested, listener),
     confirmClose: () => {
       ipcRenderer.send(IPC.closeConfirmed);
+    },
+    toggleFullScreen: () => {
+      ipcRenderer.send(IPC.windowFullScreen);
     },
   },
 };

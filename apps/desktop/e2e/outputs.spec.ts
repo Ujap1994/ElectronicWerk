@@ -2,9 +2,11 @@
  * Output jobs in the running app: the job of a new project generates every
  * output into the project folder, the Gerber viewer shows the files, the
  * BOM preview follows its settings and a board maker preset replaces the
- * outputs (with undo).
+ * outputs (with undo). A panel makes the board outputs for several boards,
+ * the documentation output writes one HTML file, and the project details
+ * show the design statistics.
  */
-import { existsSync, readdirSync } from 'node:fs';
+import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
 import { expect, test } from '@playwright/test';
@@ -100,4 +102,78 @@ test('generates the outputs of a job and shows the Gerbers', async () => {
   await expect(list).toContainText('CPL (JLCPCB)');
   await page.getByTestId('toolbar-undo').click();
   await expect(list.locator('li')).toHaveCount(9);
+});
+
+test('makes a panel, the documentation and the design statistics', async () => {
+  test.setTimeout(180_000);
+  launched = await launchApp();
+  const { page, projectsDir } = launched;
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await createProjectWithWizard(page, 'Panel Demo', 'demo');
+
+  // The design statistics in the project details.
+  await page.getByTestId('tree-project').click();
+  const stats = page.getByTestId('design-statistics');
+  await expect(stats.getByTestId('statistics-board')).toHaveCount(1);
+  await expect(stats.getByTestId('statistics-schematic')).toContainText('Parts');
+  await expect(stats.getByTestId('statistics-drills').locator('tbody tr').first()).toBeVisible();
+  await expect(stats.getByTestId('statistics-routing')).toContainText('% routed');
+
+  // A panel: two columns, one row, V-score, no rails.
+  await page.getByTestId('toolbar-outputs').click();
+  await page.getByTestId('outputs-panel').getByRole('button').click();
+  const form = page.getByTestId('panel-settings');
+  await expect(form).toBeVisible();
+  await expect(page.getByTestId('outputs-panel')).toContainText('Single boards');
+  await page.getByTestId('panel-enabled').check();
+  await expect(page.getByTestId('panel-image')).toBeVisible();
+  await expect(page.getByTestId('panel-size')).toContainText('4 boards');
+  await page.getByTestId('panel-rows').fill('1');
+  await page.getByTestId('panel-rows').press('Enter');
+  await expect(page.getByTestId('panel-size')).toContainText('2 boards');
+  await page.getByTestId('panel-separation-vScore').click();
+  await expect(page.getByTestId('panel-gap')).toHaveCount(0);
+  await page.getByTestId('panel-rails').selectOption('none');
+  // Fiducials and tooling holes need rails.
+  await expect(form.getByTestId('panel-warning')).toHaveCount(2);
+  await page.getByTestId('panel-fiducials').uncheck();
+  await page.getByTestId('panel-tooling-holes').uncheck();
+  await expect(form.getByTestId('panel-warning')).toHaveCount(0);
+  await expect(page.getByTestId('outputs-panel')).toContainText('2 × 1, V-score');
+
+  // The panel is saved in the job file.
+  await page.getByTestId('toolbar-save').click();
+  const jobFile = join(projectsDir, 'Panel Demo', 'outputs', 'fabrication.ewout');
+  await expect
+    .poll(() => (JSON.parse(readFileSync(jobFile, 'utf8')) as { panel?: unknown }).panel)
+    .toMatchObject({ columns: 2, rows: 1, separation: 'vScore', rails: 'none' });
+
+  // A documentation output next to the board outputs.
+  await page.getByTestId('outputs-add').selectOption('documentation');
+  await expect(page.getByTestId('output-documentation-schematic')).toBeChecked();
+  await page.getByTestId('output-documentation-statistics').uncheck();
+
+  await page.getByTestId('outputs-generate').click();
+  const list = page.getByTestId('outputs-list');
+  await expect(list.locator('[data-status="done"]')).toHaveCount(10, { timeout: 90_000 });
+  const generated = join(projectsDir, 'Panel Demo', 'outputs', 'generated');
+  const files = listFiles(generated);
+  expect(files).toContain('gerber/Panel_Demo_panel-User_1.gbr');
+  expect(files).toContain('documentation/Panel_Demo-documentation.html');
+  const placement = readFileSync(
+    join(generated, 'assembly', 'Panel_Demo_panel-placement.csv'),
+    'utf8',
+  );
+  expect(placement).toContain('R1');
+  const html = readFileSync(
+    join(generated, 'documentation', 'Panel_Demo-documentation.html'),
+    'utf8',
+  );
+  expect(html).toContain('id="schematic"');
+  expect(html).not.toContain('id="statistics"');
+
+  // Switched off, the board outputs are for one board again.
+  await page.getByTestId('outputs-panel-enabled').uncheck();
+  await expect(page.getByTestId('outputs-panel')).toContainText('Single boards');
+  await expect(form.getByTestId('panel-columns')).toHaveCount(0);
 });

@@ -127,6 +127,59 @@ export const outputsDe: Messages['outputs'] = {
     file: 'Dateiname',
     fileHint: '{board} wird durch den Platinennamen ersetzt.',
   },
+  documentation: {
+    sections: 'Abschnitte',
+    schematic: 'Schaltplanblätter',
+    board: 'Platinenansichten (oben und unten)',
+    assembly: 'Bestückungszeichnungen',
+    stackup: 'Lagenaufbau',
+    bom: 'Stückliste',
+    drills: 'Bohrungen nach Durchmesser',
+    statistics: 'Design-Statistik',
+    hint: 'Eine HTML-Datei mit Bildern: im Browser öffnen, drucken oder als PDF speichern.',
+  },
+  panel: {
+    title: 'Nutzen',
+    enabled: 'Platinenausgaben für einen Nutzen erzeugen',
+    off: 'Einzelne Platinen',
+    summary: '{columns} × {rows}, {separation}',
+    hint: 'Ein Nutzen setzt mehrere Kopien der Platine auf einen Bogen, gehalten von Rändern und Stegen. Die Gerber-, Bohr-, Bohrplan- und Bestückungsausgaben dieses Jobs werden für den Nutzen erzeugt; die übrigen Ausgaben bleiben bei einer Platine. Passmarken und Fixierbohrungen sitzen auf den Rändern; Ritzlinien kommen in eine eigene Gerber-Datei (User_1).',
+    columns: 'Spalten',
+    rows: 'Reihen',
+    separation: 'Trennung',
+    mouseBites: 'Mouse Bites',
+    mouseBitesHint:
+      'Gefräste Spalten zwischen den Platinen; Stege mit Reihen kleiner Bohrungen halten sie. Für jede Kontur geeignet.',
+    vScore: 'Ritzen (V-Score)',
+    vScoreHint:
+      'Die Platinen stoßen aneinander; V-förmige Rillen entlang der Kanten lassen sie abbrechen. Nur für rechteckige Platinen.',
+    gap: 'Abstand zwischen den Platinen',
+    tabs: 'Stege je Kante',
+    tabWidth: 'Stegbreite',
+    rails: 'Ränder',
+    railSides: {
+      topBottom: 'Oben und unten',
+      leftRight: 'Links und rechts',
+      all: 'Alle vier Seiten',
+      none: 'Keine',
+    },
+    railWidth: 'Randbreite',
+    fiducials: 'Drei Passmarken auf den Rändern (für Bestückungsautomaten)',
+    toolingHoles: 'Fixierbohrung in jeder Randecke',
+    preview: 'Vorschau',
+    size: 'Nutzengröße {width} × {height} · {boards} Platinen',
+    warning: {
+      toolingHolesNeedRails:
+        'Fixierbohrungen brauchen Ränder von mindestens 3 mm Breite; sie fehlen deshalb.',
+      fiducialsNeedRails:
+        'Passmarken brauchen Ränder von mindestens 3 mm Breite; sie fehlen deshalb.',
+      tabsOnBoundingBox:
+        'Die Platine ist nicht rechteckig: Die Stege sitzen an ihrem umschließenden Rechteck. Prüfe, ob jeder Steg die Kontur erreicht.',
+      noOutline:
+        'Die Platine hat keine geschlossene Kontur und kann deshalb nicht auf einen Nutzen.',
+      notRectangular: 'Ritzen braucht eine rechteckige Platine. Nimm für diese Kontur Mouse Bites.',
+    },
+  },
   model3d: {
     format: 'Format',
     step: 'STEP (exakte Volumenkörper für Mechanik-CAD)',

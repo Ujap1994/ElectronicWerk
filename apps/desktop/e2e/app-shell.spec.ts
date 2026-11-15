@@ -32,6 +32,7 @@ test('shows the start screen with a secure, sandboxed renderer', async () => {
     hasProcess: false,
     api: [
       'app',
+      'assembly',
       'dialogs',
       'engine',
       'git',

@@ -14,10 +14,11 @@ import {
 } from '@shared/project';
 
 import { SourceControl } from '../github/SourceControl';
+import { DesignStatistics } from '../statistics/DesignStatistics';
 import { useProject } from '../project/ProjectProvider';
 import type { GroupId, TreeTarget } from '../project/tree';
 import { useAppState } from '../state';
-import { isViewable, useOpen3d, useOpenDocument } from '../viewer/open-context';
+import { isViewable, useOpen3d, useOpenAssembly, useOpenDocument } from '../viewer/open-context';
 import { Icon } from './Icon';
 
 // --- Small building blocks --------------------------------------------------
@@ -176,6 +177,7 @@ function DocumentHeader({ document }: { readonly document: DocumentSummary }): R
   const { renameDocument, showInFolder } = useProject();
   const open = useOpenDocument();
   const open3d = useOpen3d();
+  const openAssembly = useOpenAssembly();
   return (
     <>
       {open !== null && isViewable(document) && (
@@ -202,6 +204,20 @@ function DocumentHeader({ document }: { readonly document: DocumentSummary }): R
             >
               <Icon name="cube" />
               <span>{t('view3d.open')}</span>
+            </button>
+          )}
+          {document.kind === 'pcb' && openAssembly !== null && (
+            <button
+              type="button"
+              className="button details__open"
+              title={t('assembly.openTip')}
+              data-testid="details-open-assembly"
+              onClick={() => {
+                openAssembly(document);
+              }}
+            >
+              <Icon name="tweezers" />
+              <span>{t('assembly.open')}</span>
             </button>
           )}
         </div>
@@ -494,6 +510,7 @@ function ProjectOverview({ project }: { readonly project: ProjectSnapshot }): Re
           ]}
         />
       </Section>
+      <DesignStatistics units={units} />
     </div>
   );
 }
@@ -842,6 +859,7 @@ const OUTPUT_KINDS: Readonly<Record<string, MessageKey>> = {
   ipc2581: 'outputKinds.ipc2581',
   netlist: 'outputKinds.netlist',
   archive: 'outputKinds.archive',
+  documentation: 'outputKinds.documentation',
 };
 
 function OutputJobDetails({ document }: { readonly document: DocumentSummary }): ReactNode {
