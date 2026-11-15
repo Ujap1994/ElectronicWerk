@@ -1,9 +1,9 @@
 # ElectronicWerk Roadmap
 
-> **Status:** v0.25 (2026-11-15). M0 to M14 are complete (releases v0.1.0 to
-> v0.15.1; M0, M1 and M3 accepted by the maintainer); M15 is next. The GitHub
-> integration (M11) is switched off since v0.14.1 until the maintainer
-> decides to offer it (ADR-0014).
+> **Status:** v0.26 (2026-11-15). M0 to M14 are complete (releases v0.1.0 to
+> v0.15.1; M0, M1 and M3 accepted by the maintainer); M15 is in progress.
+> The GitHub integration (M11) is switched off since v0.14.1 until the
+> maintainer decides to offer it (ADR-0014).
 > This roadmap is a living document. It **must** be updated with every feature
 > (requirement D5). Every change to it is listed in the
 > [roadmap changelog](#13-roadmap-changelog).
@@ -252,7 +252,7 @@ own work only. Maintainer test cycles and feedback come on top. Status values:
 | M12 | CLI and AI automation (complete)                      | v0.13.0 | F12               | 4–6 S           | ✅     |
 | M13 | Assembly assistant and extras                         | v0.14.0 | F11               | 4–6 S           | ✅     |
 | M14 | Interoperability: further open formats                | v0.15.0 | F3                | 5–8 S           | ✅     |
-| M15 | Advanced layout                                       | v0.16.0 | F7                | 12–20 S         | ⬜     |
+| M15 | Advanced layout                                       | v0.16.0 | F7                | 12–20 S         | 🟦     |
 | M16 | Part generator from datasheets                        | v0.17.0 | F13               | 8–12 S          | ⬜     |
 | M17 | Mechanical assembly and enclosure check               | v0.18.0 | F14               | 6–10 S          | ⬜     |
 | M18 | Multi-board design                                    | v0.19.0 | F15               | 8–12 S          | ⬜     |
@@ -861,13 +861,29 @@ Delivered (ADR-0015):
 - [x] Eagle XML import (`.sch`/`.brd`/`.lbr`) as a new native project with
       an import report; Eagle libraries go through the duplicate check (M4).
 
-### M15 — Advanced layout (v0.16.0, 12–20 S)
+### M15 — Advanced layout (v0.16.0, 12–20 S) 🟦
 
 - Interactive router with push-and-shove, differential pairs, length tuning
   and matching (meanders), teardrops.
 - Via stitching and shielding, back drilling (if needed), blind and buried
   vias.
 - Design variants, rooms and channels for repeated blocks.
+- **Impedance calculator** (requested by the maintainer) for controlled
+  impedance: track width and pair gap from the stack-up (dielectric
+  thickness and constant, copper thickness) for microstrip, stripline and
+  coplanar lines, single and differential. Two **working modes**, chosen in
+  the settings:
+  - **Beginner** (default): pick what the lines carry (for example USB 2.0,
+    Ethernet, 50 Ω RF) and ElectronicWerk computes the widths and gaps for
+    every layer and applies them to the net class;
+  - **Advanced**: set the target impedance, tolerance, widths and gaps
+    yourself; the calculator shows the resulting impedance.
+
+Phases: (1) blind, buried and micro vias; (2) push-and-shove routing and
+dragging that keeps 45°; (3) differential pairs with the impedance
+calculator and the working modes; (4) length tuning and matching; (5)
+teardrops; (6) via stitching and shielding; (7) rooms, channels and design
+variants; (8) back drilling if justified, docs, release.
 
 ### M16 — Part generator from datasheets (v0.17.0, 8–12 S)
 
@@ -1067,3 +1083,4 @@ joined by cables.
 | 2026-11-15 | v0.23      | New milestones between M15 and v1.0, requested by the maintainer: M16 part generator from datasheets, M17 mechanical assembly and enclosure check, M18 multi-board design; hardening and v1.0 move to M19. SPICE simulation and the DipTrace import are dropped.                                                                                                                                                                                           |
 | 2026-11-15 | v0.24      | v0.15.1: the external autorouter tested with a real Freerouting 2.5.0 run (replayed in CI); unlocked routing is no longer passed as fixed, protected wires of a session are kept.                                                                                                                                                                                                                                                                          |
 | 2026-11-15 | v0.25      | Real-time collaboration taken off the post-1.0 candidates: it is planned again only once v1.0.0 runs cleanly in the maintainer's daily work.                                                                                                                                                                                                                                                                                                               |
+| 2026-11-15 | v0.26      | M15 started. Added the impedance calculator to M15 (requested by the maintainer) with two working modes in the settings: Beginner computes and applies the widths, Advanced lets the user set impedance and geometry.                                                                                                                                                                                                                                      |
