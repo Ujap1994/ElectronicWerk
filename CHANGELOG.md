@@ -6,6 +6,45 @@ project uses [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.14.0] - 2026-11-15
+
+The assembly assistant and extras: solder boards by hand step by step,
+make panels for the board maker, count the design and write its
+documentation in one HTML file.
+
+### Added
+
+- **Assembly assistant** for a board: the parts in groups (side, mounting,
+  value, footprint), SMD before through-hole, small parts first (or by value,
+  count or designator); the current parts highlighted and later ones dimmed;
+  checklist with Space and arrow keys; finished boards counted; workbench
+  mode and its own window with full screen. The progress is saved at once in
+  `assembly.json`. `ewerk assembly` prints the checklist; engine methods
+  `assembly.plan`, `assembly.mark`, `assembly.reset`. See
+  [The assembly assistant](https://ujap1994.github.io/ElectronicWerk/guide/assembly).
+- **Panels** in output jobs: columns and rows, mouse bites or V-score, rails,
+  tabs, fiducials and tooling holes, with a live preview and translated
+  hints. Gerber, drill, drill map and pick and place are made for the panel;
+  V-score lines go to their own Gerber file. Engine method
+  `outputs.panelPreview`. See
+  [Panels](https://ujap1994.github.io/ElectronicWerk/guide/panels).
+- **Design statistics** in the project details, `ewerk project stats` and
+  `project.statistics`: schematic, BOM and per board size, pads, holes, vias,
+  track length, smallest sizes and routing completion.
+- **Project documentation** output: one self-contained HTML file with the
+  sheets, board views, assembly drawings, stack-up, BOM, holes and
+  statistics. See
+  [Project documentation](https://ujap1994.github.io/ElectronicWerk/guide/documentation).
+
+### Fixed
+
+- Schematic prints (PDF, SVG) resolve `${SHEET_NAME}` per sheet.
+- The output list of the output job editor keeps its move and remove
+  buttons visible next to a long **Add output** list.
+- Links to sections in a few documentation pages pointed nowhere.
+- The demo project keeps every part inside the board outline, and its pin
+  headers are through-hole parts.
+
 ## [0.13.0] - 2026-11-14
 
 Scripts and AI agents: boards can be designed without the window — from a
@@ -940,7 +979,8 @@ quality gates and the delivery pipeline that every later feature builds on.
   process ([ujap1994.github.io/ElectronicWerk](https://ujap1994.github.io/ElectronicWerk/)).
   **Help → Documentation** opens it.
 
-[Unreleased]: https://github.com/Ujap1994/ElectronicWerk/compare/v0.13.0...HEAD
+[Unreleased]: https://github.com/Ujap1994/ElectronicWerk/compare/v0.14.0...HEAD
+[0.14.0]: https://github.com/Ujap1994/ElectronicWerk/compare/v0.13.0...v0.14.0
 [0.13.0]: https://github.com/Ujap1994/ElectronicWerk/compare/v0.12.0...v0.13.0
 [0.12.0]: https://github.com/Ujap1994/ElectronicWerk/compare/v0.11.0...v0.12.0
 [0.11.0]: https://github.com/Ujap1994/ElectronicWerk/compare/v0.10.0...v0.11.0
