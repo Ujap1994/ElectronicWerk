@@ -120,6 +120,20 @@ export function BoardOverlay({
     }
   }
 
+  // Tracks an edit in progress would leave (a dragged track and its
+  // neighbours).
+  state.preview?.forEach((track, index) => {
+    elements.push(
+      <polyline
+        key={`preview-${index.toString()}`}
+        className={`board-preview ${layerClass(track.layer)}`}
+        strokeWidth={Math.max(1, track.width * scale)}
+        points={line([track.start, track.end])}
+        data-testid="edit-preview"
+      />,
+    );
+  });
+
   // The route being drawn.
   const route = state.route;
   if (route !== null) {

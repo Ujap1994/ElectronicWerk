@@ -61,6 +61,11 @@ async function openBoard(page: Page, name: string): Promise<void> {
   await expect(page.getByTestId('viewer')).toHaveAttribute('data-kind', 'pcb');
 }
 
+/** Two board points within 1 µm. */
+function sameP(a: Point, b: Point): boolean {
+  return Math.abs(a[0] - b[0]) < 1_000 && Math.abs(a[1] - b[1]) < 1_000;
+}
+
 /** Waits until the live route ends at a screen point (the router answered). */
 async function previewReaches(page: Page, x: number, y: number): Promise<void> {
   const preview = page.getByTestId('route-preview');
@@ -198,6 +203,110 @@ test('routes with a blind via once the design rules allow it', async () => {
   const vias = (readBoard(project).vias ?? []) as { from?: string; to?: string }[];
   const blind = vias.filter((v) => (v.from ?? 'cu.top') === 'cu.top' && v.to === 'cu.in1');
   expect(blind).toHaveLength(1);
+});
+
+test('drags a track while its 45° neighbours keep their direction', async () => {
+  launched = await launchApp();
+  const { page, projectsDir } = launched;
+  await page.setViewportSize({ width: 1280, height: 800 });
+  await importAs(launched, 'Drag');
+  const project = join(projectsDir, 'Drag');
+  const board = readBoard(project);
+  await openBoard(page, 'Drag');
+  const canvas = viewerCanvas(page);
+
+  // A route from R3: diagonal, then straight on.
+  const r3 = board.footprints.find((f) => f.designator === 'R3');
+  const pad = r3?.pads.find((p) => p.number === '2');
+  const origin: Point = [
+    (r3?.at[0] ?? 0) + (pad?.at[0] ?? 0),
+    (r3?.at[1] ?? 0) + (pad?.at[1] ?? 0),
+  ];
+  const corner: Point = [origin[0] + 2.54 * MM, origin[1] - 2.54 * MM];
+  const end: Point = [corner[0] + 2.54 * MM, corner[1]];
+  await canvas.focus();
+  await page.keyboard.press('x');
+  const [ox, oy] = await toScreen(canvas, origin);
+  await page.mouse.move(ox, oy);
+  await page.mouse.click(ox, oy);
+  const [cx, cy] = await toScreen(canvas, corner);
+  await page.mouse.move(cx, cy, { steps: 5 });
+  await previewReaches(page, cx, cy);
+  await page.mouse.click(cx, cy);
+  const [ex, ey] = await toScreen(canvas, end);
+  await page.mouse.move(ex, ey, { steps: 5 });
+  await previewReaches(page, ex, ey);
+  await page.mouse.click(ex, ey);
+  await page.keyboard.press('Enter');
+  await expect(page.getByTestId('route-status')).toHaveCount(0);
+  // The route is in the board (and selected) once the view has reloaded.
+  await expect(page.getByTestId('toolbar-undo')).toHaveAttribute('title', /Route/u);
+  await settle(page);
+  await canvas.focus();
+  await page.keyboard.press('Escape');
+  await expect(page.getByTestId('board-tool-select')).toHaveAttribute('aria-pressed', 'true');
+  // Escape ends the net highlight and then the selection of the new route.
+  await page.keyboard.press('Escape');
+  await page.keyboard.press('Escape');
+  await expect(page.getByTestId('inspector')).not.toContainText('objects selected');
+
+  // The straight part and the diagonal before it, as saved.
+  await save(page);
+  interface Track {
+    id: string;
+    start: Point;
+    end: Point;
+  }
+  const before = (readBoard(project).tracks ?? []) as Track[];
+  const known = new Set(((board.tracks ?? []) as Track[]).map((t) => t.id));
+  const added = before.filter((t) => !known.has(t.id));
+  // A straight track with a 45° diagonal in front of its left end.
+  const isDiagonal = (t: Track): boolean =>
+    Math.abs(Math.abs(t.end[0] - t.start[0]) - Math.abs(t.end[1] - t.start[1])) < 2 &&
+    t.end[0] !== t.start[0];
+  const leftOf = (t: Track): Point => (t.start[0] < t.end[0] ? t.start : t.end);
+  let straight: Track | undefined;
+  let diagonal: Track | undefined;
+  for (const t of added.filter((x) => x.start[1] === x.end[1] && x.start[0] !== x.end[0])) {
+    const left = leftOf(t);
+    const before = added.find(
+      (d) => d.id !== t.id && isDiagonal(d) && (sameP(d.start, left) || sameP(d.end, left)),
+    );
+    if (before !== undefined) {
+      straight = t;
+      diagonal = before;
+    }
+  }
+  if (straight === undefined || diagonal === undefined) {
+    throw new Error(`no diagonal and straight track in the new route: ${JSON.stringify(added)}`);
+  }
+
+  // Drag the straight part down; the diagonal follows along its own line (a
+  // preview shows it during the drag).
+  const middle: Point = [(straight.start[0] + straight.end[0]) / 2, straight.start[1]];
+  const [mx, my] = await toScreen(canvas, middle);
+  const [tx, ty] = await toScreen(canvas, [middle[0], middle[1] - 1.25 * MM]);
+  await page.mouse.move(mx, my);
+  await page.mouse.down();
+  await page.mouse.move(tx, ty, { steps: 6 });
+  // A horizontal preview line has no height, so count instead of "visible".
+  await expect(page.getByTestId('edit-preview')).not.toHaveCount(0);
+  await page.mouse.up();
+  await expect(page.getByTestId('toolbar-undo')).toHaveAttribute('title', /drag/iu);
+  await save(page);
+
+  const after = new Map(((readBoard(project).tracks ?? []) as Track[]).map((t) => [t.id, t]));
+  const moved = after.get(straight.id);
+  const follower = after.get(diagonal.id);
+  expect(moved?.start[1]).toBe(straight.start[1] - 1.25 * MM);
+  expect(moved?.end[1]).toBe(straight.start[1] - 1.25 * MM);
+  // The diagonal still runs at 45° and ends where the straight part starts.
+  const origin0: Point = [0, 0];
+  const a: Point = follower?.start ?? origin0;
+  const b: Point = follower?.end ?? origin0;
+  expect(Math.abs(Math.abs(b[0] - a[0]) - Math.abs(b[1] - a[1]))).toBeLessThan(2);
+  const newLeft = (moved?.start[0] ?? 0) < (moved?.end[0] ?? 0) ? moved?.start : moved?.end;
+  expect(sameP(a, newLeft ?? origin0) || sameP(b, newLeft ?? origin0)).toBe(true);
 });
 
 test('routes tracks, draws zones, updates from the schematic and imports DXF', async () => {

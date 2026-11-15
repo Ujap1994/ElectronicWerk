@@ -3,13 +3,13 @@
 //! Every operation takes the board and returns an [`Edit`]: the changed
 //! objects and what to select afterwards. Moving, turning and flipping
 //! work on every kind of board object; aligning and distributing on
-//! footprints; dragging a track segment stretches the tracks attached to
-//! its ends.
+//! footprints; dragging a straight track segment moves it sideways while
+//! its neighbours keep their directions (so 45° routing stays 45°).
 
 use std::collections::{BTreeMap, HashMap, HashSet};
 
 use ew_model::id::Id;
-use ew_model::layer::{CopperLayer, Layer};
+use ew_model::layer::{CopperLayer, Layer, LayerSpec, Side};
 use ew_model::object::Object;
 use ew_model::pcb::{BoardShape, BoardText, FootprintInstance, Pcb, Track, Via, Zone};
 use ew_model::shape::Geometry;
@@ -726,13 +726,170 @@ fn footprints(pcb: &Pcb, ids: &[Id]) -> Result<Vec<FootprintInstance>, EditError
         .collect()
 }
 
-/// Moves a track segment; the ends of tracks and vias that touch its ends
-/// move with it.
+/// The shortest track left by a drag (nm).
+const MIN_TRACK: f64 = 1_000.0;
+
+/// What happens at an end of a dragged segment.
+enum Joint {
+    /// A single straight neighbour whose end slides along its own line.
+    Slide { neighbour: Id, far: V },
+    /// The end stays (pad, via, branch, locked or curved neighbour): a 45°
+    /// track joins it to the moved segment.
+    Fixed,
+    /// Nothing is attached: the end moves with the segment.
+    Free,
+}
+
+/// The joint at the end `end` of a track.
+fn joint(pcb: &Pcb, track: &Track, end: Point) -> Joint {
+    if pcb.vias.iter().any(|via| via.at == end) {
+        return Joint::Fixed;
+    }
+    let at = V::of(end);
+    let on_pad = pcb.footprints.iter().any(|fp| {
+        let xf = footprint_xform(fp);
+        // Bottom-side footprints have their outer copper flipped.
+        let placed = |layer: CopperLayer| match (fp.side, layer) {
+            (Side::Bottom, CopperLayer::Top) => CopperLayer::Bottom,
+            (Side::Bottom, CopperLayer::Bottom) => CopperLayer::Top,
+            _ => layer,
+        };
+        fp.pads.iter().any(|pad| {
+            pad.layers.iter().any(|spec| match spec {
+                LayerSpec::AllCopper => true,
+                LayerSpec::Layer(Layer::Copper(layer)) => placed(*layer) == track.layer,
+                _ => false,
+            }) && pad_shape(pad, &xf, 0.0).contains(at)
+        })
+    });
+    if on_pad {
+        return Joint::Fixed;
+    }
+    let mut neighbours = pcb.tracks.iter().filter(|other| {
+        other.id != track.id
+            && other.layer == track.layer
+            && other.net == track.net
+            && (other.start == end || other.end == end)
+    });
+    match (neighbours.next(), neighbours.next()) {
+        (None, _) => Joint::Free,
+        (Some(other), None) if !other.locked && other.mid.is_none() => Joint::Slide {
+            neighbour: other.id,
+            far: V::of(if other.start == end {
+                other.end
+            } else {
+                other.start
+            }),
+        },
+        _ => Joint::Fixed,
+    }
+}
+
+/// Where the line through `far` towards `end` meets the line through `on`
+/// with direction `dir`, if it lies beyond `far` (the neighbour keeps its
+/// direction and some length).
+fn slide_to(far: V, end: V, on: V, dir: V) -> Option<V> {
+    let along = end.sub(far);
+    let denom = along.cross(dir);
+    if denom.abs() < 1e-9 * along.len().max(1.0) {
+        return None;
+    }
+    let t = on.sub(far).cross(dir) / denom;
+    let point = far.add(along.scale(t));
+    (t > 0.0 && point.dist(far) >= MIN_TRACK).then_some(point)
+}
+
+/// Moves a straight track segment sideways (the part of `offset` across
+/// it). Its neighbours keep their directions: their ends slide along their
+/// own lines to the moved segment. Where an end cannot slide, a 45° track
+/// joins it to the moved segment. Curved tracks are moved with the ends of
+/// the tracks and vias attached to them.
 fn drag_track(doc: Id, pcb: &Pcb, id: Id, offset: Point) -> Result<Edit, EditError> {
     let track = pcb.tracks.get(id).ok_or(EditError::Unknown(id))?;
     if track.locked {
         return Ok(Edit::default());
     }
+    if track.mid.is_some() {
+        return Ok(stretch_track(doc, pcb, track, offset));
+    }
+    let (a, b) = (V::of(track.start), V::of(track.end));
+    let dir = b.sub(a).unit();
+    let normal = V::new(-dir.y, dir.x);
+    let shift = normal.scale(V::of(offset).dot(normal));
+    if shift.len() < 1.0 || a.dist(b) < MIN_TRACK {
+        return Ok(Edit::default());
+    }
+    let mut updated: BTreeMap<Id, Track> = BTreeMap::new();
+    let mut joiners: Vec<Track> = Vec::new();
+    let mut ends = [a.add(shift), b.add(shift)];
+    for (index, end) in [track.start, track.end].into_iter().enumerate() {
+        let moved = ends[index];
+        let slid = match joint(pcb, track, end) {
+            Joint::Free => continue,
+            Joint::Slide { neighbour, far } => {
+                slide_to(far, V::of(end), moved, dir).map(|point| (neighbour, point))
+            }
+            Joint::Fixed => None,
+        };
+        if let Some((neighbour, point)) = slid {
+            if let Some(other) = pcb.tracks.get(neighbour) {
+                let mut other = other.clone();
+                if other.start == end {
+                    other.start = point.point();
+                } else {
+                    other.end = point.point();
+                }
+                updated.insert(other.id, other);
+            }
+            ends[index] = point;
+        } else {
+            // A 45° joiner from the old end into the moved segment.
+            let inward = if index == 0 { dir } else { dir.scale(-1.0) };
+            let point = moved.add(inward.scale(shift.len()));
+            joiners.push(Track {
+                id: Id::random(),
+                start: end,
+                end: point.point(),
+                mid: None,
+                locked: false,
+                ..track.clone()
+            });
+            ends[index] = point;
+        }
+    }
+    if ends[1].sub(ends[0]).dot(dir) < MIN_TRACK {
+        // Too far: the segment would turn round.
+        return Ok(Edit::default());
+    }
+    let mut moved = track.clone();
+    moved.start = ends[0].point();
+    moved.end = ends[1].point();
+    let mut edit = Edit {
+        changes: vec![Change::Update {
+            doc,
+            object: Object::Track(moved),
+        }],
+        select: vec![id],
+    };
+    for other in updated.into_values() {
+        edit.changes.push(Change::Update {
+            doc,
+            object: Object::Track(other),
+        });
+    }
+    for joiner in joiners {
+        edit.changes.push(Change::Insert {
+            doc,
+            object: Object::Track(joiner),
+        });
+    }
+    Ok(edit)
+}
+
+/// Moves a track; the ends of tracks and vias that touch its ends move with
+/// it.
+fn stretch_track(doc: Id, pcb: &Pcb, track: &Track, offset: Point) -> Edit {
+    let id = track.id;
     let ends = [track.start, track.end];
     let moved = |p: Point| ends.contains(&p);
     let mut tracks: BTreeMap<Id, Track> = BTreeMap::new();
@@ -793,7 +950,7 @@ fn drag_track(doc: Id, pcb: &Pcb, id: Id, offset: Point) -> Result<Edit, EditErr
             object: Object::Via(via),
         });
     }
-    Ok(edit)
+    edit
 }
 
 #[cfg(test)]
@@ -923,5 +1080,78 @@ mod tests {
         assert_eq!(tracks[&aid].end, Point::mm(12, 0));
         assert_eq!(tracks[&aid].start, Point::mm(0, 0));
         assert_eq!(tracks[&cid].start, Point::mm(12, 10));
+    }
+
+    fn drag(pcb: &Pcb, id: Id, offset: Point) -> (HashMap<Id, Track>, Vec<Track>) {
+        let edit = apply(pcb.id, pcb, &BoardEdit::DragTrack { id, offset }).unwrap();
+        let mut updated_tracks = HashMap::new();
+        let mut inserted = Vec::new();
+        for change in edit.changes {
+            match change {
+                Change::Update {
+                    object: Object::Track(t),
+                    ..
+                } => {
+                    updated_tracks.insert(t.id, t);
+                }
+                Change::Insert {
+                    object: Object::Track(t),
+                    ..
+                } => inserted.push(t),
+                _ => {}
+            }
+        }
+        (updated_tracks, inserted)
+    }
+
+    #[test]
+    fn dragging_keeps_45_degree_neighbours() {
+        let mut pcb = board_with(Vec::new());
+        let net = Id::random();
+        let a = track(net, Point::mm(0, 0), Point::mm(5, 5), CopperLayer::Top);
+        let b = track(net, Point::mm(5, 5), Point::mm(15, 5), CopperLayer::Top);
+        let c = track(net, Point::mm(15, 5), Point::mm(20, 0), CopperLayer::Top);
+        let (aid, bid, cid) = (a.id, b.id, c.id);
+        for t in [a, b, c] {
+            pcb.tracks.insert(t);
+        }
+        // Up by 2 mm (the part along the segment does not count).
+        let (tracks, inserted) = drag(&pcb, bid, Point::mm(1, 2));
+        assert_eq!(inserted.len(), 0);
+        assert_eq!(
+            (tracks[&bid].start, tracks[&bid].end),
+            (Point::mm(7, 7), Point::mm(13, 7))
+        );
+        assert_eq!(
+            (tracks[&aid].start, tracks[&aid].end),
+            (Point::mm(0, 0), Point::mm(7, 7))
+        );
+        assert_eq!(
+            (tracks[&cid].start, tracks[&cid].end),
+            (Point::mm(13, 7), Point::mm(20, 0))
+        );
+        // So far that the segment would turn round: nothing happens.
+        let (tracks, inserted) = drag(&pcb, bid, Point::mm(0, 6));
+        assert_eq!((tracks.len(), inserted.len()), (0, 0));
+    }
+
+    #[test]
+    fn a_pad_end_gets_a_45_degree_joiner() {
+        let net = Id::random();
+        let mut pcb = board_with(vec![(Point::mm(0, 0), Some(net))]);
+        let t = track(net, Point::mm(0, 0), Point::mm(10, 0), CopperLayer::Top);
+        let id = t.id;
+        pcb.tracks.insert(t);
+        let (tracks, inserted) = drag(&pcb, id, Point::mm(0, 2));
+        // The free end moves; the pad end stays and a joiner goes up at 45°.
+        assert_eq!(
+            (tracks[&id].start, tracks[&id].end),
+            (Point::mm(2, 2), Point::mm(10, 2))
+        );
+        assert_eq!(inserted.len(), 1);
+        assert_eq!(
+            (inserted[0].start, inserted[0].end),
+            (Point::mm(0, 0), Point::mm(2, 2))
+        );
     }
 }

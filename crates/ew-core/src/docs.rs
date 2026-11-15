@@ -339,6 +339,10 @@ pub const SUMMARIES: &[(&str, &str)] = &[
         "`{\"doc\", \"op\", …}`. Operations (label in brackets):",
     ),
     (
+        "pcb.editPreview",
+        "The same parameters as `pcb.edit`; changes nothing and returns the tracks the edit would leave: `{\"tracks\": [{layer, width, start, end}], \"hidden\": [ids]}` (`hidden`: the objects they replace or remove), for drawing a drag before it is applied.",
+    ),
+    (
         "pcb.exclude",
         "`{\"doc\", \"keys\": [\"…\"], \"excluded\"?: true}` (`drc-exclusions`). Accepts findings (or reports them again with `\"excluded\": false`). The keys are stored in the board.",
     ),

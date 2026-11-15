@@ -155,6 +155,7 @@ pub const METHODS: &[&str] = &[
     "pcb.drc",
     "pcb.dxfPreview",
     "pcb.edit",
+    "pcb.editPreview",
     "pcb.exclude",
     "pcb.exportSpecctra",
     "pcb.fillZones",

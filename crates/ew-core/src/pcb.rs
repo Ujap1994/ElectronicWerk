@@ -682,6 +682,13 @@ pub fn call(
                 reply: json!({"select": edit.select, "changes": count}),
             })
         }
+        "pcb.editPreview" => {
+            let params: EditParams = parse(params)?;
+            let pcb = board(project, params.doc)?;
+            let edit = ew_pcb::edit::apply(params.doc, pcb, &params.edit)
+                .map_err(|error| edit_failed(&error))?;
+            Ok(Outcome::Read(track_preview(&edit.changes)))
+        }
         "pcb.place" => {
             let params: PlaceParams = parse(params)?;
             let pcb = board(project, params.doc)?;
@@ -1307,4 +1314,39 @@ fn rules_info(project: &Project, doc: Option<Id>) -> Result<Value, EngineError> 
         "errors": errors,
         "severities": [ErcSeverity::Error, ErcSeverity::Warning, ErcSeverity::Ignore],
     }))
+}
+
+/// The tracks an edit would leave, for a preview: the changed and new
+/// tracks (`tracks`) and the objects they replace or remove (`hidden`).
+fn track_preview(changes: &[ew_schematic::edit::Change]) -> Value {
+    use ew_model::object::Object;
+    use ew_schematic::edit::Change;
+    let mut tracks = Vec::new();
+    let mut hidden = Vec::new();
+    for change in changes {
+        match change {
+            Change::Update {
+                object: Object::Track(track),
+                ..
+            }
+            | Change::Insert {
+                object: Object::Track(track),
+                ..
+            } => {
+                if matches!(change, Change::Update { .. }) {
+                    hidden.push(track.id);
+                }
+                tracks.push(json!({
+                    "layer": track.layer,
+                    "width": track.width,
+                    "start": track.start,
+                    "end": track.end,
+                }));
+            }
+            Change::Update { object, .. } => hidden.push(object.id()),
+            Change::Delete { id, .. } => hidden.push(*id),
+            Change::Insert { .. } => {}
+        }
+    }
+    json!({ "tracks": tracks, "hidden": hidden })
 }

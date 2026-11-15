@@ -20,6 +20,20 @@ export type BoardTool =
 /** The via type the router places when it changes layers. */
 export type ViaChoice = 'through' | 'blind' | 'micro';
 
+/** A track of a preview: what an edit in progress would leave. */
+export interface PreviewTrack {
+  readonly layer: string;
+  readonly width: number;
+  readonly start: Point;
+  readonly end: Point;
+}
+
+/** The reply of `pcb.editPreview`. */
+interface EditPreview {
+  readonly tracks: readonly PreviewTrack[];
+  readonly hidden: readonly string[];
+}
+
 /** A via placed while routing. */
 export interface RouteVia {
   readonly at: Point;
@@ -72,6 +86,8 @@ export interface BoardSnapshot {
   readonly outlineShape: 'rect' | 'polygon';
   /** Objects being moved: the offset. */
   readonly move: { readonly delta: Point } | null;
+  /** Tracks an edit in progress would leave (a drag), drawn over the board. */
+  readonly preview: readonly PreviewTrack[] | null;
   /** A text being typed. */
   readonly prompt: { readonly at: Point; readonly value: string } | null;
   /** The footprint being placed. */
@@ -226,6 +242,7 @@ export class BoardEditor implements Interaction {
     polygon: [],
     outlineShape: 'rect',
     move: null,
+    preview: null,
     prompt: null,
     footprint: null,
     rotation: 0,
@@ -239,6 +256,11 @@ export class BoardEditor implements Interaction {
   private press: { start: Point; screen: Point; moving: boolean } | null = null;
   private keyMove: { start: Point; drag: boolean } | null = null;
   private moveIds: string[] = [];
+  /** The track a drag moves (its neighbours follow), or `null` for a move. */
+  private dragId: string | null = null;
+  /** Drag previews: one request at a time, the latest offset wins. */
+  private previewing = false;
+  private pendingDelta: Point | null = null;
   private busy = false;
   /** Routing previews: one request at a time, the latest target wins. */
   private routing = false;
@@ -346,14 +368,16 @@ export class BoardEditor implements Interaction {
     }
     this.press = null;
     this.keyMove = null;
-    this.update({ move: null, polygon: [], prompt: null });
+    this.dragId = null;
+    this.update({ move: null, preview: null, polygon: [], prompt: null });
   }
 
   // --- Engine calls ---------------------------------------------------------
 
-  private async edit(method: string, params: Record<string, unknown>): Promise<boolean> {
+  /** Runs an edit; `null` when it failed (or another one is running). */
+  private async edit(method: string, params: Record<string, unknown>): Promise<EditResult | null> {
     if (this.busy) {
-      return false;
+      return null;
     }
     this.busy = true;
     try {
@@ -364,10 +388,10 @@ export class BoardEditor implements Interaction {
       if (result.seq !== null) {
         this.host.edited();
       }
-      return true;
+      return result;
     } catch (error) {
       this.host.error(error);
-      return false;
+      return null;
     } finally {
       this.busy = false;
     }
@@ -431,11 +455,17 @@ export class BoardEditor implements Interaction {
       return;
     }
     this.keyMove = { start: cursor, drag };
-    this.beginMove(ids);
+    this.beginMove(ids, drag);
   }
 
-  private beginMove(ids: string[]): void {
+  private beginMove(ids: string[], drag: boolean): void {
     this.moveIds = ids;
+    const types = this.controller.snapshot().selection.map((s) => s.type);
+    // A single track is dragged: its neighbours follow, drawn as a preview.
+    this.dragId =
+      drag && ids.length === 1 && types.length === 1 && types[0] === 'track'
+        ? (ids[0] ?? null)
+        : null;
     this.controller.setMoveOffset([0, 0]);
     this.update({ move: { delta: [0, 0] } });
   }
@@ -447,34 +477,79 @@ export class BoardEditor implements Interaction {
     }
     const delta: Point = [cursor[0] - start[0], cursor[1] - start[1]];
     if (delta[0] !== move.delta[0] || delta[1] !== move.delta[1]) {
-      this.controller.setMoveOffset(delta);
       this.update({ move: { delta } });
+      if (this.dragId === null) {
+        this.controller.setMoveOffset(delta);
+      } else {
+        this.requestDragPreview(delta);
+      }
     }
+  }
+
+  /** Asks the engine what a drag by `delta` would leave. */
+  private requestDragPreview(delta: Point): void {
+    const id = this.dragId;
+    if (id === null) {
+      return;
+    }
+    if (this.previewing) {
+      this.pendingDelta = delta;
+      return;
+    }
+    this.previewing = true;
+    this.host
+      .call<EditPreview>('pcb.editPreview', {
+        doc: this.host.doc,
+        op: 'dragTrack',
+        id,
+        offset: rounded(delta),
+      })
+      .then((reply) => {
+        if (this.dragId !== id || this.state.move === null) {
+          return;
+        }
+        // The dragged track stays hidden even when the drag changes nothing.
+        const hidden = reply.hidden.length > 0 ? reply.hidden : [];
+        this.controller.setMoveOffset([0, 0], hidden);
+        this.update({ preview: reply.tracks.length > 0 ? reply.tracks : null });
+      })
+      .catch(() => undefined)
+      .finally(() => {
+        this.previewing = false;
+        const next = this.pendingDelta;
+        this.pendingDelta = null;
+        if (next !== null) {
+          this.requestDragPreview(next);
+        }
+      });
   }
 
   private finishMove(drag: boolean): void {
     const move = this.state.move;
+    const dragged = this.dragId;
     this.press = null;
     this.keyMove = null;
+    this.dragId = null;
+    this.pendingDelta = null;
     if (move === null) {
       return;
     }
     if (move.delta[0] === 0 && move.delta[1] === 0) {
       this.controller.setMoveOffset(null);
-      this.update({ move: null });
+      this.update({ move: null, preview: null });
       return;
     }
     this.update({ move: null });
     const ids = this.moveIds;
-    const types = this.controller.snapshot().selection.map((s) => s.type);
-    const track =
-      ids.length === 1 && types.length === 1 && types[0] === 'track' ? ids[0] : undefined;
     const request =
-      drag && track !== undefined
-        ? this.edit('pcb.edit', { op: 'dragTrack', id: track, offset: move.delta })
+      drag && dragged !== null
+        ? this.edit('pcb.edit', { op: 'dragTrack', id: dragged, offset: rounded(move.delta) })
         : this.edit('pcb.edit', { op: 'move', ids, offset: move.delta });
-    void request.then((ok) => {
-      if (!ok) {
+    void request.then((result) => {
+      // The board reloads with the result and ends the move; without a
+      // change nothing reloads, so the move ends here.
+      this.update({ preview: null });
+      if ((result?.seq ?? null) === null) {
         this.controller.setMoveOffset(null);
       }
     });
@@ -976,7 +1051,7 @@ export class BoardEditor implements Interaction {
           Math.hypot(screen[0] - press.screen[0], screen[1] - press.screen[1]) > DRAG_THRESHOLD_PX
         ) {
           press.moving = true;
-          this.beginMove(this.selectedObjects());
+          this.beginMove(this.selectedObjects(), true);
         }
       }
       if (press.moving) {
