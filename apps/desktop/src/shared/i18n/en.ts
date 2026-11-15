@@ -371,6 +371,7 @@ export const en = {
     netlist: 'Netlist',
     archive: 'ZIP package',
     documentation: 'Project documentation (HTML)',
+    dxf: 'DXF drawing (outline, mechanical layers)',
   },
   colors: {
     white: 'White',

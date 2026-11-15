@@ -153,13 +153,25 @@ test('makes a panel, the documentation and the design statistics', async () => {
   await expect(page.getByTestId('output-documentation-schematic')).toBeChecked();
   await page.getByTestId('output-documentation-statistics').uncheck();
 
+  // A DXF drawing of the panel: outline and V-score lines, a file each.
+  await page.getByTestId('outputs-add').selectOption('dxf');
+  await expect(page.getByTestId('output-dxf-default-layers')).toBeChecked();
+  await page.getByTestId('output-option-separate').check();
+
   await page.getByTestId('outputs-generate').click();
   const list = page.getByTestId('outputs-list');
-  await expect(list.locator('[data-status="done"]')).toHaveCount(10, { timeout: 90_000 });
+  await expect(list.locator('[data-status="done"]')).toHaveCount(11, { timeout: 90_000 });
   const generated = join(projectsDir, 'Panel Demo', 'outputs', 'generated');
   const files = listFiles(generated);
   expect(files).toContain('gerber/Panel_Demo_panel-User_1.gbr');
   expect(files).toContain('documentation/Panel_Demo-documentation.html');
+  expect(files).toContain('mechanical/Panel_Demo_panel-Board_outline.dxf');
+  expect(files).toContain('mechanical/Panel_Demo_panel-User_1.dxf');
+  const outline = readFileSync(
+    join(generated, 'mechanical', 'Panel_Demo_panel-Board_outline.dxf'),
+    'utf8',
+  );
+  expect(outline).toContain('AC1009');
   const placement = readFileSync(
     join(generated, 'assembly', 'Panel_Demo_panel-placement.csv'),
     'utf8',

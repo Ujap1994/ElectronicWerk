@@ -180,6 +180,12 @@ export const outputsDe: Messages['outputs'] = {
       notRectangular: 'Ritzen braucht eine rechteckige Platine. Nimm für diese Kontur Mouse Bites.',
     },
   },
+  dxf: {
+    layersDefault: 'Platinenumriss und alle mechanischen und Benutzerlagen mit Zeichnungen',
+    units: 'Einheiten',
+    separate: 'Eine Datei pro Lage',
+    hint: 'Für Gehäusekonstruktion und mechanisches CAD: Die Formen werden als Mittellinien geschrieben (DXF R12), bezogen auf den Bohr- und Bestückungsnullpunkt. Mit einem Nutzen zeigt die Zeichnung den ganzen Nutzen.',
+  },
   model3d: {
     format: 'Format',
     step: 'STEP (exakte Volumenkörper für Mechanik-CAD)',

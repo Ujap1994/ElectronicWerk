@@ -17,7 +17,8 @@ export type OutputKind =
   | 'ipc2581'
   | 'netlist'
   | 'archive'
-  | 'documentation';
+  | 'documentation'
+  | 'dxf';
 
 /** Kinds in the order of the "add output" menu. */
 export const OUTPUT_KINDS: readonly OutputKind[] = [
@@ -33,6 +34,7 @@ export const OUTPUT_KINDS: readonly OutputKind[] = [
   'netlist',
   'archive',
   'step',
+  'dxf',
   'documentation',
 ];
 
@@ -152,6 +154,7 @@ const FOLDERS: Readonly<Record<OutputKind, string>> = {
   netlist: 'netlists',
   archive: '',
   documentation: 'documentation',
+  dxf: 'mechanical',
 };
 
 /** Option defaults per kind (missing options take these values). */
@@ -229,6 +232,7 @@ export const DEFAULTS: Readonly<Record<OutputKind, Readonly<Record<string, unkno
     statistics: true,
     folder: FOLDERS.documentation,
   },
+  dxf: { layers: [], units: 'mm', separate: false, folder: FOLDERS.dxf },
 };
 
 /** An option of an output, or its default. */
@@ -283,6 +287,23 @@ export function boardLayers(copperCount: number): string[] {
   ]);
   return [...copper, ...sided, 'outline'];
 }
+
+/** The layers a DXF drawing can hold: outline, mechanical, user and fabrication. */
+export const DXF_LAYERS: readonly string[] = [
+  'outline',
+  'mech.1',
+  'mech.2',
+  'mech.3',
+  'mech.4',
+  'user.1',
+  'user.2',
+  'user.3',
+  'user.4',
+  'fab.top',
+  'fab.bottom',
+  'courtyard.top',
+  'courtyard.bottom',
+];
 
 /** The file name and folder of a generated file path. */
 export function splitPath(path: string): { readonly folder: string; readonly file: string } {

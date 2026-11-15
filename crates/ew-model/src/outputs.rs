@@ -38,6 +38,8 @@ pub enum OutputKind {
     Archive,
     /// Project documentation (one HTML file).
     Documentation,
+    /// DXF drawing of the board outline and mechanical layers.
+    Dxf,
 }
 
 /// One output in a job.

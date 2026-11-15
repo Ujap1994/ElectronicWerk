@@ -368,6 +368,7 @@ export const de: Messages = {
     netlist: 'Netzliste',
     archive: 'ZIP-Paket',
     documentation: 'Projektdokumentation (HTML)',
+    dxf: 'DXF-Zeichnung (Umriss, mechanische Lagen)',
   },
   colors: {
     white: 'Weiß',

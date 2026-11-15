@@ -375,6 +375,43 @@ impl Default for PrintJob {
     }
 }
 
+/// Units of a DXF drawing.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub enum DxfUnits {
+    /// Millimetres.
+    #[default]
+    Mm,
+    /// Inches.
+    Inch,
+}
+
+/// Options of the DXF output.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase", default)]
+pub struct DxfJob {
+    /// Layers (empty: the outline and every mechanical and user layer with
+    /// drawings).
+    pub layers: Vec<String>,
+    /// Units.
+    pub units: DxfUnits,
+    /// One file per layer.
+    pub separate: bool,
+    /// Subfolder.
+    pub folder: String,
+}
+
+impl Default for DxfJob {
+    fn default() -> Self {
+        Self {
+            layers: Vec::new(),
+            units: DxfUnits::Mm,
+            separate: false,
+            folder: "mechanical".to_owned(),
+        }
+    }
+}
+
 /// Options of the project documentation.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase", default)]
@@ -796,6 +833,24 @@ fn run_one(
         OutputKind::Step => {
             let (files, _) = model3d(spec, ctx)?;
             Ok(files)
+        }
+        OutputKind::Dxf => {
+            let o: DxfJob = options(spec)?;
+            let pcb = panel_board(project, spec.source, panel)?;
+            let pcb: &Pcb = &pcb;
+            let files = crate::dxf::dxf_files(
+                pcb,
+                &crate::dxf::DxfOptions {
+                    layers: parse_layers(&o.layers)?,
+                    inch: o.units == DxfUnits::Inch,
+                    separate: o.separate,
+                },
+                &sanitize(&pcb.name),
+            );
+            Ok(files
+                .into_iter()
+                .map(|f| OutputFile::binary(folder(&o.folder, &f.name), f.data))
+                .collect())
         }
     }
 }

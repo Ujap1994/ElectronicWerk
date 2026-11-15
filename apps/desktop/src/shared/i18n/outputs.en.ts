@@ -175,6 +175,12 @@ export const outputsEn = {
       notRectangular: 'V-score needs a rectangular board. Use mouse bites for this outline.',
     },
   },
+  dxf: {
+    layersDefault: 'Board outline and every mechanical and user layer with drawings',
+    units: 'Units',
+    separate: 'One file per layer',
+    hint: 'For case design and mechanical CAD: the shapes are written as centre lines (DXF R12), relative to the drill and placement origin. With a panel, the drawing shows the whole panel.',
+  },
   model3d: {
     format: 'Format',
     step: 'STEP (exact solids for mechanical CAD)',

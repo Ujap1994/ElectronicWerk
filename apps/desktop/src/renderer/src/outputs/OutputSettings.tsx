@@ -7,6 +7,7 @@ import { useAppState } from '../state';
 import { layerLabel } from '../viewer/labels';
 import {
   boardLayers,
+  DXF_LAYERS,
   OUTPUT_KINDS,
   option,
   withOption,
@@ -423,6 +424,7 @@ const KIND_LABELS: Readonly<Record<OutputKind, MessageKey>> = {
   netlist: 'outputKinds.netlist',
   archive: 'outputKinds.archive',
   documentation: 'outputKinds.documentation',
+  dxf: 'outputKinds.dxf',
 };
 
 /** The translated name of an output kind. */
@@ -700,6 +702,48 @@ export function OutputSettings({
           </div>
           <span className="field__hint">{t('outputs.documentation.hint')}</span>
         </fieldset>
+      )}
+      {spec.kind === 'dxf' && (
+        <>
+          <fieldset className="field field--group">
+            <legend className="field__label">{t('outputs.gerber.layers')}</legend>
+            <Check
+              label={t('outputs.dxf.layersDefault')}
+              checked={option<readonly string[]>(spec, 'layers').length === 0}
+              testId="output-dxf-default-layers"
+              onChange={(on) => {
+                set('layers', on ? [] : ['outline']);
+              }}
+            />
+            {option<readonly string[]>(spec, 'layers').length > 0 && (
+              <LayerChoice
+                layers={DXF_LAYERS}
+                selected={option<readonly string[]>(spec, 'layers')}
+                testId="output-dxf-layers"
+                onChange={(next) => {
+                  set('layers', next);
+                }}
+              />
+            )}
+          </fieldset>
+          <Choice
+            label={t('outputs.dxf.units')}
+            value={option<string>(spec, 'units')}
+            options={[
+              ['mm', t('outputs.placement.mm')],
+              ['inch', t('outputs.placement.inch')],
+            ]}
+            testId="output-dxf-units"
+            onChange={(value) => {
+              set('units', value);
+            }}
+          />
+          {check('separate', 'outputs.dxf.separate')}
+          <p className="callout callout--info">
+            <Icon name="info" />
+            <span>{t('outputs.dxf.hint')}</span>
+          </p>
+        </>
       )}
       {spec.kind === 'step' && (
         <>

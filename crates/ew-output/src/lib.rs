@@ -11,7 +11,8 @@
 //!   IPC-2581 board data.
 //! - [`canvas`]: vector pages, written by [`pdf`] and [`svg`]; [`print`]:
 //!   schematic prints, board prints and assembly drawings.
-//! - [`archive`]: ZIP packages.
+//! - [`archive`]: ZIP packages; [`dxf`]: DXF drawings of the outline and
+//!   mechanical layers.
 //! - [`job`]: output jobs and presets for board makers.
 //! - [`viewer`]: Gerber and drill files as a scene for the viewer.
 //! - [`fracture`]: polygons with holes as one contour.
@@ -34,6 +35,7 @@ pub mod canvas;
 pub mod documentation;
 pub mod drill;
 pub mod drillmap;
+pub mod dxf;
 pub mod font;
 pub mod fracture;
 pub mod gerber;
