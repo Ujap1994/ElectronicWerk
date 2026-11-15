@@ -97,3 +97,53 @@ fn engine_project(engine: &mut Engine, dir: &std::path::Path) -> ew_model::proje
         .unwrap()
         .project
 }
+
+fn eagle_fixture(name: &str) -> std::path::PathBuf {
+    std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+        .join("../ew-eagle/tests/fixtures/blinky")
+        .join(name)
+}
+
+#[test]
+fn an_eagle_project_and_library_come_in() {
+    let dir = tempfile::tempdir().unwrap();
+    let mut engine = Engine::without_journal();
+    let probe = call(
+        &mut engine,
+        "import.kicadProbe",
+        json!({"source": eagle_fixture("blinky.brd")}),
+    );
+    assert_eq!(probe["format"], "eagle");
+    assert_eq!(probe["schematic"], true);
+    assert_eq!(probe["board"], true);
+    assert_eq!(probe["name"], "blinky");
+
+    let target = dir.path().join("Blinky");
+    let result = call(
+        &mut engine,
+        "import.kicad",
+        json!({"source": eagle_fixture("blinky.sch"), "path": target, "name": "Blinky"}),
+    );
+    assert_eq!(result["reportFile"], "eagle-import-report.md");
+    assert!(target.join("eagle-import-report.md").exists());
+    assert_eq!(result["report"]["counts"]["footprints"], 8);
+    let docs = result["project"]["documents"].as_array().unwrap();
+    assert!(docs.iter().any(|d| d["kind"] == "pcb"));
+    assert_eq!(docs.iter().filter(|d| d["kind"] == "schematic").count(), 3);
+
+    // The board matches the schematic: nothing to update.
+    let board = docs.iter().find(|d| d["kind"] == "pcb").unwrap()["id"].clone();
+    let preview = call(&mut engine, "pcb.syncPreview", json!({"doc": board}));
+    let changes = preview["changes"].as_array().map_or(0, Vec::len);
+    assert_eq!(changes, 0, "{preview}");
+
+    // The library on its own: everything is already in the project.
+    let library = call(
+        &mut engine,
+        "import.library",
+        json!({"source": eagle_fixture("blinky.lbr")}),
+    );
+    assert!(library["report"].is_object());
+    assert_eq!(library["symbols"], 0, "{library}");
+    assert_eq!(library["footprints"], 0);
+}

@@ -1,0 +1,23 @@
+[package]
+name = "ew-eagle"
+description = "ElectronicWerk Eagle import: XML schematics, boards and libraries"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+publish = false
+
+[dependencies]
+ew-kicad.workspace = true
+ew-model.workspace = true
+ew-pcb.workspace = true
+ew-schematic.workspace = true
+roxmltree.workspace = true
+
+[dev-dependencies]
+tempfile.workspace = true
+
+[lints]
+workspace = true

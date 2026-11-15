@@ -80,6 +80,8 @@ export interface KicadImportOptions {
   readonly source: string;
   readonly name: string;
   readonly location: string;
+  /** `kicad` or `eagle` (from the probe). */
+  readonly format: 'kicad' | 'eagle';
 }
 
 export interface ProjectApi {
@@ -129,6 +131,7 @@ export interface ProjectApi {
   readonly resolveText: (text: string, doc?: string) => Promise<string>;
   readonly showInFolder: (relativePath?: string) => void;
   readonly startKicadImport: () => Promise<void>;
+  readonly startEagleImport: () => Promise<void>;
   readonly runKicadImport: (options: KicadImportOptions) => Promise<boolean>;
   readonly closeKicadImport: () => void;
   readonly closeImportReport: () => void;
@@ -557,16 +560,23 @@ export function ProjectProvider({ children }: { readonly children: ReactNode }):
     [t],
   );
 
-  const startKicadImport = useCallback(async () => {
-    const source = await window.ew.dialogs.chooseImport('kicadProject');
-    if (source === null) {
-      return;
-    }
-    const probe = await run(null, () => engine.call<KicadProbe>('import.kicadProbe', { source }));
-    if (probe === null || !(await closeInternal(false))) {
-      return;
-    }
-    setPrompts((current) => ({ ...current, kicadImport: { source, probe } }));
+  // KiCad and Eagle projects share the import dialog and its dependencies.
+  const importActions = useMemo(() => {
+    const start = async (kind: 'kicadProject' | 'eagleProject'): Promise<void> => {
+      const source = await window.ew.dialogs.chooseImport(kind);
+      if (source === null) {
+        return;
+      }
+      const probe = await run(null, () => engine.call<KicadProbe>('import.kicadProbe', { source }));
+      if (probe === null || !(await closeInternal(false))) {
+        return;
+      }
+      setPrompts((current) => ({ ...current, kicadImport: { source, probe } }));
+    };
+    return {
+      startKicadImport: () => start('kicadProject'),
+      startEagleImport: () => start('eagleProject'),
+    };
   }, [closeInternal, engine, run]);
 
   const closeKicadImport = useCallback(() => {
@@ -576,12 +586,14 @@ export function ProjectProvider({ children }: { readonly children: ReactNode }):
   const runKicadImport = useCallback(
     async (options: KicadImportOptions): Promise<boolean> => {
       const path = joinPath(options.location, sanitizeFolderName(options.name), appInfo.platform);
-      const result = await run('import.importing', () =>
-        engine.call<{ project: ProjectSnapshot; report: ImportReport; reportFile: string }>(
-          'import.kicad',
-          { source: options.source, path, name: options.name.trim(), names: localizedNames() },
-          LONG_CALL_MS,
-        ),
+      const result = await run(
+        options.format === 'eagle' ? 'import.importingEagle' : 'import.importing',
+        () =>
+          engine.call<{ project: ProjectSnapshot; report: ImportReport; reportFile: string }>(
+            'import.kicad',
+            { source: options.source, path, name: options.name.trim(), names: localizedNames() },
+            LONG_CALL_MS,
+          ),
       );
       if (result === null) {
         return false;
@@ -1001,7 +1013,8 @@ export function ProjectProvider({ children }: { readonly children: ReactNode }):
       documentProperties,
       resolveText,
       showInFolder,
-      startKicadImport,
+      startKicadImport: importActions.startKicadImport,
+      startEagleImport: importActions.startEagleImport,
       runKicadImport,
       closeKicadImport,
       closeImportReport,
@@ -1045,7 +1058,7 @@ export function ProjectProvider({ children }: { readonly children: ReactNode }):
       documentProperties,
       resolveText,
       showInFolder,
-      startKicadImport,
+      importActions,
       runKicadImport,
       closeKicadImport,
       closeImportReport,

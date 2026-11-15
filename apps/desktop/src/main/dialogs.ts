@@ -76,6 +76,11 @@ const IMPORT_DIALOGS = {
     filter: 'dialogs.kicadProjectFilter',
     extensions: ['kicad_pro', 'kicad_sch', 'kicad_pcb'],
   },
+  eagleProject: {
+    title: 'dialogs.importEagleTitle',
+    filter: 'dialogs.eagleProjectFilter',
+    extensions: ['sch', 'brd'],
+  },
   netlist: {
     title: 'dialogs.importNetlistTitle',
     filter: 'dialogs.netlistFilter',
@@ -84,7 +89,7 @@ const IMPORT_DIALOGS = {
   kicadLibraryFile: {
     title: 'dialogs.importLibraryTitle',
     filter: 'dialogs.kicadLibraryFilter',
-    extensions: ['kicad_sym', 'kicad_mod'],
+    extensions: ['kicad_sym', 'kicad_mod', 'lbr'],
   },
   kicadLibraryFolder: {
     title: 'dialogs.importLibraryFolderTitle',

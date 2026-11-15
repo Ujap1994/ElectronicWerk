@@ -30,9 +30,13 @@ describe('validation codes', () => {
   });
 });
 
-/** Every finding code the KiCad importer can report. */
+/** Every finding code the KiCad and Eagle importers can report. */
 function importCodes(): Set<string> {
-  const dirs = ['../../../crates/ew-kicad/src', '../../../crates/ew-core/src'];
+  const dirs = [
+    '../../../crates/ew-kicad/src',
+    '../../../crates/ew-eagle/src',
+    '../../../crates/ew-core/src',
+  ];
   const codes = new Set<string>();
   for (const dir of dirs) {
     const root = resolve(import.meta.dirname, dir);

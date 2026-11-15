@@ -51,6 +51,7 @@ function KicadImportDialog(): ReactNode {
   const { prompts, runKicadImport, closeKicadImport } = useProject();
   const formId = useId();
   const prompt = prompts.kicadImport;
+  const eagle = prompt?.probe.format === 'eagle';
   const [name, setName] = useState(prompt?.probe.name ?? '');
   const [location, setLocation] = useState('');
   const [touched, setTouched] = useState(false);
@@ -83,12 +84,17 @@ function KicadImportDialog(): ReactNode {
   const submit = (): void => {
     setTouched(true);
     if (valid) {
-      void runKicadImport({ source: prompt.source, name: name.trim(), location: location.trim() });
+      void runKicadImport({
+        source: prompt.source,
+        name: name.trim(),
+        location: location.trim(),
+        format: prompt.probe.format,
+      });
     }
   };
   return (
     <Modal
-      title={t('import.title')}
+      title={eagle ? t('import.titleEagle') : t('import.title')}
       testId="kicad-import-dialog"
       onClose={closeKicadImport}
       footer={
@@ -108,9 +114,11 @@ function KicadImportDialog(): ReactNode {
         </>
       }
     >
-      <p className="dialog__text dialog__text--muted">{t('import.intro')}</p>
+      <p className="dialog__text dialog__text--muted">
+        {eagle ? t('import.introEagle') : t('import.intro')}
+      </p>
       <div className="field">
-        <span className="field__label">{t('import.source')}</span>
+        <span className="field__label">{eagle ? t('import.sourceEagle') : t('import.source')}</span>
         <code className="path" data-testid="kicad-import-source">
           {prompt.source}
         </code>

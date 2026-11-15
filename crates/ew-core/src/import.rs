@@ -17,6 +17,30 @@ use crate::error::{EngineError, ErrorCode};
 
 /// The file the import report is saved to, in the new project's folder.
 pub const REPORT_FILE: &str = "kicad-import-report.md";
+/// The report file of an Eagle import.
+pub const EAGLE_REPORT_FILE: &str = "eagle-import-report.md";
+
+/// `true` if `source` is an Eagle schematic, board or library (XML), or a
+/// folder with an Eagle project and no KiCad project.
+#[must_use]
+pub fn is_eagle(source: &Path) -> bool {
+    let eagle_file = |path: &Path| {
+        matches!(
+            path.extension().and_then(|e| e.to_str()),
+            Some("sch" | "brd" | "lbr")
+        ) && std::fs::read(path)
+            .is_ok_and(|bytes| ew_eagle::is_eagle(&String::from_utf8_lossy(&bytes)))
+    };
+    if source.is_dir() {
+        return ew_kicad::locate(source).is_err()
+            && std::fs::read_dir(source).is_ok_and(|entries| {
+                entries
+                    .filter_map(Result::ok)
+                    .any(|entry| eagle_file(&entry.path()))
+            });
+    }
+    eagle_file(source)
+}
 
 /// Maps an import error to an engine error.
 #[must_use]
@@ -45,6 +69,8 @@ pub struct Probe {
     pub schematic: bool,
     /// A board exists.
     pub board: bool,
+    /// `kicad` or `eagle`.
+    pub format: &'static str,
 }
 
 /// Looks at a KiCad project without importing it.
@@ -53,6 +79,23 @@ pub struct Probe {
 ///
 /// Fails if there is no KiCad project at `source`.
 pub fn probe(source: &Path) -> Result<Probe, EngineError> {
+    if is_eagle(source) {
+        let (schematic, board, stem) = ew_eagle::locate(source).map_err(|e| engine_error(&e))?;
+        let folder = schematic
+            .as_ref()
+            .or(board.as_ref())
+            .and_then(|p| p.parent())
+            .map(|p| p.display().to_string())
+            .unwrap_or_default();
+        return Ok(Probe {
+            name: stem,
+            folder,
+            project: false,
+            schematic: schematic.is_some(),
+            board: board.is_some(),
+            format: "eagle",
+        });
+    }
     let (folder, stem) = ew_kicad::locate(source).map_err(|e| engine_error(&e))?;
     Ok(Probe {
         project: folder.join(format!("{stem}.kicad_pro")).exists(),
@@ -60,6 +103,7 @@ pub fn probe(source: &Path) -> Result<Probe, EngineError> {
         board: folder.join(format!("{stem}.kicad_pcb")).exists(),
         folder: folder.display().to_string(),
         name: stem,
+        format: "kicad",
     })
 }
 

@@ -37,6 +37,7 @@ export function App(): ReactNode {
     newProject,
     openProject,
     startKicadImport,
+    startEagleImport,
     importNetlist,
     save,
     saveAs,
@@ -96,6 +97,9 @@ export function App(): ReactNode {
           case 'import-kicad':
             void startKicadImport();
             break;
+          case 'import-eagle':
+            void startEagleImport();
+            break;
           case 'save':
             void save();
             break;
@@ -130,6 +134,7 @@ export function App(): ReactNode {
       }),
     [
       startKicadImport,
+      startEagleImport,
       archive,
       exportKicad,
       checkForUpdates,
@@ -276,6 +281,13 @@ export function App(): ReactNode {
         label: 'commands.importKicad',
         run: () => {
           void startKicadImport();
+        },
+      },
+      {
+        id: 'import-eagle',
+        label: 'commands.importEagle',
+        run: () => {
+          void startEagleImport();
         },
       },
       {
@@ -451,6 +463,7 @@ export function App(): ReactNode {
       sourceControl,
       githubOn,
       startKicadImport,
+      startEagleImport,
       project,
       redo,
       save,

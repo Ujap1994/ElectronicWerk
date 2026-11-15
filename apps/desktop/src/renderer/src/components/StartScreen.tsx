@@ -50,6 +50,13 @@ const ACTIONS: readonly Action[] = [
     icon: <path d="M12 4v11m0 0-4-4m4 4 4-4M4 20h16" />,
   },
   {
+    id: 'import-eagle',
+    title: 'start.importEagle',
+    hint: 'start.importEagleHint',
+    availableIn: null,
+    icon: <path d="M12 4v11m0 0-4-4m4 4 4-4M4 20h16M4 4h4" />,
+  },
+  {
     id: 'library',
     title: 'library.open',
     hint: 'library.openHint',
@@ -193,7 +200,7 @@ export function StartScreen({ onOpenLibrary }: { readonly onOpenLibrary: () => v
   const actions = appInfo.features.github
     ? ACTIONS
     : ACTIONS.filter((action) => action.id !== 'open-github');
-  const { newProject, openProject, startKicadImport } = useProject();
+  const { newProject, openProject, startKicadImport, startEagleImport } = useProject();
   const run: Readonly<Record<string, () => void>> = {
     library: onOpenLibrary,
     'new-project': newProject,
@@ -205,6 +212,9 @@ export function StartScreen({ onOpenLibrary }: { readonly onOpenLibrary: () => v
     },
     'import-kicad': () => {
       void startKicadImport();
+    },
+    'import-eagle': () => {
+      void startEagleImport();
     },
   };
   return (

@@ -1271,26 +1271,37 @@ impl Engine {
             "import.kicad" => {
                 self.ensure_closed()?;
                 let params: ImportKicadParams = parse(params)?;
-                let mut imported = ew_kicad::import_project(&params.source, params.name.as_deref())
-                    .map_err(|error| import::engine_error(&error))?;
+                let eagle = import::is_eagle(&params.source);
+                let mut imported = if eagle {
+                    ew_eagle::import_project(&params.source, params.name.as_deref())
+                } else {
+                    ew_kicad::import_project(&params.source, params.name.as_deref())
+                }
+                .map_err(|error| import::engine_error(&error))?;
                 if let Some(names) = &params.names {
                     templates::name_imported_documents(&mut imported.project, names);
                 }
                 crate::change::check_name(&imported.project.manifest.name)?;
                 let session = Session::create(&params.path, &imported.project, self.journaling)?;
-                let markdown = imported
-                    .report
-                    .to_markdown(&format!("KiCad import: {}", imported.project.manifest.name));
+                let (kind, report_file) = if eagle {
+                    ("Eagle", import::EAGLE_REPORT_FILE)
+                } else {
+                    ("KiCad", import::REPORT_FILE)
+                };
+                let markdown = imported.report.to_markdown(&format!(
+                    "{kind} import: {}",
+                    imported.project.manifest.name
+                ));
                 // The report is a plain file in the project folder; failing to
                 // write it does not fail the import.
-                let _ = std::fs::write(session.root().join(import::REPORT_FILE), markdown);
+                let _ = std::fs::write(session.root().join(report_file), markdown);
                 self.session = Some(session);
                 self.drc.clear();
                 self.project_event("opened");
                 Ok(json!({
                     "project": self.snapshot()?,
                     "report": to_value(&imported.report)?,
-                    "reportFile": import::REPORT_FILE,
+                    "reportFile": report_file,
                 }))
             }
             "import.library" => {
@@ -1309,11 +1320,15 @@ impl Engine {
                     return Err(EngineError::invalid_params("the target must be a library"));
                 }
                 let mut report = ew_kicad::ImportReport::new(params.source.display().to_string());
-                let imported = ew_kicad::library::import(
-                    &params.source,
-                    params.nickname.as_deref(),
-                    &mut report,
-                )
+                let imported = if import::is_eagle(&params.source) {
+                    ew_eagle::library::import(&params.source, &mut report)
+                } else {
+                    ew_kicad::library::import(
+                        &params.source,
+                        params.nickname.as_deref(),
+                        &mut report,
+                    )
+                }
                 .map_err(|error| import::engine_error(&error))?;
                 let (symbols, footprints, requests) =
                     import::library_changes(project, doc, imported, &mut report);

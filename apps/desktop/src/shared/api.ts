@@ -165,6 +165,7 @@ export type MenuAction =
   | 'new-project'
   | 'open-project'
   | 'import-kicad'
+  | 'import-eagle'
   | 'save'
   | 'save-as'
   | 'save-copy'
@@ -198,11 +199,18 @@ export function isExportKind(value: unknown): value is ExportKind {
 
 /** What kind of file an import dialog asks for. */
 export type ImportKind =
-  'kicadProject' | 'netlist' | 'kicadLibraryFile' | 'kicadLibraryFolder' | 'dxf' | 'ses';
+  | 'kicadProject'
+  | 'eagleProject'
+  | 'netlist'
+  | 'kicadLibraryFile'
+  | 'kicadLibraryFolder'
+  | 'dxf'
+  | 'ses';
 
 export function isImportKind(value: unknown): value is ImportKind {
   return (
     value === 'kicadProject' ||
+    value === 'eagleProject' ||
     value === 'netlist' ||
     value === 'kicadLibraryFile' ||
     value === 'kicadLibraryFolder' ||

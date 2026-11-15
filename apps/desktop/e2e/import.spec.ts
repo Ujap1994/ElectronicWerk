@@ -11,6 +11,7 @@ import { APP_DIR, launchApp, queueDialogAnswer, type LaunchedApp } from './fixtu
 import { viewerCanvas } from './viewer-helpers';
 
 const FIXTURE = resolve(APP_DIR, '../../crates/ew-kicad/tests/fixtures/blinky');
+const EAGLE = resolve(APP_DIR, '../../crates/ew-eagle/tests/fixtures/blinky');
 
 let launched: LaunchedApp | undefined;
 
@@ -131,6 +132,29 @@ test('exports a project as a KiCad project', async () => {
     'Everything was imported without problems.',
   );
   expect(existsSync(join(projectsDir, 'Round_Trip'))).toBe(true);
+});
+
+test('imports an Eagle project', async () => {
+  launched = await launchApp();
+  const { app, page, projectsDir } = launched;
+  await queueDialogAnswer(app, join(EAGLE, 'blinky.brd'));
+  await page.getByTestId('import-eagle').click();
+  const dialog = page.getByTestId('kicad-import-dialog');
+  await expect(dialog).toBeVisible();
+  await expect(dialog).toContainText('Import Eagle project');
+  await expect(dialog).toContainText('Schematic, Board');
+  await page.getByTestId('kicad-import-name').fill('Eagle Blinky');
+  await page.getByTestId('kicad-import-start').click();
+  const report = page.getByTestId('import-report');
+  await expect(report).toBeVisible();
+  await expect(page.getByTestId('import-summary')).toContainText('Errors: 0');
+  await expect(report).toContainText('Copper pours are imported unfilled');
+  await report.getByRole('button', { name: 'Close', exact: true }).last().click();
+  await expect(page.getByTestId('project-title')).toHaveText('Eagle Blinky');
+  await expect(
+    page.locator('[data-testid^="tree-file:"]', { hasText: 'eagle-import-report.md' }),
+  ).toBeVisible();
+  expect(existsSync(join(projectsDir, 'Eagle Blinky', 'eagle-import-report.md'))).toBe(true);
 });
 
 test('reports a file that is not a KiCad project', async () => {

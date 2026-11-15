@@ -169,6 +169,8 @@ export interface KicadProbe {
   readonly project: boolean;
   readonly schematic: boolean;
   readonly board: boolean;
+  /** `kicad` or `eagle`. */
+  readonly format: 'kicad' | 'eagle';
 }
 
 export interface NetlistComparison {
@@ -207,10 +209,17 @@ export const IMPORT_CODES: ReadonlySet<string> = new Set([
   'chamfered-pad',
   'custom-pad',
   'custom-rules',
+  'eagle-bus',
+  'eagle-frame',
+  'eagle-layer',
+  'eagle-multi-pad',
+  'eagle-pour',
   'erc-exclusions',
   'external-library',
   'footprint-zone',
+  'missing-footprint',
   'missing-parent',
+  'missing-part',
   'missing-sheet',
   'missing-symbol',
   'no-board',
