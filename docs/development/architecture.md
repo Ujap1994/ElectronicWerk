@@ -324,3 +324,22 @@ These M13 features are recorded in
 3. `ew-output::statistics` counts schematic, BOM and boards for the project
    details, the CLI and the documentation; `ew-output::documentation`
    writes the HTML documentation with the SVG prints embedded.
+
+## Interoperability
+
+The M14 exchange formats are recorded in
+[ADR-0015](https://github.com/Ujap1994/ElectronicWerk/blob/main/docs/adr/0015-interoperability.md):
+
+1. `ew-kicad::export` writes a project in the KiCad 8 format through a
+   small S-expression writer (`ew-kicad::write`): every conversion is the
+   inverse of the KiCad import, and tests run import → export → import and
+   compare netlists and every item.
+2. `ew-eagle` reads Eagle XML (`roxmltree`) into the same model and the
+   same import report as the KiCad import; the board is linked to the
+   schematic with the board update's own part keys.
+3. `ew-pcb::specctra` writes Specctra DSN and reads SES sessions;
+   `ew-output::dxf` writes DXF R12; `ew-output::reference` turns Gerber and
+   Excellon images into areas for reference drawings.
+4. ElectronicWerk's y axis points up (schematics and boards, like Gerber,
+   DXF and Specctra); KiCad's points down from the top of the page, so the
+   KiCad import and export flip y around the page height.

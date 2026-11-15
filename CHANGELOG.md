@@ -6,6 +6,62 @@ project uses [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.15.0] - 2026-11-15
+
+Interoperability: Eagle projects come in, every project goes out as a
+KiCad project, boards travel to external autorouters and back, Gerber files
+become a reference drawing and the outline goes to mechanical CAD as DXF.
+
+### Added
+
+- **Eagle import** of schematics (`.sch`), boards (`.brd`) and libraries
+  (`.lbr`) in Eagle's XML format (Eagle 6 to 9): parts and gates, one
+  symbol per device with pins numbered by its pads, packages with SMD pads,
+  through-hole pads (round, square, octagon, long, offset) and holes,
+  sheets (a top sheet holds several), nets kept exactly (labels on their
+  wires, global net names), supply symbols as power symbols, elements
+  (mirrored ones on the bottom), tracks, arcs, vias, pours, mounting holes,
+  net classes and design rule minimums; the board is linked to the
+  schematic. "Import Eagle project" on the start screen, in the File menu
+  and the command palette; `ewerk import eagle`; `.lbr` files in the
+  library import. See
+  [Importing Eagle projects](https://ujap1994.github.io/ElectronicWerk/guide/import-eagle).
+- **KiCad export** of a whole project in the KiCad 8 format (opened by KiCad
+  8, 9 and 10): `.kicad_pro` with net classes, patterns, board minimums and
+  text variables; one `.kicad_sch` per sheet with embedded symbols and
+  instance paths; power ports as power symbols; the `.kicad_pcb` with
+  stack-up, footprints, tracks, vias, zones and drawings, linked to the
+  schematic; the project's own symbols and footprints with library tables;
+  a note of what KiCad cannot hold. File menu and command palette ("Export
+  as KiCad Project…"), `ewerk project export-kicad`, engine method
+  `project.exportKicad`. See
+  [Exporting to KiCad](https://ujap1994.github.io/ElectronicWerk/guide/export-kicad).
+- **External autorouters (Specctra):** the board as a DSN file (layers,
+  outline, keep-outs, pours, parts with their pads, nets with net classes
+  and vias, locked routing protected) and the router's session (SES) back:
+  its routing replaces the unlocked tracks and vias of the routed nets in
+  one undo step. Autorouter dialog in the layout editor, `ewerk board
+export-dsn` / `import-ses`, engine methods `pcb.exportSpecctra` and
+  `pcb.importSession`. See
+  [External autorouters](https://ujap1994.github.io/ElectronicWerk/guide/autorouter).
+- **Gerber and drill files as a reference drawing:** filled areas on user or
+  mechanical layers (dark shapes united, clear shapes cut out) for tracing a
+  board from its manufacturing files or comparing a design with them;
+  dialog in the layout editor, engine methods `pcb.gerberPreview` and
+  `pcb.importGerbers`. See
+  [Gerber files as a reference](https://ujap1994.github.io/ElectronicWerk/guide/gerber-reference).
+- **DXF output** of the board outline and the mechanical and user layers
+  (ASCII DXF R12, millimetres or inches, one file or one per layer,
+  relative to the drill and placement origin; with a panel, the whole
+  panel). See
+  [DXF drawings](https://ujap1994.github.io/ElectronicWerk/guide/dxf-export).
+
+### Fixed
+
+- DXF drawings were imported mirrored vertically: an asymmetric board
+  outline came in upside down, and "move the lower left corner to the
+  origin" put the drawing below the origin.
+
 ## [0.14.1] - 2026-11-15
 
 The GitHub integration is switched off while its sign-in is reviewed, and
@@ -1010,7 +1066,8 @@ quality gates and the delivery pipeline that every later feature builds on.
   process ([ujap1994.github.io/ElectronicWerk](https://ujap1994.github.io/ElectronicWerk/)).
   **Help → Documentation** opens it.
 
-[Unreleased]: https://github.com/Ujap1994/ElectronicWerk/compare/v0.14.1...HEAD
+[Unreleased]: https://github.com/Ujap1994/ElectronicWerk/compare/v0.15.0...HEAD
+[0.15.0]: https://github.com/Ujap1994/ElectronicWerk/compare/v0.14.1...v0.15.0
 [0.14.1]: https://github.com/Ujap1994/ElectronicWerk/compare/v0.14.0...v0.14.1
 [0.14.0]: https://github.com/Ujap1994/ElectronicWerk/compare/v0.13.0...v0.14.0
 [0.13.0]: https://github.com/Ujap1994/ElectronicWerk/compare/v0.12.0...v0.13.0

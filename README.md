@@ -6,14 +6,17 @@
 
 An open-source ECAD suite for beginners and advanced hobbyists. It covers
 schematic, symbol, footprint and layout editing, a live 3D view, ERC/DRC,
-manufacturing outputs, online part search and a full CLI.
+manufacturing outputs, online part search, KiCad and Eagle exchange and a
+full CLI.
 
-> **Status:** early development. Version 0.14 adds the **assembly
-> assistant** for soldering boards by hand, **panels** for the board maker,
-> **design statistics** and the **project documentation** in one HTML file.
-> Since 0.14.1 the GitHub integration is switched off while its sign-in is
-> reviewed: projects live on your computer.
-> It builds on scripts and AI agents (0.13), GitHub (0.12), the online part
+> **Status:** early development. Version 0.15 opens ElectronicWerk to other
+> tools: **Eagle import**, **KiCad export**, **external autorouters**
+> (Specctra DSN/SES, Freerouting), **Gerber files as a reference drawing**
+> and **DXF drawings** of the outline and mechanical layers. The GitHub
+> integration stays switched off while its sign-in is reviewed: projects
+> live on your computer.
+> It builds on the assembly assistant, panels, statistics and documentation
+> (0.14), scripts and AI agents (0.13), GitHub (0.12), the online part
 > libraries (0.11), the 3D view (0.10), manufacturing outputs (0.9), the
 > layout editor (0.8), the library editors (0.7), the schematic editor (0.6),
 > the base library (0.5), the KiCad import (0.4), the fast 2D view (0.3) and
@@ -112,6 +115,17 @@ B.netclass != 'HV'`)
   symbols, board, footprints, zones, rules and project libraries become an
   ElectronicWerk project in one step, with a detailed import report; KiCad
   libraries can be added to a project at any time
+- **Eagle import:** Eagle 6 to 9 schematics, boards and libraries (XML)
+  become native projects with an import report; nets are kept exactly,
+  mirrored parts land on the bottom, `.lbr` libraries go through the
+  duplicate check
+- **KiCad export:** every project as a KiCad project (KiCad 8 format, opened
+  by KiCad 8 to 10) with all sheets, the board, the project libraries and
+  the design rules; checked by a round trip and by KiCad itself
+- **External autorouters:** the board as a Specctra DSN file for
+  Freerouting and others, the routed session (SES) back as one undo step
+- **Gerber files as a reference drawing** on user layers, and **DXF
+  drawings** of the outline and mechanical layers for mechanical CAD
 - **Netlists** from KiCad (`.net`, XML) and CSV: compare them with a board by
   connectivity and apply them
 - A **base library** with the KiCad symbols, footprints and 3D models (about

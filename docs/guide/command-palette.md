@@ -57,6 +57,8 @@ Project commands appear only while a project is open.
 | Save project as                            | Saves the project into another folder                             |
 | Save a copy of the project                 | Writes a copy and keeps working on the original                   |
 | Archive project                            | Writes a `.zip` archive                                           |
+| Export as a KiCad project                  | [Writes the project as a KiCad project](./export-kicad)           |
+| Import Eagle project                       | [Imports an Eagle project](./import-eagle)                        |
 | Undo / Redo                                | [Undo and redo](./undo-and-recovery)                              |
 | Check project                              | Runs the [project check](./projects#checking-a-project)           |
 | Project properties                         | Shows the [project properties](./project-tree#project-properties) |

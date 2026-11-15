@@ -103,6 +103,7 @@ What is imported:
 | `ELLIPSE`                | Polygon or polyline with 64 segments                            |
 
 Texts, dimensions, hatches and block inserts are skipped and listed in the
-dialog. DXF's y axis points up and the board's down, so the drawing is
-mirrored vertically on import to look the same as in the CAD program. The
-import is one undo step (`import-dxf`).
+dialog. DXF's y axis points up like the board's, so the drawing looks the
+same as in the CAD program (before version 0.15 it was mirrored vertically).
+The import is one undo step (`import-dxf`). The [DXF output](./dxf-export)
+writes the outline and the mechanical layers back to DXF.

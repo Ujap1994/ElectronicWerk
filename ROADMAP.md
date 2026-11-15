@@ -1,7 +1,7 @@
 # ElectronicWerk Roadmap
 
-> **Status:** v0.20 (2026-11-15). M0 to M13 are complete (releases v0.1.0 to
-> v0.14.1; M0, M1 and M3 accepted by the maintainer); M14 is next. The GitHub
+> **Status:** v0.21 (2026-11-15). M0 to M14 are complete (releases v0.1.0 to
+> v0.15.0; M0, M1 and M3 accepted by the maintainer); M15 is next. The GitHub
 > integration (M11) is switched off since v0.14.1 until the maintainer
 > decides to offer it (ADR-0014).
 > This roadmap is a living document. It **must** be updated with every feature
@@ -251,7 +251,7 @@ own work only. Maintainer test cycles and feedback come on top. Status values:
 | M11 | GitHub integration                                    | v0.12.0 | F9                | 4–6 S           | ✅     |
 | M12 | CLI and AI automation (complete)                      | v0.13.0 | F12               | 4–6 S           | ✅     |
 | M13 | Assembly assistant and extras                         | v0.14.0 | F11               | 4–6 S           | ✅     |
-| M14 | Interoperability: further open formats                | v0.15.0 | F3                | 5–8 S           | ⬜     |
+| M14 | Interoperability: further open formats                | v0.15.0 | F3                | 5–8 S           | ✅     |
 | M15 | Advanced layout                                       | v0.16.0 | F7                | 12–20 S         | ⬜     |
 | M16 | Hardening, UX audit, final docs and videos            | v1.0.0  | T3–T5, D1         | 6–10 S          | ⬜     |
 |     | **Total to v1.0**                                     |         |                   | **≈ 120–180 S** |        |
@@ -841,16 +841,20 @@ Panels, statistics and documentation are described in ADR-0013.
       drawings, stack-up, BOM, holes, statistics).
 - Collaboration features are scoped after the core is stable (F11).
 
-### M14 — Interoperability: further open formats (v0.15.0, 5–8 S)
+### M14 — Interoperability: further open formats (v0.15.0, 5–8 S) ✅
 
-- KiCad export (round trip), so users are never locked in.
-- Specctra DSN export and SES import (external autorouters such as
-  Freerouting).
-- Gerber/Excellon import as a reference layer.
-- DXF export of the board outline and mechanical layers (moved from M8).
-- Eagle XML import (`.sch`/`.brd`/`.lbr`, publicly documented DTD) as a new
-  native project, with an import report, and Eagle libraries routed into the
-  deduplication engine (M4).
+Delivered (ADR-0015):
+
+- [x] KiCad export (round trip) in the KiCad 8 format: project, every sheet,
+      board, project libraries and design rules, linked like KiCad does;
+      checked by import → export → import and locally by `kicad-cli`.
+- [x] Specctra DSN export and SES import (external autorouters such as
+      Freerouting), in the layout editor, the CLI and the engine API.
+- [x] Gerber/Excellon import as a reference drawing on user layers.
+- [x] DXF export of the board outline and mechanical layers (moved from M8)
+      as an output kind; the DXF import no longer mirrors drawings.
+- [x] Eagle XML import (`.sch`/`.brd`/`.lbr`) as a new native project with
+      an import report; Eagle libraries go through the duplicate check (M4).
 
 ### M15 — Advanced layout (v0.16.0, 12–20 S)
 
@@ -879,7 +883,7 @@ Panels, statistics and documentation are described in ADR-0013.
 | Format                                                                         | Import               | Export             | Milestone      |
 | ------------------------------------------------------------------------------ | -------------------- | ------------------ | -------------- |
 | ElectronicWerk native (`.ewproj`, `.ewsch`, `.ewpcb`, `.ewrules`, `.ewout`, …) | ✔                    | ✔                  | M1             |
-| KiCad project, schematic, PCB, rules, library tables                           | ✔                    | (M14)              | M3 / M14       |
+| KiCad project, schematic, PCB, rules, library tables                           | ✔                    | ✔ (KiCad 8)        | M3 / M14       |
 | KiCad symbols and footprints                                                   | ✔                    | ✔                  | M3 / M6        |
 | KiCad netlist (`.net`), generic CSV/XML netlist                                | ✔                    | ✔                  | M3 / M5        |
 | STEP / WRL 3D models                                                           | ✔                    | ✔ (board assembly) | M4 / M9        |
@@ -890,7 +894,7 @@ Panels, statistics and documentation are described in ADR-0013.
 | PDF / SVG                                                                      | —                    | ✔                  | M5 / M8        |
 | IPC-D-356, IPC-2581                                                            | —                    | ✔                  | M8             |
 | ODB++                                                                          | —                    | — (not justified)  | M8 (ADR-0009)  |
-| Specctra DSN / SES                                                             | SES                  | DSN                | M14            |
+| Specctra DSN / SES                                                             | ✔ SES                | ✔ DSN              | M14            |
 | Eagle XML (`.sch`, `.brd`, `.lbr`)                                             | ✔                    | —                  | M14            |
 | DipTrace (undocumented binary format)                                          | ⏸ deferred           | —                  | see section 12 |
 
@@ -986,3 +990,4 @@ Panels, statistics and documentation are described in ADR-0013.
 | 2026-11-14 | v0.18      | M12 complete: v0.13.0 with the `design.*` engine layer (designators, pin names, millimetres; one undo step per call), `ewerk schematic`/`board`/`script`, JSON-RPC 2.0, the MCP server for AI agents, CI exit codes, the save guard against overwriting other programs' changes and the scripting cookbook. `design.route` is a simple walkaround autorouter; the full autorouter stays in M15.                                                            |
 | 2026-11-15 | v0.19      | M13 complete: v0.14.0 with the assembly assistant (steps from the BOM, highlighted board view, checklist saved in `assembly.json`, workbench mode and own window), panels made by the output job (mouse bites or V-score, rails, fiducials, tooling holes), design statistics and the HTML project documentation output. Panels are a setting of the output job, not a document: they cannot be edited by hand yet.                                        |
 | 2026-11-15 | v0.20      | v0.14.1: the GitHub integration is switched off until the maintainer decides to offer it; its browser sign-in now uses a GitHub App with access to the chosen repositories only and short-lived tokens (ADR-0014).                                                                                                                                                                                                                                         |
+| 2026-11-15 | v0.21      | M14 complete: v0.15.0 with the KiCad export (KiCad 8 format, verified by a round trip and by kicad-cli), the Eagle XML import, Specctra DSN/SES for external autorouters, Gerber files as a reference drawing and the DXF output. The DXF import no longer mirrors drawings (the board's y axis points up).                                                                                                                                                |

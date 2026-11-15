@@ -263,6 +263,17 @@ files of the project folder are copied too.
 `{"path": "….zip"}`. Writes a ZIP archive of the current state. Returns
 `path`, `files`, `bytes`.
 
+### `project.exportKicad`
+
+`{"path": "…"}` → `{"folder", "project", "files", "notes"}`. Writes the open
+project as a KiCad project (KiCad 8 format) into `path`, a new or empty
+folder: the `.kicad_pro`, one `.kicad_sch` per sheet, the `.kicad_pcb`, the
+project's own symbols and footprints with their library tables. `project`
+is the path of the `.kicad_pro`, `files` the written files (relative) and
+`notes` (`[{"code", "message"}]`) what KiCad cannot hold. Fails with
+`invalidParams` if the folder is not empty. See
+[Exporting to KiCad](../guide/export-kicad).
+
 ### `project.close`
 
 `{"discard": false}`. Closes the project. With unsaved changes this fails with
@@ -874,6 +885,38 @@ stack-up of the board and the minimums and `Default` class of the rules.
 chosen DXF layers onto a board layer (`outline`, `mech.1`, …); `scale` is
 nanometres per drawing unit, `origin` moves the lower left corner there.
 
+### `pcb.exportSpecctra`
+
+`{"doc"}` → `{"file", "text"}`: the board as a Specctra DSN file for an
+external autorouter (layers, outline, keep-outs and pours, every part as
+placed with its pads, nets with their net classes and vias, existing
+routing; locked tracks and vias are marked _protect_). `file` is a suggested
+file name. See [External autorouters](../guide/autorouter).
+
+### `pcb.importSession`
+
+`{"doc", "path"}` (`import-session`) → `{"tracks", "vias", "removedTracks",
+"removedVias", "unknownNets", "unknownLayers"}`. Reads a Specctra session
+file (SES): the routing of each net in it replaces the unlocked tracks and
+vias of that net, in one undo step. Nets and layers the board does not have
+are skipped and named. Fails with `invalidParams` if the file is not a
+session or has no routing for the board's nets.
+
+### `pcb.gerberPreview` / `pcb.importGerbers`
+
+`pcb.gerberPreview {"doc", "paths": ["…"]}` → `{"files": [{"path", "name",
+"kind", "function", "objects", "bounds", "layer"}]}`: what Gerber and
+Excellon files hold (`kind`: `gerber` or `drill`; `function`: the X2 file
+function or one guessed from the name; `bounds` in nm), with a free user
+layer suggested for each.
+
+`pcb.importGerbers {"doc", "files": [{"path", "layer"}], "origin"?,
+"replace"?}` (`import-gerber`) → `{"shapes", "layers"}` draws the files as
+filled areas on board layers (a reference for tracing or comparing):
+dark shapes united, clear shapes cut out. `origin` moves the lower left
+corner of all files there; `replace` removes the shapes already on the
+target layers. See [Gerber files as a reference](../guide/gerber-reference).
+
 ## Output jobs
 
 The manufacturing outputs (see [Output jobs](../guide/outputs)). An output
@@ -1288,11 +1331,12 @@ These methods read KiCad files and netlists; they never change them. See
 
 ### `import.kicadProbe`
 
-`{"source": "…"}`. Checks a KiCad project without importing it: the
-`.kicad_pro` file, its schematic or board, or a folder with exactly one KiCad
-project. Returns `{"name", "folder", "project", "schematic", "board"}` (the
-last three tell which files exist). Fails with `invalidParams` if `source` is
-not a KiCad project.
+`{"source": "…"}`. Checks a KiCad or Eagle project without importing it: the
+`.kicad_pro` file, its schematic or board, an Eagle schematic (`.sch`) or
+board (`.brd`), or a folder with exactly one project. Returns `{"name",
+"folder", "project", "schematic", "board", "format"}` (`project`,
+`schematic` and `board` tell which files exist; `format` is `kicad` or
+`eagle`). Fails with `invalidParams` if `source` is not a project.
 
 ### `import.kicad`
 
@@ -1307,6 +1351,10 @@ Imports the KiCad project into a new project, opens it and returns
 `{"project", "report", "reportFile"}`: the [project snapshot](#project-snapshot),
 the import report and the path of the Markdown report inside the project
 (`kicad-import-report.md`). No project may be open.
+
+An Eagle schematic or board as `source` is imported the same way (see
+[Importing Eagle projects](../guide/import-eagle)); the report file is then
+`eagle-import-report.md`.
 
 The report:
 
@@ -1332,11 +1380,11 @@ listed in [Report codes](../guide/import-kicad#report-codes).
 
 ### `import.library`
 
-| Parameter  | Type   | Meaning                                                                  |
-| ---------- | ------ | ------------------------------------------------------------------------ |
-| `source`   | string | `.kicad_sym`, `.kicad_symdir`, `.pretty` or `.kicad_mod`                 |
-| `doc`      | id     | Target library document (default: the first library of the project)      |
-| `nickname` | string | Prefix of the names (default: the library's file name without extension) |
+| Parameter  | Type   | Meaning                                                                   |
+| ---------- | ------ | ------------------------------------------------------------------------- |
+| `source`   | string | `.kicad_sym`, `.kicad_symdir`, `.pretty`, `.kicad_mod` or an Eagle `.lbr` |
+| `doc`      | id     | Target library document (default: the first library of the project)       |
+| `nickname` | string | Prefix of the names (default: the library's file name without extension)  |
 
 Adds the symbols and footprints that the library does not have yet, as one
 undoable step (`Import library`). Returns `{"symbols", "footprints",

@@ -231,6 +231,7 @@ Every output has an `id`, a `name`, a `kind` and optionally `enabled`
 | `archive`       | `include` (output kinds, `["gerber", "drill"]`), `file` (`"{board}-fabrication.zip"`)                                                                                                                                    |
 | `step`          | `format`: `step`, `glb`, `vrml` (`step`); `origin`: `drill`, `center`, `absolute` (`drill`); `includeDnp` (`false`); `units`: `mm`, `m`, `inch` (`mm`, VRML only); `folder` (`"3d"`)                                     |
 | `documentation` | `schematic`, `board`, `assembly`, `stackup`, `bom`, `drills`, `statistics` (all `true`: the sections), `folder` (`"documentation"`)                                                                                      |
+| `dxf`           | `layers` (`[]`: the outline and every mechanical and user layer with drawings), `units`: `mm`, `inch`; `separate` (`false`: one file); `folder` (`"mechanical"`)                                                         |
 
 Layers are written as in boards (`cu.top`, `cu.in1`, `mask.bottom`,
 `outline`, …). Unknown options are ignored, so newer files open in older

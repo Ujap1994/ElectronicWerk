@@ -140,15 +140,17 @@ in the toolbar switches it off.
 
 ## Board commands
 
-| Command                   | Toolbar button            | Command palette                     |
-| ------------------------- | ------------------------- | ----------------------------------- |
-| Update from the schematic | Update from the schematic | Board: update from the schematic    |
-| Fill all zones (Shift+B)  | Fill all zones            | Board: fill all zones               |
-| Design rules check        | Design rules check        | Board: run the design rules check   |
-| Board setup               | Board setup               | Board: set up the board             |
-| Design rules              | Design rules              | Board: design rules and net classes |
-| Import a DXF drawing      | Import a DXF drawing      | Board: import a DXF drawing         |
-| Place a footprint         | Place footprint (tool)    | Board: place a footprint            |
+| Command                                | Toolbar button            | Command palette                                            |
+| -------------------------------------- | ------------------------- | ---------------------------------------------------------- |
+| Update from the schematic              | Update from the schematic | Board: update from the schematic                           |
+| Fill all zones (Shift+B)               | Fill all zones            | Board: fill all zones                                      |
+| Design rules check                     | Design rules check        | Board: run the design rules check                          |
+| Board setup                            | Board setup               | Board: set up the board                                    |
+| Design rules                           | Design rules              | Board: design rules and net classes                        |
+| Import a DXF drawing                   | Import a DXF drawing      | Board: import a DXF drawing                                |
+| [Gerber reference](./gerber-reference) | Gerber reference          | Board: import Gerber files as a reference drawing          |
+| [External autorouter](./autorouter)    | Autorouter                | Board: external autorouter (Specctra DSN/SES, Freerouting) |
+| Place a footprint                      | Place footprint (tool)    | Board: place a footprint                                   |
 
 The [keyboard shortcuts](./keyboard-shortcuts#layout-editor) page lists all
 keys of the layout editor.

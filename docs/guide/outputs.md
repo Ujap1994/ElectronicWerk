@@ -58,6 +58,7 @@ tabs and fiducials.
 | **ZIP package**                  | A ZIP archive of the files of chosen outputs                                                       | [Below](#zip-packages)                                                   |
 | **3D model**                     | The board with its parts as STEP, GLB or VRML                                                      | [3D models](./export-3d)                                                 |
 | **Project documentation (HTML)** | One HTML file with the sheets, board views, assembly drawings, stack-up, BOM, holes and statistics | [Project documentation](./documentation)                                 |
+| **DXF drawing**                  | The board outline and the mechanical and user layers for mechanical CAD                            | [DXF drawings](./dxf-export)                                             |
 
 ## Generating
 

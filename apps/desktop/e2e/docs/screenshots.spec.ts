@@ -2134,3 +2134,123 @@ test('panel', async () => {
   await shoot(page, 'panel-gerber');
   await close();
 });
+
+// --- Interoperability (M14) ---------------------------------------------------
+
+const EAGLE_FIXTURE = resolve(
+  import.meta.dirname,
+  '../../../../crates/ew-eagle/tests/fixtures/blinky',
+);
+
+/** Closes every notice (they would cover the pictures). */
+async function closeToasts(page: Page): Promise<void> {
+  const toasts = page.locator('.toast');
+  while ((await toasts.count()) > 0) {
+    await toasts.first().locator('.toast__close').click();
+  }
+}
+
+test('interoperability', async () => {
+  test.setTimeout(300_000);
+  freshProjects();
+  const eagle = '/tmp/ElectronicWerk/Eagle/blinky';
+  rmSync(eagle, { recursive: true, force: true });
+  cpSync(EAGLE_FIXTURE, eagle, { recursive: true });
+  const { app, page, close } = await start({ settings: { theme: 'light' } });
+  await page.setViewportSize({ width: 1400, height: 900 });
+
+  // An Eagle project: the dialog and the report.
+  await queueDialogAnswer(app, join(eagle, 'blinky.sch'));
+  await page.getByTestId('import-eagle').click();
+  await page.getByTestId('kicad-import-name').fill('Eagle Blinky');
+  await page.mouse.move(5, 5);
+  await shoot(page.getByTestId('kicad-import-dialog'), 'import-eagle-dialog');
+  await page.getByTestId('kicad-import-start').click();
+  const report = page.getByTestId('import-report');
+  await expect(report).toBeVisible();
+  await shoot(report, 'import-eagle-report');
+  await report.getByRole('button', { name: 'Close', exact: true }).last().click();
+
+  // The timer sheet and the board.
+  await page
+    .locator('[data-testid^="tree-doc:"]')
+    .filter({ hasText: /^Timer$/u })
+    .dblclick();
+  await settle(page);
+  await page.mouse.move(10, 10);
+  await shoot(page, 'import-eagle-sheet');
+  await page
+    .locator('[data-testid^="tree-doc:"]')
+    .filter({ hasText: /^Eagle Blinky$/u })
+    .filter({ hasNotText: 'Timer' })
+    .last()
+    .dblclick();
+  await settle(page);
+  await expect(page.getByTestId('viewer')).toHaveAttribute('data-kind', 'pcb');
+  await page.getByTestId('board-fill').click();
+  await page.waitForTimeout(500);
+  await closeToasts(page);
+  await page.mouse.move(10, 10);
+  await shoot(page, 'import-eagle-board');
+
+  // The external autorouter.
+  const folder = join(PROJECTS, 'Eagle Blinky');
+  await queueDialogAnswer(app, join(folder, 'Eagle_Blinky.dsn'));
+  await page.getByTestId('board-autorouter').click();
+  await page.getByTestId('autorouter-export').click();
+  await expect(page.getByTestId('autorouter-saved')).toBeVisible();
+  await page.mouse.move(5, 5);
+  await shoot(page.getByTestId('autorouter-dialog'), 'autorouter-dialog');
+  await page.getByTestId('autorouter-close').click();
+
+  // A DXF drawing in the output job, then the Gerbers for the reference.
+  await page.getByTestId('toolbar-outputs').click();
+  await page.getByTestId('outputs-add').selectOption('dxf');
+  await expect(page.getByTestId('output-dxf-default-layers')).toBeChecked();
+  await page.mouse.move(5, 5);
+  await shoot(page.getByTestId('output-job'), 'output-dxf');
+  await page.getByTestId('toolbar-save').click();
+  await page.getByTestId('outputs-generate').click();
+  await expect(page.getByTestId('outputs-generate')).toBeEnabled({ timeout: 90_000 });
+  await expect(
+    page.getByTestId('outputs-list').locator('[data-status="done"]').first(),
+  ).toBeVisible({ timeout: 90_000 });
+  await closeToasts(page);
+  const gerbers = join(folder, 'outputs', 'generated', 'gerber');
+  const files = readdirSync(gerbers);
+  const copper = files.find((f) => f.includes('Copper_Top')) ?? '';
+  const drill = files.find((f) => f.endsWith('.drl')) ?? '';
+
+  // Gerber files as a reference drawing on the board.
+  await page
+    .locator('[data-testid^="tree-doc:"]')
+    .filter({ hasText: /^Eagle Blinky$/u })
+    .last()
+    .dblclick();
+  await settle(page);
+  await queueDialogAnswer(app, `${join(gerbers, copper)}\n${join(gerbers, drill)}`);
+  await page.getByTestId('board-gerber-ref').click();
+  await page.getByTestId('gerber-ref-choose').click();
+  await expect(page.getByTestId('gerber-ref-files').locator('tbody tr')).toHaveCount(2);
+  // The board's own files lie where the board is: keep their coordinates.
+  await page.getByTestId('gerber-ref-origin').uncheck();
+  await page.mouse.move(5, 5);
+  await shoot(page.getByTestId('gerber-ref-dialog'), 'gerber-reference-dialog');
+  await page.getByTestId('gerber-ref-import').click();
+  await expect(page.getByTestId('gerber-ref-dialog')).toBeHidden();
+  await page.waitForTimeout(500);
+  await closeToasts(page);
+  await page.mouse.move(10, 10);
+  await shoot(page, 'gerber-reference-board');
+
+  // The whole project as a KiCad project.
+  await queueDialogAnswer(app, join(PROJECTS, 'Eagle Blinky KiCad'));
+  await page.getByTestId('open-palette').click();
+  await page.getByTestId('command-input').fill('export as a kicad');
+  await page.mouse.move(5, 5);
+  await shoot(page.getByTestId('command-palette'), 'export-kicad-command');
+  await page.keyboard.press('Enter');
+  await expect(page.getByText(/KiCad project written/u)).toBeVisible();
+  await shoot(page.locator('.toast').first(), 'export-kicad-notice');
+  await close();
+});

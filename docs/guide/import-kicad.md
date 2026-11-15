@@ -189,6 +189,10 @@ ewerk import netlist blinky/blinky.net --project Blinky
 
 See [`ewerk import`](../reference/cli#import) for all options.
 
+Projects and libraries of Eagle are imported the same way, see
+[Importing Eagle projects](./import-eagle). To go the other way, see
+[Exporting to KiCad](./export-kicad).
+
 ## Privacy
 
 The import runs entirely on your computer. Nothing is uploaded.

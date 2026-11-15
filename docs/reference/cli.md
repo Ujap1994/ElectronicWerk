@@ -162,6 +162,21 @@ $ ewerk project archive "LED Blinker"
 Archived 7 files (2945 bytes) to /home/lab/LED Blinker.zip
 ```
 
+### `ewerk project export-kicad`
+
+```text
+ewerk project export-kicad <project> [--output <folder>] [--json]
+```
+
+Writes the project as a KiCad project (KiCad 8 format) into a new or empty
+folder; the default is `<name>-kicad` next to the project folder. Notes list
+what KiCad cannot hold. See [Exporting to KiCad](../guide/export-kicad).
+
+```console
+$ ewerk project export-kicad "LED Blinker"
+Wrote the KiCad project /home/lab/LED Blinker-kicad/LED_Blinker.kicad_pro (7 files)
+```
+
 ### `ewerk project upgrade`
 
 ```text
@@ -383,9 +398,27 @@ warning silk-width       Silkscreen line width 0.12 mm is less than 0.15 mm (boa
 DRC: 0 errors, 3 warnings, 0 unrouted
 ```
 
+### `ewerk board export-dsn` / `import-ses`
+
+```text
+ewerk board export-dsn <project> [--output <file.dsn>] [--board <name>]
+ewerk board import-ses <project> <file.ses> [--board <name>]
+```
+
+Hands the board to an external autorouter: `export-dsn` writes a Specctra
+DSN file (default `<board>.dsn` next to the project), `import-ses` reads the
+router's session file and replaces the unlocked routing of the routed nets,
+then saves. See [External autorouters](../guide/autorouter).
+
+```console
+$ ewerk board import-ses "LED Blinker" "LED Blinker.ses"
+Imported 14 tracks and 2 vias (replaced 3 tracks and 0 vias)
+```
+
 ## Import
 
-The import commands read KiCad files and netlists; they never change them.
+The import commands read KiCad and Eagle files and netlists; they never
+change them.
 See [Importing KiCad projects](../guide/import-kicad) and
 [Netlists](../guide/netlists) for what is imported and how.
 
@@ -417,6 +450,18 @@ With `--json`, the result of the engine method
 the report and the report file. The exit code is `1` if the report contains
 errors (the project is created anyway).
 
+### `ewerk import eagle`
+
+```text
+ewerk import eagle <source> <dir> [--name <name>] [--json]
+```
+
+Imports an Eagle project (XML, Eagle 6 to 9): `<source>` is the schematic
+(`.sch`) or the board (`.brd`); the other file of the same name next to it
+is read too. Works like [`ewerk import kicad`](#ewerk-import-kicad); the
+report is written as `eagle-import-report.md`. See
+[Importing Eagle projects](../guide/import-eagle).
+
 ### `ewerk import library`
 
 ```text
@@ -426,7 +471,7 @@ ewerk import library <source> --project <project> [--nickname <name>] [--json]
 Adds the symbols and footprints of a KiCad library to the first library of
 the project and saves it. `<source>` is a symbol library (`.kicad_sym`), a
 KiCad 10 symbol library folder (`.kicad_symdir`), a footprint library folder
-(`.pretty`) or a single footprint (`.kicad_mod`). The names get the prefix
+(`.pretty`), a single footprint (`.kicad_mod`) or an Eagle library (`.lbr`). The names get the prefix
 `<nickname>:`, which defaults to the library's file name without extension.
 Names that the library has already are skipped:
 

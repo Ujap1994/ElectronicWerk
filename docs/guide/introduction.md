@@ -9,7 +9,12 @@ DipTrace and Eagle, but it is written from scratch and released under the
 
 ## What you can do today
 
-Version 0.14 adds the **assembly assistant**, which guides you through
+Version 0.15 opens ElectronicWerk to other tools: **Eagle projects** come
+in, every project goes out as a **KiCad project**, boards travel to
+**external autorouters** such as Freerouting and back (Specctra), Gerber
+files become a **reference drawing**, and the outline and mechanical layers
+go to mechanical CAD as **DXF**.
+Version 0.14 added the **assembly assistant**, which guides you through
 soldering a board by hand step by step, **panels** for the board maker,
 **design statistics** and the **project documentation** in one HTML file.
 Version 0.13 added **scripts and AI agents**: design a board from the
@@ -48,6 +53,11 @@ and the model the enclosure is designed around.
 | Native, git-friendly file format                 | Available | [File format](../reference/file-format)                |
 | 2D viewer for schematics and boards              | Available | [Viewing sheets and boards](./viewer)                  |
 | KiCad import (projects and libraries)            | Available | [Importing KiCad projects](./import-kicad)             |
+| Eagle import (projects and libraries)            | Available | [Importing Eagle projects](./import-eagle)             |
+| KiCad export                                     | Available | [Exporting to KiCad](./export-kicad)                   |
+| External autorouters (Specctra DSN/SES)          | Available | [External autorouters](./autorouter)                   |
+| Gerber files as a reference drawing              | Available | [Gerber files as a reference](./gerber-reference)      |
+| DXF export of outline and mechanical layers      | Available | [DXF drawings](./dxf-export)                           |
 | Netlist comparison and import                    | Available | [Netlists](./netlists)                                 |
 | Base library with search and 3D previews         | Available | [The base library](./library)                          |
 | Duplicate detection and review                   | Available | [Duplicates](./duplicates)                             |
