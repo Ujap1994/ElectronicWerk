@@ -192,8 +192,18 @@ export function GerberReferenceDialog({
             </tbody>
           </table>
         )}
-        <CheckInput label={t('board.gerberRef.toOrigin')} checked={toOrigin} onSave={setToOrigin} />
-        <CheckInput label={t('board.gerberRef.replace')} checked={replace} onSave={setReplace} />
+        <CheckInput
+          label={t('board.gerberRef.toOrigin')}
+          checked={toOrigin}
+          testId="gerber-ref-origin"
+          onSave={setToOrigin}
+        />
+        <CheckInput
+          label={t('board.gerberRef.replace')}
+          checked={replace}
+          testId="gerber-ref-replace"
+          onSave={setReplace}
+        />
         <p className="field__hint">{t('board.gerberRef.hint')}</p>
       </div>
     </Modal>

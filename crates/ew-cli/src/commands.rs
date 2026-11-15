@@ -432,6 +432,12 @@ fn import(command: ImportCommand, out: &mut impl Write) -> Outcome {
             dir,
             name,
             json,
+        }
+        | ImportCommand::Eagle {
+            source,
+            dir,
+            name,
+            json,
         } => {
             let mut params = json!({"source": source, "path": dir});
             if let Some(name) = name {
@@ -1579,6 +1585,17 @@ mod tests {
         assert_eq!(code, ExitCode::SUCCESS, "{output}");
         assert!(output.contains("8 footprints"), "{output}");
         assert!(output.contains("custom-rules"), "{output}");
+        let eagle = dir.path().join("Eagle");
+        let (code, output) = run_to_string(Command::Import(ImportCommand::Eagle {
+            source: PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+                .join("../ew-eagle/tests/fixtures/blinky/blinky.sch"),
+            dir: eagle.clone(),
+            name: None,
+            json: false,
+        }));
+        assert_eq!(code, ExitCode::SUCCESS, "{output}");
+        assert!(output.contains("8 footprints"), "{output}");
+        assert!(eagle.join("eagle-import-report.md").is_file());
         assert!(target.join("kicad-import-report.md").exists());
 
         let (code, output) = run_to_string(Command::Import(ImportCommand::Netlist {

@@ -256,6 +256,20 @@ enum ImportCommand {
         #[arg(long)]
         json: bool,
     },
+    /// Import an Eagle project (XML, Eagle 6 to 9) into a new project folder.
+    Eagle {
+        /// The Eagle schematic (`.sch`) or board (`.brd`); the other file of
+        /// the same name is read too.
+        source: PathBuf,
+        /// Folder for the new project (must not exist or be empty).
+        dir: PathBuf,
+        /// Project name (default: the file name).
+        #[arg(long)]
+        name: Option<String>,
+        /// Print the report as JSON.
+        #[arg(long)]
+        json: bool,
+    },
     /// Add the symbols and footprints of a KiCad library to a project's library.
     Library {
         /// `.kicad_sym`, `.kicad_symdir`, `.kicad_mod` or `.pretty`.
