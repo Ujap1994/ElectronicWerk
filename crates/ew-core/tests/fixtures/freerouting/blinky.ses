@@ -1,0 +1,326 @@
+(session blinky
+  (base_design blinky)
+  (placement
+    (resolution um 10)
+    (component "blinky:C0603_C2"
+      (place C2 450000 300000 front 0)
+    )
+    (component "blinky:C0603_C1"
+      (place C1 80000 200000 front 0)
+    )
+    (component "blinky:LED3MM_D1"
+      (place D1 550000 220000 front 0)
+    )
+    (component "blinky:R0805_R1"
+      (place R1 150000 300000 front 0)
+    )
+    (component "blinky:R0805_R3"
+      (place R3 450000 150000 front 0)
+    )
+    (component "blinky:R0805_R2"
+      (place R2 150000 100000 front 0)
+    )
+    (component "blinky:SO08_U1"
+      (place U1 300000 200000 front 0)
+    )
+    (component "eagle:HOLE_3.2_H1"
+      (place H1 600000 350000 front 0)
+    )
+    (component "blinky:HDR2_J1"
+      (place J1 50000 50000 front 0)
+    )
+  )
+  (was_is
+  )
+  (routes 
+    (resolution um 10)
+    (parser
+      (host_cad "ElectronicWerk 0.15.0")
+    )
+    (library_out 
+      (padstack "Via[0-1]_800:400_um"
+        (shape
+          (circle F.Cu 8000 0 0)
+        )
+        (shape
+          (circle B.Cu 8000 0 0)
+        )
+        (attach off)
+      )
+      (padstack "Via[0-1]_808:300_um"
+        (shape
+          (circle F.Cu 8080 0 0)
+        )
+        (shape
+          (circle B.Cu 8080 0 0)
+        )
+        (attach off)
+      )
+      (padstack "Via[0-1]_908:400_um"
+        (shape
+          (circle F.Cu 9080 0 0)
+        )
+        (shape
+          (circle B.Cu 9080 0 0)
+        )
+        (attach off)
+      )
+    )
+    (network_out 
+      (net GND
+        (wire
+          (path F.Cu 5000
+            88500 200000
+            99193 189307
+          )
+        )
+        (via "Via[0-1]_908:400_um" 99193 189307
+        )
+        (wire
+          (path F.Cu 5000
+            280950 174000
+            280950 190517
+          )
+        )
+        (wire
+          (path F.Cu 5000
+            88500 200000
+            271467 200000
+            280950 190517
+          )
+        )
+      )
+      (net TIMING
+        (wire
+          (path F.Cu 2540
+            293650 174000
+            293650 159713
+          )
+        )
+        (wire
+          (path F.Cu 2540
+            293650 159713
+            253224 119287
+            150000 119287
+          )
+        )
+        (wire
+          (path B.Cu 2540
+            303226 243411
+            301950 242135
+            301950 191143
+          )
+        )
+        (wire
+          (path F.Cu 2540
+            71500 200000
+            71500 197787
+            150000 119287
+          )
+        )
+        (wire
+          (path F.Cu 2540
+            150000 109500
+            150000 119287
+          )
+        )
+        (wire
+          (path F.Cu 2540
+            303226 243411
+            306350 240287
+          )
+        )
+        (wire
+          (path F.Cu 2540
+            306350 226000
+            306350 240287
+          )
+        )
+        (via "Via[0-1]_808:300_um" 303226 243411
+        )
+        (wire
+          (path F.Cu 2540
+            301950 191143
+            299094 188287
+            293650 188287
+          )
+        )
+        (wire
+          (path F.Cu 2540
+            293650 174000
+            293650 188287
+          )
+        )
+        (via "Via[0-1]_808:300_um" 301950 191143
+        )
+      )
+      (net VCC
+        (wire
+          (path B.Cu 5000
+            50000 62700
+            50000 221892
+            134546 306438
+          )
+        )
+        (wire
+          (path F.Cu 3750
+            134546 306438
+            137608 309500
+          )
+        )
+        (wire
+          (path F.Cu 3750
+            150000 309500
+            137608 309500
+          )
+        )
+        (via "Via[0-1]_908:400_um" 134546 306438
+        )
+        (wire
+          (path F.Cu 5000
+            150000 309500
+            213967 309500
+            280950 242517
+          )
+        )
+        (wire
+          (path F.Cu 5000
+            319050 190517
+            316267 193300
+            316267 199863
+            310670 205460
+            304107 205460
+            300084 209483
+            280950 209483
+          )
+        )
+        (wire
+          (path F.Cu 5000
+            280950 226000
+            280950 242517
+          )
+        )
+        (wire
+          (path F.Cu 5000
+            319050 174000
+            319050 190517
+          )
+        )
+        (wire
+          (path F.Cu 5000
+            280950 226000
+            280950 209483
+          )
+        )
+      )
+      (net N$1
+        (wire
+          (path B.Cu 2540
+            183772 246941
+            153015 277698
+          )
+        )
+        (wire
+          (path B.Cu 2540
+            290296 246941
+            183772 246941
+          )
+        )
+        (wire
+          (path B.Cu 2540
+            163856 104356
+            183772 124272
+            183772 246941
+          )
+        )
+        (wire
+          (path F.Cu 2540
+            293650 226000
+            293650 243587
+            290296 246941
+          )
+        )
+        (wire
+          (path F.Cu 2540
+            163856 104356
+            150000 90500
+          )
+        )
+        (via "Via[0-1]_808:300_um" 163856 104356
+        )
+        (wire
+          (path F.Cu 2540
+            153015 277698
+            150000 280713
+          )
+        )
+        (wire
+          (path F.Cu 2540
+            150000 290500
+            150000 280713
+          )
+        )
+        (via "Via[0-1]_808:300_um" 153015 277698
+        )
+        (via "Via[0-1]_808:300_um" 290296 246941
+        )
+      )
+      (net N$2
+        (via "Via[0-1]_800:400_um" 319050 246000
+        )
+        (wire
+          (path B.Cu 2540
+            319050 246000
+            404500 246000
+            458500 300000
+          )
+        )
+        (wire
+          (path F.Cu 2540
+            319050 226000
+            319050 246000
+          )
+        )
+      )
+      (net N$3
+        (wire
+          (path B.Cu 2540
+            309425 156638
+            325563 140500
+            450000 140500
+          )
+        )
+        (wire
+          (path F.Cu 2540
+            309425 156638
+            306350 159713
+          )
+        )
+        (wire
+          (path F.Cu 2540
+            306350 174000
+            306350 159713
+          )
+        )
+        (via "Via[0-1]_808:300_um" 309425 156638
+        )
+      )
+      (net LED
+        (via "Via[0-1]_800:400_um" 470000 159500
+        )
+        (wire
+          (path B.Cu 3000
+            450000 159500
+            470000 159500
+          )
+        )
+        (wire
+          (path F.Cu 3000
+            470000 159500
+            562700 220000
+          )
+        )
+      )
+    )
+  )
+)

@@ -218,7 +218,9 @@ PACKAGES = {
         "graphics": ['<circle x="0" y="0" radius="1.5" width="0.2032" layer="21"/>'],
     },
     "HDR2": {
-        "pads": [pad("1", 0, -1.27, 1.0, 1.7, "long", "R90"), pad("2", 0, 1.27, 1.0, 1.7, "octagon")],
+        # A long pad turned along the row: twice as long as wide, still clear
+        # of the second pad.
+        "pads": [pad("1", 0, -1.27, 0.8, 1.2, "long", "R90"), pad("2", 0, 1.27, 1.0, 1.7, "octagon")],
         "graphics": ['<wire x1="-1.27" y1="-2.54" x2="1.27" y2="-2.54" width="0.1524" layer="21"/>'],
     },
 }
@@ -447,13 +449,16 @@ def board_file() -> str:
             rows.append(f'<via x="{fmt(via[0])}" y="{fmt(via[1])}" extent="1-16" drill="0.4" diameter="0.8"/>')
             rows.append(f'<wire x1="{fmt(via[0])}" y1="{fmt(via[1])}" x2="{fmt(b[0])}" y2="{fmt(b[1])}" width="0.3" layer="1"/>')
         if net == "N$2":
-            # C2 is on the bottom: a via next to U1 pin 5.
+            # C2 is on the bottom: a via next to U1 pin 5, then along the
+            # row and up at 45° to pin 1, clear of pin 2.
             a = pad_point("U1", "5")
             b = pad_point("C2", "1")
             via = (a[0], a[1] + 2)
+            bend = (round(b[0] - (b[1] - via[1]), 4), via[1])
             rows.append(f'<wire x1="{fmt(a[0])}" y1="{fmt(a[1])}" x2="{fmt(via[0])}" y2="{fmt(via[1])}" width="0.254" layer="1"/>')
             rows.append(f'<via x="{fmt(via[0])}" y="{fmt(via[1])}" extent="1-16" drill="0.4" diameter="0.8"/>')
-            rows.append(f'<wire x1="{fmt(via[0])}" y1="{fmt(via[1])}" x2="{fmt(b[0])}" y2="{fmt(b[1])}" width="0.254" layer="16"/>')
+            rows.append(f'<wire x1="{fmt(via[0])}" y1="{fmt(via[1])}" x2="{fmt(bend[0])}" y2="{fmt(bend[1])}" width="0.254" layer="16"/>')
+            rows.append(f'<wire x1="{fmt(bend[0])}" y1="{fmt(bend[1])}" x2="{fmt(b[0])}" y2="{fmt(b[1])}" width="0.254" layer="16"/>')
         if net == "GND":
             rows.append('<polygon width="0.254" layer="16" isolate="0.3" rank="1">'
                         '<vertex x="1" y="1"/><vertex x="64" y="1"/><vertex x="64" y="39"/><vertex x="1" y="39"/></polygon>')

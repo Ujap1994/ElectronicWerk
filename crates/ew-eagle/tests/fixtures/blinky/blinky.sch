@@ -100,7 +100,7 @@
 </package>
 <package name="HDR2">
 <description>Synthetic HDR2</description>
-<pad name="1" x="0" y="-1.27" drill="1" diameter="1.7" shape="long" rot="R90"/>
+<pad name="1" x="0" y="-1.27" drill="0.8" diameter="1.2" shape="long" rot="R90"/>
 <pad name="2" x="0" y="1.27" drill="1" diameter="1.7" shape="octagon"/>
 <wire x1="-1.27" y1="-2.54" x2="1.27" y2="-2.54" width="0.1524" layer="21"/>
 <text x="-1.27" y="1.27" size="0.8" layer="25">&gt;NAME</text>

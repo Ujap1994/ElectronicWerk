@@ -179,15 +179,21 @@ fn every_track_ends_on_a_pad_or_via_of_its_net() {
     for via in &pcb.vias {
         anchors.push((V::of(via.at), via.net));
     }
-    assert_eq!(pcb.tracks.len(), 4);
+    assert_eq!(pcb.tracks.len(), 5);
     for track in &pcb.tracks {
         for end in [track.start, track.end] {
             let p = V::of(end);
+            let bend = pcb.tracks.iter().any(|other| {
+                other.id != track.id
+                    && other.net == track.net
+                    && other.layer == track.layer
+                    && (other.start == end || other.end == end)
+            });
             assert!(
-                anchors
+                bend || anchors
                     .iter()
                     .any(|(a, net)| a.dist(p) < 1_000.0 && *net == track.net),
-                "a track end at {end:?} meets no pad or via of its net"
+                "a track end at {end:?} meets no pad, via or track of its net"
             );
         }
     }
