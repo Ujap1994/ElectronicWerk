@@ -107,33 +107,66 @@ fn rel(p: V, origin: V) -> String {
     xy(p.sub(origin))
 }
 
-/// The name of a via padstack (KiCad's scheme, read back on import):
-/// `Via[0-1]_600:300_um` is a through via of a 2-layer board.
-fn via_name(from: usize, to: usize, diameter: Nm, drill: Nm) -> String {
-    format!(
-        "Via[{from}-{to}]_{}:{}_um",
-        num(diameter as f64),
-        num(drill as f64)
-    )
+/// A via padstack: its layer indexes, sizes and whether it is a microvia.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+struct ViaStack {
+    from: usize,
+    to: usize,
+    diameter: Nm,
+    drill: Nm,
+    micro: bool,
 }
 
-/// The diameter, drill and layer indexes of a via padstack name.
-fn parse_via_name(name: &str) -> Option<(usize, usize, Nm, Nm)> {
-    let rest = name.strip_prefix("Via[")?;
-    let (span, rest) = rest.split_once("]_")?;
-    let (from, to) = span.split_once('-')?;
-    let sizes = rest.strip_suffix("_um")?;
-    let (diameter, drill) = sizes.split_once(':')?;
-    let um = |text: &str| -> Option<Nm> {
-        let value: f64 = text.parse().ok()?;
-        Some((value * UNIT).round() as Nm)
-    };
-    Some((
-        from.parse().ok()?,
-        to.parse().ok()?,
-        um(diameter)?,
-        um(drill)?,
-    ))
+impl ViaStack {
+    /// The padstack name (KiCad's scheme, read back on import):
+    /// `Via[0-1]_600:300_um` is a through via of a 2-layer board, a
+    /// microvia is `uVia[0-1]_300:100_um`.
+    fn name(self) -> String {
+        format!(
+            "{}Via[{}-{}]_{}:{}_um",
+            if self.micro { "u" } else { "" },
+            self.from,
+            self.to,
+            num(self.diameter as f64),
+            num(self.drill as f64)
+        )
+    }
+
+    /// The via of a padstack name.
+    fn parse(name: &str) -> Option<Self> {
+        let (micro, name) = name
+            .strip_prefix('u')
+            .map_or((false, name), |rest| (true, rest));
+        let rest = name.strip_prefix("Via[")?;
+        let (span, rest) = rest.split_once("]_")?;
+        let (from, to) = span.split_once('-')?;
+        let sizes = rest.strip_suffix("_um")?;
+        let (diameter, drill) = sizes.split_once(':')?;
+        let um = |text: &str| -> Option<Nm> {
+            let value: f64 = text.parse().ok()?;
+            Some((value * UNIT).round() as Nm)
+        };
+        Some(Self {
+            from: from.parse().ok()?,
+            to: to.parse().ok()?,
+            diameter: um(diameter)?,
+            drill: um(drill)?,
+            micro,
+        })
+    }
+}
+
+/// The padstack name of a board via.
+fn via_name(via: &Via, index_of: impl Fn(CopperLayer) -> usize) -> String {
+    let (a, b) = (index_of(via.from), index_of(via.to));
+    ViaStack {
+        from: a.min(b),
+        to: a.max(b),
+        diameter: via.diameter,
+        drill: via.drill,
+        micro: via.micro,
+    }
+    .name()
 }
 
 /// What the DSN export needs besides the board.
@@ -277,7 +310,17 @@ pub fn write_dsn(input: &DsnInput<'_>) -> String {
 
     // Vias: the net classes' and the existing ones.
     let mut vias: BTreeSet<String> = BTreeSet::new();
-    let through = |d: Nm, h: Nm| via_name(0, layers.len().saturating_sub(1), d, h);
+    let last = layers.len().saturating_sub(1);
+    let through = |diameter: Nm, drill: Nm| {
+        ViaStack {
+            from: 0,
+            to: last,
+            diameter,
+            drill,
+            micro: false,
+        }
+        .name()
+    };
     let mut class_nets: BTreeMap<String, Vec<String>> = BTreeMap::new();
     for net in &pcb.nets {
         class_nets
@@ -288,17 +331,48 @@ pub fn write_dsn(input: &DsnInput<'_>) -> String {
     let default_class = input.rules.class(ew_model::rules::DEFAULT_NET_CLASS);
     let default_via = through(default_class.via_diameter, default_class.via_drill);
     vias.insert(default_via.clone());
-    for name in class_nets.keys() {
+    let constraints = &input.rules.constraints;
+    let class_names: BTreeSet<&str> = class_nets
+        .keys()
+        .map(String::as_str)
+        .chain([ew_model::rules::DEFAULT_NET_CLASS])
+        .collect();
+    for name in class_names {
         let class = input.rules.class(name);
         vias.insert(through(class.via_diameter, class.via_drill));
+        // The vias the rules allow besides: blind and buried ones between
+        // any two layers, microvias between neighbours.
+        for from in 0..last {
+            for to in from + 1..=last {
+                if constraints.allow_blind_buried_vias && (from, to) != (0, last) {
+                    vias.insert(
+                        ViaStack {
+                            from,
+                            to,
+                            diameter: class.via_diameter,
+                            drill: class.via_drill,
+                            micro: false,
+                        }
+                        .name(),
+                    );
+                }
+                if constraints.allow_micro_vias && to == from + 1 {
+                    vias.insert(
+                        ViaStack {
+                            from,
+                            to,
+                            diameter: class.micro_via_diameter,
+                            drill: class.micro_via_drill,
+                            micro: true,
+                        }
+                        .name(),
+                    );
+                }
+            }
+        }
     }
     for via in &pcb.vias {
-        vias.insert(via_name(
-            index_of(via.from),
-            index_of(via.to),
-            via.diameter,
-            via.drill,
-        ));
+        vias.insert(via_name(via, index_of));
     }
 
     let mut out = String::new();
@@ -402,7 +476,10 @@ pub fn write_dsn(input: &DsnInput<'_>) -> String {
         let _ = writeln!(out, "    (padstack {name} {shapes} (attach off))");
     }
     for via in &vias {
-        if let Some((from, to, diameter, _)) = parse_via_name(via) {
+        if let Some(ViaStack {
+            from, to, diameter, ..
+        }) = ViaStack::parse(via)
+        {
             let shapes: Vec<String> = layers[from.min(layers.len() - 1)..=to.min(layers.len() - 1)]
                 .iter()
                 .map(|&l| {
@@ -475,12 +552,7 @@ pub fn write_dsn(input: &DsnInput<'_>) -> String {
         let _ = writeln!(
             out,
             "    (via {} {} (net {}){})",
-            quote(&via_name(
-                index_of(via.from),
-                index_of(via.to),
-                via.diameter,
-                via.drill
-            )),
+            quote(&via_name(via, index_of)),
             xy(V::of(via.at)),
             quote(net),
             if via.locked { " (type protect)" } else { "" }
@@ -955,23 +1027,26 @@ pub fn plan_session(pcb: &Pcb, rules: &RuleSet, session: &Session) -> SessionPla
             .iter()
             .filter(|v| !(v.protect && locked.has_via(id, v.at)))
         {
-            let (from, to, diameter, drill) = parse_via_name(&via.padstack).unwrap_or_else(|| {
-                let diameter = session
+            let stack = ViaStack::parse(&via.padstack).unwrap_or_else(|| ViaStack {
+                from: 0,
+                to: layers.len().saturating_sub(1),
+                diameter: session
                     .padstacks
                     .get(&via.padstack)
-                    .map_or(class.via_diameter, |&d| d.round() as Nm);
-                (0, layers.len().saturating_sub(1), diameter, class.via_drill)
+                    .map_or(class.via_diameter, |&d| d.round() as Nm),
+                drill: class.via_drill,
+                micro: false,
             });
             let layer = |index: usize| layers.get(index).copied().unwrap_or(CopperLayer::Bottom);
             plan.vias.push(Via {
                 id: Id::random(),
                 at: round(via.at),
-                diameter,
-                drill,
+                diameter: stack.diameter,
+                drill: stack.drill,
                 net: Some(id),
-                from: layer(from),
-                to: layer(to),
-                micro: false,
+                from: layer(stack.from),
+                to: layer(stack.to),
+                micro: stack.micro,
                 locked: false,
             });
         }
@@ -998,14 +1073,29 @@ mod tests {
 
     #[test]
     fn via_names_round_trip() {
-        let name = via_name(0, 3, 600_000, 300_000);
-        assert_eq!(name, "Via[0-3]_600:300_um");
-        assert_eq!(parse_via_name(&name), Some((0, 3, 600_000, 300_000)));
+        let via = ViaStack {
+            from: 0,
+            to: 3,
+            diameter: 600_000,
+            drill: 300_000,
+            micro: false,
+        };
+        assert_eq!(via.name(), "Via[0-3]_600:300_um");
+        assert_eq!(ViaStack::parse(&via.name()), Some(via));
+        let micro = ViaStack {
+            from: 0,
+            to: 1,
+            diameter: 300_000,
+            drill: 100_000,
+            micro: true,
+        };
+        assert_eq!(micro.name(), "uVia[0-1]_300:100_um");
+        assert_eq!(ViaStack::parse(&micro.name()), Some(micro));
         assert_eq!(
-            parse_via_name("Via[0-1]_450.5:200_um"),
-            Some((0, 1, 450_500, 200_000))
+            ViaStack::parse("Via[0-1]_450.5:200_um").map(|v| (v.diameter, v.drill)),
+            Some((450_500, 200_000))
         );
-        assert_eq!(parse_via_name("Round[A]Pad_1524_um"), None);
+        assert_eq!(ViaStack::parse("Round[A]Pad_1524_um"), None);
     }
 
     #[test]

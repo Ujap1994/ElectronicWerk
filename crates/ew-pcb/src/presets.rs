@@ -52,6 +52,10 @@ const fn constraints(
         min_hole_to_hole: um(250),
         min_copper_to_edge: um(300),
         min_silk_width: um(150),
+        allow_blind_buried_vias: false,
+        allow_micro_vias: false,
+        min_micro_via_diameter: um(200),
+        min_micro_via_drill: um(100),
     }
 }
 

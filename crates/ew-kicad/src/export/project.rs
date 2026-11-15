@@ -79,8 +79,8 @@ fn project_json(project: &Project, rules: Option<&Rules>, stem: &str) -> String 
                     "track_width": mm(class.track_width),
                     "via_diameter": mm(class.via_diameter),
                     "via_drill": mm(class.via_drill),
-                    "microvia_diameter": 0.3,
-                    "microvia_drill": 0.1,
+                    "microvia_diameter": mm(class.micro_via_diameter),
+                    "microvia_drill": mm(class.micro_via_drill),
                     "diff_pair_width": mm(class.diff_pair_width),
                     "diff_pair_gap": mm(class.diff_pair_gap),
                     "diff_pair_via_gap": 0.25,
@@ -114,6 +114,10 @@ fn project_json(project: &Project, rules: Option<&Rules>, stem: &str) -> String 
                 "min_hole_to_hole": mm(c.min_hole_to_hole),
                 "min_copper_edge_clearance": mm(c.min_copper_to_edge),
                 "min_text_thickness": mm(c.min_silk_width),
+                "allow_blind_buried_vias": c.allow_blind_buried_vias,
+                "allow_microvias": c.allow_micro_vias,
+                "min_microvia_diameter": mm(c.min_micro_via_diameter),
+                "min_microvia_drill": mm(c.min_micro_via_drill),
             }}}),
         );
     }

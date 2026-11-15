@@ -4,14 +4,46 @@ import type { MessageKey } from '@shared/i18n';
 
 import { Icon, type IconName } from '../components/Icon';
 import { useAppState } from '../state';
-import type { BoardEditor, BoardTool } from './editor';
+import type { BoardEditor, BoardTool, ViaChoice } from './editor';
 import {
   crossProbing,
   drcState,
   routingCorners,
+  routingVia,
   setRoutingCorners,
+  setRoutingVia,
   type BoardCommands,
 } from './stores';
+
+const VIA_CHOICES: readonly ViaChoice[] = ['through', 'blind', 'micro'];
+
+/** The via type placed when a route changes layers. */
+function ViaSelect(): ReactNode {
+  const { t } = useAppState();
+  const via = useSyncExternalStore(routingVia.subscribe, routingVia.get);
+  return (
+    <label className="board-layer" title={t('board.actions.viaTypeTip')}>
+      <span className="board-layer__label">{t('board.actions.viaType')}</span>
+      <select
+        aria-label={t('board.actions.viaType')}
+        value={via}
+        data-testid="board-via-type"
+        onChange={(event) => {
+          const value = event.target.value;
+          if (value === 'through' || value === 'blind' || value === 'micro') {
+            setRoutingVia(value);
+          }
+        }}
+      >
+        {VIA_CHOICES.map((choice) => (
+          <option key={choice} value={choice}>
+            {t(`board.viaTypes.${choice}`)}
+          </option>
+        ))}
+      </select>
+    </label>
+  );
+}
 
 interface ToolSpec {
   readonly tool: BoardTool;
@@ -255,6 +287,7 @@ export function BoardActions({
           editor.refreshRoute();
         }}
       />
+      <ViaSelect />
       <Button
         icon="rotate"
         label={t('board.actions.rotate')}

@@ -236,6 +236,22 @@ struct RouteParams {
     /// Check whether a via of this diameter fits at the end.
     #[serde(default)]
     via: Option<f64>,
+    /// The layers of that via (default: through the board).
+    #[serde(default)]
+    via_layers: Option<[ew_model::layer::CopperLayer; 2]>,
+}
+
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+struct ViaFitsParams {
+    doc: Id,
+    #[serde(default)]
+    net: Option<Id>,
+    at: [f64; 2],
+    diameter: f64,
+    /// First and last layer (default: through the board).
+    #[serde(default)]
+    layers: Option<[ew_model::layer::CopperLayer; 2]>,
 }
 
 #[derive(Deserialize)]
@@ -255,6 +271,9 @@ struct NewVia {
     from: Option<ew_model::layer::CopperLayer>,
     #[serde(default)]
     to: Option<ew_model::layer::CopperLayer>,
+    /// A laser-drilled microvia.
+    #[serde(default)]
+    micro: bool,
 }
 
 #[derive(Deserialize)]
@@ -717,12 +736,29 @@ pub fn call(
             let route = router.route(&request);
             let mut value = to_value(&route)?;
             if let (Some(diameter), Some(end)) = (params.via, route.points.last()) {
-                let fits = router.via_fits(params.net, V::new(end[0], end[1]), diameter);
+                let fits = router.via_fits(
+                    params.net,
+                    V::new(end[0], end[1]),
+                    diameter,
+                    params.via_layers.map(|[a, b]| (a, b)),
+                );
                 if let Some(map) = value.as_object_mut() {
                     map.insert("viaFits".into(), json!(fits));
                 }
             }
             Ok(Outcome::Read(value))
+        }
+        "pcb.viaFits" => {
+            let params: ViaFitsParams = parse(params)?;
+            let pcb = board(project, params.doc)?;
+            let router = ew_pcb::route::Router::new(pcb, rules(project).map(|(_, r)| r));
+            let fits = router.via_fits(
+                params.net,
+                V::new(params.at[0], params.at[1]),
+                params.diameter,
+                params.layers.map(|[a, b]| (a, b)),
+            );
+            Ok(Outcome::Read(json!({ "fits": fits })))
         }
         "pcb.addTracks" => {
             let params: AddTracksParams = parse(params)?;
@@ -778,7 +814,7 @@ pub fn call(
                     net: params.net,
                     from: via.from.unwrap_or(stack[0]),
                     to: via.to.unwrap_or(stack[stack.len() - 1]),
-                    micro: false,
+                    micro: via.micro,
                     locked: false,
                 };
                 select.push(via.id);

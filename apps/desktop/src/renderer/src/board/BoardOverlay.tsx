@@ -146,14 +146,15 @@ export function BoardOverlay({
       );
     }
     for (const [index, via] of route.vias.entries()) {
-      const [x, y] = screen(via);
+      const [x, y] = screen(via.at);
       elements.push(
         <circle
           key={`via-${index.toString()}`}
           className="board-preview-via"
+          data-micro={via.micro}
           cx={x}
           cy={y}
-          r={Math.max(2, (route.viaDiameter * scale) / 2)}
+          r={Math.max(2, (via.diameter * scale) / 2)}
         />,
       );
     }

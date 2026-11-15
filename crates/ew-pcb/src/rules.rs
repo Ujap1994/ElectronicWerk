@@ -22,6 +22,7 @@ use std::fmt;
 
 use ew_model::id::Id;
 use ew_model::layer::CopperLayer;
+use ew_model::pcb::ViaType;
 use ew_model::rules::{Constraints, CustomRule, NetClass, Rules, matches_pattern};
 use ew_model::units::Nm;
 use serde::Serialize;
@@ -162,6 +163,7 @@ enum Prop {
     Width,
     Diameter,
     Drill,
+    ViaType,
 }
 
 impl Prop {
@@ -178,6 +180,7 @@ impl Prop {
             "width" => Self::Width,
             "diameter" => Self::Diameter,
             "drill" => Self::Drill,
+            "viatype" | "via_type" => Self::ViaType,
             _ => return None,
         })
     }
@@ -414,6 +417,8 @@ pub struct Props<'a> {
     pub diameter: Option<f64>,
     /// Drill in nm.
     pub drill: Option<f64>,
+    /// `through`, `blind`, `buried` or `micro` (vias).
+    pub via_type: &'a str,
     /// A point of the item (for `insideZone`).
     pub at: V,
 }
@@ -467,6 +472,7 @@ fn prop(props: &Props<'_>, prop: Prop) -> Value {
         Prop::Width => mm(props.width),
         Prop::Diameter => mm(props.diameter),
         Prop::Drill => mm(props.drill),
+        Prop::ViaType => text(props.via_type),
     }
 }
 
@@ -812,11 +818,27 @@ impl RuleSet {
                 },
             )
         };
-        let diameter = limit(c.min_via_diameter, &|r| r.constraints.via_diameter_min);
-        let drill = limit(c.min_via_drill, &|r| r.constraints.via_drill_min);
+        let micro = a.via_type == ViaType::Micro.as_str();
+        let (min_diameter, min_drill, class_diameter, class_drill) = if micro {
+            (
+                c.min_micro_via_diameter,
+                c.min_micro_via_drill,
+                class.micro_via_diameter,
+                class.micro_via_drill,
+            )
+        } else {
+            (
+                c.min_via_diameter,
+                c.min_via_drill,
+                class.via_diameter,
+                class.via_drill,
+            )
+        };
+        let diameter = limit(min_diameter, &|r| r.constraints.via_diameter_min);
+        let drill = limit(min_drill, &|r| r.constraints.via_drill_min);
         ViaLimits {
-            preferred_diameter: f(class.via_diameter).max(diameter.value),
-            preferred_drill: f(class.via_drill).max(drill.value),
+            preferred_diameter: f(class_diameter).max(diameter.value),
+            preferred_drill: f(class_drill).max(drill.value),
             diameter,
             drill,
             annular: limit(c.min_annular_ring, &|r| r.constraints.annular_ring_min),

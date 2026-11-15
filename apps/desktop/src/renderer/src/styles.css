@@ -3939,6 +3939,11 @@ textarea.field__control {
   font-size: var(--font-size-s);
 }
 
+.board-layer__label {
+  color: var(--color-text-muted);
+  font-size: var(--font-size-s);
+}
+
 .board-layer__swatch {
   width: 10px;
   height: 10px;

@@ -308,7 +308,7 @@ pub const SUMMARIES: &[(&str, &str)] = &[
     ),
     (
         "pcb.addTracks",
-        "`pcb.routeStart {\"doc\", \"at\", \"layer\"}` → `{\"at\", \"net\", \"netName\", \"width\", \"viaDiameter\", \"viaDrill\", \"clearance\", \"previous\"}`: where a route that begins at `at` starts (snapped to a pad or via centre or a track end) and the sizes from the rules.",
+        "`{\"doc\", \"net\", \"width\", \"segments\": [{\"layer\", \"points\"}], \"vias\": [{\"at\", \"diameter\", \"drill\", \"from\"?, \"to\"?, \"micro\"?}]}` (`route`): puts routed tracks and vias into the board as one step. Vias go through the board unless `from`/`to` name their first and last layer.",
     ),
     (
         "pcb.applyPreset",
@@ -380,11 +380,11 @@ pub const SUMMARIES: &[(&str, &str)] = &[
     ),
     (
         "pcb.route",
-        "`pcb.routeStart {\"doc\", \"at\", \"layer\"}` → `{\"at\", \"net\", \"netName\", \"width\", \"viaDiameter\", \"viaDrill\", \"clearance\", \"previous\"}`: where a route that begins at `at` starts (snapped to a pad or via centre or a track end) and the sizes from the rules.",
+        "`{\"doc\", \"layer\", \"net\", \"width\", \"start\", \"target\", \"corners\"?, \"previous\"?, \"via\"?, \"viaLayers\"?}` → `{\"points\", \"reached\", \"viaFits\"?}`: the walkaround path from `start` towards `target`; changes nothing.",
     ),
     (
         "pcb.routeStart",
-        "`pcb.routeStart {\"doc\", \"at\", \"layer\"}` → `{\"at\", \"net\", \"netName\", \"width\", \"viaDiameter\", \"viaDrill\", \"clearance\", \"previous\"}`: where a route that begins at `at` starts (snapped to a pad or via centre or a track end) and the sizes from the rules.",
+        "`{\"doc\", \"at\", \"layer\"}` → `{\"at\", \"net\", \"netName\", \"width\", \"viaDiameter\", \"viaDrill\", \"microViaDiameter\", \"microViaDrill\", \"viaTypes\", \"clearance\", \"previous\"}`: where a route that begins at `at` starts and the sizes and via types from the rules.",
     ),
     (
         "pcb.rules",
@@ -409,6 +409,10 @@ pub const SUMMARIES: &[(&str, &str)] = &[
     (
         "pcb.validateRule",
         "`pcb.rules {\"doc\"?}` returns the project's design rules (`rules`: the properties of the rules document), the DRC checks with their default and current severity (`checks`), the nets of each net class on the board `doc` (`nets`) and syntax errors of custom rules (`errors`).",
+    ),
+    (
+        "pcb.viaFits",
+        "`{\"doc\", \"net\"?, \"at\", \"diameter\", \"layers\"?: [first, last]}` → `{\"fits\"}`: whether a via of this diameter keeps the clearances at `at` on its layers (default: through the board).",
     ),
     (
         "project.archive",

@@ -30,6 +30,17 @@ pub struct Constraints {
     pub min_copper_to_edge: Nm,
     /// Minimum silkscreen line width.
     pub min_silk_width: Nm,
+    /// Vias that do not go through the whole board (blind and buried)
+    /// may be used.
+    #[serde(skip_serializing_if = "std::ops::Not::not")]
+    pub allow_blind_buried_vias: bool,
+    /// Laser-drilled microvias between neighbouring layers may be used.
+    #[serde(skip_serializing_if = "std::ops::Not::not")]
+    pub allow_micro_vias: bool,
+    /// Minimum microvia pad diameter.
+    pub min_micro_via_diameter: Nm,
+    /// Minimum microvia drill.
+    pub min_micro_via_drill: Nm,
 }
 
 impl Default for Constraints {
@@ -45,6 +56,10 @@ impl Default for Constraints {
             min_hole_to_hole: um(250),
             min_copper_to_edge: um(300),
             min_silk_width: um(150),
+            allow_blind_buried_vias: false,
+            allow_micro_vias: false,
+            min_micro_via_diameter: um(200),
+            min_micro_via_drill: um(100),
         }
     }
 }
@@ -69,10 +84,24 @@ pub struct NetClass {
     pub via_diameter: Nm,
     /// Via drill.
     pub via_drill: Nm,
+    /// Microvia pad diameter.
+    #[serde(default = "micro_via_diameter")]
+    pub micro_via_diameter: Nm,
+    /// Microvia drill.
+    #[serde(default = "micro_via_drill")]
+    pub micro_via_drill: Nm,
     /// Differential pair track width.
     pub diff_pair_width: Nm,
     /// Differential pair gap.
     pub diff_pair_gap: Nm,
+}
+
+const fn micro_via_diameter() -> Nm {
+    um(300)
+}
+
+const fn micro_via_drill() -> Nm {
+    um(100)
 }
 
 impl NetClass {
@@ -86,6 +115,8 @@ impl NetClass {
             track_width: um(250),
             via_diameter: um(600),
             via_drill: um(300),
+            micro_via_diameter: micro_via_diameter(),
+            micro_via_drill: micro_via_drill(),
             diff_pair_width: um(200),
             diff_pair_gap: um(250),
         }
@@ -265,6 +296,8 @@ pub const DRC_CHECKS: &[(&str, ErcSeverity)] = &[
     ("via-diameter", ErcSeverity::Error),
     ("via-drill", ErcSeverity::Error),
     ("annular-ring", ErcSeverity::Error),
+    ("via-type", ErcSeverity::Error),
+    ("via-layers", ErcSeverity::Error),
     ("hole-size", ErcSeverity::Error),
     ("hole-to-hole", ErcSeverity::Error),
     ("copper-to-edge", ErcSeverity::Error),

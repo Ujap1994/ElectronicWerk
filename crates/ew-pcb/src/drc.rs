@@ -9,7 +9,7 @@ use std::fmt::Write as _;
 
 use ew_model::id::Id;
 use ew_model::layer::{CopperLayer, Side};
-use ew_model::pcb::{PadKind, Pcb};
+use ew_model::pcb::{PadKind, Pcb, ViaType};
 use ew_model::rules::{ErcSeverity, Rules};
 use ew_model::units::Point;
 use rayon::prelude::*;
@@ -119,6 +119,8 @@ pub const LOCAL_CODES: &[&str] = &[
     "via-diameter",
     "via-drill",
     "annular-ring",
+    "via-type",
+    "via-layers",
     "hole-size",
     "hole-to-hole",
     "copper-to-edge",
@@ -205,6 +207,7 @@ pub(crate) fn item_props<'a>(
             if let Some(via) = board.pcb.vias.get(id) {
                 props.diameter = Some(via.diameter as f64);
                 props.drill = Some(via.drill as f64);
+                props.via_type = via.via_type().as_str();
             }
         }
         ItemRef::Zone { .. } => {}
@@ -397,6 +400,7 @@ pub fn check(pcb: &Pcb, rules: Option<&Rules>, options: &Options) -> Report {
 
     copper_clearance(&mut ctx, &in_region);
     widths_and_holes(&mut ctx, &in_region);
+    via_types(&mut ctx, &in_region);
     hole_spacing(&mut ctx, &in_region);
     edges_and_outline(&mut ctx, &in_region);
     keepouts(&mut ctx, &in_region);
@@ -644,6 +648,74 @@ fn report_clearance(ctx: &mut Context<'_>, hits: Vec<(usize, usize, f64, Limit, 
                 },
             );
         }
+    }
+}
+
+/// Blind, buried and microvias: allowed by the design rules, on layers of
+/// the board, microvias between neighbouring layers only.
+fn via_types(ctx: &mut Context<'_>, in_region: &Region<'_>) {
+    let constraints = ctx.rules.constraints;
+    let mut found = Vec::new();
+    for via in &ctx.board.pcb.vias {
+        let at = V::of(via.at);
+        if !in_region(BBox::of(at)) {
+            continue;
+        }
+        let item = ItemRef::Via { id: via.id };
+        let index = |layer: CopperLayer| ctx.board.stack.iter().position(|l| *l == layer);
+        let kind = via.via_type();
+        let (from, to) = (index(via.from), index(via.to));
+        let number = |i: Option<usize>, layer: CopperLayer| {
+            i.map_or_else(|| layer.to_string(), |i| (i + 1).to_string())
+        };
+        let layers = format!("{}–{}", number(from, via.from), number(to, via.to));
+        let problem = match (from, to) {
+            (Some(a), Some(b)) if a == b => Some(("sameLayer", "connects a layer with itself")),
+            (Some(a), Some(b)) if kind == ViaType::Micro && a.abs_diff(b) != 1 => Some((
+                "notNeighbours",
+                "is a microvia but its layers are not neighbours",
+            )),
+            (Some(_), Some(_)) => None,
+            _ => Some(("missingLayer", "ends on a layer the board does not have")),
+        };
+        if let Some((code, problem)) = problem {
+            found.push((
+                "via-layers",
+                format!("Via on layers {layers} {problem}"),
+                at,
+                item,
+                vec![("layers", layers.clone()), ("problem", code.to_owned())],
+            ));
+        }
+        let allowed = match kind {
+            ViaType::Through => true,
+            ViaType::Blind | ViaType::Buried => constraints.allow_blind_buried_vias,
+            ViaType::Micro => constraints.allow_micro_vias,
+        };
+        if !allowed {
+            let what = match kind {
+                ViaType::Through => "Through via",
+                ViaType::Blind => "Blind via",
+                ViaType::Buried => "Buried via",
+                ViaType::Micro => "Microvia",
+            };
+            found.push((
+                "via-type",
+                format!("{what} on layers {layers}: the design rules do not allow this via type"),
+                at,
+                item,
+                vec![("type", kind.as_str().to_owned()), ("layers", layers)],
+            ));
+        }
+    }
+    for (code, message, at, item, args) in found {
+        ctx.report(
+            code,
+            message,
+            at,
+            vec![Target::of(item)],
+            Detail { args, layer: None },
+        );
     }
 }
 

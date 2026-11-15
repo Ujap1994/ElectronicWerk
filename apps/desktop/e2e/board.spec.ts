@@ -61,6 +61,20 @@ async function openBoard(page: Page, name: string): Promise<void> {
   await expect(page.getByTestId('viewer')).toHaveAttribute('data-kind', 'pcb');
 }
 
+/** Waits until the live route ends at a screen point (the router answered). */
+async function previewReaches(page: Page, x: number, y: number): Promise<void> {
+  const preview = page.getByTestId('route-preview');
+  const canvasBox = await viewerCanvas(page).boundingBox();
+  const [left, top] = [canvasBox?.x ?? 0, canvasBox?.y ?? 0];
+  await expect
+    .poll(async () => {
+      const points = ((await preview.getAttribute('points')) ?? '').trim().split(/\s+/u);
+      const [px, py] = (points.at(-1) ?? '').split(',').map(Number);
+      return Math.hypot((px ?? 0) + left - x, (py ?? 0) + top - y);
+    })
+    .toBeLessThan(6);
+}
+
 async function save(page: Page): Promise<void> {
   await page.getByTestId('toolbar-save').click();
   await expect(page.getByTestId('dirty-indicator')).not.toHaveText('Unsaved changes');
@@ -130,6 +144,60 @@ test('checks, fills, rules and presets of a board', async () => {
   await page.getByTestId('setup-dialog').getByRole('button', { name: 'Cancel' }).click();
   await page.getByTestId('toolbar-undo').click();
   await expect(page.getByTestId('board-layer').locator('option')).toHaveCount(4);
+});
+
+test('routes with a blind via once the design rules allow it', async () => {
+  launched = await launchApp();
+  const { page, projectsDir } = launched;
+  await page.setViewportSize({ width: 1280, height: 800 });
+  await importAs(launched, 'Blind Vias');
+  const project = join(projectsDir, 'Blind Vias');
+  const board = readBoard(project);
+  await openBoard(page, 'Blind Vias');
+  const canvas = viewerCanvas(page);
+
+  // Blind and buried vias are off until the design rules allow them.
+  await page.getByTestId('board-rules').click();
+  const rules = page.getByTestId('rules-dialog');
+  await expect(rules).toBeVisible();
+  await page.getByTestId('rules-tab-constraints').click();
+  await expect(page.getByTestId('constraint-allowBlindBuriedVias')).not.toBeChecked();
+  await page.getByTestId('constraint-allowBlindBuriedVias').check();
+  await page.getByTestId('rules-save').click();
+  await expect(rules).toBeHidden();
+  await page.getByTestId('board-via-type').selectOption('blind');
+
+  // Route from a top pad, change to the first inner layer and go on there.
+  const fp = board.footprints.find(
+    (f) => (f.side ?? 'top') === 'top' && !f.rotation && f.pads.some((p) => p.net !== undefined),
+  );
+  const pad = fp?.pads.find((p) => p.net !== undefined);
+  const start: Point = [(fp?.at[0] ?? 0) + (pad?.at[0] ?? 0), (fp?.at[1] ?? 0) + (pad?.at[1] ?? 0)];
+  await canvas.focus();
+  await page.keyboard.press('x');
+  const [sx, sy] = await toScreen(canvas, start);
+  await page.mouse.move(sx, sy);
+  await page.mouse.click(sx, sy);
+  await expect(page.getByTestId('route-status')).toBeVisible();
+  const corner: Point = [start[0] + 2.54 * MM, start[1] - 2.54 * MM];
+  const [cx, cy] = await toScreen(canvas, corner);
+  await page.mouse.move(cx, cy, { steps: 5 });
+  await previewReaches(page, cx, cy);
+  await page.mouse.click(cx, cy);
+  await page.getByTestId('board-layer').selectOption('cu.in1');
+  await expect(page.getByTestId('board-layer')).toHaveValue('cu.in1');
+  const end: Point = [corner[0] + 2.54 * MM, corner[1]];
+  const [ex, ey] = await toScreen(canvas, end);
+  await page.mouse.move(ex, ey, { steps: 5 });
+  await previewReaches(page, ex, ey);
+  await page.mouse.click(ex, ey);
+  await page.keyboard.press('Enter');
+  await expect(page.getByTestId('route-status')).toHaveCount(0);
+  await save(page);
+
+  const vias = (readBoard(project).vias ?? []) as { from?: string; to?: string }[];
+  const blind = vias.filter((v) => (v.from ?? 'cu.top') === 'cu.top' && v.to === 'cu.in1');
+  expect(blind).toHaveLength(1);
 });
 
 test('routes tracks, draws zones, updates from the schematic and imports DXF', async () => {

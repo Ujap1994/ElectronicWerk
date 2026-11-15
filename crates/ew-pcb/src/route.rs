@@ -14,7 +14,7 @@ use std::collections::{BinaryHeap, HashMap};
 
 use ew_model::id::Id;
 use ew_model::layer::CopperLayer;
-use ew_model::pcb::Pcb;
+use ew_model::pcb::{Pcb, ViaType};
 use ew_model::rules::Rules;
 use serde::{Deserialize, Serialize};
 
@@ -94,6 +94,13 @@ pub struct Start {
     pub via_diameter: f64,
     /// Via drill from the rules.
     pub via_drill: f64,
+    /// Microvia diameter from the rules.
+    pub micro_via_diameter: f64,
+    /// Microvia drill from the rules.
+    pub micro_via_drill: f64,
+    /// The via types the design rules allow (`through`, `blind`, `buried`,
+    /// `micro`).
+    pub via_types: Vec<&'static str>,
     /// Clearance of the net class.
     pub clearance: f64,
     /// Direction of the track whose end the route starts at (towards that
@@ -296,6 +303,21 @@ impl<'a> Router<'a> {
         };
         let width = self.rules.track_width(&props, &NoZones);
         let via = self.rules.via(&props, &NoZones);
+        let micro = self.rules.via(
+            &Props {
+                via_type: ViaType::Micro.as_str(),
+                ..props.clone()
+            },
+            &NoZones,
+        );
+        let constraints = &self.rules.constraints;
+        let mut via_types = vec![ViaType::Through.as_str()];
+        if constraints.allow_blind_buried_vias {
+            via_types.extend([ViaType::Blind.as_str(), ViaType::Buried.as_str()]);
+        }
+        if constraints.allow_micro_vias {
+            via_types.push(ViaType::Micro.as_str());
+        }
         let class = self.rules.class(&info.class);
         Start {
             at: point.pair(),
@@ -304,6 +326,9 @@ impl<'a> Router<'a> {
             width: width.preferred,
             via_diameter: via.preferred_diameter,
             via_drill: via.preferred_drill,
+            micro_via_diameter: micro.preferred_diameter,
+            micro_via_drill: micro.preferred_drill,
+            via_types,
             clearance: class.clearance as f64,
             previous: direction.map(V::pair),
         }
@@ -329,7 +354,9 @@ impl<'a> Router<'a> {
         let reach = self.rules.max_clearance();
         for index in self.board.copper_near(shape.bbox().grow(reach)) {
             let item = &self.board.copper[index];
-            if item.layers & bit == 0 {
+            // Zone fills are no obstacle: the zones are filled again around
+            // new copper.
+            if item.layers & bit == 0 || matches!(item.item, ItemRef::Zone { .. }) {
                 continue;
             }
             if request.net.is_some() && item.net == request.net {
@@ -581,9 +608,28 @@ impl<'a> Router<'a> {
         out
     }
 
-    /// `true` if a via fits at `at`.
+    /// `true` if a via fits at `at`. `span` limits the check to the copper
+    /// layers from one layer to another (blind, buried and microvias);
+    /// `None` checks every layer.
     #[must_use]
-    pub fn via_fits(&self, net: Option<Id>, at: V, diameter: f64) -> bool {
+    pub fn via_fits(
+        &self,
+        net: Option<Id>,
+        at: V,
+        diameter: f64,
+        span: Option<(CopperLayer, CopperLayer)>,
+    ) -> bool {
+        let bits = match span {
+            Some((a, b)) => match (self.board.layer_bit(a), self.board.layer_bit(b)) {
+                (Some(a), Some(b)) => {
+                    let (low, high) = (a.min(b), a.max(b));
+                    // Every bit from the lower to the higher layer.
+                    (high - low) | high
+                }
+                _ => return false,
+            },
+            None => u64::MAX,
+        };
         let shape = Shape::disc(at, diameter / 2.0);
         let mine = self.net(net);
         let me = Props {
@@ -599,10 +645,13 @@ impl<'a> Router<'a> {
             .copper_near(shape.bbox().grow(self.rules.max_clearance()))
         {
             let item = &self.board.copper[index];
-            if net.is_some() && item.net == net {
+            if (net.is_some() && item.net == net)
+                || item.layers & bits == 0
+                || matches!(item.item, ItemRef::Zone { .. })
+            {
                 continue;
             }
-            let layer = self.board.layers_of(item.layers).next();
+            let layer = self.board.layers_of(item.layers & bits).next();
             let other = item_props(&self.board, self.net(item.net), item, layer);
             let limit = self.rules.clearance(&me, &other, &NoZones).value;
             if shape.gap(&item.shape, limit - EPSILON).is_some() {
@@ -735,8 +784,8 @@ mod tests {
             V::new(end[0], end[1]).dist(request.target) < 1.5e6,
             "{end:?}"
         );
-        assert!(router.via_fits(Some(gnd), V::new(5e6, 0.0), 600_000.0));
-        assert!(!router.via_fits(Some(gnd), V::new(10e6, 0.6e6), 600_000.0));
+        assert!(router.via_fits(Some(gnd), V::new(5e6, 0.0), 600_000.0, None));
+        assert!(!router.via_fits(Some(gnd), V::new(10e6, 0.6e6), 600_000.0, None));
     }
 
     #[test]

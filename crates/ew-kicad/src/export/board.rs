@@ -9,7 +9,8 @@ use ew_model::layer::{CopperLayer, Layer, LayerSpec, Side};
 use ew_model::library::FootprintDef;
 use ew_model::pcb::{
     BoardShape, DielectricKind, FootprintAttributes, FootprintInstance, FootprintText,
-    FootprintTextKind, Graphic, Model3d, Mounting, Pad, PadKind, PadShape, Pcb, StackupLayer, Zone,
+    FootprintTextKind, Graphic, Model3d, Mounting, Pad, PadKind, PadShape, Pcb, StackupLayer,
+    ViaType, Zone,
 };
 use ew_model::shape::Geometry;
 use ew_model::text::{HAlign, TextStyle, VAlign};
@@ -1042,8 +1043,10 @@ pub fn board_file(
     }
     for via in &pcb.vias {
         let mut node = Sx::list("via");
-        if via.micro {
-            node = node.word("micro");
+        match via.via_type() {
+            ViaType::Micro => node = node.word("micro"),
+            ViaType::Blind | ViaType::Buried => node = node.word("blind"),
+            ViaType::Through => {}
         }
         if via.locked {
             node = node.child(Sx::flag("locked", true));

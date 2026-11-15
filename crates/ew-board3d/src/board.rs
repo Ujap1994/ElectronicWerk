@@ -8,6 +8,7 @@
 //! mask covers the board except its openings, the silkscreen is cut at the
 //! mask openings and the board edge.
 
+use std::collections::HashMap;
 use std::f64::consts::{PI, TAU};
 
 use ew_model::layer::{CopperLayer, Layer, Side};
@@ -112,6 +113,20 @@ pub struct Board3d {
     pub bounds: [f64; 6],
     /// Problems found while building (no outline, open outline, …).
     pub warnings: Vec<String>,
+}
+
+impl Board3d {
+    /// The holes through the whole board; blind and buried vias end inside
+    /// it and leave the body closed.
+    #[must_use]
+    pub fn through_holes(&self) -> Vec<Hole> {
+        let last = usize::from(self.levels.copper_layers.saturating_sub(1));
+        self.holes
+            .iter()
+            .filter(|hole| hole.span == (0, last))
+            .cloned()
+            .collect()
+    }
 }
 
 /// Polygons of one plotted feature.
@@ -426,8 +441,13 @@ struct Inputs {
     levels: Levels,
     area: Polygons,
     board: Area,
+    /// Holes through the whole board (they cut the body).
     holes: Polygons,
-    hole_clip: Clip,
+    /// The holes that reach each copper layer (by its index in the stack;
+    /// blind and buried vias reach only some).
+    hole_clips: HashMap<usize, Clip>,
+    /// A clip without holes.
+    empty: Clip,
     polygons: Vec<(Layer, Polygons)>,
     openings: Vec<(Side, Clip)>,
 }
@@ -440,11 +460,27 @@ impl Inputs {
             .map_or_else(Vec::new, |(_, p)| p.clone())
     }
 
+    /// The copper index of a side.
+    fn side_index(&self, side: Side) -> usize {
+        match side {
+            Side::Top => 0,
+            Side::Bottom => usize::from(self.levels.copper_layers.saturating_sub(1)),
+        }
+    }
+
+    /// The holes that reach the copper layer `index`.
+    fn hole_clip(&self, index: usize) -> &Clip {
+        self.hole_clips
+            .get(&index)
+            .or_else(|| self.hole_clips.values().next())
+            .unwrap_or(&self.empty)
+    }
+
     fn opening(&self, side: Side) -> &Clip {
         self.openings
             .iter()
             .find(|(own, _)| *own == side)
-            .map_or(&self.hole_clip, |(_, clip)| clip)
+            .map_or_else(|| self.hole_clip(self.side_index(side)), |(_, clip)| clip)
     }
 
     /// The mesh of one job.
@@ -462,7 +498,7 @@ impl Inputs {
             Job::Copper(side) => {
                 let copper = opaque(
                     self.of_layer(Layer::Copper(copper_of(side))),
-                    &self.hole_clip,
+                    self.hole_clip(self.side_index(side)),
                     None,
                 );
                 let base = match side {
@@ -490,7 +526,11 @@ impl Inputs {
                 None,
             ),
             Job::Inner(index, layer) => {
-                let copper = opaque(self.of_layer(Layer::Copper(layer)), &self.hole_clip, None);
+                let copper = opaque(
+                    self.of_layer(Layer::Copper(layer)),
+                    self.hole_clip(index),
+                    None,
+                );
                 let z = levels.inner(index);
                 let mut mesh = caps(&copper, z, true, None);
                 mesh.append(&caps(&copper, z, false, None));
@@ -545,6 +585,60 @@ fn plan(
     (jobs, layers)
 }
 
+/// The holes by the copper layers they reach.
+struct HoleSets<'h> {
+    holes: &'h [Hole],
+    polygons: &'h Polygons,
+    /// Index of the last copper layer.
+    last: usize,
+    /// The holes reaching each copper layer a job draws.
+    clips: HashMap<usize, Clip>,
+}
+
+impl<'h> HoleSets<'h> {
+    fn new(holes: &'h [Hole], polygons: &'h Polygons, jobs: &[Job], levels: &Levels) -> Self {
+        let last = usize::from(levels.copper_layers.saturating_sub(1));
+        let mut sets = Self {
+            holes,
+            polygons,
+            last,
+            clips: HashMap::new(),
+        };
+        let mut needed: Vec<usize> = vec![0, last];
+        needed.extend(jobs.iter().filter_map(|job| match job {
+            Job::Inner(index, _) => Some(*index),
+            _ => None,
+        }));
+        needed.sort_unstable();
+        needed.dedup();
+        sets.clips = needed
+            .par_iter()
+            .map(|&index| (index, Clip::new(sets.reaching(index))))
+            .collect();
+        sets
+    }
+
+    /// The holes that reach the copper layer `index`.
+    fn reaching(&self, index: usize) -> Polygons {
+        self.holes
+            .iter()
+            .zip(self.polygons)
+            .filter(|(hole, _)| hole.span.0 <= index && index <= hole.span.1)
+            .map(|(_, polygon)| polygon.clone())
+            .collect()
+    }
+
+    /// The holes through the whole board.
+    fn through(&self) -> Polygons {
+        self.holes
+            .iter()
+            .zip(self.polygons)
+            .filter(|(hole, _)| hole.span == (0, self.last))
+            .map(|(_, polygon)| polygon.clone())
+            .collect()
+    }
+}
+
 /// Builds the 3D board.
 #[must_use]
 pub fn build(pcb: &Pcb, resolve: Resolver<'_>, options: &BoardOptions) -> Board3d {
@@ -559,6 +653,7 @@ pub fn build(pcb: &Pcb, resolve: Resolver<'_>, options: &BoardOptions) -> Board3
         .map(|hole| vec![hole_polygon(hole, tolerance)])
         .collect();
     let (jobs, wanted) = plan(&levels, art.stack(), options);
+    let sets = HoleSets::new(&holes, &hole_polygons, &jobs, &levels);
     // The features of every layer (the text resolver is not thread-safe,
     // so they are collected first), then their polygons in parallel.
     let features: Vec<(Layer, f64, Vec<Feature>)> = wanted
@@ -584,7 +679,10 @@ pub fn build(pcb: &Pcb, resolve: Resolver<'_>, options: &BoardOptions) -> Board3
                 .iter()
                 .find(|(layer, _)| *layer == Layer::SolderMask(side))
                 .map_or_else(Vec::new, |(_, p)| p.clone());
-            cut.extend(hole_polygons.iter().cloned());
+            cut.extend(sets.reaching(match side {
+                Side::Top => 0,
+                Side::Bottom => sets.last,
+            }));
             (side, Clip::new(cut))
         })
         .collect();
@@ -592,8 +690,9 @@ pub fn build(pcb: &Pcb, resolve: Resolver<'_>, options: &BoardOptions) -> Board3
         levels,
         board: Area::new(&area),
         area,
-        hole_clip: Clip::new(hole_polygons.clone()),
-        holes: hole_polygons,
+        holes: sets.through(),
+        hole_clips: sets.clips,
+        empty: Clip::new(Vec::new()),
         polygons,
         openings,
     };

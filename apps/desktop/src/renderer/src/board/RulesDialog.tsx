@@ -24,6 +24,8 @@ interface NetClass {
   trackWidth: number;
   viaDiameter: number;
   viaDrill: number;
+  microViaDiameter: number;
+  microViaDrill: number;
   diffPairWidth: number;
   diffPairGap: number;
 }
@@ -38,7 +40,15 @@ interface Constraints {
   minHoleToHole: number;
   minCopperToEdge: number;
   minSilkWidth: number;
+  minMicroViaDiameter: number;
+  minMicroViaDrill: number;
+  /** Missing when off. */
+  allowBlindBuriedVias?: boolean;
+  allowMicroVias?: boolean;
 }
+
+/** The board minimums that are lengths. */
+type LengthConstraint = Exclude<keyof Constraints, 'allowBlindBuriedVias' | 'allowMicroVias'>;
 
 type RuleConstraints = Partial<{
   clearance: number;
@@ -78,7 +88,7 @@ interface RulesReply {
 
 type Tab = 'classes' | 'constraints' | 'custom' | 'checks';
 
-const CONSTRAINTS: readonly (keyof Constraints)[] = [
+const CONSTRAINTS: readonly LengthConstraint[] = [
   'minClearance',
   'minTrackWidth',
   'minViaDiameter',
@@ -88,6 +98,8 @@ const CONSTRAINTS: readonly (keyof Constraints)[] = [
   'minHoleToHole',
   'minCopperToEdge',
   'minSilkWidth',
+  'minMicroViaDiameter',
+  'minMicroViaDrill',
 ];
 
 const CLASS_FIELDS: readonly (keyof Omit<NetClass, 'name' | 'description'>)[] = [
@@ -95,6 +107,8 @@ const CLASS_FIELDS: readonly (keyof Omit<NetClass, 'name' | 'description'>)[] = 
   'trackWidth',
   'viaDiameter',
   'viaDrill',
+  'microViaDiameter',
+  'microViaDrill',
   'diffPairWidth',
   'diffPairGap',
 ];
@@ -436,6 +450,23 @@ export function RulesDialog({
               }}
             />
           ))}
+          <p className="field__hint">{t('board.rules.viaTypesHint')}</p>
+          <CheckInput
+            label={t('board.rules.allowBlindBuriedVias')}
+            checked={rules.constraints.allowBlindBuriedVias === true}
+            testId="constraint-allowBlindBuriedVias"
+            onSave={(allowBlindBuriedVias) => {
+              patch({ constraints: { ...rules.constraints, allowBlindBuriedVias } });
+            }}
+          />
+          <CheckInput
+            label={t('board.rules.allowMicroVias')}
+            checked={rules.constraints.allowMicroVias === true}
+            testId="constraint-allowMicroVias"
+            onSave={(allowMicroVias) => {
+              patch({ constraints: { ...rules.constraints, allowMicroVias } });
+            }}
+          />
         </div>
       ) : tab === 'custom' ? (
         <>

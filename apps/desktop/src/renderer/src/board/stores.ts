@@ -4,7 +4,7 @@
  * commands of the shown board (for the command palette).
  */
 import { Store } from '../schematic/stores';
-import type { Point } from './editor';
+import type { Point, ViaChoice } from './editor';
 
 export type DrcSeverity = 'error' | 'warning';
 
@@ -84,6 +84,31 @@ function storedCorners(): Corners {
 export const routingCorners = new Store<Corners>(
   typeof window === 'undefined' ? '45' : storedCorners(),
 );
+
+const VIA_KEY = 'ew.routing.via';
+
+function storedVia(): ViaChoice {
+  try {
+    const value = window.localStorage.getItem(VIA_KEY);
+    return value === 'blind' || value === 'micro' ? value : 'through';
+  } catch {
+    return 'through';
+  }
+}
+
+/** The via type the router places when a route changes layers. */
+export const routingVia = new Store<ViaChoice>(
+  typeof window === 'undefined' ? 'through' : storedVia(),
+);
+
+export function setRoutingVia(via: ViaChoice): void {
+  routingVia.set(via);
+  try {
+    window.localStorage.setItem(VIA_KEY, via);
+  } catch {
+    // Storage may be unavailable; the setting then lasts for the session.
+  }
+}
 
 export function setRoutingCorners(corners: Corners): void {
   routingCorners.set(corners);

@@ -134,6 +134,16 @@ pub fn settings(json: &Value) -> ProjectSettings {
             min_hole_to_hole: get("min_hole_to_hole", defaults.min_hole_to_hole),
             min_copper_to_edge: get("min_copper_edge_clearance", defaults.min_copper_to_edge),
             min_silk_width: get("min_text_thickness", defaults.min_silk_width),
+            allow_blind_buried_vias: rules
+                .get("allow_blind_buried_vias")
+                .and_then(Value::as_bool)
+                .unwrap_or(false),
+            allow_micro_vias: rules
+                .get("allow_microvias")
+                .and_then(Value::as_bool)
+                .unwrap_or(false),
+            min_micro_via_diameter: get("min_microvia_diameter", defaults.min_micro_via_diameter),
+            min_micro_via_drill: get("min_microvia_drill", defaults.min_micro_via_drill),
         });
     }
     if let Some(classes) = json
@@ -159,6 +169,8 @@ pub fn settings(json: &Value) -> ProjectSettings {
                 track_width: get("track_width", defaults.track_width),
                 via_diameter: get("via_diameter", defaults.via_diameter),
                 via_drill: get("via_drill", defaults.via_drill),
+                micro_via_diameter: get("microvia_diameter", defaults.micro_via_diameter),
+                micro_via_drill: get("microvia_drill", defaults.micro_via_drill),
                 diff_pair_width: get("diff_pair_width", defaults.diff_pair_width),
                 diff_pair_gap: get("diff_pair_gap", defaults.diff_pair_gap),
             });

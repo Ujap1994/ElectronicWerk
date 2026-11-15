@@ -62,7 +62,18 @@ export function findingMessage(
   finding: DrcFinding,
 ): string {
   const key = `board.drc.messages.${finding.code}` as MessageKey;
-  const text = t(key, finding.args);
+  const args: Record<string, string> = { ...finding.args };
+  // A reason given as a code (`problem`) is translated too.
+  const problem = args['problem'];
+  if (problem !== undefined) {
+    const problemKey = `board.drc.problems.${problem}` as MessageKey;
+    const translated = t(problemKey);
+    if (translated === problemKey) {
+      return finding.message;
+    }
+    args['problem'] = translated;
+  }
+  const text = t(key, args);
   return text === key ? finding.message : text;
 }
 

@@ -12,6 +12,7 @@ import { useProject } from '../project/ProjectProvider';
 import { errorMessage } from '../project/labels';
 import { useAppState } from '../state';
 import { layerName } from './BoardToolbar';
+import { viaTypeOf } from './editor';
 
 /** Object types with editable properties. */
 export const BOARD_EDITABLE = new Set(['footprint', 'track', 'via', 'boardText']);
@@ -65,6 +66,9 @@ export function BoardProperties({
   if (object === null) {
     return null;
   }
+  // Vias store their layers only when they differ from top and bottom.
+  const viaFrom = text(object['from']) || 'cu.top';
+  const viaTo = text(object['to']) || 'cu.bottom';
   const patch = (fields: Json): void => {
     engine
       .call('edit.apply', {
@@ -181,6 +185,36 @@ export function BoardProperties({
               patch({ drill: value });
             }}
           />
+          <SelectInput
+            label={t('board.props.from')}
+            value={viaFrom}
+            testId="board-prop-via-from"
+            options={layers.map((layer) => [layer, layerName(t, layer)])}
+            onSave={(value) => {
+              patch({ from: value });
+            }}
+          />
+          <SelectInput
+            label={t('board.props.to')}
+            value={viaTo}
+            testId="board-prop-via-to"
+            options={layers.map((layer) => [layer, layerName(t, layer)])}
+            onSave={(value) => {
+              patch({ to: value });
+            }}
+          />
+          <CheckInput
+            label={t('board.props.micro')}
+            checked={object['micro'] === true}
+            testId="board-prop-via-micro"
+            onSave={(micro) => {
+              patch({ micro });
+            }}
+          />
+          <p className="field__hint" data-testid="board-prop-via-type">
+            {t('board.props.viaType')}:{' '}
+            {t(`board.viaTypes.${viaTypeOf(viaFrom, viaTo, object['micro'] === true)}`)}
+          </p>
           {locked}
         </>
       )}

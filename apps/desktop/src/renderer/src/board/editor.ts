@@ -10,12 +10,25 @@
 import type { MessageKey } from '@shared/i18n';
 
 import type { Interaction, ViewerController } from '../viewer/controller';
-import { routingCorners } from './stores';
+import { routingCorners, routingVia } from './stores';
 
 export type Point = readonly [number, number];
 
 export type BoardTool =
   'select' | 'route' | 'via' | 'zone' | 'keepout' | 'outline' | 'text' | 'footprint' | 'highlight';
+
+/** The via type the router places when it changes layers. */
+export type ViaChoice = 'through' | 'blind' | 'micro';
+
+/** A via placed while routing. */
+export interface RouteVia {
+  readonly at: Point;
+  readonly from: string;
+  readonly to: string;
+  readonly micro: boolean;
+  readonly diameter: number;
+  readonly drill: number;
+}
 
 /** A route being drawn. */
 export interface RouteState {
@@ -24,6 +37,10 @@ export interface RouteState {
   readonly width: number;
   readonly viaDiameter: number;
   readonly viaDrill: number;
+  readonly microViaDiameter: number;
+  readonly microViaDrill: number;
+  /** The via types the design rules allow (`through`, `blind`, `buried`, `micro`). */
+  readonly viaTypes: readonly string[];
   /** Direction of the existing track the route started at (bends from it count). */
   readonly startDirection: Point | null;
   /** The layer of the live segment. */
@@ -33,7 +50,7 @@ export interface RouteState {
   /** Segments fixed with a click, not yet in the board. */
   readonly fixed: readonly { readonly layer: string; readonly points: readonly Point[] }[];
   /** Vias placed while routing. */
-  readonly vias: readonly Point[];
+  readonly vias: readonly RouteVia[];
   /** The live path from `start` towards the cursor. */
   readonly preview: readonly Point[];
   readonly reached: boolean;
@@ -96,6 +113,9 @@ interface StartReply {
   readonly width: number;
   readonly viaDiameter: number;
   readonly viaDrill: number;
+  readonly microViaDiameter?: number;
+  readonly microViaDrill?: number;
+  readonly viaTypes?: readonly string[];
   readonly previous?: Point | null;
 }
 
@@ -122,6 +142,55 @@ const HINTS: Readonly<Record<BoardTool, MessageKey>> = {
 /** The silkscreen layer on the side of a copper layer. */
 export function silkOf(layer: string): string {
   return layer === 'cu.bottom' ? 'silk.bottom' : 'silk.top';
+}
+
+/**
+ * The via that takes a route from one copper layer to another with the
+ * chosen via type: its first and last layer and whether it is a microvia,
+ * or why the rules do not allow it.
+ */
+export function viaBetween(
+  from: string,
+  to: string,
+  layers: readonly string[],
+  choice: ViaChoice,
+  allowed: readonly string[],
+): { from: string; to: string; micro: boolean } | 'notAllowed' | 'notNeighbours' {
+  const first = layers[0] ?? 'cu.top';
+  const last = layers.at(-1) ?? 'cu.bottom';
+  const a = layers.indexOf(from);
+  const b = layers.indexOf(to);
+  const [low, high] = a <= b ? [from, to] : [to, from];
+  const through = { from: first, to: last, micro: false };
+  if (choice === 'through' || a < 0 || b < 0) {
+    return through;
+  }
+  if (choice === 'micro') {
+    if (Math.abs(a - b) !== 1) {
+      return 'notNeighbours';
+    }
+    return allowed.includes('micro') ? { from: low, to: high, micro: true } : 'notAllowed';
+  }
+  if (low === first && high === last) {
+    return through;
+  }
+  return allowed.includes('blind') ? { from: low, to: high, micro: false } : 'notAllowed';
+}
+
+/** The type of a via by its layers, as the engine names it. */
+export function viaTypeOf(
+  from: string,
+  to: string,
+  micro: boolean,
+): 'through' | 'blind' | 'buried' | 'micro' {
+  if (micro) {
+    return 'micro';
+  }
+  const outer = (layer: string): boolean => !layer.startsWith('cu.in');
+  if (outer(from) && outer(to) && from !== to) {
+    return 'through';
+  }
+  return !outer(from) && !outer(to) ? 'buried' : 'blind';
 }
 
 /** The copper layer reached by a via from `layer` (top ↔ bottom). */
@@ -454,6 +523,9 @@ export class BoardEditor implements Interaction {
             width: start.width,
             viaDiameter: start.viaDiameter,
             viaDrill: start.viaDrill,
+            microViaDiameter: start.microViaDiameter ?? start.viaDiameter,
+            microViaDrill: start.microViaDrill ?? start.viaDrill,
+            viaTypes: start.viaTypes ?? ['through'],
             startDirection: start.previous ?? null,
             layer,
             start: at,
@@ -496,7 +568,7 @@ export class BoardEditor implements Interaction {
    */
   private previousDirection(route: RouteState): Point | null {
     const at = route.start;
-    if (route.vias.some((via) => via[0] === at[0] && via[1] === at[1])) {
+    if (route.vias.some((via) => via.at[0] === at[0] && via.at[1] === at[1])) {
       return null;
     }
     const last = route.fixed.at(-1);
@@ -587,21 +659,68 @@ export class BoardEditor implements Interaction {
     return fixed;
   }
 
-  /** Places a via at the end of the live path and continues on `layer`. */
+  /**
+   * Places a via of the chosen type at the end of the live path and
+   * continues on `layer`.
+   */
   private switchRouteLayer(layer: string): void {
     const route = this.fixPreview();
     if (route === null || layer === route.layer) {
       return;
     }
-    if (!route.viaFits) {
-      this.update({ hint: 'board.hints.viaBlocked' });
+    const via = viaBetween(route.layer, layer, this.state.layers, routingVia.get(), route.viaTypes);
+    if (via === 'notAllowed') {
+      this.update({ hint: 'board.hints.viaNotAllowed' });
       return;
     }
-    this.update({
-      layer,
-      hint: HINTS.route,
-      route: { ...route, layer, vias: [...route.vias, route.start] },
-    });
+    if (via === 'notNeighbours') {
+      this.update({ hint: 'board.hints.microNeighbours' });
+      return;
+    }
+    const diameter = via.micro ? route.microViaDiameter : route.viaDiameter;
+    const drill = via.micro ? route.microViaDrill : route.viaDrill;
+    const place = (): void => {
+      this.update({
+        layer,
+        hint: HINTS.route,
+        route: {
+          ...route,
+          layer,
+          vias: [...route.vias, { at: route.start, ...via, diameter, drill }],
+        },
+      });
+    };
+    const through = via.from === this.state.layers[0] && via.to === this.state.layers.at(-1);
+    if (through && !via.micro) {
+      if (route.viaFits) {
+        place();
+      } else {
+        this.update({ hint: 'board.hints.viaBlocked' });
+      }
+      return;
+    }
+    // A blind, buried or microvia only needs room on its own layers.
+    this.host
+      .call<{ fits: boolean }>('pcb.viaFits', {
+        doc: this.host.doc,
+        net: route.net,
+        at: route.start,
+        diameter,
+        layers: [via.from, via.to],
+      })
+      .then(({ fits }) => {
+        if (this.state.route !== route) {
+          return;
+        }
+        if (fits) {
+          place();
+        } else {
+          this.update({ hint: 'board.hints.viaBlocked' });
+        }
+      })
+      .catch((error: unknown) => {
+        this.host.error(error);
+      });
   }
 
   /** Puts the fixed segments and vias into the board. */
@@ -618,10 +737,13 @@ export class BoardEditor implements Interaction {
       net: route.net,
       width: Math.round(route.width),
       segments: route.fixed.map((s) => ({ layer: s.layer, points: s.points })),
-      vias: route.vias.map((at) => ({
-        at,
-        diameter: Math.round(route.viaDiameter),
-        drill: Math.round(route.viaDrill),
+      vias: route.vias.map((via) => ({
+        at: via.at,
+        diameter: Math.round(via.diameter),
+        drill: Math.round(via.drill),
+        from: via.from,
+        to: via.to,
+        micro: via.micro,
       })),
     });
   }
@@ -637,7 +759,7 @@ export class BoardEditor implements Interaction {
       return;
     }
     const start = last.points[0] ?? route.start;
-    const vias = route.vias.filter((v) => v[0] !== route.start[0] || v[1] !== route.start[1]);
+    const vias = route.vias.filter((v) => v.at[0] !== route.start[0] || v.at[1] !== route.start[1]);
     this.update({
       layer: last.layer,
       route: {

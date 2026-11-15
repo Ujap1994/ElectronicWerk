@@ -47,12 +47,18 @@ export const boardDe: Messages['board'] = {
     footprint: 'Klick platziert den Footprint · R dreht ihn',
     highlight: 'Klicke auf Kupfer, um sein Netz hervorzuheben',
     viaBlocked: 'Hier passt kein Via: Bewege das Ende der Leiterbahn',
+    viaNotAllowed:
+      'Die Designregeln erlauben diesen Via-Typ nicht: Schalte ihn unter Designregeln → Mindestwerte ein oder wähle einen anderen Via-Typ',
+    microNeighbours: 'Ein Mikrovia verbindet nur benachbarte Lagen: Wähle die nächste Lage',
   },
   actions: {
     rotate: 'Drehen',
     corners: '90°-Ecken erlauben',
     cornersTip:
       'Erlaubt rechtwinklige Knicke beim Verlegen. Aus (Standard): Leiterbahnen knicken nur um 45°, das ist besser für Signalqualität und EMV.',
+    viaType: 'Via-Typ',
+    viaTypeTip:
+      'Das Via, das beim Lagenwechsel gesetzt wird. Sackloch-, vergrabene und Mikrovias verbinden nur einen Teil der Lagen; die Designregeln müssen sie erlauben.',
     flip: 'Auf die andere Seite',
     lock: 'Sperren (Umschalt+L entsperrt)',
     arrange: 'Ausrichten und verteilen',
@@ -84,6 +90,10 @@ export const boardDe: Messages['board'] = {
     text: 'Text',
   },
   props: {
+    from: 'Erste Lage',
+    to: 'Letzte Lage',
+    micro: 'Mikrovia (lasergebohrt)',
+    viaType: 'Typ',
     designator: 'Bezeichner',
     value: 'Wert',
     rotation: 'Drehung',
@@ -95,6 +105,12 @@ export const boardDe: Messages['board'] = {
     diameter: 'Durchmesser',
     drill: 'Bohrung',
     text: 'Text',
+  },
+  viaTypes: {
+    through: 'Durchgehendes Via',
+    blind: 'Sackloch-/vergrabenes Via',
+    buried: 'Vergrabenes Via',
+    micro: 'Mikrovia',
   },
   drc: {
     title: 'Designregelprüfung',
@@ -126,6 +142,8 @@ export const boardDe: Messages['board'] = {
       'via-diameter': 'Via-Durchmesser',
       'via-drill': 'Via-Bohrung',
       'annular-ring': 'Restring',
+      'via-type': 'Via-Typ nicht erlaubt',
+      'via-layers': 'Lagen eines Vias',
       'hole-size': 'Bohrungsgröße',
       'hole-to-hole': 'Bohrungsabstand',
       'copper-to-edge': 'Kupfer zum Platinenrand',
@@ -145,6 +163,11 @@ export const boardDe: Messages['board'] = {
       'net-mismatch': 'Pad-Netz weicht vom Schaltplan ab',
       'rule-error': 'Fehler in einer eigenen Regel',
     },
+    problems: {
+      sameLayer: 'verbindet eine Lage mit sich selbst',
+      notNeighbours: 'ist ein Mikrovia, aber seine Lagen sind nicht benachbart',
+      missingLayer: 'endet auf einer Lage, die die Platine nicht hat',
+    },
     messages: {
       short: '{a} berührt {b}: Die Netze sind kurzgeschlossen',
       clearance: 'Abstand {actual} zwischen {a} und {b} ist kleiner als {required} ({source})',
@@ -152,6 +175,8 @@ export const boardDe: Messages['board'] = {
       'copper-to-edge':
         '{item} liegt {actual} vom Platinenrand entfernt, weniger als {required} ({source})',
       'outside-board': '{item} liegt außerhalb der Platine',
+      'via-type': 'Via auf den Lagen {layers}: Die Designregeln erlauben diesen Via-Typ nicht',
+      'via-layers': 'Via auf den Lagen {layers} {problem}',
       keepout: '{item} liegt in {area}',
       'courtyard-overlap': 'Die Courtyards von {a} und {b} überlappen sich',
       'silk-over-pad': '{owner} liegt auf {item}',
@@ -312,6 +337,8 @@ export const boardDe: Messages['board'] = {
       trackWidth: 'Leiterbahnbreite',
       viaDiameter: 'Via-Durchmesser',
       viaDrill: 'Via-Bohrung',
+      microViaDiameter: 'Mikrovia-Durchmesser',
+      microViaDrill: 'Mikrovia-Bohrung',
       diffPairWidth: 'Diff.-Paar-Breite',
       diffPairGap: 'Diff.-Paar-Abstand',
     },
@@ -335,7 +362,13 @@ export const boardDe: Messages['board'] = {
       minHoleToHole: 'Bohrung zu Bohrung',
       minCopperToEdge: 'Kupfer zum Rand',
       minSilkWidth: 'Bestückungsdruck-Breite',
+      minMicroViaDiameter: 'Mikrovia-Durchmesser',
+      minMicroViaDrill: 'Mikrovia-Bohrung',
     },
+    allowBlindBuriedVias: 'Sackloch- und vergrabene Vias erlauben',
+    allowMicroVias: 'Mikrovias erlauben',
+    viaTypesHint:
+      'Sackloch- und vergrabene Vias verbinden nur einen Teil der Lagen, Mikrovias benachbarte Lagen. Nicht jeder Hersteller fertigt sie, und sie kosten extra.',
     customHint:
       'Eine eigene Regel legt Grenzwerte für die Objekte fest, auf die ihre Bedingung passt. Spätere Regeln haben Vorrang vor früheren.',
     ruleName: 'Name',

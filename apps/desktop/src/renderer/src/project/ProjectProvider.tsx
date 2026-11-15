@@ -978,6 +978,17 @@ export function ProjectProvider({ children }: { readonly children: ReactNode }):
     [engine, notify, run, t],
   );
 
+  // Grouped, so the dependency list of the API stays small enough for
+  // the type checker.
+  const netlistActions = useMemo(
+    () => ({ importNetlist, applyNetlist, closeNetlist }),
+    [importNetlist, applyNetlist, closeNetlist],
+  );
+  const libraryActions = useMemo(
+    () => ({ importLibrary, addFromLibrary }),
+    [importLibrary, addFromLibrary],
+  );
+
   const value = useMemo<ProjectApi>(
     () => ({
       project,
@@ -1018,11 +1029,11 @@ export function ProjectProvider({ children }: { readonly children: ReactNode }):
       runKicadImport,
       closeKicadImport,
       closeImportReport,
-      importNetlist,
-      applyNetlist,
-      closeNetlist,
-      importLibrary,
-      addFromLibrary,
+      importNetlist: netlistActions.importNetlist,
+      applyNetlist: netlistActions.applyNetlist,
+      closeNetlist: netlistActions.closeNetlist,
+      importLibrary: libraryActions.importLibrary,
+      addFromLibrary: libraryActions.addFromLibrary,
       notify,
     }),
     [
@@ -1062,11 +1073,8 @@ export function ProjectProvider({ children }: { readonly children: ReactNode }):
       runKicadImport,
       closeKicadImport,
       closeImportReport,
-      importNetlist,
-      applyNetlist,
-      closeNetlist,
-      importLibrary,
-      addFromLibrary,
+      netlistActions,
+      libraryActions,
       notify,
     ],
   );

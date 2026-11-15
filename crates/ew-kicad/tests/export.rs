@@ -213,3 +213,48 @@ fn kicad_opens_the_board() {
     )
     .unwrap();
 }
+
+#[test]
+fn blind_buried_and_micro_vias_keep_their_layers() {
+    use ew_model::layer::CopperLayer;
+    use ew_model::pcb::{Via, ViaType};
+    use ew_model::units::{Point, um};
+
+    let mut pcb = imported_board();
+    assert_eq!(pcb.stackup.copper_count(), 4);
+    let spans = [
+        (CopperLayer::Top, CopperLayer::Inner(1), false),
+        (CopperLayer::Inner(1), CopperLayer::Inner(2), false),
+        (CopperLayer::Inner(2), CopperLayer::Bottom, true),
+    ];
+    for (index, &(from, to, micro)) in spans.iter().enumerate() {
+        pcb.vias.insert(Via {
+            id: ew_model::id::Id::random(),
+            at: Point::mm(200 + i64::try_from(index).unwrap(), 200),
+            diameter: um(300),
+            drill: um(100),
+            net: None,
+            from,
+            to,
+            micro,
+            locked: false,
+        });
+    }
+    let (back, text, _) = round_trip(&pcb);
+    assert_eq!(text.matches("(via blind").count(), 2);
+    assert_eq!(text.matches("(via micro").count(), 1);
+    let kinds: BTreeSet<(i64, ViaType, String, String)> = back
+        .vias
+        .iter()
+        .filter(|v| v.via_type() != ViaType::Through)
+        .map(|v| (v.at.x, v.via_type(), v.from.to_string(), v.to.to_string()))
+        .collect();
+    let expected: BTreeSet<(i64, ViaType, String, String)> = pcb
+        .vias
+        .iter()
+        .filter(|v| v.via_type() != ViaType::Through)
+        .map(|v| (v.at.x, v.via_type(), v.from.to_string(), v.to.to_string()))
+        .collect();
+    assert_eq!(kinds, expected);
+    assert_eq!(kinds.len(), 3);
+}

@@ -173,6 +173,7 @@ pub const METHODS: &[&str] = &[
     "pcb.syncPreview",
     "pcb.unfillZones",
     "pcb.validateRule",
+    "pcb.viaFits",
     "project.archive",
     "project.close",
     "project.create",

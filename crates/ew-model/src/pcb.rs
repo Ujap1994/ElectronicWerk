@@ -525,6 +525,49 @@ pub struct Via {
     pub locked: bool,
 }
 
+/// The kind of a via by the layers it connects.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub enum ViaType {
+    /// Through the whole board.
+    Through,
+    /// From an outer layer to an inner layer.
+    Blind,
+    /// Between inner layers only.
+    Buried,
+    /// A laser-drilled microvia between neighbouring layers.
+    Micro,
+}
+
+impl ViaType {
+    /// The name used in files and rule conditions.
+    #[must_use]
+    pub const fn as_str(self) -> &'static str {
+        match self {
+            Self::Through => "through",
+            Self::Blind => "blind",
+            Self::Buried => "buried",
+            Self::Micro => "micro",
+        }
+    }
+}
+
+impl Via {
+    /// The kind of this via: a microvia, or by its first and last layer.
+    #[must_use]
+    pub fn via_type(&self) -> ViaType {
+        if self.micro {
+            return ViaType::Micro;
+        }
+        let outer = |layer: CopperLayer| !matches!(layer, CopperLayer::Inner(_));
+        match (outer(self.from), outer(self.to)) {
+            (true, true) if self.from != self.to => ViaType::Through,
+            (false, false) => ViaType::Buried,
+            _ => ViaType::Blind,
+        }
+    }
+}
+
 const fn top_copper() -> CopperLayer {
     CopperLayer::Top
 }

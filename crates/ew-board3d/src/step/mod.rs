@@ -531,8 +531,9 @@ pub fn export(
     let mut number = 0_usize;
 
     // The board body.
-    let drilled = drilled_polygons(board);
-    let (loops, exact) = body::body_loops(pcb, &board.holes, &board.area, &drilled);
+    let through = board.through_holes();
+    let drilled = drilled_polygons(board, &through);
+    let (loops, exact) = body::body_loops(pcb, &through, &board.area, &drilled);
     report.exact_body = exact;
     if !loops.is_empty() {
         let solid = body::write_solid(&mut w, &loops, board.levels.body_top);
@@ -668,10 +669,9 @@ pub fn export(
     (w.finish(&header), report)
 }
 
-/// The board area minus the holes (the fallback body).
-fn drilled_polygons(board: &Board3d) -> Polygons {
-    let holes: Polygons = board
-        .holes
+/// The board area minus the holes through it (the fallback body).
+fn drilled_polygons(board: &Board3d, through: &[ew_output::drill::Hole]) -> Polygons {
+    let holes: Polygons = through
         .iter()
         .map(|hole| vec![crate::board::hole_polygon(hole, 2_000.0)])
         .collect();
