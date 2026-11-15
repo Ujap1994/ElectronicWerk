@@ -145,3 +145,159 @@ fn jobs_run_into_the_project_folder() {
     assert!(bom["fields"].as_array().unwrap().iter().any(|f| f == "MPN"));
     assert_eq!(bom["headers"][0], "Item");
 }
+
+#[test]
+fn documentation_runs_in_a_job() {
+    let dir = tempfile::tempdir().unwrap();
+    let mut engine = Engine::without_journal();
+    let snapshot = call(
+        &mut engine,
+        "project.create",
+        json!({"path": dir.path().join("Doc"), "name": "Doc", "template": "demo"}),
+    );
+    let job = snapshot["documents"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|d| d["kind"] == "outputJob")
+        .unwrap()["id"]
+        .as_str()
+        .unwrap()
+        .to_owned();
+    let mut outputs = call(&mut engine, "document.properties", json!({"doc": job}))["outputs"]
+        .as_array()
+        .unwrap()
+        .clone();
+    outputs.push(
+        json!({"id": "00000000-0000-4000-8000-0000000000d1", "name": "Sheets", "kind": "svg"}),
+    );
+    outputs.push(json!({"id": "00000000-0000-4000-8000-0000000000d2", "name": "Docs", "kind": "documentation"}));
+    call(
+        &mut engine,
+        "document.setProperties",
+        json!({"doc": job, "props": {"outputs": outputs}}),
+    );
+    let report = call(
+        &mut engine,
+        "outputs.run",
+        json!({"job": job, "outputs": ["00000000-0000-4000-8000-0000000000d1", "00000000-0000-4000-8000-0000000000d2"]}),
+    );
+    let directory = std::path::PathBuf::from(report["directory"].as_str().unwrap());
+    let files: Vec<String> = report["files"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|f| f["path"].as_str().unwrap().to_owned())
+        .collect();
+    assert!(files.iter().any(|f| {
+        std::path::Path::new(f)
+            .extension()
+            .is_some_and(|e| e.eq_ignore_ascii_case("svg"))
+    }));
+    let html = files
+        .iter()
+        .find(|f| f.ends_with("-documentation.html"))
+        .unwrap();
+    let page = std::fs::read_to_string(directory.join(html)).unwrap();
+    assert!(page.contains("<h1>Doc</h1>"));
+    assert!(page.contains("Sheet 1: Root"));
+}
+
+#[test]
+fn panels_make_the_board_outputs() {
+    let dir = tempfile::tempdir().unwrap();
+    let mut engine = Engine::without_journal();
+    let snapshot = call(
+        &mut engine,
+        "project.create",
+        json!({"path": dir.path().join("Panel"), "name": "Panel", "template": "demo"}),
+    );
+    let job = snapshot["documents"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|d| d["kind"] == "outputJob")
+        .unwrap()["id"]
+        .as_str()
+        .unwrap()
+        .to_owned();
+    let single = call(&mut engine, "outputs.run", json!({"job": job}));
+    let single_rows = placement_rows(&single);
+
+    // Two boards side by side, V-score, no rails.
+    call(
+        &mut engine,
+        "document.setProperties",
+        json!({"doc": job, "props": {"panel": {
+            "columns": 2, "rows": 1, "separation": "vScore", "rails": "none",
+            "fiducials": false, "toolingHoles": false,
+        }}}),
+    );
+    let report = call(&mut engine, "outputs.run", json!({"job": job}));
+    for result in report["results"].as_array().unwrap() {
+        assert_eq!(result["status"], "done", "{result}");
+    }
+    let files = paths(&report);
+    assert!(
+        files.iter().any(|f| f.contains("panel-User_1")),
+        "V-score lines: {files:?}"
+    );
+    assert_eq!(placement_rows(&report), single_rows * 2);
+
+    // Preview: size, warnings and a drawing.
+    let preview = call(
+        &mut engine,
+        "outputs.panelPreview",
+        json!({"settings": {"columns": 3, "rows": 2, "rails": "topBottom", "railWidth": 2_000_000}}),
+    );
+    assert_eq!(preview["boards"], 6);
+    assert_eq!(preview["size"], json!([244.0, 130.0]));
+    let codes: Vec<&str> = preview["warnings"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|w| w["code"].as_str().unwrap())
+        .collect();
+    assert_eq!(
+        codes,
+        ["toolingHolesNeedRails", "fiducialsNeedRails"],
+        "rails too narrow"
+    );
+    assert!(preview["problem"].is_null());
+    assert!(
+        preview["svg"].as_str().unwrap().starts_with("<svg")
+            || preview["svg"].as_str().unwrap().starts_with("<?xml")
+    );
+    let reply = error(
+        &mut engine,
+        "outputs.panelPreview",
+        json!({"settings": {"columns": 0}}),
+    );
+    assert_eq!(reply["code"], "invalidParams");
+}
+
+fn paths(report: &Value) -> Vec<String> {
+    report["files"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|f| f["path"].as_str().unwrap().to_owned())
+        .collect()
+}
+
+/// Rows of the pick-and-place CSV files of a run.
+fn placement_rows(report: &Value) -> usize {
+    let directory = std::path::PathBuf::from(report["directory"].as_str().unwrap());
+    paths(report)
+        .iter()
+        .filter(|f| f.contains("placement") && f.to_ascii_lowercase().ends_with("csv"))
+        .map(|f| {
+            std::fs::read_to_string(directory.join(f))
+                .unwrap()
+                .lines()
+                .skip(1)
+                .filter(|l| !l.is_empty())
+                .count()
+        })
+        .sum()
+}

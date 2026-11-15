@@ -10,7 +10,7 @@ use std::collections::BTreeMap;
 use ew_model::document::Document;
 use ew_model::id::Id;
 use ew_model::layer::Layer;
-use ew_model::outputs::{OutputJob, OutputKind, OutputSpec};
+use ew_model::outputs::{OutputJob, OutputKind, OutputSpec, PanelSettings};
 use ew_model::pcb::Pcb;
 use ew_model::project::Project;
 use serde::de::DeserializeOwned;
@@ -375,6 +375,26 @@ impl Default for PrintJob {
     }
 }
 
+/// Options of the project documentation.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase", default)]
+pub struct DocumentationJob {
+    /// Sections.
+    #[serde(flatten)]
+    pub sections: crate::documentation::Sections,
+    /// Subfolder.
+    pub folder: String,
+}
+
+impl Default for DocumentationJob {
+    fn default() -> Self {
+        Self {
+            sections: crate::documentation::Sections::default(),
+            folder: "documentation".to_owned(),
+        }
+    }
+}
+
 /// Options of netlist outputs.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase", default)]
@@ -435,6 +455,21 @@ fn board(project: &Project, source: Option<Id>) -> Result<&Pcb, String> {
         .ok_or_else(|| "the project has no board".to_owned())
 }
 
+/// The board of a board output, or its panel when the job has one.
+fn panel_board<'a>(
+    project: &'a Project,
+    source: Option<Id>,
+    panel: Option<&PanelSettings>,
+) -> Result<std::borrow::Cow<'a, Pcb>, String> {
+    let pcb = board(project, source)?;
+    match panel {
+        None => Ok(std::borrow::Cow::Borrowed(pcb)),
+        Some(settings) => ew_pcb::panel::panelize(pcb, settings)
+            .map(|panel| std::borrow::Cow::Owned(panel.pcb))
+            .map_err(|error| format!("panel: {error}")),
+    }
+}
+
 fn has_schematic(project: &Project) -> bool {
     project
         .documents
@@ -448,13 +483,23 @@ fn run_one(
     spec: &OutputSpec,
     ctx: &RunContext<'_>,
     done: &[(OutputKind, Vec<OutputFile>)],
+    panel: Option<&PanelSettings>,
 ) -> Result<Vec<OutputFile>, String> {
     let project = ctx.project;
     let title = |pcb: &Pcb| format!("{} – {}", project.manifest.name, pcb.name);
     match spec.kind {
         OutputKind::Gerber => {
             let o: GerberJob = options(spec)?;
-            let pcb = board(project, spec.source)?;
+            let pcb = panel_board(project, spec.source, panel)?;
+            let pcb: &Pcb = &pcb;
+            let mut layers = parse_layers(&o.layers)?;
+            // V-score lines of a panel go into their own file.
+            if panel.is_some_and(|p| p.separation == ew_model::outputs::Separation::VScore) {
+                if layers.is_empty() {
+                    layers = crate::gerber::fabrication_layers(pcb);
+                }
+                layers.push(ew_pcb::panel::VSCORE_LAYER);
+            }
             let resolve = |t: &str| (ctx.resolve)(t, Some(pcb.id));
             let art = BoardArt::new(
                 pcb,
@@ -468,7 +513,7 @@ fn run_one(
             let files = crate::gerber::gerbers(
                 &art,
                 &crate::gerber::GerberOptions {
-                    layers: parse_layers(&o.layers)?,
+                    layers,
                     protel_extensions: o.protel_extensions,
                     attributes: o.x2,
                     job_file: o.job_file,
@@ -489,7 +534,8 @@ fn run_one(
         }
         OutputKind::Drill => {
             let o: DrillJob = options(spec)?;
-            let pcb = board(project, spec.source)?;
+            let pcb = panel_board(project, spec.source, panel)?;
+            let pcb: &Pcb = &pcb;
             Ok(crate::drill::drill_files(
                 pcb,
                 crate::drill::DrillOptions { merge: o.merge },
@@ -503,7 +549,8 @@ fn run_one(
         }
         OutputKind::DrillMap => {
             let o: DrillMapJob = options(spec)?;
-            let pcb = board(project, spec.source)?;
+            let pcb = panel_board(project, spec.source, panel)?;
+            let pcb: &Pcb = &pcb;
             let resolve = |t: &str| (ctx.resolve)(t, Some(pcb.id));
             let art = BoardArt::new(pcb, ArtOptions::default(), &resolve);
             let doc = crate::drillmap::drill_map_doc(
@@ -560,7 +607,8 @@ fn run_one(
         }
         OutputKind::PickAndPlace => {
             let o: PlacementJob = options(spec)?;
-            let pcb = board(project, spec.source)?;
+            let pcb = panel_board(project, spec.source, panel)?;
+            let pcb: &Pcb = &pcb;
             Ok(
                 crate::placement::placement_files(pcb, &o.file, &sanitize(&pcb.name))
                     .into_iter()
@@ -582,10 +630,8 @@ fn run_one(
                     }
                     let pages = print::schematic_pages(
                         project,
-                        &ew_scene::Options {
-                            resolve: &|t: &str| (ctx.resolve)(t, None),
-                            labels: ctx.labels.clone(),
-                        },
+                        ctx.resolve,
+                        &ctx.labels,
                         SchematicPrint {
                             color: o.color,
                             paper: o.paper,
@@ -727,6 +773,26 @@ fn run_one(
                 crate::archive::zip(&entries),
             )])
         }
+        OutputKind::Documentation => {
+            let o: DocumentationJob = options(spec)?;
+            let pcb = board(project, spec.source).ok();
+            let html = crate::documentation::html(
+                project,
+                &crate::documentation::Inputs {
+                    board: pcb,
+                    resolve: ctx.resolve,
+                    labels: ctx.labels.clone(),
+                    version: &ctx.version,
+                    created: &ctx.created,
+                },
+                o.sections,
+            );
+            let stem = sanitize(&project.manifest.name);
+            Ok(vec![OutputFile::text(
+                folder(&o.folder, &format!("{stem}-documentation.html")),
+                html,
+            )])
+        }
         OutputKind::Step => {
             let (files, _) = model3d(spec, ctx)?;
             Ok(files)
@@ -821,7 +887,7 @@ pub fn run(job: &OutputJob, only: Option<&[Id]>, ctx: &RunContext<'_>) -> RunRes
                 files
             })
         } else {
-            run_one(spec, ctx, &done)
+            run_one(spec, ctx, &done, job.panel.as_ref())
         };
         match outcome {
             Ok(files) => {

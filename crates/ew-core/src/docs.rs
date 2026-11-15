@@ -10,6 +10,26 @@ pub const REFERENCE: &str = "https://ujap1994.github.io/ElectronicWerk/reference
 /// Every method with its summary, in the order of [`crate::rpc::METHODS`].
 pub const SUMMARIES: &[(&str, &str)] = &[
     (
+        "outputs.panelPreview",
+        "{\"settings\": {columns, rows, separation: mouseBites | vScore, gap, rails: none | topBottom | leftRight | all, railWidth, fiducials, toolingHoles, tabs, tabWidth} (nm), \"board\"?} → {size (mm), boards, warnings, svg}: the panel an output job with these settings makes.",
+    ),
+    (
+        "project.statistics",
+        "The design in numbers: schematic (sheets, parts, pins, nets), bill of materials (lines, parts, DNP, missing footprints or part numbers) and every board (size, area, layers, footprints by side and mounting, pads, holes by drill size, vias, track length per layer, smallest track, via and hole, density, routing completion).",
+    ),
+    (
+        "assembly.mark",
+        "{\"designators\", \"placed\", \"board\"?}. Ticks parts off as placed (or not) in the current build of the assembly assistant; saved at once in assembly.json. Raises an assembly event.",
+    ),
+    (
+        "assembly.plan",
+        "{\"board\"?, \"order\"?: \"size\" | \"value\" | \"count\" | \"designator\", \"firstSide\"?: \"top\" | \"bottom\"}. The assembly steps: groups of parts with the same side, mounting, value, footprint and part number, small SMD parts first, with the progress of the current build.",
+    ),
+    (
+        "assembly.reset",
+        "{\"board\"?, \"completed\"?}. Starts the build again (with completed: the build is finished and counted).",
+    ),
+    (
         "board3d.export",
         "`board3d.export {\"doc\", \"path\", \"format\"?, \"origin\"?, \"includeDnp\"?, \"units\"?}` writes the board as a 3D model to `path` (absolute): `format` `step` (default), `glb` or `vrml`; `origin` `drill` (default), `center` or `absolute`; `units` (VRML) `mm` (default), `m` or `inch`. The reply:",
     ),
@@ -449,7 +469,7 @@ pub const SUMMARIES: &[(&str, &str)] = &[
     ),
     (
         "schematic.components",
-        "The placed parts of all sheets: designator, value, footprint, symbol, sheet and pins (with ids, for editors; design.components is the simpler form).",
+        "The components of the project libraries: name, symbol, footprint, value, manufacturer and part number (design.components lists the placed parts).",
     ),
     (
         "schematic.copy",

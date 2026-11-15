@@ -318,11 +318,12 @@ fn prints_of_the_blinky_project() {
     )
     .unwrap();
     let project = imported.project;
-    let options = ew_scene::Options {
-        resolve: &|s: &str| s.to_owned(),
-        labels: ew_scene::TitleLabels::default(),
-    };
-    let sheets = print::schematic_pages(&project, &options, SchematicPrint::default());
+    let sheets = print::schematic_pages(
+        &project,
+        &|s: &str, _| s.to_owned(),
+        &ew_scene::TitleLabels::default(),
+        SchematicPrint::default(),
+    );
     assert_eq!(sheets.len(), 2, "root sheet and power sheet");
     assert!(sheets[0].items.len() > 100);
     assert!(sheets[0].labels.iter().any(|l| l.text == "U1"));

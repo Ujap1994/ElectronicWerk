@@ -440,6 +440,7 @@ pub fn call(
             version,
         )?)),
         "outputs.bom" => Ok(Outcome::Read(bom_preview(session, &parse(params)?)?)),
+        "outputs.panelPreview" => Ok(Outcome::Read(panel_preview(session, &parse(params)?)?)),
         "outputs.files" => {
             let params: JobParams = parse(params)?;
             Ok(Outcome::Read(files_of_job(session, params.job)?))
@@ -463,4 +464,84 @@ mod tests {
         assert!(inside(root, "/etc").is_err());
         assert!(inside(root, "a/../../b").is_err());
     }
+}
+
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+struct PanelPreviewParams {
+    settings: ew_model::outputs::PanelSettings,
+    #[serde(default)]
+    board: Option<Id>,
+}
+
+/// The panel of a board as a drawing (outline, silkscreen, holes), its
+/// size and hints, for the panel settings.
+fn panel_preview(session: &Session, params: &PanelPreviewParams) -> Result<Value, EngineError> {
+    let project = session.project();
+    let pcb = match params.board {
+        Some(id) => match project.document(id) {
+            Some(Document::Pcb(pcb)) => pcb,
+            _ => return Err(EngineError::not_found("no such board")),
+        },
+        None => project
+            .documents_of(DocumentKind::Pcb)
+            .find_map(|entry| match project.document(entry.id) {
+                Some(Document::Pcb(pcb)) => Some(pcb),
+                _ => None,
+            })
+            .ok_or_else(|| EngineError::not_found("the project has no board"))?,
+    };
+    let panel = match ew_pcb::panel::panelize(pcb, &params.settings) {
+        Ok(panel) => panel,
+        // Settings out of range are the caller's mistake; the others are
+        // what the board allows, shown next to the settings.
+        Err(error @ ew_pcb::panel::PanelError::Invalid(_)) => {
+            return Err(EngineError::invalid_params(error.to_string()));
+        }
+        Err(error) => {
+            return Ok(json!({
+                "size": null,
+                "boards": 0,
+                "warnings": [],
+                "svg": null,
+                "problem": {"code": error.code(), "message": error.to_string()},
+            }));
+        }
+    };
+    let resolve = |text: &str| session.resolve_text(text, Some(pcb.id));
+    let art =
+        ew_output::art::BoardArt::new(&panel.pcb, ew_output::art::ArtOptions::default(), &resolve);
+    let pages = ew_output::print::board_pages(
+        &art,
+        &ew_output::print::BoardPrint {
+            layers: vec![
+                ew_model::layer::Layer::Copper(ew_model::layer::CopperLayer::Top),
+                ew_model::layer::Layer::Silkscreen(ew_model::layer::Side::Top),
+                ew_pcb::panel::VSCORE_LAYER,
+            ],
+            page_per_layer: false,
+            mirror: false,
+            color: ew_output::print::ColorMode::Color,
+            paper: ew_output::print::Paper::Fit,
+            outline: true,
+        },
+        &panel.pcb.name,
+    );
+    let svg = pages
+        .first()
+        .map(|page| ew_output::svg::write(page, &panel.pcb.name))
+        .unwrap_or_default();
+    #[allow(clippy::cast_precision_loss, reason = "millimetres")]
+    let size = [panel.size.0 as f64 / 1e6, panel.size.1 as f64 / 1e6];
+    Ok(json!({
+        "size": size,
+        "boards": params.settings.columns * params.settings.rows,
+        "warnings": panel
+            .warnings
+            .iter()
+            .map(|w| json!({"code": w.code(), "message": w.to_string()}))
+            .collect::<Vec<_>>(),
+        "svg": svg,
+        "problem": null,
+    }))
 }

@@ -288,12 +288,20 @@ pub struct SchematicPrint {
 #[must_use]
 pub fn schematic_pages(
     project: &Project,
-    options: &ew_scene::Options<'_>,
+    resolve: &dyn Fn(&str, Option<Id>) -> String,
+    labels: &ew_scene::TitleLabels,
     print: SchematicPrint,
 ) -> Vec<Page> {
     sheet_order(project)
         .into_iter()
-        .filter_map(|id| ew_scene::plot(project, id, options).ok())
+        .filter_map(|id| {
+            // Each sheet resolves its own variables (`${SHEET_NAME}`, …).
+            let options = ew_scene::Options {
+                resolve: &|text: &str| resolve(text, Some(id)),
+                labels: labels.clone(),
+            };
+            ew_scene::plot(project, id, &options).ok()
+        })
         .map(|plot| plot_page(&plot, print.color, print.paper))
         .collect()
 }

@@ -6,6 +6,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::default_true;
 use crate::id::Id;
+use crate::units::Nm;
 
 /// Kind of generated output.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
@@ -35,6 +36,8 @@ pub enum OutputKind {
     Netlist,
     /// ZIP package of other outputs (for the board maker).
     Archive,
+    /// Project documentation (one HTML file).
+    Documentation,
 }
 
 /// One output in a job.
@@ -58,6 +61,77 @@ pub struct OutputSpec {
     pub options: BTreeMap<String, serde_json::Value>,
 }
 
+/// How the boards of a panel are separated.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub enum Separation {
+    /// Milled gaps with tabs and rows of small holes ("mouse bites").
+    #[default]
+    MouseBites,
+    /// The boards touch; V-shaped grooves along the edges (rectangular
+    /// boards only).
+    VScore,
+}
+
+/// Where a panel has frame rails.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub enum Rails {
+    /// No rails.
+    None,
+    /// Above and below the boards (the usual choice for assembly).
+    #[default]
+    TopBottom,
+    /// Left and right of the boards.
+    LeftRight,
+    /// A frame on all four sides.
+    All,
+}
+
+/// A panel: several copies of a board on one sheet, for manufacturing and
+/// assembly. The board outputs of a job with a panel are made for it.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase", default)]
+pub struct PanelSettings {
+    /// Copies side by side.
+    pub columns: u32,
+    /// Copies above each other.
+    pub rows: u32,
+    /// How the boards are separated.
+    pub separation: Separation,
+    /// Width of the milled gaps (mouse bites).
+    pub gap: Nm,
+    /// Frame rails.
+    pub rails: Rails,
+    /// Width of a rail.
+    pub rail_width: Nm,
+    /// Three fiducials on the rails (for pick-and-place machines).
+    pub fiducials: bool,
+    /// A tooling hole in each corner of the rails.
+    pub tooling_holes: bool,
+    /// Tabs per board edge (mouse bites).
+    pub tabs: u32,
+    /// Width of a tab.
+    pub tab_width: Nm,
+}
+
+impl Default for PanelSettings {
+    fn default() -> Self {
+        Self {
+            columns: 2,
+            rows: 2,
+            separation: Separation::MouseBites,
+            gap: 2_000_000,
+            rails: Rails::TopBottom,
+            rail_width: 5_000_000,
+            fiducials: true,
+            tooling_holes: true,
+            tabs: 2,
+            tab_width: 2_000_000,
+        }
+    }
+}
+
 /// An output job document (`.ewout`).
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -71,6 +145,9 @@ pub struct OutputJob {
     /// Outputs in run order.
     #[serde(default)]
     pub outputs: Vec<OutputSpec>,
+    /// Make the board outputs for a panel of the board.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub panel: Option<PanelSettings>,
 }
 
 /// Editable output job properties (the whole document except its id).
@@ -83,6 +160,9 @@ pub struct OutputJobProps {
     pub directory: String,
     /// Outputs.
     pub outputs: Vec<OutputSpec>,
+    /// Panel of the board outputs (`null`: single boards).
+    #[serde(default)]
+    pub panel: Option<PanelSettings>,
 }
 
 /// Default output folder.
@@ -97,6 +177,7 @@ impl OutputJob {
             name: name.into(),
             directory: DEFAULT_OUTPUT_DIRECTORY.to_owned(),
             outputs: Vec::new(),
+            panel: None,
         }
     }
 
@@ -153,6 +234,7 @@ impl OutputJob {
             name: self.name.clone(),
             directory: self.directory.clone(),
             outputs: self.outputs.clone(),
+            panel: self.panel.clone(),
         }
     }
 
@@ -161,6 +243,7 @@ impl OutputJob {
         self.name = props.name;
         self.directory = props.directory;
         self.outputs = props.outputs;
+        self.panel = props.panel;
     }
 }
 

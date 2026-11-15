@@ -27,6 +27,7 @@ pub mod edit;
 pub mod fill;
 pub mod geom;
 pub mod items;
+pub mod panel;
 pub mod poly;
 pub mod presets;
 pub mod route;

@@ -73,6 +73,9 @@ pub enum Response {
 
 /// All methods the engine understands, in alphabetical order.
 pub const METHODS: &[&str] = &[
+    "assembly.mark",
+    "assembly.plan",
+    "assembly.reset",
     "board3d.export",
     "board3d.parts",
     "board3d.resolve",
@@ -141,6 +144,7 @@ pub const METHODS: &[&str] = &[
     "outputs.bom",
     "outputs.create",
     "outputs.files",
+    "outputs.panelPreview",
     "outputs.presets",
     "outputs.run",
     "pcb.addTracks",
@@ -179,6 +183,7 @@ pub const METHODS: &[&str] = &[
     "project.saveAs",
     "project.saveCopy",
     "project.setProperties",
+    "project.statistics",
     "project.templates",
     "project.validate",
     "schematic.add",
@@ -649,6 +654,7 @@ impl Engine {
             "engine.info" => to_value(&EngineInfo::current()),
             "engine.methods" => to_value(&METHODS),
             "engine.ping" => Ok(json!({"pong": true, "echo": params})),
+            "project.statistics" => Ok(ew_output::statistics::statistics(self.open()?.project())),
             _ if method.starts_with("project.") => self.call_project(method, params),
             _ if method.starts_with("document.") => self.call_document(method, params),
             _ if method.starts_with("edit.") => self.call_edit(method, params),
@@ -658,6 +664,7 @@ impl Engine {
             _ if method.starts_with("pcb.") => self.call_pcb(method, params),
             _ if method.starts_with("outputs.") => self.call_outputs(method, params),
             _ if method.starts_with("design.") => self.call_design(method, params),
+            _ if method.starts_with("assembly.") => self.call_assembly(method, params),
             "board3d.scene" => {
                 let session = self.session.as_ref().ok_or_else(EngineError::no_project)?;
                 let (mut meta, data) = crate::board3d::scene(session, &mut self.library, params)?;
@@ -1348,6 +1355,15 @@ impl Engine {
                 Ok(out)
             }
         }
+    }
+
+    fn call_assembly(&mut self, method: &str, params: &Value) -> Result<Value, EngineError> {
+        let session = self.open()?;
+        let reply = crate::assembly::call(session.project(), session.root(), method, params)?;
+        if let Some(event) = reply.event {
+            self.events.push(event);
+        }
+        Ok(reply.result)
     }
 
     fn call_design(&mut self, method: &str, params: &Value) -> Result<Value, EngineError> {

@@ -438,6 +438,49 @@ pub fn footprint_box(fp: &FootprintInstance) -> BBox {
     bbox
 }
 
+/// A copy of the board with everything moved by `offset` (same ids).
+#[must_use]
+pub fn translated(pcb: &Pcb, offset: Point) -> Pcb {
+    let shift = Shift(offset);
+    let mut out = pcb.clone();
+    let map = |item: Item| -> Item {
+        let mut item = item;
+        item.map(&shift, true);
+        item
+    };
+    for fp in &mut out.footprints {
+        if let Item::Footprint(moved) = map(Item::Footprint(fp.clone())) {
+            *fp = moved;
+        }
+    }
+    for track in &mut out.tracks {
+        if let Item::Track(moved) = map(Item::Track(track.clone())) {
+            *track = moved;
+        }
+    }
+    for via in &mut out.vias {
+        if let Item::Via(moved) = map(Item::Via(via.clone())) {
+            *via = moved;
+        }
+    }
+    for zone in &mut out.zones {
+        if let Item::Zone(moved) = map(Item::Zone(zone.clone())) {
+            *zone = moved;
+        }
+    }
+    for text in &mut out.texts {
+        if let Item::Text(moved) = map(Item::Text(text.clone())) {
+            *text = moved;
+        }
+    }
+    for shape in &mut out.shapes {
+        if let Item::Shape(moved) = map(Item::Shape(shape.clone())) {
+            *shape = moved;
+        }
+    }
+    out
+}
+
 /// Runs an edit on the board `doc`.
 ///
 /// # Errors
