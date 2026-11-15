@@ -42,6 +42,7 @@ export function App(): ReactNode {
     saveAs,
     saveCopy,
     archive,
+    exportKicad,
     closeProject,
     undo,
     redo,
@@ -107,6 +108,9 @@ export function App(): ReactNode {
           case 'archive':
             void archive();
             break;
+          case 'export-kicad':
+            void exportKicad();
+            break;
           case 'close-project':
             void closeProject();
             break;
@@ -127,6 +131,7 @@ export function App(): ReactNode {
     [
       startKicadImport,
       archive,
+      exportKicad,
       checkForUpdates,
       closeProject,
       newProject,
@@ -320,6 +325,13 @@ export function App(): ReactNode {
                 void archive();
               },
             },
+            {
+              id: 'export-kicad',
+              label: 'commands.exportKicad',
+              run: () => {
+                void exportKicad();
+              },
+            },
             { id: 'undo', label: 'commands.undo', run: undo },
             { id: 'redo', label: 'commands.redo', run: redo },
             { id: 'validate-project', label: 'commands.validateProject', run: validate },
@@ -426,6 +438,7 @@ export function App(): ReactNode {
       boardCommands,
       addDocument,
       archive,
+      exportKicad,
       checkForUpdates,
       closeProject,
       importNetlist,

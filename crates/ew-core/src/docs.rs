@@ -427,6 +427,10 @@ pub const SUMMARIES: &[(&str, &str)] = &[
         "Restores or discards the unsaved work of a crashed session (see Undo, autosave and recovery). Both return the snapshot. `project.recover` fails with `conflict` (and changes nothing) if the journal no longer fits the saved files.",
     ),
     (
+        "project.exportKicad",
+        "`{\"path\"}` (an empty or new folder) → `{\"folder\", \"project\", \"files\", \"notes\"}`: writes the project as a KiCad project (KiCad 8 format: `.kicad_pro`, one `.kicad_sch` per sheet, the board, the project libraries and their tables); `notes` lists what KiCad cannot hold.",
+    ),
+    (
         "project.files",
         "Lists the files in the project folder: `path`, `size`, `category` (`manifest`, `document`, `generated`, `other`).",
     ),

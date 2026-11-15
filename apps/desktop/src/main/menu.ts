@@ -106,6 +106,7 @@ export function buildMenu({
       action(t('menu.saveAs'), 'save-as', { accelerator: 'CmdOrCtrl+Shift+S', enabled: open }),
       action(t('menu.saveCopy'), 'save-copy', { enabled: open }),
       action(t('menu.archiveProject'), 'archive', { enabled: open }),
+      action(t('menu.exportKicad'), 'export-kicad', { enabled: open }),
       { type: 'separator' },
       action(t('menu.projectProperties'), 'project-properties', { enabled: open }),
       action(t('menu.validateProject'), 'validate', { enabled: open }),

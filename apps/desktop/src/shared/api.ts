@@ -169,6 +169,7 @@ export type MenuAction =
   | 'save-as'
   | 'save-copy'
   | 'archive'
+  | 'export-kicad'
   | 'close-project'
   | 'undo'
   | 'redo'
@@ -179,7 +180,7 @@ export type MenuAction =
   | 'library';
 
 /** Why a folder is chosen (sets the dialog title). */
-export type FolderPurpose = 'location' | 'saveAs' | 'saveCopy' | 'library';
+export type FolderPurpose = 'location' | 'saveAs' | 'saveCopy' | 'library' | 'exportKicad';
 
 /** What an export writes. */
 export type ExportKind = 'netlist' | 'csv' | 'bom' | 'svg' | 'pdf' | 'dsn';
@@ -211,7 +212,13 @@ export function isImportKind(value: unknown): value is ImportKind {
 }
 
 export function isFolderPurpose(value: unknown): value is FolderPurpose {
-  return value === 'location' || value === 'saveAs' || value === 'saveCopy' || value === 'library';
+  return (
+    value === 'location' ||
+    value === 'saveAs' ||
+    value === 'saveCopy' ||
+    value === 'library' ||
+    value === 'exportKicad'
+  );
 }
 
 /** What the window shows; drives the title, menus and the close prompt. */

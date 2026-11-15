@@ -276,7 +276,10 @@ pub fn symbol_sx(def: &SymbolDef, lib_id: &str) -> Sx {
         ))
         .child(def_property(
             "Footprint",
-            def.footprint.as_deref().unwrap_or(""),
+            &with_library(
+                def.footprint.as_deref().unwrap_or(""),
+                lib_id.split_once(':').map_or("", |(lib, _)| lib),
+            ),
             false,
         ))
         .child(def_property(
@@ -554,7 +557,7 @@ fn placed_symbol_sx(
         ))
         .child(property_sx(
             "Footprint",
-            symbol.footprint.as_deref().unwrap_or(""),
+            &with_library(symbol.footprint.as_deref().unwrap_or(""), context.project),
             field("footprint"),
             symbol,
             frame,
@@ -659,6 +662,17 @@ fn power_port_sx(
         .child(hidden("Datasheet", "~"))
         .child(Sx::named("pin", "1").child(uuid(Id::derived(&[&port.id.to_string(), "pin", "1"]))))
         .child(Sx::list("instances").child(project))
+}
+
+/// A footprint name as KiCad links it (`Library:Name`): names without a
+/// library are in the project library, as the board writes them.
+#[must_use]
+pub fn with_library(footprint: &str, library: &str) -> String {
+    if footprint.is_empty() || footprint.contains(':') || library.is_empty() {
+        footprint.to_owned()
+    } else {
+        format!("{library}:{footprint}")
+    }
 }
 
 fn port_shape(shape: PortShape) -> &'static str {

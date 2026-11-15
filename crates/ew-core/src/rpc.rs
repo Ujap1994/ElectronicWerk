@@ -177,6 +177,7 @@ pub const METHODS: &[&str] = &[
     "project.close",
     "project.create",
     "project.discardRecovery",
+    "project.exportKicad",
     "project.files",
     "project.info",
     "project.open",
@@ -755,6 +756,7 @@ impl Engine {
             | "project.saveAs"
             | "project.saveCopy"
             | "project.archive"
+            | "project.exportKicad"
             | "project.files"
             | "project.validate"
             | "project.resolveText"
@@ -814,6 +816,49 @@ impl Engine {
         }
     }
 
+    /// Writes the open project as a KiCad project into an empty folder.
+    fn export_kicad(&self, path: &Path) -> Result<Value, EngineError> {
+        let folder = path.to_path_buf();
+        if folder.exists()
+            && std::fs::read_dir(&folder)
+                .map_err(|error| EngineError::invalid_params(error.to_string()))?
+                .next()
+                .is_some()
+        {
+            return Err(EngineError::invalid_params(format!(
+                "the folder {} is not empty",
+                folder.display()
+            )));
+        }
+        let exported =
+            ew_kicad::export::export_project(self.open()?.project(), env!("CARGO_PKG_VERSION"));
+        for file in &exported.files {
+            let path = folder.join(&file.path);
+            if let Some(parent) = path.parent() {
+                std::fs::create_dir_all(parent).map_err(|error| {
+                    EngineError::invalid_params(format!(
+                        "cannot create {}: {error}",
+                        parent.display()
+                    ))
+                })?;
+            }
+            std::fs::write(&path, &file.data).map_err(|error| {
+                EngineError::invalid_params(format!("cannot write {}: {error}", path.display()))
+            })?;
+        }
+        let project_file = exported
+            .files
+            .iter()
+            .find(|f| f.path.ends_with(".kicad_pro"))
+            .map(|f| folder.join(&f.path));
+        Ok(json!({
+            "folder": folder,
+            "project": project_file,
+            "files": exported.files.iter().map(|f| f.path.clone()).collect::<Vec<_>>(),
+            "notes": exported.report.notes,
+        }))
+    }
+
     fn call_project_data(&mut self, method: &str, params: &Value) -> Result<Value, EngineError> {
         match method {
             "project.save" => {
@@ -848,6 +893,10 @@ impl Engine {
                     &params.path,
                 )?;
                 to_value(&report)
+            }
+            "project.exportKicad" => {
+                let params: PathParams = parse(params)?;
+                self.export_kicad(&params.path)
             }
             "project.setProperties" => {
                 let props = params

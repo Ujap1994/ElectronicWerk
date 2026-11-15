@@ -2,7 +2,7 @@
  * Importing a KiCad project, a netlist and a KiCad library through the UI
  * (with the synthetic KiCad project from crates/ew-kicad/tests/fixtures).
  */
-import { readFileSync, writeFileSync } from 'node:fs';
+import { existsSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 
 import { expect, test } from '@playwright/test';
@@ -85,6 +85,52 @@ test('imports a KiCad project, a netlist and a library', async () => {
   await viewerCanvas(page).waitFor();
   await expect(page.getByTestId('layer-cu.in1')).toBeVisible();
   await expect(page.getByTestId('layer-cu.in1')).toHaveAttribute('data-empty', 'false');
+});
+
+test('exports a project as a KiCad project', async () => {
+  launched = await launchApp();
+  const { app, page, projectsDir } = launched;
+  await queueDialogAnswer(app, join(FIXTURE, 'blinky.kicad_pro'));
+  await page.getByTestId('import-kicad').click();
+  await page.getByTestId('kicad-import-name').fill('Round Trip');
+  await page.getByTestId('kicad-import-start').click();
+  const report = page.getByTestId('import-report');
+  await expect(report).toBeVisible();
+  await report.getByRole('button', { name: 'Close', exact: true }).last().click();
+  await expect(page.getByTestId('workspace')).toBeVisible();
+
+  // From the command palette into a new folder.
+  const target = join(projectsDir, 'Round Trip KiCad');
+  await queueDialogAnswer(app, target);
+  await page.getByTestId('open-palette').click();
+  await page.getByTestId('command-input').fill('export as a kicad');
+  await expect(page.getByTestId('command-palette').getByRole('option').first()).toContainText(
+    'Export as a KiCad project',
+  );
+  await page.keyboard.press('Enter');
+  await expect(page.getByText(/KiCad project written: .*Round_Trip\.kicad_pro/u)).toBeVisible();
+  const files = readdirSync(target).sort();
+  expect(files).toEqual(
+    expect.arrayContaining([
+      'Power.kicad_sch',
+      'Round_Trip.kicad_pcb',
+      'Round_Trip.kicad_pro',
+      'Round_Trip.kicad_sch',
+    ]),
+  );
+  expect(readFileSync(join(target, 'Round_Trip.kicad_pcb'), 'utf8')).toContain(
+    '(version 20240108)',
+  );
+
+  // The export reads back as a project of its own.
+  await page.getByTestId('toolbar-close').click();
+  await queueDialogAnswer(app, join(target, 'Round_Trip.kicad_pro'));
+  await page.getByTestId('import-kicad').click();
+  await page.getByTestId('kicad-import-start').click();
+  await expect(page.getByTestId('import-summary')).toContainText(
+    'Everything was imported without problems.',
+  );
+  expect(existsSync(join(projectsDir, 'Round_Trip'))).toBe(true);
 });
 
 test('reports a file that is not a KiCad project', async () => {

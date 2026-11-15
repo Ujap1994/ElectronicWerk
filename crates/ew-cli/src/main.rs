@@ -179,6 +179,19 @@ enum ProjectCommand {
         #[arg(short, long)]
         output: Option<PathBuf>,
     },
+    /// Write a project as a KiCad project (KiCad 8 format) into a new or
+    /// empty folder.
+    ExportKicad {
+        /// Project folder or `.ewproj` file.
+        path: PathBuf,
+        /// Folder for the KiCad project (default: `<name>-kicad` next to
+        /// the project folder).
+        #[arg(short, long)]
+        output: Option<PathBuf>,
+        /// Print machine-readable JSON.
+        #[arg(long)]
+        json: bool,
+    },
     /// Rewrite every file in the current format (older files are backed up).
     Upgrade {
         /// Project folder or `.ewproj` file.

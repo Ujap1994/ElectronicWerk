@@ -2,7 +2,7 @@
 
 use std::fmt::Write as _;
 use std::io::{self, Write};
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::process::ExitCode;
 use std::time::Instant;
 
@@ -590,7 +590,7 @@ fn import(command: ImportCommand, out: &mut impl Write) -> Outcome {
 }
 
 /// An absolute path (engine requests are not relative to the shell).
-fn absolute(path: &Path) -> Result<std::path::PathBuf, Failure> {
+fn absolute(path: &Path) -> Result<PathBuf, Failure> {
     Ok(if path.is_absolute() {
         path.to_path_buf()
     } else {
@@ -918,6 +918,42 @@ fn outputs(command: OutputsCommand, out: &mut impl Write) -> Outcome {
     }
 }
 
+/// `ewerk project export-kicad`.
+fn export_kicad(
+    engine: &mut Engine,
+    path: &Path,
+    output: Option<PathBuf>,
+    json: bool,
+    out: &mut impl Write,
+) -> Outcome {
+    let snapshot = call(engine, "project.open", json!({"path": path}))?;
+    let output = output.unwrap_or_else(|| {
+        let root = Path::new(snapshot["path"].as_str().unwrap_or("."));
+        let name =
+            ew_format::store::sanitize_file_name(snapshot["name"].as_str().unwrap_or("project"));
+        root.parent().unwrap_or(root).join(format!("{name}-kicad"))
+    });
+    let result = call(engine, "project.exportKicad", json!({"path": output}))?;
+    if json {
+        print_json(out, &result)?;
+    } else {
+        writeln!(
+            out,
+            "Wrote the KiCad project {} ({} files)",
+            result["project"].as_str().unwrap_or_default(),
+            result["files"].as_array().map_or(0, Vec::len)
+        )?;
+        for note in result["notes"].as_array().into_iter().flatten() {
+            writeln!(
+                out,
+                "Note: {}",
+                note["message"].as_str().unwrap_or_default()
+            )?;
+        }
+    }
+    Ok(ExitCode::SUCCESS)
+}
+
 fn project(command: ProjectCommand, out: &mut impl Write) -> Outcome {
     let mut engine = Engine::without_journal();
     match command {
@@ -963,6 +999,9 @@ fn project(command: ProjectCommand, out: &mut impl Write) -> Outcome {
                 output.display()
             )?;
             Ok(ExitCode::SUCCESS)
+        }
+        ProjectCommand::ExportKicad { path, output, json } => {
+            export_kicad(&mut engine, &path, output, json, out)
         }
         ProjectCommand::Upgrade { path } => {
             let snapshot = call(&mut engine, "project.open", json!({"path": path}))?;
@@ -1397,6 +1436,19 @@ mod tests {
         }));
         assert_eq!(code, ExitCode::SUCCESS, "{output}");
         assert!(dir.path().join("Arch.zip").is_file());
+        let (code, output) = run_to_string(Command::Project(ProjectCommand::ExportKicad {
+            path: target.clone(),
+            output: None,
+            json: false,
+        }));
+        assert_eq!(code, ExitCode::SUCCESS, "{output}");
+        assert!(output.starts_with("Wrote the KiCad project"), "{output}");
+        assert!(
+            dir.path()
+                .join("Arch-kicad")
+                .join("Arch.kicad_pro")
+                .is_file()
+        );
         let (code, output) =
             run_to_string(Command::Project(ProjectCommand::Upgrade { path: target }));
         assert_eq!(code, ExitCode::SUCCESS);
@@ -1508,7 +1560,7 @@ mod tests {
         assert!(lines.iter().any(|line| line["event"]["type"] == "changed"));
     }
 
-    fn fixture(name: &str) -> std::path::PathBuf {
+    fn fixture(name: &str) -> PathBuf {
         Path::new(env!("CARGO_MANIFEST_DIR"))
             .join("../ew-kicad/tests/fixtures/blinky")
             .join(name)

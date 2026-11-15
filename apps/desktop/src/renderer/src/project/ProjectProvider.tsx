@@ -105,6 +105,7 @@ export interface ProjectApi {
   readonly saveAs: () => Promise<void>;
   readonly saveCopy: () => Promise<void>;
   readonly archive: () => Promise<void>;
+  readonly exportKicad: () => Promise<void>;
   readonly closeProject: () => Promise<boolean>;
   readonly undo: () => void;
   readonly redo: () => void;
@@ -702,28 +703,70 @@ export function ProjectProvider({ children }: { readonly children: ReactNode }):
   const saveAs = useCallback(() => saveTo('saveAs'), [saveTo]);
   const saveCopy = useCallback(() => saveTo('saveCopy'), [saveTo]);
 
-  const archive = useCallback(async () => {
-    const current = projectRef.current;
-    if (current === null) {
-      return;
-    }
-    const suggestion = joinPath(
-      dirName(current.path),
-      `${sanitizeFolderName(current.name)}.zip`,
-      appInfo.platform,
-    );
-    const target = await window.ew.dialogs.saveArchive(suggestion);
-    if (target === null) {
-      return;
-    }
-    const report = await run('project.archiving', () =>
-      engine.call<ArchiveReport>('project.archive', { path: target }, LONG_CALL_MS),
-    );
-    if (report !== null) {
-      notify(t('project.archived', { path: report.path, files: report.files }));
-    }
-  }, [appInfo.platform, engine, notify, run, t]);
-
+  // Archive and KiCad export share their dependencies.
+  const fileActions = useMemo(
+    () => ({
+      archive: async () => {
+        const current = projectRef.current;
+        if (current === null) {
+          return;
+        }
+        const suggestion = joinPath(
+          dirName(current.path),
+          `${sanitizeFolderName(current.name)}.zip`,
+          appInfo.platform,
+        );
+        const target = await window.ew.dialogs.saveArchive(suggestion);
+        if (target === null) {
+          return;
+        }
+        const report = await run('project.archiving', () =>
+          engine.call<ArchiveReport>('project.archive', { path: target }, LONG_CALL_MS),
+        );
+        if (report !== null) {
+          notify(t('project.archived', { path: report.path, files: report.files }));
+        }
+      },
+      exportKicad: async () => {
+        const current = projectRef.current;
+        if (current === null) {
+          return;
+        }
+        const suggestion = joinPath(
+          dirName(current.path),
+          `${sanitizeFolderName(current.name)}-kicad`,
+          appInfo.platform,
+        );
+        const target = await window.ew.dialogs.chooseFolder(suggestion, 'exportKicad');
+        if (target === null) {
+          return;
+        }
+        const report = await run('project.exportingKicad', () =>
+          engine.call<{
+            project: string | null;
+            files: readonly string[];
+            notes: readonly { code: string; message: string }[];
+          }>('project.exportKicad', { path: target }, LONG_CALL_MS),
+        );
+        if (report !== null) {
+          notify(
+            t('project.exportedKicad', {
+              path: report.project ?? target,
+              files: report.files.length,
+            }),
+          );
+          if (report.notes.length > 0) {
+            notify(
+              t('project.exportKicadNotes', {
+                list: report.notes.map((note) => note.message).join('; '),
+              }),
+            );
+          }
+        }
+      },
+    }),
+    [appInfo.platform, engine, notify, run, t],
+  );
   const history = useCallback(
     (method: 'edit.undo' | 'edit.redo') => {
       if (focusInTextField()) {
@@ -941,7 +984,8 @@ export function ProjectProvider({ children }: { readonly children: ReactNode }):
       save,
       saveAs,
       saveCopy,
-      archive,
+      archive: fileActions.archive,
+      exportKicad: fileActions.exportKicad,
       closeProject,
       undo,
       redo,
@@ -985,7 +1029,7 @@ export function ProjectProvider({ children }: { readonly children: ReactNode }):
       save,
       saveAs,
       saveCopy,
-      archive,
+      fileActions,
       closeProject,
       undo,
       redo,

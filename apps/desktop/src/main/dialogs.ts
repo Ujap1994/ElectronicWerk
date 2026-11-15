@@ -45,6 +45,7 @@ const FOLDER_TITLES = {
   saveAs: 'dialogs.saveAsTitle',
   saveCopy: 'dialogs.saveCopyTitle',
   library: 'dialogs.chooseLibraryTitle',
+  exportKicad: 'dialogs.exportKicadTitle',
 } as const satisfies Record<FolderPurpose, Parameters<Translate>[0]>;
 
 export async function chooseFolder(
