@@ -184,6 +184,29 @@ impl PartKind {
         }
     }
 
+    /// Corners of the footprint's courtyard (pads plus 0.25 mm), unrotated.
+    pub(crate) fn courtyard(self) -> (Point, Point) {
+        let margin = um(250);
+        self.pad_layout().into_iter().fold(
+            (
+                Point::new(i64::MAX, i64::MAX),
+                Point::new(i64::MIN, i64::MIN),
+            ),
+            |(min, max), (at, size)| {
+                (
+                    Point::new(
+                        min.x.min(at.x - size.w / 2 - margin),
+                        min.y.min(at.y - size.h / 2 - margin),
+                    ),
+                    Point::new(
+                        max.x.max(at.x + size.w / 2 + margin),
+                        max.y.max(at.y + size.h / 2 + margin),
+                    ),
+                )
+            },
+        )
+    }
+
     /// Pad centres and sizes (in pad order).
     fn pad_layout(self) -> Vec<(Point, Size)> {
         let pad =

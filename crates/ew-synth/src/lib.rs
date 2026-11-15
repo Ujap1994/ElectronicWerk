@@ -25,8 +25,8 @@ use ew_model::layer::{CopperLayer, Layer};
 use ew_model::library::Library;
 use ew_model::outputs::OutputJob;
 use ew_model::pcb::{
-    BoardShape, FootprintAttributes, FootprintInstance, Net, Pcb, STANDARD_THICKNESS, Stackup,
-    Track, Via, Zone, ZoneFill,
+    BoardShape, FootprintInstance, Net, Pcb, STANDARD_THICKNESS, Stackup, Track, Via, Zone,
+    ZoneFill,
 };
 use ew_model::project::{DocumentRef, Project};
 use ew_model::rules::{NetClass, Rules};
@@ -299,6 +299,7 @@ impl<'a> Generator<'a> {
                 .collect();
             let rotation = Angle::from_degrees(i64::from(self.rng.below(4)) * 90);
             let bottom = kind.is_passive() && self.rng.below(10) == 0;
+            let at = inside_board(at, kind, rotation, bottom, spec);
             parts.push(Part {
                 kind,
                 component: self.id(),
@@ -481,7 +482,7 @@ impl<'a> Generator<'a> {
                 texts: definition.texts.clone(),
                 models: Vec::new(),
                 properties: BTreeMap::new(),
-                attributes: FootprintAttributes::default(),
+                attributes: definition.attributes,
             });
         }
 
@@ -579,6 +580,50 @@ impl<'a> Generator<'a> {
             }
         }
     }
+}
+
+/// Distance of every courtyard from the board edge.
+const EDGE_MARGIN: Nm = 1_000_000;
+
+/// `at`, moved just as far as needed to keep the part's courtyard inside
+/// the board (large parts near the edge would stick out otherwise).
+fn inside_board(
+    at: Point,
+    kind: PartKind,
+    rotation: Angle,
+    bottom: bool,
+    spec: &SizeSpec,
+) -> Point {
+    let (low, high) = kind.courtyard();
+    let corners = [
+        Point::new(low.x, low.y),
+        Point::new(high.x, low.y),
+        Point::new(high.x, high.y),
+        Point::new(low.x, high.y),
+    ]
+    .map(|corner| {
+        let local = if bottom {
+            Point::new(-corner.x, corner.y)
+        } else {
+            corner
+        };
+        rotate(local, rotation)
+    });
+    let min_x = corners.iter().map(|p| p.x).min().unwrap_or(0);
+    let max_x = corners.iter().map(|p| p.x).max().unwrap_or(0);
+    let min_y = corners.iter().map(|p| p.y).min().unwrap_or(0);
+    let max_y = corners.iter().map(|p| p.y).max().unwrap_or(0);
+    let fit = |value: Nm, low: Nm, high: Nm| {
+        if low > high {
+            value
+        } else {
+            value.clamp(low, high)
+        }
+    };
+    Point::new(
+        fit(at.x, EDGE_MARGIN - min_x, spec.width - EDGE_MARGIN - max_x),
+        fit(at.y, EDGE_MARGIN - min_y, spec.height - EDGE_MARGIN - max_y),
+    )
 }
 
 /// Rotates a point counter-clockwise by a multiple of 90°.
@@ -720,6 +765,36 @@ mod tests {
         assert_eq!(stats.zones, 2);
         assert_eq!(stats.copper_layers, 4);
         assert!(stats.vias > 0);
+    }
+
+    #[test]
+    fn parts_stay_inside_the_board() {
+        let project = generate(DesignSize::S, DEFAULT_SEED);
+        let pcb = project
+            .documents
+            .values()
+            .find_map(|document| match document {
+                Document::Pcb(pcb) => Some(pcb),
+                _ => None,
+            })
+            .unwrap();
+        let spec = DesignSize::S.spec();
+        for footprint in &pcb.footprints {
+            for pad in &footprint.pads {
+                let local = if footprint.side == ew_model::layer::Side::Bottom {
+                    Point::new(-pad.at.x, pad.at.y)
+                } else {
+                    pad.at
+                };
+                let at = footprint.at + rotate(local, footprint.rotation);
+                assert!(
+                    (0..=spec.width).contains(&at.x) && (0..=spec.height).contains(&at.y),
+                    "{} pad {} at {at:?}",
+                    footprint.designator,
+                    pad.number
+                );
+            }
+        }
     }
 
     #[test]
