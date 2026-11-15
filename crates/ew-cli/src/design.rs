@@ -238,6 +238,27 @@ pub enum BoardCommand {
         #[arg(long)]
         board: Option<String>,
     },
+    /// Write the board as a Specctra DSN file for an external autorouter
+    /// (Freerouting and others).
+    ExportDsn {
+        #[command(flatten)]
+        target: Target,
+        /// The DSN file to write (default: `<board>.dsn` next to the project).
+        #[arg(long, short)]
+        output: Option<PathBuf>,
+        #[arg(long)]
+        board: Option<String>,
+    },
+    /// Read the routing of an autorouter's Specctra session file (SES): it
+    /// replaces the unlocked tracks and vias of the routed nets.
+    ImportSes {
+        #[command(flatten)]
+        target: Target,
+        /// The session file.
+        session: PathBuf,
+        #[arg(long)]
+        board: Option<String>,
+    },
 }
 
 fn parse_xy(text: &str) -> Result<[f64; 2], String> {
@@ -720,6 +741,78 @@ pub fn board(command: BoardCommand, out: &mut impl Write) -> Outcome {
                     "Filled the zones ({} areas)",
                     result["areas"].as_u64().unwrap_or(0)
                 )?;
+            }
+            Ok(ExitCode::SUCCESS)
+        }
+        BoardCommand::ExportDsn {
+            target,
+            output,
+            board,
+        } => {
+            let mut engine = open(&target.project)?;
+            let info = call(
+                &mut engine,
+                "design.board",
+                Value::Object(board_param(board)),
+            )?;
+            let result = call(
+                &mut engine,
+                "pcb.exportSpecctra",
+                json!({ "doc": info["id"] }),
+            )?;
+            let file = result["file"].as_str().unwrap_or("board.dsn");
+            let path = output.unwrap_or_else(|| {
+                let project = Path::new(&target.project);
+                let folder = if project.is_dir() {
+                    project
+                } else {
+                    project.parent().unwrap_or_else(|| Path::new("."))
+                };
+                folder.join(file)
+            });
+            std::fs::write(&path, result["text"].as_str().unwrap_or_default())
+                .map_err(|error| Failure(format!("cannot write {}: {error}", path.display())))?;
+            if target.json {
+                print_json(out, &json!({ "path": path }))?;
+            } else {
+                writeln!(out, "Wrote {}", path.display())?;
+            }
+            Ok(ExitCode::SUCCESS)
+        }
+        BoardCommand::ImportSes {
+            target,
+            session,
+            board,
+        } => {
+            let mut engine = open(&target.project)?;
+            let info = call(
+                &mut engine,
+                "design.board",
+                Value::Object(board_param(board)),
+            )?;
+            let result = call(
+                &mut engine,
+                "pcb.importSession",
+                json!({ "doc": info["id"], "path": session }),
+            )?;
+            save_if_changed(&mut engine, &result)?;
+            if target.json {
+                print_json(out, &result)?;
+            } else {
+                writeln!(
+                    out,
+                    "Imported {} tracks and {} vias (replaced {} tracks and {} vias)",
+                    result["tracks"].as_u64().unwrap_or(0),
+                    result["vias"].as_u64().unwrap_or(0),
+                    result["removedTracks"].as_u64().unwrap_or(0),
+                    result["removedVias"].as_u64().unwrap_or(0),
+                )?;
+                for net in result["unknownNets"].as_array().into_iter().flatten() {
+                    writeln!(out, "Skipped the net {net}: not on the board")?;
+                }
+                for layer in result["unknownLayers"].as_array().into_iter().flatten() {
+                    writeln!(out, "Skipped wires on the layer {layer}: not on the board")?;
+                }
             }
             Ok(ExitCode::SUCCESS)
         }

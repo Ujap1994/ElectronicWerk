@@ -291,6 +291,41 @@ test('routes tracks, draws zones, updates from the schematic and imports DXF', a
   const outlines = (readBoard(project).shapes ?? []).filter((s) => s.layer === 'outline');
   expect(outlines).toHaveLength(1);
   expect(Object.keys(outlines[0]?.geometry ?? {})).toEqual(['polygon']);
+
+  // An external autorouter: the board goes out as DSN, the session comes
+  // back as tracks and vias of the routed net.
+  const dsn = join(project, 'Layout Edit.dsn');
+  await queueDialogAnswer(app, dsn);
+  await page.getByTestId('board-autorouter').click();
+  const router = page.getByTestId('autorouter-dialog');
+  await expect(router).toBeVisible();
+  await page.getByTestId('autorouter-export').click();
+  await expect(page.getByTestId('autorouter-saved')).toContainText('Layout Edit.dsn');
+  const text = readFileSync(dsn, 'utf8');
+  expect(text).toContain('(pcb ');
+  const net = /\(net (\S+) \(pins \S+ \S+/u.exec(text)?.[1] ?? '';
+  expect(net).not.toBe('');
+  const ses = join(project, 'Layout Edit.ses');
+  writeFileSync(
+    ses,
+    `(session s (routes (resolution um 10) (network_out (net ${net} ` +
+      '(wire (path F.Cu 2500 0 0 50000 0)) (via "Via[0-1]_600:300_um" 50000 0) ' +
+      '(wire (path B.Cu 2500 50000 0 50000 -50000))) (net NOWHERE (wire (path F.Cu 10 0 0 1 1))))))',
+  );
+  const before = readBoard(project);
+  await queueDialogAnswer(app, ses);
+  await page.getByTestId('autorouter-import').click();
+  await expect(page.getByTestId('autorouter-result')).toContainText('2 tracks and 1 vias imported');
+  await expect(page.getByTestId('autorouter-unknown-nets')).toContainText('NOWHERE');
+  await page.getByTestId('autorouter-close').click();
+  await expect(router).toBeHidden();
+  await save(page);
+  const after = readBoard(project);
+  expect(after.vias?.length ?? 0).toBeGreaterThanOrEqual(1);
+  expect(after.tracks?.length ?? 0).toBeLessThanOrEqual((before.tracks?.length ?? 0) + 2);
+  await page.getByTestId('toolbar-undo').click();
+  await save(page);
+  expect(readBoard(project).vias?.length ?? 0).toBe(before.vias?.length ?? 0);
 });
 
 test('cross-probes between schematic and board', async () => {

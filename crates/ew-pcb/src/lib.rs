@@ -11,6 +11,7 @@
 //! - [`fill`]: the zone filler.
 //! - [`route`]: interactive routing around obstacles.
 //! - [`presets`]: board presets; [`dxf`]: DXF import.
+//! - [`specctra`]: Specctra DSN export and SES import for autorouters.
 //! - [`sync`]: schematic ↔ board updates and cross-probing.
 
 #![allow(
@@ -32,4 +33,5 @@ pub mod poly;
 pub mod presets;
 pub mod route;
 pub mod rules;
+pub mod specctra;
 pub mod sync;

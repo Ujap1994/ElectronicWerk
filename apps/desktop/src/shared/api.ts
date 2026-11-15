@@ -182,17 +182,22 @@ export type MenuAction =
 export type FolderPurpose = 'location' | 'saveAs' | 'saveCopy' | 'library';
 
 /** What an export writes. */
-export type ExportKind = 'netlist' | 'csv' | 'bom' | 'svg' | 'pdf';
+export type ExportKind = 'netlist' | 'csv' | 'bom' | 'svg' | 'pdf' | 'dsn';
 
 export function isExportKind(value: unknown): value is ExportKind {
   return (
-    value === 'netlist' || value === 'csv' || value === 'bom' || value === 'svg' || value === 'pdf'
+    value === 'netlist' ||
+    value === 'csv' ||
+    value === 'bom' ||
+    value === 'svg' ||
+    value === 'pdf' ||
+    value === 'dsn'
   );
 }
 
 /** What kind of file an import dialog asks for. */
 export type ImportKind =
-  'kicadProject' | 'netlist' | 'kicadLibraryFile' | 'kicadLibraryFolder' | 'dxf';
+  'kicadProject' | 'netlist' | 'kicadLibraryFile' | 'kicadLibraryFolder' | 'dxf' | 'ses';
 
 export function isImportKind(value: unknown): value is ImportKind {
   return (
@@ -200,7 +205,8 @@ export function isImportKind(value: unknown): value is ImportKind {
     value === 'netlist' ||
     value === 'kicadLibraryFile' ||
     value === 'kicadLibraryFolder' ||
-    value === 'dxf'
+    value === 'dxf' ||
+    value === 'ses'
   );
 }
 

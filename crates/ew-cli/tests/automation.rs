@@ -442,3 +442,39 @@ fn an_agent_builds_a_board_over_mcp() {
     assert_eq!(info["unrouted"], 0);
     assert_eq!(info["footprints"].as_array().unwrap().len(), 3);
 }
+
+#[test]
+fn hands_the_board_to_an_autorouter() {
+    let dir = tempfile::tempdir().unwrap();
+    let project = new_project(dir.path());
+    let p = project.to_str().unwrap();
+    ok(&["schematic", "place", p, "R", "--footprint", "0805"]);
+    ok(&["schematic", "place", p, "C", "--footprint", "0603"]);
+    ok(&["schematic", "connect", p, "VCC", "R1.1", "C1.1"]);
+    ok(&["board", "update", p]);
+    ok(&["board", "arrange", p]);
+
+    // The DSN file for the router, next to the project by default.
+    assert!(ok(&["board", "export-dsn", p]).starts_with("Wrote "));
+    let text = std::fs::read_to_string(project.join("Blinker.dsn")).unwrap();
+    // Local nets carry their sheet path: `/VCC`.
+    assert!(text.contains("(net /VCC (pins C1-1 R1-1))"), "{text}");
+
+    // The router's session: one wire for /VCC.
+    let ses = dir.path().join("Blinker.ses");
+    std::fs::write(
+        &ses,
+        "(session Blinker.ses (routes (resolution um 10) (network_out \
+         (net /VCC (wire (path F.Cu 2500 100000 -100000 150000 -100000))) \
+         (net GHOST (wire (path F.Cu 2500 0 0 10 10))))))",
+    )
+    .unwrap();
+    let imported = ok(&["board", "import-ses", p, ses.to_str().unwrap()]);
+    assert!(
+        imported.starts_with("Imported 1 tracks and 0 vias"),
+        "{imported}"
+    );
+    assert!(imported.contains("Skipped the net \"GHOST\""), "{imported}");
+    let info = json_of(&["board", "info", p, "--json"]);
+    assert_eq!(info["tracks"], 1);
+}

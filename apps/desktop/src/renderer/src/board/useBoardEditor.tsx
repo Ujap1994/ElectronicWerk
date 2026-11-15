@@ -19,6 +19,7 @@ import {
   newZone,
   type ZoneJson,
 } from './dialogs';
+import { AutorouterDialog } from './AutorouterDialog';
 import { runDrc, useDrcUpdates } from './DrcPanel';
 import { BoardEditor, type Point } from './editor';
 import { RulesDialog } from './RulesDialog';
@@ -39,6 +40,7 @@ type Dialog =
   | { kind: 'setup' }
   | { kind: 'rules'; tab?: 'checks' }
   | { kind: 'dxf' }
+  | { kind: 'autorouter' }
   | null;
 
 export interface BoardUi {
@@ -210,6 +212,9 @@ export function useBoardEditor({
       importDxf: () => {
         setDialog({ kind: 'dxf' });
       },
+      autorouter: () => {
+        setDialog({ kind: 'autorouter' });
+      },
       placeFootprint: () => {
         setDialog({ kind: 'chooser' });
       },
@@ -266,6 +271,8 @@ export function useBoardEditor({
       <SetupDialog doc={doc} units={units} onClose={close} />
     ) : dialog.kind === 'rules' ? (
       <RulesDialog doc={doc} units={units} initialTab={dialog.tab ?? 'classes'} onClose={close} />
+    ) : dialog.kind === 'autorouter' ? (
+      <AutorouterDialog doc={doc} onClose={close} />
     ) : (
       <DxfDialog doc={doc} units={units} onClose={close} />
     );

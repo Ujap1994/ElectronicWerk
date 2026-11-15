@@ -65,6 +65,8 @@ export const boardDe: Messages['board'] = {
     setup: 'Platine einrichten',
     rules: 'Designregeln',
     dxf: 'DXF-Zeichnung importieren',
+    autorouter: 'Autorouter',
+    autorouterTip: 'Die Platine mit einem externen Autorouter entflechten (Specctra DSN und SES)',
   },
   arrange: {
     left: 'Linke Kanten ausrichten',
@@ -253,6 +255,26 @@ export const boardDe: Messages['board'] = {
     toOrigin: 'Linke untere Ecke auf den Platinenursprung legen',
     hint: 'Importiert werden Linien, Bögen, Kreise, Polylinien, Splines und Ellipsen; Blockreferenzen und Texte nicht.',
     import: 'Importieren',
+  },
+  autorouter: {
+    title: 'Externer Autorouter',
+    intro:
+      'Entflechte die Platine mit einem externen Autorouter wie Freerouting. ElectronicWerk und der Router tauschen Specctra-Dateien aus.',
+    step1: 'Exportiere die Platine als Specctra-DSN-Datei.',
+    export: 'DSN-Datei exportieren…',
+    saved: '{path} gespeichert',
+    step2:
+      'Öffne die DSN-Datei im Router, lass ihn entflechten und speichere das Ergebnis als Sitzungsdatei (SES).',
+    step3:
+      'Importiere die Sitzung: Ihre Leiterbahnen und Vias ersetzen die nicht gesperrten Leiterbahnen der entflochtenen Netze.',
+    import: 'Sitzungsdatei importieren…',
+    imported: '{tracks} Leiterbahnen und {vias} Vias vom Autorouter importiert',
+    result:
+      '{tracks} Leiterbahnen und {vias} Vias importiert; {removedTracks} Leiterbahnen und {removedVias} Vias ersetzt.',
+    unknownNets: 'Nicht auf dieser Platine (übersprungen): {list}',
+    unknownLayers: 'Lagen, die diese Platine nicht hat (übersprungen): {list}',
+    hint: 'Sperre Leiterbahnen, die bleiben sollen (Umschalt+L entsperrt): Der Router ändert sie nicht. Der Import lässt sich in einem Schritt rückgängig machen. Fülle danach die Flächen und starte die Designregelprüfung.',
+    close: 'Schließen',
   },
   rules: {
     title: 'Designregeln',

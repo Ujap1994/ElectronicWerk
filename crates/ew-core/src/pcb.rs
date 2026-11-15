@@ -41,6 +41,8 @@ pub mod labels {
     pub const PRESET: &str = "board-preset";
     /// `pcb.importDxf`.
     pub const DXF: &str = "import-dxf";
+    /// `pcb.importSession`.
+    pub const SESSION: &str = "import-session";
 
     /// The label of a `pcb.edit` operation.
     #[must_use]
@@ -303,6 +305,14 @@ struct DxfParams {
     /// Line width.
     #[serde(default)]
     width: Option<ew_model::units::Nm>,
+}
+
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+struct SessionParams {
+    doc: Id,
+    /// The Specctra session file (SES) of an autorouter.
+    path: String,
 }
 
 fn edit_failed(error: &ew_pcb::edit::EditError) -> EngineError {
@@ -819,6 +829,73 @@ pub fn call(
                 label: labels::DXF,
                 requests,
                 reply: json!({"select": select, "shapes": count}),
+            })
+        }
+        "pcb.exportSpecctra" => {
+            let params: DocParams = parse(params)?;
+            let doc = params
+                .doc
+                .ok_or_else(|| EngineError::invalid_params("missing doc"))?;
+            let pcb = board(project, doc)?;
+            let mut set = ew_pcb::rules::RuleSet::new(rules(project).map(|(_, r)| r));
+            set.cache_classes(pcb.nets.iter().map(|n| (n.name.clone(), n.class.clone())));
+            let text = ew_pcb::specctra::write_dsn(&ew_pcb::specctra::DsnInput {
+                pcb,
+                rules: &set,
+                host: concat!("ElectronicWerk ", env!("CARGO_PKG_VERSION")),
+            });
+            Ok(Outcome::Read(json!({
+                "file": format!("{}.dsn", ew_output::job::sanitize(&pcb.name)),
+                "text": text,
+            })))
+        }
+        "pcb.importSession" => {
+            let params: SessionParams = parse(params)?;
+            let pcb = board(project, params.doc)?;
+            let text = std::fs::read_to_string(&params.path).map_err(|error| {
+                EngineError::invalid_params(format!("cannot read {}: {error}", params.path))
+            })?;
+            let session = ew_pcb::specctra::read_ses(&text)
+                .map_err(|error| EngineError::invalid_params(error.0))?;
+            let mut set = ew_pcb::rules::RuleSet::new(rules(project).map(|(_, r)| r));
+            set.cache_classes(pcb.nets.iter().map(|n| (n.name.clone(), n.class.clone())));
+            let plan = ew_pcb::specctra::plan_session(pcb, &set, &session);
+            if plan.tracks.is_empty() && plan.vias.is_empty() {
+                return Err(EngineError::invalid_params(
+                    "the session has no routing for the nets of this board",
+                ));
+            }
+            let mut requests = Vec::new();
+            for id in plan.remove_tracks.iter().chain(&plan.remove_vias) {
+                requests.push(Request::Delete {
+                    doc: params.doc,
+                    id: *id,
+                });
+            }
+            let reply = json!({
+                "tracks": plan.tracks.len(),
+                "vias": plan.vias.len(),
+                "removedTracks": plan.remove_tracks.len(),
+                "removedVias": plan.remove_vias.len(),
+                "unknownNets": plan.unknown_nets,
+                "unknownLayers": plan.unknown_layers,
+            });
+            for track in plan.tracks {
+                requests.push(Request::Insert {
+                    doc: params.doc,
+                    object: Object::Track(track),
+                });
+            }
+            for via in plan.vias {
+                requests.push(Request::Insert {
+                    doc: params.doc,
+                    object: Object::Via(via),
+                });
+            }
+            Ok(Outcome::Commit {
+                label: labels::SESSION,
+                requests,
+                reply,
             })
         }
         "pcb.validateRule" => {

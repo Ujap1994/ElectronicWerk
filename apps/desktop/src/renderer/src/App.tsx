@@ -198,6 +198,7 @@ export function App(): ReactNode {
             { id: 'board-setup', label: 'commands.boardSetup', run: boardCommands.setup },
             { id: 'design-rules', label: 'commands.designRules', run: boardCommands.rules },
             { id: 'import-dxf', label: 'commands.importDxf', run: boardCommands.importDxf },
+            { id: 'autorouter', label: 'commands.autorouter', run: boardCommands.autorouter },
             {
               id: 'place-footprint',
               label: 'commands.placeFootprint',

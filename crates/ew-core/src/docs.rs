@@ -343,12 +343,20 @@ pub const SUMMARIES: &[(&str, &str)] = &[
         "`{\"doc\", \"keys\": [\"…\"], \"excluded\"?: true}` (`drc-exclusions`). Accepts findings (or reports them again with `\"excluded\": false`). The keys are stored in the board.",
     ),
     (
+        "pcb.exportSpecctra",
+        "`{\"doc\"}` → `{\"file\", \"text\"}`: the board as a Specctra DSN file for an external autorouter such as Freerouting (layers, outline, keep-outs, parts with pads, nets with their net classes, existing routing; locked tracks are protected).",
+    ),
+    (
         "pcb.fillZones",
         "`{\"doc\", \"zones\"?: [\"…\"]}` (`fill-zones` / `unfill-zones`). Fills (or empties) all zones of the board, or the given ones. Returns `{\"zones\", \"areas\"}`: the number of changed zones and of filled areas.",
     ),
     (
         "pcb.importDxf",
         "`pcb.dxfPreview {\"path\", \"scale\"?}` → `{\"layers\", \"units\", \"count\", \"bounds\", \"skipped\"}`. `pcb.importDxf {\"doc\", \"path\", \"layer\", \"layers\"?, \"replace\"?, \"scale\"?, \"origin\"?, \"width\"?}` (`import-dxf`) imports the shapes of the chosen DXF layers onto a board layer (`outline`, `mech.1`, …); `scale` is nanometres per draw…",
+    ),
+    (
+        "pcb.importSession",
+        "`{\"doc\", \"path\"}` (`import-session`) → `{\"tracks\", \"vias\", \"removedTracks\", \"removedVias\", \"unknownNets\", \"unknownLayers\"}`: reads an autorouter's Specctra session (SES); the routing of each net in it replaces the unlocked tracks and vias of that net, in one undo step.",
     ),
     (
         "pcb.place",

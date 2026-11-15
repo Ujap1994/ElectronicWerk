@@ -62,6 +62,8 @@ export const boardEn = {
     setup: 'Board setup',
     rules: 'Design rules',
     dxf: 'Import a DXF drawing',
+    autorouter: 'Autorouter',
+    autorouterTip: 'Route the board with an external autorouter (Specctra DSN and SES)',
   },
   arrange: {
     left: 'Align left edges',
@@ -249,6 +251,26 @@ export const boardEn = {
     toOrigin: 'Move the lower left corner to the board origin',
     hint: 'Lines, arcs, circles, polylines, splines and ellipses are imported; block inserts and texts are not.',
     import: 'Import',
+  },
+  autorouter: {
+    title: 'External autorouter',
+    intro:
+      'Route the board with an external autorouter such as Freerouting. ElectronicWerk and the router exchange Specctra files.',
+    step1: 'Export the board as a Specctra DSN file.',
+    export: 'Export DSN file…',
+    saved: 'Saved {path}',
+    step2:
+      'Open the DSN file in the router, let it route and save the result as a session file (SES).',
+    step3:
+      'Import the session: its tracks and vias replace the unlocked routing of the routed nets.',
+    import: 'Import session file…',
+    imported: 'Imported {tracks} tracks and {vias} vias from the autorouter',
+    result:
+      '{tracks} tracks and {vias} vias imported; {removedTracks} tracks and {removedVias} vias replaced.',
+    unknownNets: 'Not on this board (skipped): {list}',
+    unknownLayers: 'Layers not on this board (skipped): {list}',
+    hint: 'Lock tracks you want to keep (Shift+L unlocks): the router does not change them. The import is one step to undo. Fill the zones and run the design rules check afterwards.',
+    close: 'Close',
   },
   rules: {
     title: 'Design rules',

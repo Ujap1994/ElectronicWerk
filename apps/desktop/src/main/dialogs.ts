@@ -95,6 +95,11 @@ const IMPORT_DIALOGS = {
     filter: 'dialogs.dxfFilter',
     extensions: ['dxf'],
   },
+  ses: {
+    title: 'dialogs.importSesTitle',
+    filter: 'dialogs.sesFilter',
+    extensions: ['ses'],
+  },
 } as const;
 
 /** Asks for a file or folder to import. */
@@ -229,6 +234,7 @@ const EXPORT_FILTERS = {
   bom: ['dialogs.exportCsv', 'csv'],
   svg: ['dialogs.exportSvg', 'svg'],
   pdf: ['dialogs.exportPdf', 'pdf'],
+  dsn: ['dialogs.exportDsn', 'dsn'],
 } as const satisfies Record<ExportKind, readonly [Parameters<Translate>[0], string]>;
 
 const MODEL_FILTERS = {

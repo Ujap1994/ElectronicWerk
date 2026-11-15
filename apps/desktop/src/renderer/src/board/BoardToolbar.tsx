@@ -380,6 +380,13 @@ export function BoardActions({
         testId="board-dxf"
         onClick={commands.importDxf}
       />
+      <Button
+        icon="track"
+        label={t('board.actions.autorouter')}
+        tip={t('board.actions.autorouterTip')}
+        testId="board-autorouter"
+        onClick={commands.autorouter}
+      />
     </>
   );
 }

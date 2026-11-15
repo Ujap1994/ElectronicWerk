@@ -117,6 +117,7 @@ export interface BoardCommands {
   readonly setup: () => void;
   readonly rules: () => void;
   readonly importDxf: () => void;
+  readonly autorouter: () => void;
   readonly placeFootprint: () => void;
 }
 

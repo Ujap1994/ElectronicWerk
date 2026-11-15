@@ -596,3 +596,71 @@ fn placing_editing_routing_presets_and_dxf() {
     assert!(points.contains(&json!([0, 0])));
     assert!(points.contains(&json!([60 * MM, -40 * MM])));
 }
+
+#[test]
+fn specctra_export_and_session_import() {
+    let dir = tempfile::tempdir().unwrap();
+    let (mut engine, board) = project(dir.path(), "demo");
+    let exported = call(&mut engine, "pcb.exportSpecctra", json!({"doc": board}));
+    assert_eq!(exported["file"], "Board.dsn");
+    let text = exported["text"].as_str().unwrap();
+    assert!(text.starts_with("(pcb Board.dsn"));
+    assert!(text.contains("(host_cad \"ElectronicWerk "));
+    let pcb = call(&mut engine, "document.get", json!({"doc": board}));
+    let parts = pcb["footprints"].as_array().unwrap().len();
+    assert_eq!(text.matches("(place ").count(), parts);
+    let tracks_before = pcb["tracks"].as_array().map_or(0, Vec::len);
+
+    // A router's session: one wire and one via for the first net.
+    let net = pcb["nets"][0]["name"].as_str().unwrap().to_owned();
+    let session = format!(
+        "(session Board.ses (base_design Board.dsn) (routes (resolution um 10) \
+         (network_out (net \"{net}\" \
+           (wire (path F.Cu 2500 0 0 100000 0 100000 -50000)) \
+           (via \"Via[0-1]_600:300_um\" 100000 -50000)))))"
+    );
+    let path = dir.path().join("Board.ses");
+    std::fs::write(&path, session).unwrap();
+    let imported = call(
+        &mut engine,
+        "pcb.importSession",
+        json!({"doc": board, "path": path}),
+    );
+    assert_eq!(imported["tracks"], 2);
+    assert_eq!(imported["vias"], 1);
+    assert_eq!(imported["unknownNets"], json!([]));
+    let pcb = call(&mut engine, "document.get", json!({"doc": board}));
+    let tracks = pcb["tracks"].as_array().unwrap();
+    assert_eq!(
+        tracks.len(),
+        tracks_before - imported["removedTracks"].as_u64().unwrap() as usize + 2
+    );
+    // 10 mm along x, then 5 mm down on the board (y up in the file).
+    assert!(
+        tracks
+            .iter()
+            .any(|t| t["start"] == json!([10 * MM, 0]) && t["end"] == json!([10 * MM, 5 * MM]))
+    );
+    let via = pcb["vias"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|v| v["at"] == json!([10 * MM, 5 * MM]))
+        .unwrap()
+        .clone();
+    assert_eq!(via["diameter"], 600_000);
+    assert_eq!(via["drill"], 300_000);
+
+    // One undo step.
+    call(&mut engine, "edit.undo", Value::Null);
+    let pcb = call(&mut engine, "document.get", json!({"doc": board}));
+    assert_eq!(pcb["tracks"].as_array().map_or(0, Vec::len), tracks_before);
+
+    // Not a session.
+    std::fs::write(&path, "(pcb x)").unwrap();
+    let reply: Value = serde_json::from_str(&engine.dispatch(
+        &json!({"method": "pcb.importSession", "params": {"doc": board, "path": path}}).to_string(),
+    ))
+    .unwrap();
+    assert_eq!(reply["error"]["code"], "invalidParams");
+}

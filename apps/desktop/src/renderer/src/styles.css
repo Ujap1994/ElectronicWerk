@@ -5428,3 +5428,28 @@ textarea.field__control {
   font-weight: 600;
   text-align: left;
 }
+
+/* --- External autorouter -------------------------------------------------- */
+
+.autorouter__steps {
+  display: grid;
+  gap: var(--space-3);
+  margin: 0 0 var(--space-3);
+  padding-left: var(--space-6);
+}
+
+.autorouter__steps li {
+  display: grid;
+  gap: var(--space-1);
+}
+
+.autorouter__step {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.autorouter__step .button {
+  flex: none;
+}
