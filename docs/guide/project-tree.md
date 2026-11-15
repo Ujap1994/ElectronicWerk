@@ -103,6 +103,10 @@ each change can be undone.
 The **Overview** shows key figures: sheets, symbols, footprints, nets, track
 segments, vias, copper layers, board size and the editor grids.
 
+Below it, the [design statistics](./statistics) count the design in detail:
+parts, pins and nets of the schematic, BOM lines, and for every board its
+size, pads, holes, track length and how much of it is routed.
+
 ### Text variables
 
 Text variables keep title blocks and texts consistent. Write `${NAME}` in a
@@ -152,7 +156,8 @@ the **layer stack-up** from top to bottom: silkscreen, solder mask, copper and
 dielectric (core or prepreg) layers with material and thickness.
 
 Double-click a board to open it in the [layout editor](./layout-editor);
-**3D view** shows it in the [3D view](./view-3d).
+**3D view** shows it in the [3D view](./view-3d), and **Assembly assistant**
+guides you through [placing its parts by hand](./assembly).
 
 ### Design rules
 

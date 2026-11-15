@@ -1,7 +1,7 @@
 # ElectronicWerk Roadmap
 
-> **Status:** v0.18 (2026-11-14). M0 to M12 are complete (releases v0.1.0 to
-> v0.13.0; M0, M1 and M3 accepted by the maintainer); M13 is next.
+> **Status:** v0.19 (2026-11-15). M0 to M13 are complete (releases v0.1.0 to
+> v0.14.0; M0, M1 and M3 accepted by the maintainer); M14 is next.
 > This roadmap is a living document. It **must** be updated with every feature
 > (requirement D5). Every change to it is listed in the
 > [roadmap changelog](#13-roadmap-changelog).
@@ -248,7 +248,7 @@ own work only. Maintainer test cycles and feedback come on top. Status values:
 | M10 | Online part libraries: SnapEDA, Ultra Librarian       | v0.11.0 | F1                | 6–9 S           | ✅     |
 | M11 | GitHub integration                                    | v0.12.0 | F9                | 4–6 S           | ✅     |
 | M12 | CLI and AI automation (complete)                      | v0.13.0 | F12               | 4–6 S           | ✅     |
-| M13 | Assembly assistant and extras                         | v0.14.0 | F11               | 4–6 S           | ⬜     |
+| M13 | Assembly assistant and extras                         | v0.14.0 | F11               | 4–6 S           | ✅     |
 | M14 | Interoperability: further open formats                | v0.15.0 | F3                | 5–8 S           | ⬜     |
 | M15 | Advanced layout                                       | v0.16.0 | F7                | 12–20 S         | ⬜     |
 | M16 | Hardening, UX audit, final docs and videos            | v1.0.0  | T3–T5, D1         | 6–10 S          | ⬜     |
@@ -809,15 +809,28 @@ mcp`, 26 tools, autosave), so AI agents can use ElectronicWerk
 - [x] A documented scripting cookbook; its examples (shell, script, Python)
       run as tests.
 
-### M13 — Assembly assistant and extras (v0.14.0, 4–6 S)
+### M13 — Assembly assistant and extras (v0.14.0, 4–6 S) ✅
 
-- **Assembly assistant:** an interactive view (board view + BOM) that
-  highlights the next components to place, groups by value and side, tracks
-  progress with checkboxes, and has a large-display mode for the workbench.
-  Progress is saved in the project.
-- Further extras such as a panelization helper, design statistics and a
-  documentation generator. Collaboration features are scoped after the core is
-  stable (F11).
+Panels, statistics and documentation are described in ADR-0013.
+
+- [x] **Assembly assistant:** an interactive view (board view + steps from
+      the BOM) that highlights the next components to place and dims the
+      later ones, groups by side, mounting, value and footprint (SMD before
+      through-hole; order by size, value, count or designator), tracks
+      progress with checkboxes and keys, counts finished boards, and has a
+      workbench mode and its own window (full screen) for the workbench.
+      Progress is saved at once in `assembly.json` in the project (no undo
+      steps); `ewerk assembly` prints the checklist.
+- [x] **Panelization helper:** panels as a setting of the output job
+      (columns, rows, mouse bites or V-score, rails, tabs, fiducials, tooling
+      holes) with a live preview; Gerber, drill, drill map and pick and place
+      are made for the panel.
+- [x] **Design statistics** in the project details, `ewerk project stats`
+      and `project.statistics`.
+- [x] **Documentation generator:** the output kind _Project documentation_
+      writes one self-contained HTML file (sheets, board views, assembly
+      drawings, stack-up, BOM, holes, statistics).
+- Collaboration features are scoped after the core is stable (F11).
 
 ### M14 — Interoperability: further open formats (v0.15.0, 5–8 S)
 
@@ -959,3 +972,4 @@ mcp`, 26 tools, autosave), so AI agents can use ElectronicWerk
 | 2026-11-13 | v0.16      | M10 complete: v0.11.0 with SnapEDA and Ultra Librarian in isolated provider windows, the import of their downloads (symbols, footprints, 3D models) with the duplicate check against the base library, accounts in the settings and `ewerk import archive`.                                                                                                                                                                                                |
 | 2026-11-14 | v0.17      | M11 complete: v0.12.0 with the GitHub sign-in (device flow and tokens, keychain), projects on GitHub from the wizard, Open from GitHub and the source control view (commit, push, pull, branches, history). Git runs in the app with isomorphic-git; pulls merge whole files only, so conflicts never leave a half-merged design. The visual diff stays a later item.                                                                                      |
 | 2026-11-14 | v0.18      | M12 complete: v0.13.0 with the `design.*` engine layer (designators, pin names, millimetres; one undo step per call), `ewerk schematic`/`board`/`script`, JSON-RPC 2.0, the MCP server for AI agents, CI exit codes, the save guard against overwriting other programs' changes and the scripting cookbook. `design.route` is a simple walkaround autorouter; the full autorouter stays in M15.                                                            |
+| 2026-11-15 | v0.19      | M13 complete: v0.14.0 with the assembly assistant (steps from the BOM, highlighted board view, checklist saved in `assembly.json`, workbench mode and own window), panels made by the output job (mouse bites or V-score, rails, fiducials, tooling holes), design statistics and the HTML project documentation output. Panels are a setting of the output job, not a document: they cannot be edited by hand yet.                                        |

@@ -109,4 +109,4 @@ print the schematic or to send it to someone without ElectronicWerk.
 
 - [Drawing schematics](./schematic-editor)
 - [Electrical rules check](./erc)
-- [Engine API: `schematic.netlist`, `schematic.bom`](../reference/engine-api#schematic-netlist)
+- [Engine API: `schematic.netlist`, `schematic.bom`](../reference/engine-api#schematic-netlist-schematic-bom)

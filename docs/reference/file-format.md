@@ -217,23 +217,65 @@ Every output has an `id`, a `name`, a `kind` and optionally `enabled`
 `options`. Options that are missing take their defaults, so an empty
 `options` object is left out:
 
-| `kind`         | Options (default)                                                                                                                                                                                                        |
-| -------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `gerber`       | `layers` (`[]` = fabrication layers), `protelExtensions` (`true`), `x2` (`true`), `jobFile` (`true`), `tentVias` (`true`), `silkValues` (`true`), `folder` (`"gerber"`)                                                  |
-| `drill`        | `merge` (`false`), `folder` (`"gerber"`)                                                                                                                                                                                 |
-| `drillMap`     | `format`: `pdf` or `svg` (`pdf`), `folder` (`"gerber"`)                                                                                                                                                                  |
-| `bom`          | `columns` (`[{"field", "label"?}]`), `groupBy` (field names), `includeDnp` (`true`), `separator` (`","`), `format`: `csv`, `xlsx`, `html` (`csv`), `folder` (`"assembly"`)                                               |
-| `pickAndPlace` | `style`: `generic`, `jlcpcb`, `kicad`; `unit`: `mm`, `inch`; `boardOrigin` (`true`), `includeDnp` (`false`), `splitSides` (`false`), `mirrorBottomX` (`false`), `folder` (`"assembly"`)                                  |
-| `pdf`, `svg`   | `content`: `schematic`, `board`, `assembly`; `layers` (`["cu.top", "silk.top"]`), `pagePerLayer`, `mirror`, `color`: `color`, `monochrome`; `paper`: `fit`, `a4`, `a3`, `letter`; `values`; `folder` (`"documentation"`) |
-| `ipc356`       | `tentVias` (`true`), `folder` (`"netlists"`)                                                                                                                                                                             |
-| `ipc2581`      | `folder` (`""`)                                                                                                                                                                                                          |
-| `netlist`      | `format`: `kicad`, `csv` (`kicad`), `folder` (`"netlists"`)                                                                                                                                                              |
-| `archive`      | `include` (output kinds, `["gerber", "drill"]`), `file` (`"{board}-fabrication.zip"`)                                                                                                                                    |
-| `step`         | none (not generated yet)                                                                                                                                                                                                 |
+| `kind`          | Options (default)                                                                                                                                                                                                        |
+| --------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `gerber`        | `layers` (`[]` = fabrication layers), `protelExtensions` (`true`), `x2` (`true`), `jobFile` (`true`), `tentVias` (`true`), `silkValues` (`true`), `folder` (`"gerber"`)                                                  |
+| `drill`         | `merge` (`false`), `folder` (`"gerber"`)                                                                                                                                                                                 |
+| `drillMap`      | `format`: `pdf` or `svg` (`pdf`), `folder` (`"gerber"`)                                                                                                                                                                  |
+| `bom`           | `columns` (`[{"field", "label"?}]`), `groupBy` (field names), `includeDnp` (`true`), `separator` (`","`), `format`: `csv`, `xlsx`, `html` (`csv`), `folder` (`"assembly"`)                                               |
+| `pickAndPlace`  | `style`: `generic`, `jlcpcb`, `kicad`; `unit`: `mm`, `inch`; `boardOrigin` (`true`), `includeDnp` (`false`), `splitSides` (`false`), `mirrorBottomX` (`false`), `folder` (`"assembly"`)                                  |
+| `pdf`, `svg`    | `content`: `schematic`, `board`, `assembly`; `layers` (`["cu.top", "silk.top"]`), `pagePerLayer`, `mirror`, `color`: `color`, `monochrome`; `paper`: `fit`, `a4`, `a3`, `letter`; `values`; `folder` (`"documentation"`) |
+| `ipc356`        | `tentVias` (`true`), `folder` (`"netlists"`)                                                                                                                                                                             |
+| `ipc2581`       | `folder` (`""`)                                                                                                                                                                                                          |
+| `netlist`       | `format`: `kicad`, `csv` (`kicad`), `folder` (`"netlists"`)                                                                                                                                                              |
+| `archive`       | `include` (output kinds, `["gerber", "drill"]`), `file` (`"{board}-fabrication.zip"`)                                                                                                                                    |
+| `step`          | `format`: `step`, `glb`, `vrml` (`step`); `origin`: `drill`, `center`, `absolute` (`drill`); `includeDnp` (`false`); `units`: `mm`, `m`, `inch` (`mm`, VRML only); `folder` (`"3d"`)                                     |
+| `documentation` | `schematic`, `board`, `assembly`, `stackup`, `bom`, `drills`, `statistics` (all `true`: the sections), `folder` (`"documentation"`)                                                                                      |
 
 Layers are written as in boards (`cu.top`, `cu.in1`, `mask.bottom`,
 `outline`, …). Unknown options are ignored, so newer files open in older
 versions.
+
+### Panels
+
+An output job with a `panel` makes its Gerber, drill, drill map and
+pick-and-place outputs for a [panel](../guide/panels) of the board. Without
+`panel` (the default), they are made for a single board.
+
+```json
+{
+  "id": "…",
+  "name": "Fabrication",
+  "directory": "outputs/generated",
+  "outputs": [ … ],
+  "panel": {
+    "columns": 2,
+    "rows": 2,
+    "separation": "mouseBites",
+    "gap": 2000000,
+    "rails": "topBottom",
+    "railWidth": 5000000,
+    "fiducials": true,
+    "toolingHoles": true,
+    "tabs": 2,
+    "tabWidth": 2000000
+  }
+}
+```
+
+| Field              | Default        | Meaning                                                              |
+| ------------------ | -------------- | -------------------------------------------------------------------- |
+| `columns`, `rows`  | `2`, `2`       | Copies side by side and above each other (1 to 50).                  |
+| `separation`       | `mouseBites`   | `mouseBites` (milled gaps with tabs) or `vScore` (rectangular only). |
+| `gap`              | `2000000`      | Width of the milled gaps in nm (mouse bites).                        |
+| `rails`            | `topBottom`    | `none`, `topBottom`, `leftRight` or `all`.                           |
+| `railWidth`        | `5000000`      | Width of a rail in nm.                                               |
+| `fiducials`        | `true`         | Three fiducials on the rails.                                        |
+| `toolingHoles`     | `true`         | A tooling hole in each corner of the rails.                          |
+| `tabs`, `tabWidth` | `2`, `2000000` | Tabs per board edge and their width in nm (mouse bites).             |
+
+Missing fields take their defaults. Older versions of ElectronicWerk ignore
+`panel` and make the outputs for a single board.
 
 ## Versions and migrations
 
@@ -251,6 +293,31 @@ Version 1 is the first version of the format (ElectronicWerk 0.2).
 ElectronicWerk 0.4 added the optional fields `filled` (zones) and `pinText`
 (symbols) without a new version: they are left out when they are empty or
 have their default value, and older versions of the app ignore them.
+
+## Assembly progress (`assembly.json`)
+
+The [assembly assistant](../guide/assembly) keeps its progress next to the
+manifest, in `assembly.json`. It is written at once when a part is ticked
+off, and is not part of the project's documents (no undo, no unsaved
+changes):
+
+```json
+{
+  "format": "electronicwerk.assembly",
+  "schemaVersion": 1,
+  "boards": {
+    "7aae4ca3-5cdc-496e-8fc2-2cc678b2091c": {
+      "placed": ["C1", "R1", "R3"],
+      "completed": 2
+    }
+  }
+}
+```
+
+`boards` maps a board id to the designators placed in the current build
+(sorted) and the number of finished boards. The file is optional; a missing
+or unreadable file means nothing is placed yet. Whether to commit it to
+source control is up to you: it shares the state of a build with others.
 
 ## Local state (`.ewerk/`)
 

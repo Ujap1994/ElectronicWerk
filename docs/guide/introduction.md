@@ -9,7 +9,10 @@ DipTrace and Eagle, but it is written from scratch and released under the
 
 ## What you can do today
 
-Version 0.13 adds **scripts and AI agents**: design a board from the
+Version 0.14 adds the **assembly assistant**, which guides you through
+soldering a board by hand step by step, **panels** for the board maker,
+**design statistics** and the **project documentation** in one HTML file.
+Version 0.13 added **scripts and AI agents**: design a board from the
 terminal, in CI pipelines or by an AI agent (MCP), with designators, pin names
 and millimetres, from the first part to the routed board and the Gerber
 files. Version 0.12 added **GitHub**: create projects on GitHub, commit, push
@@ -57,6 +60,10 @@ and the model the enclosure is designed around.
 | Online part libraries (SnapEDA, Ultra Librarian) | Available | [Online part libraries](./online-parts)                |
 | GitHub: commit, push, pull, branches, clone      | Available | [GitHub and source control](./github)                  |
 | Scripts, CI checks and AI agents (MCP)           | Available | [Scripts and AI agents](./automation)                  |
+| Panels (mouse bites, V-score, rails, fiducials)  | Available | [Panels](./panels)                                     |
+| Project documentation (HTML)                     | Available | [Project documentation](./documentation)               |
+| Assembly assistant                               | Available | [The assembly assistant](./assembly)                   |
+| Design statistics                                | Available | [Design statistics](./statistics)                      |
 
 The [roadmap](https://github.com/Ujap1994/ElectronicWerk/blob/main/ROADMAP.md)
 lists every milestone with its scope and status. It is updated with every

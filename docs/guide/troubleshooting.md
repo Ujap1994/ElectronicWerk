@@ -67,7 +67,7 @@ The [2D view](./viewer) is drawn by the graphics card with WebGL 2.
   meshes once; large connectors or modules can take several seconds. They are
   cached afterwards.
 - **A part looks turned or offset**: check its model's offset and rotation in
-  the [footprint editor](./footprint-editor#3d-models); the preview there
+  the [footprint editor](./footprint-editor#_3d-models); the preview there
   shows the model on the footprint.
 - **GLB or VRML export lists “has no mesh yet”**: show the board once in the
   3D view, then export again (see [Models for GLB and VRML](./export-3d#models-for-glb-and-vrml)).

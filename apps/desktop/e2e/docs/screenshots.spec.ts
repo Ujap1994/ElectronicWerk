@@ -1942,3 +1942,182 @@ test('automation', async () => {
   await shoot(board, 'automation-board');
   await close();
 });
+
+// --- Assembly assistant (M13) -------------------------------------------------
+
+test('assembly', async () => {
+  test.setTimeout(240_000);
+  freshProjects();
+  const { app, page, close } = await start({ settings: { theme: 'light' } });
+  await page.setViewportSize({ width: 1400, height: 860 });
+  await createDemo(page, 'Sensor Board');
+  await page.getByTestId('toolbar-close').click();
+  // Two capacitors go to the bottom side (with the command-line tool).
+  const project = join(PROJECTS, 'Sensor Board');
+  const ewerk = (...args: string[]): string =>
+    execFileSync(ewerkBinary(), args, {
+      env: { ...process.env, EW_LIBRARY_DIR: join(PROJECTS, '..', 'no-library') },
+      encoding: 'utf8',
+    });
+  const board = JSON.parse(ewerk('board', 'info', project, '--json')) as {
+    footprints: { designator: string; at: [number, number] }[];
+  };
+  for (const designator of ['C1', 'C2']) {
+    const fp = board.footprints.find((entry) => entry.designator === designator);
+    if (fp !== undefined) {
+      ewerk(
+        'board',
+        'place',
+        project,
+        designator,
+        '--at',
+        `${String(fp.at[0])},${String(fp.at[1])}`,
+        '--side',
+        'bottom',
+      );
+    }
+  }
+  await queueDialogAnswer(app, join(project, 'Sensor Board.ewproj'));
+  await page.getByTestId('open-project').click();
+  await page.getByTestId('workspace').waitFor();
+  await page.locator('[data-testid^="tree-doc:"]', { hasText: 'Sensor Board' }).first().click();
+  await shoot(page.getByTestId('details-open-assembly'), 'assembly-button');
+  await page.getByTestId('details-open-assembly').click();
+  await expect(page.getByTestId('assembly-canvas')).toHaveAttribute('data-ready', 'true', {
+    timeout: 30_000,
+  });
+  // Two groups done, one part of the third.
+  for (let i = 0; i < 2; i += 1) {
+    const before = await page.getByTestId('assembly-progress').textContent();
+    await page.getByTestId('assembly-place').click();
+    await expect(page.getByTestId('assembly-progress')).not.toHaveText(before ?? '');
+  }
+  await page.getByTestId('assembly-part').first().click();
+  await expect(page.getByTestId('assembly-part').first()).toHaveAttribute('aria-pressed', 'true');
+  await page.waitForTimeout(400);
+  await page.mouse.move(5, 5);
+  await shoot(page, 'assembly');
+  await shoot(page.getByTestId('assembly-current'), 'assembly-current');
+
+  // The bottom side: seen from below.
+  await page.getByTestId('assembly-first-side').selectOption('bottom');
+  await expect(page.getByTestId('assembly-from-bottom')).toBeVisible();
+  await page.waitForTimeout(400);
+  await shoot(page.getByTestId('assembly'), 'assembly-bottom');
+  await page.getByTestId('assembly-first-side').selectOption('top');
+
+  // The workbench window.
+  const opened = app.waitForEvent('window');
+  await page.getByTestId('assembly-detach').click();
+  const second = await opened;
+  await second.setViewportSize({ width: 1600, height: 900 });
+  await expect(second.getByTestId('assembly-canvas')).toHaveAttribute('data-ready', 'true', {
+    timeout: 30_000,
+  });
+  await second.waitForTimeout(400);
+  await second.mouse.move(5, 5);
+  await shoot(second, 'assembly-workbench');
+  await close();
+});
+
+test('documentation and statistics', async () => {
+  test.setTimeout(240_000);
+  freshProjects();
+  const { app, page, close } = await start({ settings: { theme: 'light' } });
+  await page.setViewportSize({ width: 1400, height: 900 });
+  await createDemo(page, 'Sensor Board');
+
+  // The design statistics in the project details.
+  await page.getByTestId('tree-project').click();
+  const stats = page.getByTestId('design-statistics');
+  await expect(stats.getByTestId('statistics-board')).toBeVisible();
+  await stats.scrollIntoViewIfNeeded();
+  await shoot(stats, 'statistics');
+
+  // A documentation output in the output job.
+  await page.getByTestId('toolbar-outputs').click();
+  await page.getByTestId('outputs-add').selectOption('documentation');
+  await expect(page.getByTestId('output-documentation-schematic')).toBeVisible();
+  await page.mouse.move(5, 5);
+  await shoot(page.getByTestId('output-job'), 'documentation-output');
+  await page.getByTestId('output-generate-one').click();
+  const file = join(
+    PROJECTS,
+    'Sensor Board',
+    'outputs',
+    'generated',
+    'documentation',
+    'Sensor_Board-documentation.html',
+  );
+  await expect.poll(() => existsSync(file), { timeout: 60_000 }).toBe(true);
+
+  // The documentation itself, in a browser window.
+  const opened = app.waitForEvent('window');
+  await app.evaluate(async ({ BrowserWindow }, path) => {
+    const window = new BrowserWindow({ width: 1100, height: 900, show: true });
+    await window.loadFile(path);
+  }, file);
+  const doc = await opened;
+  await doc.setViewportSize({ width: 1100, height: 900 });
+  await doc.waitForLoadState('load');
+  await shoot(doc, 'documentation-top');
+  await doc.locator('#board').scrollIntoViewIfNeeded();
+  await doc.evaluate(() => {
+    window.scrollBy(0, -20);
+  });
+  await shoot(doc, 'documentation-board');
+  await doc.locator('#statistics').scrollIntoViewIfNeeded();
+  await shoot(doc, 'documentation-statistics');
+  await close();
+});
+
+test('panel', async () => {
+  test.setTimeout(240_000);
+  freshProjects();
+  const { page, close } = await start({ settings: { theme: 'light' } });
+  await page.setViewportSize({ width: 1400, height: 1440 });
+  await createDemo(page, 'Sensor Board');
+
+  // The panel settings with the default panel: 2 × 2 with mouse bites.
+  await page.getByTestId('toolbar-outputs').click();
+  await page.getByTestId('outputs-panel').getByRole('button').click();
+  await page.getByTestId('panel-enabled').check();
+  await expect(page.getByTestId('panel-image')).toBeVisible();
+  await page.mouse.move(5, 5);
+  await page.waitForTimeout(300);
+  await shoot(page.getByTestId('output-job'), 'panel-settings');
+  await shoot(page.getByTestId('panel-preview'), 'panel-preview-mouse-bites');
+
+  // V-score without rails: the hints say what is left out.
+  await page.getByTestId('panel-separation-vScore').click();
+  await page.getByTestId('panel-rails').selectOption('none');
+  await expect(page.getByTestId('panel-warning')).toHaveCount(2);
+  await page.waitForTimeout(300);
+  await shoot(page.getByTestId('panel-preview'), 'panel-preview-v-score');
+  await page.getByTestId('panel-rails').selectOption('topBottom');
+  await page.getByTestId('panel-separation-mouseBites').click();
+  await expect(page.getByTestId('panel-warning')).toHaveCount(0);
+
+  // The panel Gerbers in the Gerber viewer.
+  await page.setViewportSize({ width: 1400, height: 900 });
+  await page.getByTestId('toolbar-save').click();
+  await page.getByTestId('outputs-generate').click();
+  await expect(
+    page.getByTestId('outputs-list').locator('[data-status="done"]').first(),
+  ).toBeVisible({ timeout: 90_000 });
+  await expect(page.getByTestId('outputs-generate')).toBeEnabled({ timeout: 90_000 });
+  // No messages over the picture.
+  const toasts = page.locator('.toast');
+  await expect(toasts.filter({ hasText: 'Generated' })).toHaveCount(1);
+  while ((await toasts.count()) > 0) {
+    await toasts.first().locator('.toast__close').click();
+  }
+  await page.getByTestId('outputs-gerber-viewer').click();
+  await expect(page.getByTestId('gerber-canvas')).toHaveAttribute('data-ready', 'true', {
+    timeout: 30_000,
+  });
+  await page.waitForTimeout(500);
+  await page.mouse.move(10, 10);
+  await shoot(page, 'panel-gerber');
+  await close();
+});

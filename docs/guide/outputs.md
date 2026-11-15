@@ -38,21 +38,26 @@ Below the list, **Add output** adds an output of any kind; the arrows move the
 selected output up and down, and the bin removes it. Every change is one
 step in the project history, so **Undo** takes it back.
 
+Below the outputs, **Panel** makes the board outputs of the job for a
+[panel](./panels): several copies of the board on one sheet, with rails,
+tabs and fiducials.
+
 ## Kinds of outputs
 
-| Output                | Files                                                                | Details                                                                  |
-| --------------------- | -------------------------------------------------------------------- | ------------------------------------------------------------------------ |
-| **Gerber X2**         | One file per layer (`.gtl`, `.gbl`, `.gts`, …) and a Gerber job file | [Gerber and drill files](./gerber-drill#gerber-files)                    |
-| **Excellon drill**    | `-PTH.drl`, `-NPTH.drl`, one file per blind or buried layer pair     | [Drill files](./gerber-drill#drill-files)                                |
-| **Drill map**         | A drawing of every hole with a symbol per drill size (PDF or SVG)    | [Drill map](./gerber-drill#drill-map)                                    |
-| **Bill of materials** | CSV, Excel workbook or HTML page                                     | [Bill of materials](./bom-placement#bill-of-materials)                   |
-| **Pick and place**    | Positions and rotations of the parts (CSV)                           | [Placement files](./bom-placement#pick-and-place)                        |
-| **PDF**, **SVG**      | Schematic sheets, board layers or assembly drawings                  | [Prints and drawings](./prints)                                          |
-| **IPC-D-356 netlist** | The netlist for the electrical test of the bare board                | [Test netlist](./gerber-drill#ipc-d-356-netlist-for-the-electrical-test) |
-| **IPC-2581**          | The whole board in one XML file                                      | [IPC-2581](./gerber-drill#ipc-2581)                                      |
-| **Netlist**           | The schematic netlist (KiCad format or CSV)                          | [Netlists](./schematic-exports#netlists)                                 |
-| **ZIP package**       | A ZIP archive of the files of chosen outputs                         | [Below](#zip-packages)                                                   |
-| **3D model**          | The board with its parts as STEP, GLB or VRML                        | [3D models](./export-3d)                                                 |
+| Output                           | Files                                                                                              | Details                                                                  |
+| -------------------------------- | -------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------ |
+| **Gerber X2**                    | One file per layer (`.gtl`, `.gbl`, `.gts`, …) and a Gerber job file                               | [Gerber and drill files](./gerber-drill#gerber-files)                    |
+| **Excellon drill**               | `-PTH.drl`, `-NPTH.drl`, one file per blind or buried layer pair                                   | [Drill files](./gerber-drill#drill-files)                                |
+| **Drill map**                    | A drawing of every hole with a symbol per drill size (PDF or SVG)                                  | [Drill map](./gerber-drill#drill-map)                                    |
+| **Bill of materials**            | CSV, Excel workbook or HTML page                                                                   | [Bill of materials](./bom-placement#bill-of-materials)                   |
+| **Pick and place**               | Positions and rotations of the parts (CSV)                                                         | [Placement files](./bom-placement#pick-and-place)                        |
+| **PDF**, **SVG**                 | Schematic sheets, board layers or assembly drawings                                                | [Prints and drawings](./prints)                                          |
+| **IPC-D-356 netlist**            | The netlist for the electrical test of the bare board                                              | [Test netlist](./gerber-drill#ipc-d-356-netlist-for-the-electrical-test) |
+| **IPC-2581**                     | The whole board in one XML file                                                                    | [IPC-2581](./gerber-drill#ipc-2581)                                      |
+| **Netlist**                      | The schematic netlist (KiCad format or CSV)                                                        | [Netlists](./schematic-exports#netlists)                                 |
+| **ZIP package**                  | A ZIP archive of the files of chosen outputs                                                       | [Below](#zip-packages)                                                   |
+| **3D model**                     | The board with its parts as STEP, GLB or VRML                                                      | [3D models](./export-3d)                                                 |
+| **Project documentation (HTML)** | One HTML file with the sheets, board views, assembly drawings, stack-up, BOM, holes and statistics | [Project documentation](./documentation)                                 |
 
 ## Generating
 
@@ -89,7 +94,7 @@ in its settings:
 | ---------------- | ----------------------------------------------------- |
 | `gerber/`        | Gerber files, Gerber job file, drill files, drill map |
 | `assembly/`      | Bill of materials, pick and place                     |
-| `documentation/` | PDF and SVG prints                                    |
+| `documentation/` | PDF and SVG prints, project documentation             |
 | `netlists/`      | IPC-D-356 and schematic netlists                      |
 | (output folder)  | ZIP packages, IPC-2581                                |
 
@@ -107,6 +112,13 @@ their subfolders.
 A project with more than one board shows a **Board** choice in the settings
 of every board output. **First board of the project** follows the order of
 the project tree.
+
+## Panels
+
+With a [panel](./panels) switched on, the Gerber, drill, drill map and
+pick-and-place outputs are made for the panel instead of a single board;
+their files are named `<board>_panel-…`. The other outputs stay for one
+board.
 
 ## From the command line
 

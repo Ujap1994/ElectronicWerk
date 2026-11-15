@@ -296,3 +296,20 @@ recorded in
 3. `project.save` refuses to overwrite files another program changed
    (`changedOnDisk`), so the app and an agent can never lose each other's
    work.
+
+## Assembly assistant, panels, statistics and documentation
+
+These M13 features are recorded in
+[ADR-0013](https://github.com/Ujap1994/ElectronicWerk/blob/main/docs/adr/0013-assembly-assistant-and-extras.md):
+
+1. `ew-core::assembly` groups the fitted parts of a board from the BOM and
+   keeps the progress in `assembly.json` in the project folder, outside the
+   documents (no undo, no unsaved changes); an `assembly` event updates
+   every window. The view reuses the board viewer with a dimmed state per
+   item.
+2. `ew-pcb::panel` builds a panel as an ordinary `Pcb` in memory (copies,
+   rails, tabs, mouse bites, V-score lines, fiducials, tooling holes); the
+   output job runs its board outputs on it unchanged.
+3. `ew-output::statistics` counts schematic, BOM and boards for the project
+   details, the CLI and the documentation; `ew-output::documentation`
+   writes the HTML documentation with the SVG prints embedded.

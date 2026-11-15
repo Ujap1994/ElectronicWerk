@@ -33,38 +33,40 @@ macOS quarantines downloaded programs. Run
 
 ## Overview
 
-| Command                                                 | Purpose                                              |
-| ------------------------------------------------------- | ---------------------------------------------------- |
-| [`ewerk project new`](#ewerk-project-new)               | Create a project from a template                     |
-| [`ewerk project info`](#ewerk-project-info)             | Show a summary of a project                          |
-| [`ewerk project validate`](#ewerk-project-validate)     | Check a project for errors                           |
-| [`ewerk project archive`](#ewerk-project-archive)       | Write a ZIP archive of a project                     |
-| [`ewerk project upgrade`](#ewerk-project-upgrade)       | Rewrite a project in the current file format         |
-| [`ewerk project templates`](#ewerk-project-templates)   | List the project templates                           |
-| [`ewerk schematic …`](#schematics)                      | Place parts, connect pins, run the ERC               |
-| [`ewerk board …`](#boards)                              | Update, place, route and check a board               |
-| [`ewerk script`](#ewerk-script)                         | Run engine calls from a file                         |
-| [`ewerk mcp`](#ewerk-mcp)                               | MCP server for AI agents                             |
-| [`ewerk import kicad`](#ewerk-import-kicad)             | Import a KiCad project as a new project              |
-| [`ewerk import library`](#ewerk-import-library)         | Add a KiCad library to a project library             |
-| [`ewerk import archive`](#ewerk-import-archive)         | Import a SnapEDA or Ultra Librarian download         |
-| [`ewerk import netlist`](#ewerk-import-netlist)         | Compare a netlist with a board, or apply it          |
-| [`ewerk outputs run`](#ewerk-outputs-run)               | Generate the manufacturing files of an output job    |
-| [`ewerk outputs list`](#ewerk-outputs-list)             | List the output jobs of a project                    |
-| [`ewerk outputs presets`](#ewerk-outputs-presets)       | List the presets for board makers                    |
-| [`ewerk export-3d`](#ewerk-export-3d)                   | Export a board as a STEP, GLB or VRML model          |
-| [`ewerk library build`](#ewerk-library-build)           | Build the base library from KiCad libraries          |
-| [`ewerk library info`](#ewerk-library-info)             | Show what the base library contains                  |
-| [`ewerk library search`](#ewerk-library-search)         | Search the base library                              |
-| [`ewerk library duplicates`](#ewerk-library-duplicates) | Print the deduplication report                       |
-| [`ewerk library pack`](#ewerk-library-pack)             | Write library packs for a library release            |
-| [`ewerk library install`](#ewerk-library-install)       | Install a library pack                               |
-| [`ewerk rpc`](#ewerk-rpc)                               | Run an engine session over standard input and output |
-| [`ewerk call`](#ewerk-call-method-params)               | Call one engine method                               |
-| [`ewerk methods`](#ewerk-methods)                       | List every engine method (with summaries)            |
-| [`ewerk synth`](#ewerk-synth)                           | Generate a synthetic reference design                |
-| [`ewerk bench`](#ewerk-bench)                           | Measure opening and saving a synthetic design        |
-| [`ewerk info`](#ewerk-info)                             | Show information about the engine build              |
+| Command                                                 | Purpose                                               |
+| ------------------------------------------------------- | ----------------------------------------------------- |
+| [`ewerk project new`](#ewerk-project-new)               | Create a project from a template                      |
+| [`ewerk project info`](#ewerk-project-info)             | Show a summary of a project                           |
+| [`ewerk project validate`](#ewerk-project-validate)     | Check a project for errors                            |
+| [`ewerk project archive`](#ewerk-project-archive)       | Write a ZIP archive of a project                      |
+| [`ewerk project upgrade`](#ewerk-project-upgrade)       | Rewrite a project in the current file format          |
+| [`ewerk project templates`](#ewerk-project-templates)   | List the project templates                            |
+| [`ewerk project stats`](#ewerk-project-stats)           | Show the design statistics                            |
+| [`ewerk schematic …`](#schematics)                      | Place parts, connect pins, run the ERC                |
+| [`ewerk board …`](#boards)                              | Update, place, route and check a board                |
+| [`ewerk script`](#ewerk-script)                         | Run engine calls from a file                          |
+| [`ewerk mcp`](#ewerk-mcp)                               | MCP server for AI agents                              |
+| [`ewerk import kicad`](#ewerk-import-kicad)             | Import a KiCad project as a new project               |
+| [`ewerk import library`](#ewerk-import-library)         | Add a KiCad library to a project library              |
+| [`ewerk import archive`](#ewerk-import-archive)         | Import a SnapEDA or Ultra Librarian download          |
+| [`ewerk import netlist`](#ewerk-import-netlist)         | Compare a netlist with a board, or apply it           |
+| [`ewerk outputs run`](#ewerk-outputs-run)               | Generate the manufacturing files of an output job     |
+| [`ewerk outputs list`](#ewerk-outputs-list)             | List the output jobs of a project                     |
+| [`ewerk outputs presets`](#ewerk-outputs-presets)       | List the presets for board makers                     |
+| [`ewerk export-3d`](#ewerk-export-3d)                   | Export a board as a STEP, GLB or VRML model           |
+| [`ewerk assembly`](#ewerk-assembly)                     | Print the assembly steps of a board with the progress |
+| [`ewerk library build`](#ewerk-library-build)           | Build the base library from KiCad libraries           |
+| [`ewerk library info`](#ewerk-library-info)             | Show what the base library contains                   |
+| [`ewerk library search`](#ewerk-library-search)         | Search the base library                               |
+| [`ewerk library duplicates`](#ewerk-library-duplicates) | Print the deduplication report                        |
+| [`ewerk library pack`](#ewerk-library-pack)             | Write library packs for a library release             |
+| [`ewerk library install`](#ewerk-library-install)       | Install a library pack                                |
+| [`ewerk rpc`](#ewerk-rpc)                               | Run an engine session over standard input and output  |
+| [`ewerk call`](#ewerk-call-method-params)               | Call one engine method                                |
+| [`ewerk methods`](#ewerk-methods)                       | List every engine method (with summaries)             |
+| [`ewerk synth`](#ewerk-synth)                           | Generate a synthetic reference design                 |
+| [`ewerk bench`](#ewerk-bench)                           | Measure opening and saving a synthetic design         |
+| [`ewerk info`](#ewerk-info)                             | Show information about the engine build               |
 
 Global options: `-h`, `--help` (also per command, for example
 `ewerk project new --help`) and `-V`, `--version`.
@@ -184,6 +186,32 @@ board-4l         100.000 mm × 100.000 mm, 4 layers
 arduino-shield   68.580 mm × 53.340 mm, 2 layers
 demo             no board
 ```
+
+### `ewerk project stats`
+
+```text
+ewerk project stats <project> [--json]
+```
+
+Prints the [design statistics](../guide/statistics): sheets, parts, pins and
+nets of the schematic, the bill of materials, and for every board its size,
+area, layers, footprints, pads, holes by diameter, vias, track length,
+smallest track, via and hole, and how much is routed.
+
+```console
+$ ewerk project stats "Sensor Board"
+Schematic: sheets 1, parts 50, pins 297, nets 57 (named 57, with one pin 0)
+BOM:       lines 6, parts to place 50, not populated 0, without footprint 0, without part number 50
+Board Sensor Board: 80.0 × 60.0 mm, 48.0 cm², copper layers 2
+  footprints 50 (top 45, bottom 5; SMD 48, THT 2), pads 297, vias 242
+  tracks: segments 600, length 962.2 mm; thinnest 0.25 mm, smallest hole 0.3 mm
+  hole 0.3 mm: 242 plated, 0 non-plated
+  hole 1.0 mm: 20 plated, 0 non-plated
+  routing 99.2 % (unrouted 2 of 237 connections)
+```
+
+`--json` prints the result of the engine method
+[`project.statistics`](./engine-api#project-statistics).
 
 ## Schematics
 
@@ -512,6 +540,50 @@ ewerk outputs presets [--json]
 
 Lists the [presets for board makers](../guide/ordering#presets) with what they
 contain.
+
+## Assembly
+
+### `ewerk assembly`
+
+```text
+ewerk assembly <project> [--order size|value|count|designator]
+                         [--first-side top|bottom] [--board <name>] [--json]
+```
+
+Prints the steps of the [assembly assistant](../guide/assembly) for a board
+(the first board by default) as a checklist, with the progress saved in the
+project's `assembly.json`. Each line is one group of equal parts: its side,
+value, footprint and designators, `[x]` for placed parts.
+
+| Option         | Default | Meaning                                                                                |
+| -------------- | ------- | -------------------------------------------------------------------------------------- |
+| `--order`      | `size`  | `size` (small parts first), `value`, `count` (largest groups first) or `designator`.   |
+| `--first-side` | `top`   | The side to start with. SMD parts of both sides always come before through-hole parts. |
+| `--board`      |         | The board by name.                                                                     |
+| `--json`       |         | The result of the engine method [`assembly.plan`](./engine-api#assembly).              |
+
+```console
+$ ewerk assembly "Sensor Board"
+Sensor Board: 0 of 50 parts placed
+  1. top    10k          R_0603                       [ ] R1  [ ] R3  [ ] R4  …
+  2. top    100n         C_0603                       [ ] C1  [ ] C2  [ ] C4  …
+  3. top    NPN          SOT-23                       [ ] Q1  [ ] Q2  [ ] Q3
+  4. top    IC_8         SOIC-8                       [ ] U1  [ ] U2  [ ] U3  …
+  5. top    MCU_64       QFP-64                       [ ] U4  [ ] U5
+  6. bottom 10k          R_0603                       [ ] R2  [ ] R11  [ ] R12  [ ] R19
+  7. bottom 100n         C_0603                       [ ] C3
+  8. top    Header       PinHeader_1x10_P2.54mm       [ ] J1  [ ] J2
+```
+
+To tick parts off from a script, call
+[`assembly.mark`](./engine-api#assembly) with [`ewerk script`](#ewerk-script):
+
+```sh
+echo '{"method": "assembly.mark", "params": {"designators": ["R1", "R3"], "placed": true}}' \
+  | ewerk script - --project "Sensor Board"
+```
+
+The progress is saved at once; the project's documents are not changed.
 
 ## 3D export
 

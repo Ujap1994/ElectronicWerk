@@ -88,6 +88,15 @@ these events to every window; `ewerk rpc --events` prints them.
 - `truncated`: `true` if the change set was too large to list (more than
   1,000 changes); views reload instead.
 
+```json
+{ "type": "assembly", "board": "…", "placed": ["C1", "R1"], "completed": 0 }
+```
+
+The progress of the [assembly assistant](#assembly) changed (after
+`assembly.mark` and `assembly.reset`): the board id, the placed designators
+and the number of finished boards. It is no design change and has no undo
+step.
+
 ## Design
 
 The `design.*` methods are made for scripts, the command line and AI agents.
@@ -284,6 +293,42 @@ open project is checked. Returns `issues` (`severity`, `code`, `message`,
 
 `{"text": "${PROJECT_NAME} rev ${REVISION}", "doc": "…"}` → `{"text": "LED Blinker rev B"}`.
 `doc` provides `SHEET_NAME` and `FILENAME`.
+
+### `project.statistics`
+
+`project.statistics` → the [design statistics](../guide/statistics) of the
+open project. Lengths are in millimetres, areas in cm², `completion` is a
+fraction:
+
+```json
+{
+  "schematic": { "sheets": 1, "parts": 50, "pins": 297, "nets": 57, "namedNets": 57, "singlePinNets": 0 },
+  "bom": { "lines": 6, "parts": 50, "dnp": 0, "withoutFootprint": 0, "withoutPartNumber": 50 },
+  "boards": [
+    {
+      "board": "Sensor Board",
+      "id": "…",
+      "size": [80.0, 60.0],
+      "area": 48.0,
+      "copperLayers": 2,
+      "thickness": 1.6,
+      "footprints": { "total": 50, "top": 45, "bottom": 5, "smd": 48, "throughHole": 2, "other": 0 },
+      "pads": { "total": 297, "smd": 277, "throughHole": 20 },
+      "holes": { "plated": 262, "nonPlated": 0, "drills": [{ "diameter": 0.3, "plated": 242, "nonPlated": 0 }, …] },
+      "vias": 242,
+      "zones": 0,
+      "tracks": { "segments": 600, "length": 962.2, "layers": [{ "layer": "cu.top", "length": 445.5 }, …] },
+      "smallest": { "track": 0.25, "via": 0.3, "hole": 0.3 },
+      "density": { "parts": 1.04, "pads": 6.19 },
+      "routing": { "connections": 237, "unrouted": 2, "completion": 0.992 }
+    }
+  ]
+}
+```
+
+`size`, `area` and `density` are `null` for a board without a closed
+outline; the `smallest` values are `null` when the board has no tracks,
+vias or holes. The `bom` figures are counted for the first board.
 
 ### Project snapshot
 
@@ -833,10 +878,14 @@ nanometres per drawing unit, `origin` moves the lower left corner there.
 
 The manufacturing outputs (see [Output jobs](../guide/outputs)). An output
 job is a document of kind `outputJob`; its properties (`document.properties`)
-are `{"name", "directory", "outputs": [...]}` and every output is
+are `{"name", "directory", "outputs": [...], "panel"}` and every output is
 `{"id", "name", "kind", "enabled", "source"?, "options"?}` (see the
 [file format](./file-format#output-jobs)). Change outputs with
-`document.setProperties {"doc", "props": {"outputs": [...]}}`.
+`document.setProperties {"doc", "props": {"outputs": [...]}}`. `panel` is
+`null`, or the [panel](../guide/panels) the board outputs are made for
+(see [the file format](./file-format#panels)); set it with
+`document.setProperties {"doc", "props": {"panel": {"columns": 3, "rows": 2}}}`
+(missing fields take their defaults) and remove it with `"panel": null`.
 
 ### `outputs.presets`
 
@@ -898,6 +947,34 @@ folder and every subfolder must lie inside the project folder.
 grouping, …) without writing a file — the preview of the editor. `fields` lists
 the fields that columns can show.
 
+### `outputs.panelPreview`
+
+`outputs.panelPreview {"settings", "board"?}` makes the panel of a board
+(the first board by default) without writing files — the preview of the
+panel settings. `settings` are the [panel settings](./file-format#panels)
+(lengths in nanometres). The reply:
+
+```json
+{
+  "size": [162.0, 136.0],
+  "boards": 4,
+  "warnings": [
+    { "code": "fiducialsNeedRails", "message": "fiducials need rails at least 3 mm wide" }
+  ],
+  "svg": "<svg …>",
+  "problem": null
+}
+```
+
+- `size`: width and height of the panel in millimetres.
+- `warnings`: what was left out or needs a check — `toolingHolesNeedRails`,
+  `fiducialsNeedRails`, `tabsOnBoundingBox`.
+- `svg`: a drawing of the panel (outline, top copper, top silkscreen and
+  V-score lines).
+- `problem`: why the board cannot be put on a panel (`noOutline`,
+  `notRectangular` for V-score), with `size` and `svg` `null`. Settings out
+  of range (for example 0 columns) are an `invalidParams` error.
+
 ### `outputs.files`
 
 `outputs.files {"job"}` → `{"directory", "files"}`: the Gerber and drill files
@@ -910,6 +987,69 @@ files (absolute, or relative to the project folder) and returns a scene like
 [`view.scene`](#view), one layer per file, plus `"files": [{"file",
 "function"}]` (the X2 file function, or one guessed from the extension) and
 `"problems": [{"file", "message"}]`. Works without an open project.
+
+## Assembly
+
+The [assembly assistant](../guide/assembly). The progress is kept in
+`assembly.json` in the project folder (see
+[the file format](./file-format#assembly-progress-assembly-json)) and saved
+at once; it is not part of the documents and has no undo. `board` is a board
+name or id (default: the first board).
+
+### `assembly.plan`
+
+`assembly.plan {"board"?, "order"?, "firstSide"?}` → the steps:
+
+```json
+{
+  "board": "Sensor Board",
+  "boardId": "…",
+  "groups": [
+    {
+      "index": 0,
+      "side": "top",
+      "mounting": "smd",
+      "value": "10k",
+      "footprint": "R_0603",
+      "description": "…",
+      "mpn": "",
+      "manufacturer": "",
+      "designators": ["R1", "R3", "…"],
+      "ids": ["…"],
+      "count": 16,
+      "placed": 2,
+      "area": 4.35
+    }
+  ],
+  "dnp": [],
+  "missing": [],
+  "placed": ["R1", "R3"],
+  "total": 50,
+  "done": 2,
+  "completed": 0
+}
+```
+
+- `order`: `size` (default; by footprint `area` in mm²), `value`, `count`
+  or `designator`. SMD parts come before through-hole parts, and within
+  each, `firstSide` (`top` or `bottom`, default `top`) before the other side.
+- `ids`: the footprint ids, in the order of `designators` (to highlight
+  them in a view).
+- `dnp`: parts marked _do not populate_; `missing`: parts of the schematic
+  without a footprint on the board. Neither is in a group.
+- `completed`: finished boards of the batch.
+
+### `assembly.mark`
+
+`assembly.mark {"board"?, "designators", "placed"}` ticks parts off
+(`placed: true`) or on again → `{"board", "placed", "completed"}`. An
+unknown designator is a `notFound` error.
+
+### `assembly.reset`
+
+`assembly.reset {"board"?, "completed"?}` unticks every part of the board →
+`{"board", "placed", "completed"}`. With `"completed": true` the build is
+counted as finished first (**Board finished – next board**).
 
 ## 3D view
 

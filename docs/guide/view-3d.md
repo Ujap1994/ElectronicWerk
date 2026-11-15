@@ -100,7 +100,7 @@ surface, as in KiCad's 3D library.
 Footprints name their 3D models like KiCad does, for example
 `${KICAD10_3DMODEL_DIR}/Package_SO.3dshapes/SOIC-8_3.9x4.9mm_P1.27mm.step`
 or `${KIPRJMOD}/3d/relay.step`, with an offset, a rotation and a scale. Edit
-them in the [footprint editor](./footprint-editor#3d-models). The 3D view
+them in the [footprint editor](./footprint-editor#_3d-models). The 3D view
 looks for each model in this order:
 
 1. **A file on this computer.** `${KIPRJMOD}` and relative paths point into

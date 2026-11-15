@@ -8,12 +8,14 @@ An open-source ECAD suite for beginners and advanced hobbyists. It covers
 schematic, symbol, footprint and layout editing, a live 3D view, ERC/DRC,
 manufacturing outputs, online part search, GitHub integration and a full CLI.
 
-> **Status:** early development. Version 0.8 adds the layout editor:
-> interactive routing around obstacles, copper zones, design rules with net
-> classes and custom rules, an online design rules check, and updating the
-> board from the schematic and back. It builds on the library editors (0.7),
-> the schematic editor (0.6), the base library (0.5), the KiCad import (0.4),
-> the fast 2D view (0.3) and projects (0.2). Manufacturing outputs come next.
+> **Status:** early development. Version 0.14 adds the **assembly
+> assistant** for soldering boards by hand, **panels** for the board maker,
+> **design statistics** and the **project documentation** in one HTML file.
+> It builds on scripts and AI agents (0.13), GitHub (0.12), the online part
+> libraries (0.11), the 3D view (0.10), manufacturing outputs (0.9), the
+> layout editor (0.8), the library editors (0.7), the schematic editor (0.6),
+> the base library (0.5), the KiCad import (0.4), the fast 2D view (0.3) and
+> projects (0.2).
 > See the [roadmap](ROADMAP.md) for milestones and progress.
 
 <p align="center">
@@ -78,6 +80,17 @@ B.netclass != 'HV'`)
   SVG prints** of schematics, board layers and **assembly drawings**, and a
   ZIP package; **presets** for JLCPCB, PCBWay, AISLER, Eurocircuits and OSH
   Park; the Gerber output is verified pixel by pixel against KiCad 10
+- **Panels** made by the output job: copies of the board in rows and
+  columns, separated by mouse bites or V-score, with rails, fiducials and
+  tooling holes, and a live preview; Gerber, drill and pick-and-place files
+  are written for the panel
+- **Project documentation:** one self-contained HTML file with the sheets,
+  board views, assembly drawings, stack-up, bill of materials, holes and
+  **design statistics** (also in the project details and on the CLI)
+- An **assembly assistant** for soldering by hand: the parts in groups of
+  equal parts, the next ones highlighted on the board, a checklist that is
+  saved at once, a workbench mode with large text and its own window for a
+  second monitor
 - A built-in **Gerber viewer** for Gerber X2/RS-274X and Excellon files from
   any tool
 - A **live 3D view** of the board — laminate, copper with its surface finish,
@@ -130,10 +143,7 @@ B.netclass != 'HV'`)
 
 - Further open standard formats (KiCad export, Specctra, DXF export)
 - Push-and-shove routing, differential pairs and length tuning
-- **GitHub integration**: save a project straight to a new or existing
-  repository
-- A complete CLI and MCP server for scripting and AI agents
-- An **assembly assistant**
+- Gerber and Excellon import as a reference layer, Eagle import
 - Later: a **part generator** that reads a datasheet and draws symbol,
   footprint and 3D model
 
