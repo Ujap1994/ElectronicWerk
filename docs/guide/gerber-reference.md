@@ -50,5 +50,5 @@ hide them, change their opacity, or delete their shapes when you no longer
 need them. The import is one step to undo.
 
 Scripts use the engine methods
-[`pcb.gerberPreview`](../reference/engine-api#pcb-gerberpreview) and
-[`pcb.importGerbers`](../reference/engine-api#pcb-importgerbers).
+[`pcb.gerberPreview`](../reference/engine-api#pcb-gerberpreview-pcb-importgerbers) and
+[`pcb.importGerbers`](../reference/engine-api#pcb-gerberpreview-pcb-importgerbers).

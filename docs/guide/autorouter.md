@@ -67,7 +67,7 @@ ewerk board export-dsn "Sensor Board" -o sensor.dsn
 ewerk board import-ses "Sensor Board" sensor.ses
 ```
 
-See [`ewerk board export-dsn`](../reference/cli#ewerk-board-export-dsn--import-ses)
+See [`ewerk board export-dsn`](../reference/cli#ewerk-board-export-dsn-import-ses)
 and the engine methods
 [`pcb.exportSpecctra`](../reference/engine-api#pcb-exportspecctra) and
 [`pcb.importSession`](../reference/engine-api#pcb-importsession).

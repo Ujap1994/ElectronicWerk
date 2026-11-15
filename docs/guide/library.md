@@ -161,7 +161,7 @@ The details list everything the library knows about the entry:
 
 **Copy name** copies the full name (`Library:Name`) to the clipboard.
 
-### 3D models
+### 3D models {#3d-models}
 
 ![A 3D model](/screenshots/library-model.png)
 
