@@ -87,7 +87,7 @@ enum Command {
         #[arg(long)]
         json: bool,
     },
-    /// Import KiCad projects, libraries and netlists.
+    /// Import KiCad and Eagle projects, libraries and netlists.
     #[command(subcommand)]
     Import(ImportCommand),
     /// Build, search and distribute the base library.
@@ -270,9 +270,9 @@ enum ImportCommand {
         #[arg(long)]
         json: bool,
     },
-    /// Add the symbols and footprints of a KiCad library to a project's library.
+    /// Add the symbols and footprints of a KiCad or Eagle library (`.lbr`) to a project's library.
     Library {
-        /// `.kicad_sym`, `.kicad_symdir`, `.kicad_mod` or `.pretty`.
+        /// `.kicad_sym`, `.kicad_symdir`, `.kicad_mod`, `.pretty` or an Eagle `.lbr`.
         source: PathBuf,
         /// Project folder or `.ewproj` file.
         #[arg(long)]

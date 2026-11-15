@@ -468,12 +468,13 @@ report is written as `eagle-import-report.md`. See
 ewerk import library <source> --project <project> [--nickname <name>] [--json]
 ```
 
-Adds the symbols and footprints of a KiCad library to the first library of
-the project and saves it. `<source>` is a symbol library (`.kicad_sym`), a
-KiCad 10 symbol library folder (`.kicad_symdir`), a footprint library folder
-(`.pretty`), a single footprint (`.kicad_mod`) or an Eagle library (`.lbr`). The names get the prefix
-`<nickname>:`, which defaults to the library's file name without extension.
-Names that the library has already are skipped:
+Adds the symbols and footprints of a KiCad or Eagle library to the first
+library of the project and saves it. `<source>` is a symbol library
+(`.kicad_sym`), a KiCad 10 symbol library folder (`.kicad_symdir`), a
+footprint library folder (`.pretty`), a single footprint (`.kicad_mod`) or an
+Eagle library (`.lbr`). The names get the prefix `<nickname>:`, which defaults
+to the library's file name without extension. Names that the library has
+already are skipped:
 
 ```console
 $ ewerk import library ~/kicad/MyParts.pretty --project Blinky
