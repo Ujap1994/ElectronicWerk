@@ -6,6 +6,37 @@ project uses [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.14.1] - 2026-11-15
+
+The GitHub integration is switched off while its sign-in is reviewed, and
+the sign-in is rebuilt to ask GitHub for as little as possible.
+
+### Changed
+
+- **The GitHub integration is switched off.** ElectronicWerk offers only
+  projects on this computer: **Open from GitHub**, **Sign in to GitHub**,
+  the storage choice of the new project wizard, **Source control** in the
+  project tree and toolbar and the GitHub section of the settings are
+  hidden, and the main process registers no GitHub handler at all. Start
+  ElectronicWerk with `EW_ENABLE_GITHUB=1` to try it. The update check and
+  the base library download are not affected. See
+  [GitHub and source control](https://ujap1994.github.io/ElectronicWerk/guide/github).
+- **The browser sign-in uses a GitHub App instead of an OAuth app.** It may
+  only read and write the contents of the repositories the user chooses for
+  it on GitHub (**Choose repositories…**), cannot create or delete
+  repositories, and its tokens expire after 8 hours; ElectronicWerk renews
+  them shortly before with the refresh token (valid for 6 months), one
+  renewal at a time, and signs out when GitHub ends the sign-in. No client
+  secret is shipped. Signed in with the app, projects go into an empty
+  repository created on GitHub (**New repository on GitHub…** opens GitHub's
+  page with the name filled in), and the repository lists show exactly the
+  repositories the app may use.
+- **Create a token on GitHub** opens the page for a fine-grained token,
+  filled in with the permission _Contents: Read and write_ and 90 days of
+  validity, instead of a classic token with the `repo` scope.
+- The stored sign-in keeps the token's expiry and refresh token (encrypted
+  as before); tokens stored by 0.12 to 0.14 keep working.
+
 ## [0.14.0] - 2026-11-15
 
 The assembly assistant and extras: solder boards by hand step by step,
@@ -979,7 +1010,8 @@ quality gates and the delivery pipeline that every later feature builds on.
   process ([ujap1994.github.io/ElectronicWerk](https://ujap1994.github.io/ElectronicWerk/)).
   **Help → Documentation** opens it.
 
-[Unreleased]: https://github.com/Ujap1994/ElectronicWerk/compare/v0.14.0...HEAD
+[Unreleased]: https://github.com/Ujap1994/ElectronicWerk/compare/v0.14.1...HEAD
+[0.14.1]: https://github.com/Ujap1994/ElectronicWerk/compare/v0.14.0...v0.14.1
 [0.14.0]: https://github.com/Ujap1994/ElectronicWerk/compare/v0.13.0...v0.14.0
 [0.13.0]: https://github.com/Ujap1994/ElectronicWerk/compare/v0.12.0...v0.13.0
 [0.12.0]: https://github.com/Ujap1994/ElectronicWerk/compare/v0.11.0...v0.12.0

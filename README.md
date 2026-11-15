@@ -6,11 +6,13 @@
 
 An open-source ECAD suite for beginners and advanced hobbyists. It covers
 schematic, symbol, footprint and layout editing, a live 3D view, ERC/DRC,
-manufacturing outputs, online part search, GitHub integration and a full CLI.
+manufacturing outputs, online part search and a full CLI.
 
 > **Status:** early development. Version 0.14 adds the **assembly
 > assistant** for soldering boards by hand, **panels** for the board maker,
 > **design statistics** and the **project documentation** in one HTML file.
+> Since 0.14.1 the GitHub integration is switched off while its sign-in is
+> reviewed: projects live on your computer.
 > It builds on scripts and AI agents (0.13), GitHub (0.12), the online part
 > libraries (0.11), the 3D view (0.10), manufacturing outputs (0.9), the
 > layout editor (0.8), the library editors (0.7), the schematic editor (0.6),
@@ -119,10 +121,12 @@ B.netclass != 'HV'`)
 - **Online part libraries:** parts downloaded from **SnapEDA** and **Ultra
   Librarian** (in an isolated provider window or any browser) are imported
   with symbol, footprint and 3D model, and checked against the base library
-- **GitHub and source control** without installing git: new projects on
-  GitHub (new or existing empty repository), commit, push, pull, branches,
-  history and "Open from GitHub"; sign-in with the browser or a token kept in
-  the system keychain. Pulls never merge inside a file, so a design is never
+- **GitHub and source control** (switched off in this version, see
+  [GitHub](https://ujap1994.github.io/ElectronicWerk/guide/github)) without
+  installing git: projects on GitHub, commit, push, pull, branches, history
+  and "Open from GitHub"; sign-in through a GitHub App that may only use the
+  repositories you choose, with 8-hour tokens kept in the system keychain, or
+  a fine-grained token. Pulls never merge inside a file, so a design is never
   half merged
 - **Duplicate detection** independent of the source: exact duplicates are
   merged, near duplicates (pads within 0.05 mm, same mesh in other colours, …)

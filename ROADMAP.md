@@ -1,7 +1,9 @@
 # ElectronicWerk Roadmap
 
-> **Status:** v0.19 (2026-11-15). M0 to M13 are complete (releases v0.1.0 to
-> v0.14.0; M0, M1 and M3 accepted by the maintainer); M14 is next.
+> **Status:** v0.20 (2026-11-15). M0 to M13 are complete (releases v0.1.0 to
+> v0.14.1; M0, M1 and M3 accepted by the maintainer); M14 is next. The GitHub
+> integration (M11) is switched off since v0.14.1 until the maintainer
+> decides to offer it (ADR-0014).
 > This roadmap is a living document. It **must** be updated with every feature
 > (requirement D5). Every change to it is listed in the
 > [roadmap changelog](#13-roadmap-changelog).
@@ -790,6 +792,13 @@ Delivered (ADR-0011):
 - [ ] Visual diff of schematic and PCB revisions and a semantic merge
       (later, on top of the engine's document model).
 
+Changed in v0.14.1 (ADR-0014): the browser sign-in uses a **GitHub App**
+(contents read/write on the repositories the user chooses, 8-hour tokens
+renewed with a refresh token, no repository creation) instead of an OAuth
+app, token sign-in suggests fine-grained tokens, and the whole integration
+is **switched off** by default (`EW_ENABLE_GITHUB=1` switches it on) until
+the maintainer decides whether to offer it.
+
 ### M12 — CLI and AI automation, complete (v0.13.0, 4–6 S) ✅
 
 The CLI grows with every milestone. This milestone completes it (ADR-0012).
@@ -933,6 +942,9 @@ Panels, statistics and documentation are described in ADR-0013.
 
 - **Merged base library:** published as a separate repository/pack under
   CC-BY-SA 4.0, decided in M4.
+- **GitHub integration:** switched off since v0.14.1. The maintainer decides
+  whether ElectronicWerk offers it; if so, they register the ElectronicWerk
+  GitHub App (see ADR-0014) and the switch defaults to on.
 
 ### Deferred items
 
@@ -973,3 +985,4 @@ Panels, statistics and documentation are described in ADR-0013.
 | 2026-11-14 | v0.17      | M11 complete: v0.12.0 with the GitHub sign-in (device flow and tokens, keychain), projects on GitHub from the wizard, Open from GitHub and the source control view (commit, push, pull, branches, history). Git runs in the app with isomorphic-git; pulls merge whole files only, so conflicts never leave a half-merged design. The visual diff stays a later item.                                                                                      |
 | 2026-11-14 | v0.18      | M12 complete: v0.13.0 with the `design.*` engine layer (designators, pin names, millimetres; one undo step per call), `ewerk schematic`/`board`/`script`, JSON-RPC 2.0, the MCP server for AI agents, CI exit codes, the save guard against overwriting other programs' changes and the scripting cookbook. `design.route` is a simple walkaround autorouter; the full autorouter stays in M15.                                                            |
 | 2026-11-15 | v0.19      | M13 complete: v0.14.0 with the assembly assistant (steps from the BOM, highlighted board view, checklist saved in `assembly.json`, workbench mode and own window), panels made by the output job (mouse bites or V-score, rails, fiducials, tooling holes), design statistics and the HTML project documentation output. Panels are a setting of the output job, not a document: they cannot be edited by hand yet.                                        |
+| 2026-11-15 | v0.20      | v0.14.1: the GitHub integration is switched off until the maintainer decides to offer it; its browser sign-in now uses a GitHub App with access to the chosen repositories only and short-lived tokens (ADR-0014).                                                                                                                                                                                                                                         |
