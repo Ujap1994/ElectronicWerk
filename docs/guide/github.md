@@ -1,9 +1,33 @@
 # GitHub and source control
 
-ElectronicWerk keeps projects in **git** and works with **GitHub** directly:
-create a project on GitHub, commit your changes, push and pull them, work on
-branches, look at the history and open projects from GitHub on another
-computer. You do not need to install git; ElectronicWerk brings its own.
+::: warning Switched off in this version
+The GitHub integration is **switched off** while its sign-in is being
+reviewed: ElectronicWerk offers only projects on this computer. The start
+screen has no **Open from GitHub**, the new project wizard creates every
+project on this computer, and **Source control**, **Sign in to GitHub** and
+the **GitHub** section of the settings are hidden. Nothing in ElectronicWerk
+signs in to GitHub or reads a stored GitHub token then.
+
+To try the integration, start ElectronicWerk from a terminal with the
+environment variable `EW_ENABLE_GITHUB=1`:
+
+- macOS: `EW_ENABLE_GITHUB=1 /Applications/ElectronicWerk.app/Contents/MacOS/ElectronicWerk`
+- Linux: `EW_ENABLE_GITHUB=1 electronicwerk` (or the path of the AppImage)
+- Windows (PowerShell): `$env:EW_ENABLE_GITHUB = "1"`, then start
+  `ElectronicWerk.exe` from the same window
+
+The rest of this page describes the integration as it works then.
+
+The [update check](./updates) and the download of the
+[base library](./library) are not affected: they read GitHub's public
+release pages without an account.
+:::
+
+With the integration switched on, ElectronicWerk keeps projects in **git**
+and works with **GitHub** directly: put a project on GitHub, commit your
+changes, push and pull them, work on branches, look at the history and open
+projects from GitHub on another computer. You do not need to install git;
+ElectronicWerk brings its own.
 
 ![Source control with two changed files](/screenshots/github-source-control.png)
 
@@ -11,10 +35,32 @@ The [project format](../reference/file-format) is made for this: every
 document is a text file with a stable order, so commits stay small and the
 history shows what changed.
 
+## What ElectronicWerk can access
+
+ElectronicWerk asks GitHub for as little as possible:
+
+- **Only the repositories you choose.** Signed in with the browser,
+  ElectronicWerk works through the _ElectronicWerk_ GitHub App. You decide on
+  GitHub which repositories it may use (_Only select repositories_, or all).
+  Every other repository of your account or your organizations stays out of
+  reach.
+- **Only their files.** The app may read and write the **contents** of these
+  repositories (to clone, pull and push) and read their basic data. It may
+  not create or delete repositories, change settings, or read issues, pull
+  requests, secrets or workflows.
+- **Short-lived tokens.** The token of the browser sign-in expires after
+  **8 hours**. ElectronicWerk renews it by itself shortly before (with a
+  refresh token that is valid for 6 months and works only once), so a token
+  copied off your computer is soon worthless.
+- **No server in between, no secret.** ElectronicWerk talks to GitHub
+  directly. Nobody else — not the makers of ElectronicWerk either — sees
+  your token or your repositories. The app's id built into ElectronicWerk is
+  public and grants nothing by itself.
+
 ## Signing in to GitHub
 
-Pushing, pulling and creating repositories need your GitHub account. Open
-the [settings](./settings) and choose **Sign in to GitHub…** in the
+Pushing, pulling and opening projects from GitHub need your GitHub account.
+Open the [settings](./settings) and choose **Sign in to GitHub…** in the
 **GitHub** section, or run **Sign in to GitHub** from the
 [command palette](./command-palette). The wizard and the source control view
 offer the same button when they need it.
@@ -25,26 +71,43 @@ There are two ways to sign in:
 
 - **With your browser** (recommended). Choose **Sign in with the browser**.
   ElectronicWerk shows a code. **Copy code** copies it, **Open GitHub** opens
-  `github.com/login/device` in your browser. Enter the code there and confirm.
-  The dialog closes by itself once GitHub confirms. You never enter your
-  password in ElectronicWerk. This option is shown when ElectronicWerk's
-  GitHub app is registered for your version; otherwise use a token.
-- **With a personal access token.** **Create a token on GitHub** opens the
-  token page with the right scopes chosen. Create a classic token with the
-  scopes `repo` and `read:user`, or a fine-grained token with read and write
-  access to _Contents_ and _Administration_ of your repositories. Paste it
-  into **Token** and choose **Sign in**. ElectronicWerk checks the token with
-  GitHub before it keeps it.
+  `github.com/login/device` in your browser. Enter the code there and
+  confirm. The dialog closes by itself once GitHub confirms. You never enter
+  your password in ElectronicWerk. This option is shown when the
+  ElectronicWerk GitHub App is registered for your version; otherwise use a
+  token.
+- **With a personal access token.** **Create a token on GitHub** opens
+  GitHub's page for a new **fine-grained token**, filled in for
+  ElectronicWerk: the permission _Contents: Read and write_ and 90 days of
+  validity. Choose the repositories the token may use (_Only select
+  repositories_), create it, paste it into **Token** and choose **Sign in**.
+  ElectronicWerk checks the token with GitHub before it keeps it. Classic
+  tokens with the `repo` scope work as well, but reach all your
+  repositories.
 
-ElectronicWerk asks for access to your repositories (to create, push and
-pull them) and to your name (for the commits). Nothing else.
+### Choosing the repositories for ElectronicWerk
+
+After the browser sign-in, ElectronicWerk may not use any repository yet.
+**Choose repositories…** (in the settings, the wizard and **Open from
+GitHub**) opens the app's page on GitHub:
+
+1. The first time, GitHub asks where to install the ElectronicWerk app:
+   choose your account (or an organization you manage).
+2. Choose **Only select repositories** and pick the repositories with your
+   projects, or **All repositories**.
+3. Save, go back to ElectronicWerk and choose **Refresh**.
+
+You can change the choice there at any time: the repositories you remove are
+out of reach for ElectronicWerk at once.
 
 ### Where the token is kept
 
 ![The GitHub section of the settings](/screenshots/github-settings.png)
 
-The token is encrypted by the operating system and stored in the
-ElectronicWerk user folder (`github-token.bin`):
+The settings show how you are signed in (_Signed in with the ElectronicWerk
+app_ or _Signed in with a personal access token_). The token is encrypted by
+the operating system and stored in the ElectronicWerk user folder
+(`github-token.bin`), together with its expiry and the refresh token:
 
 | System  | Protection                                                              |
 | ------- | ----------------------------------------------------------------------- |
@@ -52,15 +115,17 @@ ElectronicWerk user folder (`github-token.bin`):
 | Windows | Data Protection API (bound to your Windows account)                     |
 | Linux   | Secret Service (GNOME Keyring, KWallet) through the desktop environment |
 
-The settings show how the token is protected. On Linux without a keyring,
-the token would only be obfuscated: the settings then show a warning. Install
-and unlock a keyring to protect it. If the system offers no encryption at
-all, ElectronicWerk keeps the token only in memory until it closes.
+The settings also show how the token is protected. On Linux without a
+keyring, the token would only be obfuscated: the settings then show a
+warning. Install and unlock a keyring to protect it. If the system offers no
+encryption at all, ElectronicWerk keeps the token only in memory until it
+closes.
 
 **Sign out** deletes the token from this computer. To revoke it for good,
-delete it on GitHub as well (_Settings → Applications_ for the browser
-sign-in, _Settings → Developer settings → Personal access tokens_ for a
-token).
+revoke it on GitHub as well (_Settings → Applications → Authorized GitHub
+Apps_ for the browser sign-in, _Settings → Developer settings → Personal
+access tokens_ for a token). If you do not use ElectronicWerk for 6 months,
+the refresh token expires and you sign in again.
 
 The token is sent only to GitHub (`github.com` and `api.github.com`), never
 to another server, even if a project's remote points elsewhere.
@@ -68,16 +133,31 @@ to another server, even if a project's remote points elsewhere.
 ## A new project on GitHub
 
 In the [new project wizard](./projects#creating-a-project), choose **On
-GitHub** under _Where should the project live?_:
+GitHub** under _Where should the project live?_.
 
-![The wizard with a new GitHub repository](/screenshots/wizard-github.png)
+Signed in with the **browser** (the ElectronicWerk app), the project goes
+into an **empty repository** you created on GitHub, because the app may not
+create repositories:
 
-| Choice                        | Meaning                                                                                                                                                                           |
-| ----------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **New repository**            | ElectronicWerk creates the repository in your account. **Repository name** starts as the project name with spaces replaced by `-`; letters, digits, `.`, `-` and `_` are allowed. |
-| **Description**               | Optional; shown on GitHub and in the README.                                                                                                                                      |
-| **Private repository**        | Checked by default: only you and the people you invite can see it.                                                                                                                |
-| **Existing empty repository** | A repository you created on GitHub without any files (no README, no license). The list shows the empty repositories of your account.                                              |
+![The wizard with an empty GitHub repository chosen](/screenshots/wizard-github.png)
+
+1. **New repository on GitHub…** opens GitHub's _new repository_ page with
+   the project name filled in and _Private_ chosen. Create it **without** a
+   README, license or `.gitignore`, so that it stays empty.
+2. **Choose repositories…** lets ElectronicWerk use it (not needed when the
+   app may use all your repositories).
+3. **Refresh** and choose it under **Repository**. The list shows the empty
+   repositories the app may use.
+
+Signed in with a **personal access token**, you can also let ElectronicWerk
+create the repository:
+
+| Choice                        | Meaning                                                                                                                                                                                                                                                                                      |
+| ----------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **New repository**            | ElectronicWerk creates the repository in your account. **Repository name** starts as the project name with spaces replaced by `-`; letters, digits, `.`, `-` and `_` are allowed. A fine-grained token needs the permission _Administration: Read and write_ (on all repositories) for this. |
+| **Description**               | Optional; shown on GitHub and in the README.                                                                                                                                                                                                                                                 |
+| **Private repository**        | Checked by default: only you and the people you invite can see it.                                                                                                                                                                                                                           |
+| **Existing empty repository** | A repository you created on GitHub without any files (no README, no license). The list shows the empty repositories the token may use.                                                                                                                                                       |
 
 **Create project** creates the project on this computer as usual (in the
 location of the wizard), then:
@@ -87,7 +167,8 @@ location of the wizard), then:
 2. adds a `README.md` with the project name, the description and how to open
    the project,
 3. commits everything as **Create _project name_**,
-4. creates the repository (or uses the empty one) and pushes the commit.
+4. creates the repository (with a token), or uses the empty one, and pushes
+   the commit.
 
 The `.gitignore` of every project keeps local state (`.ewerk/`: autosave
 journal, caches) and generated outputs (`outputs/generated/`) out of the
@@ -121,9 +202,9 @@ The view shows, from top to bottom:
 ### A project that is not on GitHub yet
 
 For a project created **on this computer** (or imported), the view offers
-**Put the project on GitHub** with the same choices as the wizard: a new
-repository or an existing empty one. **Put on GitHub** does the same steps as
-the wizard. Save the project first.
+**Put the project on GitHub** with the same choices as the wizard (an
+existing empty repository, or with a token also a new one). **Put on
+GitHub** does the same steps as the wizard. Save the project first.
 
 A project folder that is already a git repository without GitHub (for
 example one you made with git yourself) shows _A local git repository without
@@ -212,8 +293,11 @@ from the command palette):
 ![Open from GitHub](/screenshots/github-clone.png)
 
 1. Choose a repository. **Filter** finds it by name or description. The list
-   shows the repositories of your account and of the organizations you belong
-   to, newest first, with **Private** for private ones.
+   shows the repositories you may push to, newest first, with **Private** for
+   private ones: signed in with the browser, the repositories you chose for
+   the ElectronicWerk app; with a token, the repositories of the token.
+   _Missing a repository?_ **Choose repositories…** lets the app use it,
+   then **Refresh**.
 2. **Into folder** is where the project folder goes: `<folder>/<repository
 name>`. The folder must not exist yet, or it must be empty.
 3. **Download and open** clones the repository and opens its project (the
@@ -234,12 +318,14 @@ away.
 
 ## Troubleshooting
 
-| Problem                                         | Solution                                                                                                                                                                                                                                |
-| ----------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| _GitHub rejected the request_                   | The token expired or was revoked, or it has no access to the repository. Sign out and sign in again; for a fine-grained token, give it access to the repository.                                                                        |
-| _GitHub could not be reached_                   | Check the internet connection. ElectronicWerk uses the proxy settings of the system.                                                                                                                                                    |
-| _GitHub has newer commits. Pull them first…_    | Someone pushed in the meantime. **Pull**, then **Push** again.                                                                                                                                                                          |
-| _Commit or undo your changes first._            | Pull and switching branches need a clean project. Commit the listed files, or remove the ones you do not need.                                                                                                                          |
-| _The folder or repository is not empty._        | The wizard and **Put on GitHub** need an empty repository: choose a new name or another repository. To get a repository with content, use **Open from GitHub**. For **Open from GitHub**, choose another folder or remove the old copy. |
-| _This repository has no ElectronicWerk project_ | The repository has no `.ewproj` file in its top folder.                                                                                                                                                                                 |
-| A warning about the token on Linux              | No keyring is running. Install GNOME Keyring or KWallet and make sure it is unlocked when you sign in.                                                                                                                                  |
+| Problem                                                   | Solution                                                                                                                                                                                                                                |
+| --------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| _GitHub rejected the request_                             | The token expired or was revoked, or it has no access to the repository. Sign out and sign in again; for a fine-grained token, give it access to the repository.                                                                        |
+| _ElectronicWerk may not use any of your repositories yet_ | Signed in with the browser, the app has no repositories yet: **Choose repositories…**, pick them on GitHub, then **Refresh**.                                                                                                           |
+| _Sign in to GitHub first_ after a long break              | The sign-in of the app ends when it was not used for 6 months, or when you revoked it on GitHub. Sign in again.                                                                                                                         |
+| _GitHub could not be reached_                             | Check the internet connection. ElectronicWerk uses the proxy settings of the system.                                                                                                                                                    |
+| _GitHub has newer commits. Pull them first…_              | Someone pushed in the meantime. **Pull**, then **Push** again.                                                                                                                                                                          |
+| _Commit or undo your changes first._                      | Pull and switching branches need a clean project. Commit the listed files, or remove the ones you do not need.                                                                                                                          |
+| _The folder or repository is not empty._                  | The wizard and **Put on GitHub** need an empty repository: choose a new name or another repository. To get a repository with content, use **Open from GitHub**. For **Open from GitHub**, choose another folder or remove the old copy. |
+| _This repository has no ElectronicWerk project_           | The repository has no `.ewproj` file in its top folder.                                                                                                                                                                                 |
+| A warning about the token on Linux                        | No keyring is running. Install GNOME Keyring or KWallet and make sure it is unlocked when you sign in.                                                                                                                                  |

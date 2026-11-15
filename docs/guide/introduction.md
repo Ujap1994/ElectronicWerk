@@ -17,7 +17,9 @@ terminal, in CI pipelines or by an AI agent (MCP), with designators, pin names
 and millimetres, from the first part to the routed board and the Gerber
 files. Version 0.12 added **GitHub**: create projects on GitHub, commit, push
 and pull, switch branches, look at the history and open projects from GitHub
-on another computer, without installing git. Version 0.11 added the **online
+on another computer, without installing git. Since version 0.14.1 the GitHub
+integration is switched off while its sign-in is reviewed; ElectronicWerk
+offers projects on this computer only. Version 0.11 added the **online
 part libraries**: parts downloaded from SnapEDA and Ultra Librarian are
 imported into the project with their 3D models and checked against the base
 library. Version 0.10 added the **live
@@ -58,7 +60,7 @@ and the model the enclosure is designed around.
 | Gerber viewer                                    | Available | [The Gerber viewer](./gerber-viewer)                   |
 | Live 3D view, STEP/GLB/VRML export               | Available | [The 3D view](./view-3d), [3D models](./export-3d)     |
 | Online part libraries (SnapEDA, Ultra Librarian) | Available | [Online part libraries](./online-parts)                |
-| GitHub: commit, push, pull, branches, clone      | Available | [GitHub and source control](./github)                  |
+| GitHub: commit, push, pull, branches, clone      | Off       | [GitHub and source control](./github)                  |
 | Scripts, CI checks and AI agents (MCP)           | Available | [Scripts and AI agents](./automation)                  |
 | Panels (mouse bites, V-score, rails, fiducials)  | Available | [Panels](./panels)                                     |
 | Project documentation (HTML)                     | Available | [Project documentation](./documentation)               |

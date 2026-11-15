@@ -50,9 +50,9 @@ Project commands appear only while a project is open.
 | ------------------------------------------ | ----------------------------------------------------------------- |
 | New project                                | Opens the [new-project wizard](./projects#creating-a-project)     |
 | Open project                               | Opens a project file                                              |
-| Open from GitHub                           | [Clones a project](./github#opening-a-project-from-github)        |
-| Sign in to GitHub                          | [Signs in](./github#signing-in-to-github) to your GitHub account  |
-| Source control: commit, push, pull         | Shows the [source control view](./github#the-source-control-view) |
+| Open from GitHub ¹                         | [Clones a project](./github#opening-a-project-from-github)        |
+| Sign in to GitHub ¹                        | [Signs in](./github#signing-in-to-github) to your GitHub account  |
+| Source control: commit, push, pull ¹       | Shows the [source control view](./github#the-source-control-view) |
 | Save project                               | Saves the open project                                            |
 | Save project as                            | Saves the project into another folder                             |
 | Save a copy of the project                 | Writes a copy and keeps working on the original                   |
@@ -75,6 +75,9 @@ Project commands appear only while a project is open.
 | Appearance: system default                 | Follows the system's light or dark mode                           |
 | Open documentation                         | Opens this documentation in your browser                          |
 | Report an issue                            | Opens the issue tracker on GitHub                                 |
+
+¹ Only when the [GitHub integration](./github) is switched on (it is
+switched off in this version).
 
 ## Example: switch to the dark appearance
 

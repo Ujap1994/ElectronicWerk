@@ -82,7 +82,9 @@ The [Updates](./updates) page has more details.
 
 ## GitHub: sign-in, push or pull fail
 
-The [GitHub page](./github#troubleshooting) explains every message of the
+The GitHub integration is switched off in this version; the
+[GitHub page](./github) says how to switch it on. Its
+[troubleshooting](./github#troubleshooting) explains every message of the
 source control view. Firewalls or proxies must allow `github.com` and
 `api.github.com`.
 

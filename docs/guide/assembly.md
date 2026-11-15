@@ -124,8 +124,8 @@ The progress is saved at once in `assembly.json` in the project folder —
 ticking off a part is not a design change, so there is nothing to undo and
 nothing to save. The file keeps, per board, the designators that are placed
 and the number of finished boards. It survives closing the project and
-works with [source control](./github): commit it to share the state of a
-build, or add it to `.gitignore` to keep it on your computer. The format is
+works with git: commit it to share the state of a build, or add it to
+`.gitignore` to keep it on your computer. The format is
 described in the [file format reference](../reference/file-format#assembly-progress-assembly-json).
 
 ## From the command line

@@ -1822,6 +1822,8 @@ test('github', async () => {
     await shoot(page.getByTestId('toolbar-git'), 'github-toolbar');
     await page.getByTestId('git-commit-push').click();
     await expect(page.getByTestId('git-no-changes')).toBeVisible();
+    // The push must be done before someone else clones.
+    await expect(page.getByTestId('git-sync')).toHaveText('Up to date with GitHub');
 
     // Someone else changes the same file on GitHub: a conflict.
     const other = join(PROJECTS, '..', 'Other');

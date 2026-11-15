@@ -270,17 +270,28 @@ recorded in
 ## GitHub and source control
 
 [GitHub and source control](../guide/github) is recorded in
-[ADR-0011: GitHub integration and source control](https://github.com/Ujap1994/ElectronicWerk/blob/main/docs/adr/0011-github-integration.md):
+[ADR-0011: GitHub integration and source control](https://github.com/Ujap1994/ElectronicWerk/blob/main/docs/adr/0011-github-integration.md)
+and
+[ADR-0014: A GitHub App for the sign-in, and GitHub switched off](https://github.com/Ujap1994/ElectronicWerk/blob/main/docs/adr/0014-github-app-and-switch.md):
 
-1. The main process runs git with isomorphic-git (no git installation
+1. The integration is switched off unless the main process starts with
+   `EW_ENABLE_GITHUB=1` (`featuresFromEnv`, reported to the UI in
+   `AppInfo.features`). Off, no `github:*` or `git:*` IPC handler is
+   registered and the UI hides every GitHub entry point.
+
+2. The main process runs git with isomorphic-git (no git installation
    needed) over Electron's `net.fetch`, and the GitHub REST API and the
-   device flow with the token from `safeStorage` (`src/main/github/`).
-2. The UI calls `git.*` with the manifest path of the open project; the main
+   device flow with the token from `safeStorage` (`src/main/github/`). The
+   browser sign-in uses a GitHub App (contents read/write on the
+   repositories the user chooses); its 8-hour tokens are renewed with the
+   refresh token shortly before they expire, one renewal at a time.
+3. The UI calls `git.*` with the manifest path of the open project; the main
    process accepts nothing else. After a pull or a branch switch the UI
    reopens the project in the engine.
-3. Pulls never merge inside a file: different files are merged, the same
+4. Pulls never merge inside a file: different files are merged, the same
    file changed on both sides is a conflict that changes nothing.
-4. Tests use a local stand-in for GitHub (REST API, device flow and
+5. Tests use a local stand-in for GitHub (REST API, device flow with
+   expiring app tokens and their refresh, the app's installation and
    `git http-backend`).
 
 ## Scripts and AI agents

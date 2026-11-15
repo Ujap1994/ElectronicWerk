@@ -3,6 +3,9 @@
 - **Status:** accepted
 - **Date:** 2026-11-14
 - **Milestone:** M11
+- **Amended by:** [ADR-0014](./0014-github-app-and-switch.md) — the browser
+  sign-in uses a GitHub App instead of an OAuth app, and the GitHub
+  integration is switched off by default.
 
 ## Context
 

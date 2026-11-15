@@ -54,10 +54,15 @@ The [Updates](./updates) page explains the update notice in detail.
 
 ## GitHub
 
+This section appears only when the [GitHub integration](./github) is
+switched on (it is switched off in this version).
+
 Your GitHub account for [GitHub and source control](./github): **Sign in to
 GitHub…** opens the sign-in (browser or personal access token), **Sign out**
-deletes the token from this computer. The line below tells how the token is
-protected (system keychain, or a warning when no keyring is available).
+deletes the token from this computer. The lines below tell how you are
+signed in, with **Choose repositories…** for the ElectronicWerk app, and how
+the token is protected (system keychain, or a warning when no keyring is
+available).
 
 ![The GitHub section of the settings](/screenshots/github-settings.png)
 

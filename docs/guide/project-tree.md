@@ -20,16 +20,16 @@ Designer.
 
 ![The schematic hierarchy in the project tree](/screenshots/tree-hierarchy.png)
 
-| Group               | Contents                                                                                                                                                              |
-| ------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Schematics**      | The sheet hierarchy. The **top sheet** comes first; sheets placed on it are shown below it, and so on. Sheets that are not placed anywhere are marked **Not placed**. |
-| **Boards**          | The board of the project.                                                                                                                                             |
-| **Libraries**       | The project library with the symbols and footprints the design uses.                                                                                                  |
-| **Design rules**    | Manufacturing limits and net classes.                                                                                                                                 |
-| **Output jobs**     | Which manufacturing files to generate.                                                                                                                                |
-| **Other files**     | Every other file in the project folder (notes, datasheets, `.gitignore`).                                                                                             |
-| **Generated files** | Files produced by output jobs.                                                                                                                                        |
-| **Source control**  | Commits, branches and GitHub, see [GitHub and source control](./github#the-source-control-view). A dot **●** marks files changed since the last commit.               |
+| Group               | Contents                                                                                                                                                                                                        |
+| ------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Schematics**      | The sheet hierarchy. The **top sheet** comes first; sheets placed on it are shown below it, and so on. Sheets that are not placed anywhere are marked **Not placed**.                                           |
+| **Boards**          | The board of the project.                                                                                                                                                                                       |
+| **Libraries**       | The project library with the symbols and footprints the design uses.                                                                                                                                            |
+| **Design rules**    | Manufacturing limits and net classes.                                                                                                                                                                           |
+| **Output jobs**     | Which manufacturing files to generate.                                                                                                                                                                          |
+| **Other files**     | Every other file in the project folder (notes, datasheets, `.gitignore`).                                                                                                                                       |
+| **Generated files** | Files produced by output jobs.                                                                                                                                                                                  |
+| **Source control**  | Only with the [GitHub integration](./github) switched on: commits, branches and GitHub, see [the source control view](./github#the-source-control-view). A dot **●** marks files changed since the last commit. |
 
 The number next to a group is the number of documents in it. A dot **●** marks
 documents with unsaved changes.
