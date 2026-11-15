@@ -23,6 +23,17 @@ project uses [Semantic Versioning](https://semver.org/).
   `pcb.routeStart` returns the microvia sizes and the allowed via types. See
   [Blind, buried and microvias](https://ujap1994.github.io/ElectronicWerk/guide/vias).
 
+- **Push and shove:** a **Router** choice in the layout toolbar: _Walk
+  around_ (the default) or _Push and shove_. In push-and-shove mode a new
+  track takes the direct way and pushes the tracks of other nets aside
+  (they may push further tracks); the pushed tracks follow the clearance
+  outline of the new track with 45° bends only and are drawn while you
+  route. Pads, vias, locked and curved tracks, keep-outs and the board edge
+  stay; when the tracks cannot make room, the route walks around. The route
+  and the pushed tracks are one undo step. Engine: `pcb.route` and
+  `pcb.addTracks` take `"mode": "shove"`. See
+  [Push and shove](https://ujap1994.github.io/ElectronicWerk/guide/routing#push-and-shove).
+
 ### Changed
 
 - **Dragging a track keeps 45° routing:** the tracks attached to a dragged

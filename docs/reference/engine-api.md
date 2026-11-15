@@ -879,11 +879,23 @@ board, or between the two layers of `viaLayers` (`["cu.top", "cu.in1"]`).
 Pads, tracks and vias of other nets are obstacles; zone fills are not (the
 zones are filled again around new copper).
 
+With `"mode": "shove"` the route pushes the tracks of other nets aside
+instead (see [push and shove](../guide/routing#push-and-shove)): it takes the
+direct path when they can make room, otherwise the path around them.
+`fixed` (`[{"layer", "points"}]`) and `vias` (as in `pcb.addTracks`) are the
+copper already placed on this route; it pushes too. The reply then has
+`shove`: `{"tracks": [{"layer", "width", "start", "end"}], "hidden": [ids]}`
+(the pushed tracks and the tracks they replace), or `null` when the tracks
+cannot make room.
+
 `pcb.addTracks {"doc", "net", "width", "segments": [{"layer", "points"}],
 "vias": [{"at", "diameter", "drill", "from"?, "to"?, "micro"?}]}` (`route`)
 adds the tracks between consecutive points and the vias. A via goes through
 the board unless `from` and `to` name its first and last layer; `micro`
-marks a microvia. See [Blind, buried and microvias](../guide/vias).
+marks a microvia. See [Blind, buried and microvias](../guide/vias). With
+`"mode": "shove"` (and `corners`, `"45"` by default) the tracks of other nets
+in the way are pushed aside in the same step, as the preview of `pcb.route`
+showed; if they cannot make room, the call fails and nothing changes.
 
 ### `pcb.viaFits`
 

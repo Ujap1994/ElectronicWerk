@@ -82,6 +82,42 @@ and tracks of their own net. Zone fills are no obstacle either: routes and
 vias may cross a filled zone of another net, and the zone keeps its
 clearance again when it is [filled](./zones#filling) the next time.
 
+## Push and shove
+
+The **Router** in the toolbar chooses what a new track does with the tracks
+of other nets in its way:
+
+| Router                | What happens                                                                                                  |
+| --------------------- | ------------------------------------------------------------------------------------------------------------- |
+| Walk around (default) | The new track goes around them, as described above. Nothing else on the board changes.                        |
+| Push and shove        | The new track goes the direct way and **pushes them aside**; the tracks it pushes push the next ones in turn. |
+
+![A new track pushes the /OUT track aside](/screenshots/shove-routing.png)
+
+While you route, the pushed tracks are drawn in their new place. They give
+way along the outline the new track keeps free around itself: at the
+clearance of the two net classes, with bends of 45° only (right angles
+where a pushed track meets that outline are cut to two 45° bends). When you
+finish the route, the route and the pushed tracks go into the board in one
+step: **Undo** takes both back.
+
+![The pushed track after the route](/screenshots/shove-result.png)
+
+What stays where it is:
+
+- **Pads, vias, locked tracks and curved tracks** are never pushed, and a
+  pushed track keeps its ends on its pads and vias. A pushed track whose
+  new path would come too close to one of them cannot give way.
+- **Keep-out areas and the board edge** limit how far a track can move.
+- Tracks of the **routed net** are never pushed (the route may run over
+  them).
+- The parts of a pushed track that stay where they were are left as they
+  are, even if they already broke a rule.
+
+When the tracks in the way cannot make room, the route **walks around**
+them instead, like in the other mode. Vias are placed only where they fit
+without pushing.
+
 ## Vias and layer changes
 
 Press **V** while routing to place a via at the end of the live path and

@@ -1499,6 +1499,56 @@ test('blind and micro vias', async () => {
   await close();
 });
 
+test('push and shove', async () => {
+  test.setTimeout(180_000);
+  freshProjects();
+  const kicad = '/tmp/ElectronicWerk/KiCad/blinky';
+  rmSync(kicad, { recursive: true, force: true });
+  cpSync(KICAD_FIXTURE, kicad, { recursive: true });
+  const { app, page, close } = await start({ settings: { theme: 'light' } });
+  await page.setViewportSize({ width: 1500, height: 900 });
+  await queueDialogAnswer(app, join(kicad, 'blinky.kicad_pro'));
+  await page.getByTestId('import-kicad').click();
+  await page.getByTestId('kicad-import-name').fill('Blinky');
+  await page.getByTestId('kicad-import-start').click();
+  await page
+    .getByTestId('import-report')
+    .getByRole('button', { name: 'Close', exact: true })
+    .last()
+    .click();
+  await page
+    .locator('[data-testid^="tree-doc:"]')
+    .filter({ hasText: /^Blinky$/u })
+    .dblclick();
+  await settle(page);
+  await expect(page.getByTestId('viewer')).toHaveAttribute('data-kind', 'pcb');
+
+  // A new track from the right pushes the /OUT track aside.
+  await page.getByTestId('board-route-mode').selectOption('shove');
+  const from: Point = [133 * MM, 100 * MM];
+  const to: Point = [128.5 * MM, 100 * MM];
+  await zoomAt(page, [130 * MM, 100 * MM], 2);
+  await viewerCanvas(page).focus();
+  await page.keyboard.press('x');
+  await clickPoint(page, from);
+  await expect(page.getByTestId('route-status')).toBeVisible();
+  const [tx, ty] = await pointAt(page, to);
+  await previewReaches(page, tx, ty);
+  await expect(page.getByTestId('edit-preview')).not.toHaveCount(0);
+  await settle(page);
+  await shoot(page, 'shove-routing');
+  await page.mouse.click(tx, ty);
+  await page.keyboard.press('Enter');
+  await edited(page, /Route/u);
+  await viewerCanvas(page).focus();
+  await page.keyboard.press('Escape');
+  await page.keyboard.press('Escape');
+  await page.mouse.move(10, 10);
+  await settle(page);
+  await shoot(page.locator('.viewer__area'), 'shove-result');
+  await close();
+});
+
 // --- Manufacturing outputs (M8) ----------------------------------------------
 
 /** Every file below a folder, as paths relative to it. */
