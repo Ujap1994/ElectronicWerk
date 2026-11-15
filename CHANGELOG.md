@@ -6,13 +6,14 @@ project uses [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.15.1] - 2026-11-15
+
 ### Fixed
 
 - **External autorouters:** the DSN file marked the board's unlocked tracks
   and vias as `(type route)`, which Freerouting reads as fixed: it routed
-  around them instead of improving them, and reported shorts it was not
-  allowed to remove. Unlocked routing now has no type, as in KiCad's DSN
-  files; locked routing stays `protect`.
+  around them instead of improving or repairing them. Unlocked routing now
+  has no type, as in KiCad's DSN files; locked routing stays `protect`.
 - **Session import:** wires and vias that the router writes as protected
   were dropped, so a net whose existing tracks Freerouting kept lost them on
   import. They now come in, unless they are the board's own locked tracks
@@ -1090,7 +1091,8 @@ quality gates and the delivery pipeline that every later feature builds on.
   process ([ujap1994.github.io/ElectronicWerk](https://ujap1994.github.io/ElectronicWerk/)).
   **Help → Documentation** opens it.
 
-[Unreleased]: https://github.com/Ujap1994/ElectronicWerk/compare/v0.15.0...HEAD
+[Unreleased]: https://github.com/Ujap1994/ElectronicWerk/compare/v0.15.1...HEAD
+[0.15.1]: https://github.com/Ujap1994/ElectronicWerk/compare/v0.15.0...v0.15.1
 [0.15.0]: https://github.com/Ujap1994/ElectronicWerk/compare/v0.14.1...v0.15.0
 [0.14.1]: https://github.com/Ujap1994/ElectronicWerk/compare/v0.14.0...v0.14.1
 [0.14.0]: https://github.com/Ujap1994/ElectronicWerk/compare/v0.13.0...v0.14.0

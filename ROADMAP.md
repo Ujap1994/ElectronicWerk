@@ -1,7 +1,7 @@
 # ElectronicWerk Roadmap
 
-> **Status:** v0.23 (2026-11-15). M0 to M14 are complete (releases v0.1.0 to
-> v0.15.0; M0, M1 and M3 accepted by the maintainer); M15 is next. The GitHub
+> **Status:** v0.24 (2026-11-15). M0 to M14 are complete (releases v0.1.0 to
+> v0.15.1; M0, M1 and M3 accepted by the maintainer); M15 is next. The GitHub
 > integration (M11) is switched off since v0.14.1 until the maintainer
 > decides to offer it (ADR-0014).
 > This roadmap is a living document. It **must** be updated with every feature
@@ -1063,3 +1063,4 @@ joined by cables.
 | 2026-11-15 | v0.21      | M14 complete: v0.15.0 with the KiCad export (KiCad 8 format, verified by a round trip and by kicad-cli), the Eagle XML import, Specctra DSN/SES for external autorouters, Gerber files as a reference drawing and the DXF output. The DXF import no longer mirrors drawings (the board's y axis points up).                                                                                                                                                |
 | 2026-11-15 | v0.22      | Added the mechanical assembly and enclosure check (STEP enclosures around the board, collision and clearance check, outline and keep-outs from the enclosure) as an advanced feature requested by the maintainer.                                                                                                                                                                                                                                          |
 | 2026-11-15 | v0.23      | New milestones between M15 and v1.0, requested by the maintainer: M16 part generator from datasheets, M17 mechanical assembly and enclosure check, M18 multi-board design; hardening and v1.0 move to M19. SPICE simulation and the DipTrace import are dropped.                                                                                                                                                                                           |
+| 2026-11-15 | v0.24      | v0.15.1: the external autorouter tested with a real Freerouting 2.5.0 run (replayed in CI); unlocked routing is no longer passed as fixed, protected wires of a session are kept.                                                                                                                                                                                                                                                                          |
