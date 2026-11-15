@@ -6,6 +6,30 @@ project uses [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Fixed
+
+- **External autorouters:** the DSN file marked the board's unlocked tracks
+  and vias as `(type route)`, which Freerouting reads as fixed: it routed
+  around them instead of improving them, and reported shorts it was not
+  allowed to remove. Unlocked routing now has no type, as in KiCad's DSN
+  files; locked routing stays `protect`.
+- **Session import:** wires and vias that the router writes as protected
+  were dropped, so a net whose existing tracks Freerouting kept lost them on
+  import. They now come in, unless they are the board's own locked tracks
+  and vias.
+- The help of `ewerk import` and `ewerk import library` names Eagle projects
+  and `.lbr` libraries.
+
+### Changed
+
+- The external autorouter is tested with **Freerouting 2.5.0**: a recorded
+  Freerouting run on the Eagle test board is replayed in every build (no
+  unrouted connection and no design rule error after the import);
+  `scripts/record-freerouting.sh` records it again. The guide describes how
+  to run Freerouting without its window and with its usage statistics off.
+- The Eagle test board has no shorts any more (a header pad and a track that
+  crossed a capacitor pad), and its tracks bend at 45°.
+
 ## [0.15.0] - 2026-11-15
 
 Interoperability: Eagle projects come in, every project goes out as a

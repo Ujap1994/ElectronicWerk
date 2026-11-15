@@ -70,7 +70,10 @@ the duplicate check.
   router's rotation and mirror conventions do not matter. Net classes
   carry width, clearance and via; locked routing is _protect_. A **session
   (SES)** replaces the unlocked routing of the nets it routes, in one undo
-  step. Coordinates: µm, y up, resolution 0.1 µm.
+  step. Coordinates: µm, y up, resolution 0.1 µm. Unlocked routing carries
+  no wire type, because Freerouting reads every type except `normal` as
+  fixed; protected wires of a session that are the board's locked tracks are
+  not added twice. A recorded Freerouting 2.5.0 run is replayed as a test.
 - **Gerber/Excellon reference:** the files' images are united into areas
   (clear shapes cut out, holes joined by cut-ins) and drawn as filled
   polygons on user or mechanical layers — drawings, not copper.
