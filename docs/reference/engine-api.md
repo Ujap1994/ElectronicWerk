@@ -854,22 +854,37 @@ libraries. Without a designator it gets the next free `X<n>`.
 ### `pcb.routeStart` / `pcb.route` / `pcb.addTracks`
 
 `pcb.routeStart {"doc", "at", "layer"}` → `{"at", "net", "netName", "width",
-"viaDiameter", "viaDrill", "clearance", "previous"}`: where a route that
-begins at `at` starts (snapped to a pad or via centre or a track end) and the
-sizes from the rules. `previous` is the direction of the track whose end the
-route starts at (`null` for pads and vias).
+"viaDiameter", "viaDrill", "microViaDiameter", "microViaDrill", "viaTypes",
+"clearance", "previous"}`: where a route that begins at `at` starts (snapped
+to a pad or via centre or a track end) and the sizes from the rules.
+`viaTypes` lists the via types the design rules allow (`through` always,
+`blind` and `buried` when blind and buried vias are allowed, `micro` when
+microvias are). `previous` is the direction of the track whose end the route
+starts at (`null` for pads and vias).
 
 `pcb.route {"doc", "layer", "net", "width", "start", "target",
-"diagonalFirst"?, "corners"?, "previous"?, "via"?}` → `{"points": [[x, y], …],
-"reached", "viaFits"?}`: the walkaround path. It changes nothing. `corners`
-is `"45"` (the default: no bend sharper than 45°) or `"90"` (right angles
-allowed); `previous` is the direction of the segment that ends at `start`,
-so the first bend is limited too. With `via` (a diameter), `viaFits` says
-whether a via fits at the end.
+"diagonalFirst"?, "corners"?, "previous"?, "via"?, "viaLayers"?}` →
+`{"points": [[x, y], …], "reached", "viaFits"?}`: the walkaround path. It
+changes nothing. `corners` is `"45"` (the default: no bend sharper than
+45°) or `"90"` (right angles allowed); `previous` is the direction of the
+segment that ends at `start`, so the first bend is limited too. With `via`
+(a diameter), `viaFits` says whether a via fits at the end: through the
+board, or between the two layers of `viaLayers` (`["cu.top", "cu.in1"]`).
+Pads, tracks and vias of other nets are obstacles; zone fills are not (the
+zones are filled again around new copper).
 
 `pcb.addTracks {"doc", "net", "width", "segments": [{"layer", "points"}],
-"vias": [{"at", "diameter", "drill", "from"?, "to"?}]}` (`route`) adds the
-tracks between consecutive points and the vias.
+"vias": [{"at", "diameter", "drill", "from"?, "to"?, "micro"?}]}` (`route`)
+adds the tracks between consecutive points and the vias. A via goes through
+the board unless `from` and `to` name its first and last layer; `micro`
+marks a microvia. See [Blind, buried and microvias](../guide/vias).
+
+### `pcb.viaFits`
+
+`{"doc", "net"?, "at", "diameter", "layers"?: [first, last]}` → `{"fits"}`:
+whether a via of this diameter keeps the clearances to the copper of other
+nets at `at`, on its layers only (default: through the board), and lies
+inside the board. Changes nothing.
 
 ### `pcb.presets` / `pcb.applyPreset`
 

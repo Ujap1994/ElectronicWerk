@@ -174,8 +174,12 @@ KiCad cut them in with slits instead. Both read the same way.
     `components` list and `alternate` are optional, so older libraries keep
     reading as before.
 - **Rules** (`.ewrules`): `constraints` (minimum clearance, track width, via,
-  drill, annular ring, hole-to-hole, copper-to-edge, silkscreen width),
-  `netClasses` and pattern-based `assignments` (`GND*` → `Power`), and
+  drill, annular ring, hole-to-hole, copper-to-edge, silkscreen width,
+  `minMicroViaDiameter`, `minMicroViaDrill`, and `allowBlindBuriedVias` and
+  `allowMicroVias`, which are written only when switched on), `netClasses`
+  (with `microViaDiameter` and `microViaDrill`; older files get the
+  defaults 0.3 mm and 0.1 mm) and pattern-based `assignments` (`GND*` →
+  `Power`), and
   optionally `erc`: the settings of the
   [electrical rules check](../guide/erc#settings) that differ from the
   defaults, `severities` (check code → `error`, `warning` or `ignore`) and

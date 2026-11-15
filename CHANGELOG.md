@@ -6,6 +6,29 @@ project uses [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Added
+
+- **Blind, buried and microvias:** two switches in the design rules (_Allow
+  blind and buried vias_, _Allow microvias_), microvia minimums and microvia
+  sizes per net class; a **Via type** in the layout toolbar chooses the via
+  a layer change places while routing (through, blind / buried between the
+  two layers, or a microvia between neighbouring layers); the properties
+  panel shows and changes the first and last layer and the microvia mark.
+  The DRC checks the new types (`via-type`, `via-layers`) and measures
+  microvias against their own minimums; custom rules see `A.viaType`. The
+  3D view and the STEP export end blind and buried holes inside the board;
+  the DSN file offers the allowed vias to autorouters and sessions bring
+  them back (`uVia…` for microvias); the KiCad export writes `blind` and
+  `micro` vias and the rule switches. New engine method `pcb.viaFits`;
+  `pcb.routeStart` returns the microvia sizes and the allowed via types. See
+  [Blind, buried and microvias](https://ujap1994.github.io/ElectronicWerk/guide/vias).
+
+### Changed
+
+- The router no longer treats zone fills of other nets as obstacles: tracks
+  and vias may cross a filled zone, which keeps its clearance again when it
+  is filled the next time (as in KiCad).
+
 ## [0.15.1] - 2026-11-15
 
 ### Fixed

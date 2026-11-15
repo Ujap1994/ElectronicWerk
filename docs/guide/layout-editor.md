@@ -99,13 +99,13 @@ shows fields to change it:
 
 ![A footprint in the properties panel](/screenshots/layout-properties.png)
 
-| Object    | Fields                                                              |
-| --------- | ------------------------------------------------------------------- |
-| Footprint | Designator, value, rotation, side (with a flip button), locked      |
-| Track     | Width, copper layer, locked                                         |
-| Via       | Diameter, drill, locked                                             |
-| Text      | Text                                                                |
-| Zone      | Double-click the zone to open its [settings](./zones#zone-settings) |
+| Object    | Fields                                                                       |
+| --------- | ---------------------------------------------------------------------------- |
+| Footprint | Designator, value, rotation, side (with a flip button), locked               |
+| Track     | Width, copper layer, locked                                                  |
+| Via       | Diameter, drill, first and last layer, microvia, locked (see [vias](./vias)) |
+| Text      | Text                                                                         |
+| Zone      | Double-click the zone to open its [settings](./zones#zone-settings)          |
 
 Changes apply when you press **Enter** or leave the field. Designators and
 values changed here can go back to the schematic with

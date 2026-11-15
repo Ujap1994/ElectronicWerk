@@ -80,6 +80,9 @@ copper underneath becomes visible:
 
 ![The board without solder mask and silkscreen](/screenshots/view3d-show.png)
 
+Blind and buried vias end inside the board: their holes and copper sleeves
+reach only the layers they connect (see [vias](./vias)).
+
 ### Colours and heights
 
 The 3D view takes everything from the board:

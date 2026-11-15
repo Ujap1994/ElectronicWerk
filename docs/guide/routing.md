@@ -70,15 +70,17 @@ on a typical board takes a few milliseconds.
 
 What counts as an obstacle:
 
-| Obstacle                                                                   | Distance kept                                                                              |
-| -------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------ |
-| Pads, tracks, vias and zone fills of other nets (and copper without a net) | The clearance between the two net classes, or a [custom rule](./design-rules#custom-rules) |
-| Non-plated holes                                                           | The largest clearance of the rules                                                         |
-| Keep-out areas that forbid tracks                                          | None: the track must stay outside                                                          |
-| The board edge                                                             | The copper-to-edge minimum (or a custom rule)                                              |
+| Obstacle                                                       | Distance kept                                                                              |
+| -------------------------------------------------------------- | ------------------------------------------------------------------------------------------ |
+| Pads, tracks and vias of other nets (and copper without a net) | The clearance between the two net classes, or a [custom rule](./design-rules#custom-rules) |
+| Non-plated holes                                               | The largest clearance of the rules                                                         |
+| Keep-out areas that forbid tracks                              | None: the track must stay outside                                                          |
+| The board edge                                                 | The copper-to-edge minimum (or a custom rule)                                              |
 
 Copper of the routed net is never an obstacle, so routes may run over pads
-and tracks of their own net.
+and tracks of their own net. Zone fills are no obstacle either: routes and
+vias may cross a filled zone of another net, and the zone keeps its
+clearance again when it is [filled](./zones#filling) the next time.
 
 ## Vias and layer changes
 
@@ -90,7 +92,16 @@ no via fits there; move the end of the route first.
 
 Vias get the diameter and drill of the net's class ([design
 rules](./design-rules#net-classes)), but never less than the board minimums.
-They are through-hole vias from the top to the bottom layer.
+The **Via type** in the toolbar chooses which via a layer change places:
+
+| Via type              | The via goes                                                                                       |
+| --------------------- | -------------------------------------------------------------------------------------------------- |
+| Through via (default) | From the top to the bottom layer, whatever layers the route changes between.                       |
+| Blind / buried via    | Only from the layer the route leaves to the layer it continues on.                                 |
+| Microvia              | Only between neighbouring layers, with the microvia sizes of the net class. Choose the next layer. |
+
+Blind, buried and microvias must be allowed in the design rules first; see
+[Blind, buried and microvias](./vias).
 
 The **Place via** tool (**V** outside routing) places single vias, for
 example stitching vias in a ground zone: each click places a via with the

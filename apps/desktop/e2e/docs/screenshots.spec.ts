@@ -1389,6 +1389,116 @@ test('layout editor', async () => {
   await close();
 });
 
+// --- Blind, buried and microvias (M15) ---------------------------------------
+
+/**
+ * Waits until the live route has settled near a screen point: the router
+ * answered for the last mouse position (the grid snap may move the end a
+ * little).
+ */
+async function previewReaches(page: Page, x: number, y: number): Promise<void> {
+  const preview = page.getByTestId('route-preview');
+  const box = await viewerCanvas(page).boundingBox();
+  let last = '';
+  await expect
+    .poll(
+      async () => {
+        const text = ((await preview.getAttribute('points')) ?? '').trim();
+        const stable = text === last;
+        last = text;
+        const [px, py] = (text.split(/\s+/u).at(-1) ?? '').split(',').map(Number);
+        const near = Math.hypot((px ?? 0) + (box?.x ?? 0) - x, (py ?? 0) + (box?.y ?? 0) - y) < 60;
+        return stable && near && (await preview.getAttribute('data-reached')) === 'true';
+      },
+      { intervals: [250] },
+    )
+    .toBe(true);
+}
+
+test('blind and micro vias', async () => {
+  test.setTimeout(180_000);
+  freshProjects();
+  const kicad = '/tmp/ElectronicWerk/KiCad/blinky';
+  rmSync(kicad, { recursive: true, force: true });
+  cpSync(KICAD_FIXTURE, kicad, { recursive: true });
+  const { app, page, close } = await start({ settings: { theme: 'light' } });
+  await page.setViewportSize({ width: 1500, height: 900 });
+  await queueDialogAnswer(app, join(kicad, 'blinky.kicad_pro'));
+  await page.getByTestId('import-kicad').click();
+  await page.getByTestId('kicad-import-name').fill('Blinky');
+  await page.getByTestId('kicad-import-start').click();
+  await page
+    .getByTestId('import-report')
+    .getByRole('button', { name: 'Close', exact: true })
+    .last()
+    .click();
+  const board = readBoardJson('Blinky');
+  await page
+    .locator('[data-testid^="tree-doc:"]')
+    .filter({ hasText: /^Blinky$/u })
+    .dblclick();
+  await settle(page);
+  await expect(page.getByTestId('viewer')).toHaveAttribute('data-kind', 'pcb');
+
+  // The design rules allow blind, buried and microvias.
+  await page.getByTestId('board-rules').click();
+  const rules = page.getByTestId('rules-dialog');
+  await page.getByTestId('rules-tab-constraints').click();
+  await page.getByTestId('constraint-allowBlindBuriedVias').check();
+  await page.getByTestId('constraint-allowMicroVias').check();
+  await shoot(rules, 'vias-rules');
+  await page.getByTestId('rules-save').click();
+  await expect(rules).toBeHidden();
+
+  // A route from a pad of R3 that goes on in the second inner layer
+  // through a blind via.
+  await page.getByTestId('board-via-type').selectOption('blind');
+  const r3 = board.footprints.find((f) => f.designator === 'R3');
+  const pad = r3?.pads.find((p) => p.number === '2');
+  if (r3 === undefined || pad === undefined) {
+    throw new Error('no R3 in the blinky board');
+  }
+  const origin: Point = [r3.at[0] + pad.at[0], r3.at[1] + pad.at[1]];
+  const corner: Point = [origin[0] + 2.54 * MM, origin[1] - 2.54 * MM];
+  const end: Point = [corner[0] + 3.81 * MM, corner[1]];
+  await zoomAt(page, corner, 2);
+  await viewerCanvas(page).focus();
+  await page.keyboard.press('x');
+  await clickPoint(page, origin);
+  await expect(page.getByTestId('route-status')).toBeVisible();
+  const [cx, cy] = await pointAt(page, corner);
+  await previewReaches(page, cx, cy);
+  await page.mouse.click(cx, cy);
+  await page.getByTestId('board-layer').selectOption('cu.in2');
+  await expect(page.getByTestId('board-layer')).toHaveValue('cu.in2');
+  const [ex, ey] = await toScreen(viewerCanvas(page), end);
+  await page.mouse.move(ex, ey, { steps: 6 });
+  await previewReaches(page, ex, ey);
+  await settle(page);
+  await shoot(page, 'vias-routing');
+  await page.mouse.click(ex, ey);
+  await page.keyboard.press('Enter');
+  await edited(page, /Route/u);
+  // The GND plane on the first inner layer clears around the via.
+  await page.getByTestId('board-fill').click();
+  await edited(page, /Fill/u);
+
+  // The via in the inspector: its layers and type.
+  await viewerCanvas(page).focus();
+  await page.keyboard.press('Escape');
+  await page.keyboard.press('Escape');
+  await expect(page.getByTestId('board-tool-select')).toHaveAttribute('aria-pressed', 'true');
+  // A click on free board space ends the selection of the new route.
+  await clickPoint(page, [corner[0] - 2 * MM, corner[1] - 6 * MM]);
+  // Beside the track ends, on the via's ring.
+  await clickPoint(page, [corner[0] - 0.15 * MM, corner[1] - 0.2 * MM]);
+  await expect(page.getByTestId('board-prop-via-type')).toContainText('Blind');
+  await page.mouse.move(10, 10);
+  await settle(page);
+  await shoot(page.getByTestId('inspector'), 'vias-properties');
+  await close();
+});
+
 // --- Manufacturing outputs (M8) ----------------------------------------------
 
 /** Every file below a folder, as paths relative to it. */

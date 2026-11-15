@@ -42,6 +42,10 @@ Everything links up in KiCad:
   own libraries.
 - **Bottom-side parts** are written the way KiCad stores them (flipped), so
   they land at the same place with the same pads.
+- **Blind, buried and microvias** keep their layers: blind and buried vias
+  are written as KiCad's `blind` vias, microvias as `micro` vias, and the
+  [design rules](./vias#allowing-them) that allow them as KiCad's board
+  settings.
 
 The files are written in the **KiCad 8 format** (board `20240108`,
 schematic `20231120`). KiCad 9 and 10 open them and save them in their own

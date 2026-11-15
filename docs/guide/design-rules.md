@@ -32,6 +32,7 @@ Every net belongs to exactly one net class. A class sets:
 | Clearance                | Copper-to-copper distance to other nets. Between two classes, the larger clearance applies. |
 | Track width              | The width of new tracks of the class.                                                       |
 | Via diameter, via drill  | The size of new vias of the class.                                                          |
+| Microvia diameter, drill | The size of new [microvias](./vias) of the class.                                           |
 | Diff. pair width and gap | Reserved for differential pairs (routed as two tracks for now).                             |
 
 The first class, `Default`, holds every net that no other class claims; it
@@ -59,17 +60,31 @@ over the patterns.
 
 ![The board minimums](/screenshots/layout-rules-minimums.png)
 
-| Minimum          | Default | Checked by the DRC as |
-| ---------------- | ------- | --------------------- |
-| Clearance        | 0.2 mm  | `clearance`           |
-| Track width      | 0.2 mm  | `track-width`         |
-| Via diameter     | 0.5 mm  | `via-diameter`        |
-| Via drill        | 0.3 mm  | `via-drill`           |
-| Annular ring     | 0.13 mm | `annular-ring`        |
-| Hole             | 0.3 mm  | `hole-size`           |
-| Hole to hole     | 0.25 mm | `hole-to-hole`        |
-| Copper to edge   | 0.3 mm  | `copper-to-edge`      |
-| Silkscreen width | 0.15 mm | `silk-width`          |
+| Minimum           | Default | Checked by the DRC as |
+| ----------------- | ------- | --------------------- |
+| Clearance         | 0.2 mm  | `clearance`           |
+| Track width       | 0.2 mm  | `track-width`         |
+| Via diameter      | 0.5 mm  | `via-diameter`        |
+| Via drill         | 0.3 mm  | `via-drill`           |
+| Annular ring      | 0.13 mm | `annular-ring`        |
+| Hole              | 0.3 mm  | `hole-size`           |
+| Hole to hole      | 0.25 mm | `hole-to-hole`        |
+| Copper to edge    | 0.3 mm  | `copper-to-edge`      |
+| Silkscreen width  | 0.15 mm | `silk-width`          |
+| Microvia diameter | 0.2 mm  | `via-diameter`        |
+| Microvia drill    | 0.1 mm  | `via-drill`           |
+
+Below the minimums, two switches allow vias that do not go through the
+whole board (both off by default, because not every board maker offers
+them):
+
+- **Allow blind and buried vias** — vias from an outer to an inner layer
+  (blind) or between inner layers (buried);
+- **Allow microvias** — laser-drilled vias between neighbouring layers,
+  measured against the microvia minimums.
+
+Vias of a type that is not allowed are reported by the DRC as `via-type`.
+See [Blind, buried and microvias](./vias).
 
 The defaults suit common low-cost prototype services. A
 [board preset](./board-setup#presets) sets them for other kinds of boards.
@@ -121,6 +136,7 @@ other item. A pairwise rule matches in both directions, so
 | `width`      | Track width in mm                                                        |
 | `diameter`   | Via diameter or pad size in mm                                           |
 | `drill`      | Drill in mm                                                              |
+| `viaType`    | `'through'`, `'blind'`, `'buried'` or `'micro'` (vias)                   |
 
 | Syntax                             | Meaning                                                      |
 | ---------------------------------- | ------------------------------------------------------------ |
@@ -142,6 +158,7 @@ Examples:
 | `A.designator == 'U3' && A.type == 'pad'`  | Smaller clearance at a fine-pitch part          |
 | `A.insideZone('Antenna')`                  | Different rules in a named area                 |
 | `A.width < 0.3mm`                          | Narrow tracks only                              |
+| `A.viaType == 'micro'`                     | Microvias only                                  |
 
 ## Checks
 

@@ -51,6 +51,7 @@ export default defineConfig({
           { text: 'Schematic and board', link: '/guide/schematic-to-board' },
           { text: 'Board setup and outline', link: '/guide/board-setup' },
           { text: 'Routing tracks', link: '/guide/routing' },
+          { text: 'Blind, buried and microvias', link: '/guide/vias' },
           { text: 'External autorouters', link: '/guide/autorouter' },
           { text: 'Gerber files as a reference', link: '/guide/gerber-reference' },
           { text: 'Copper zones and keep-outs', link: '/guide/zones' },

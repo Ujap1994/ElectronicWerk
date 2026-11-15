@@ -48,33 +48,35 @@ objects far enough to change the finding, it comes back.
 
 ## What is checked
 
-| Code                   | Default | Reported when                                                                                            |
-| ---------------------- | ------- | -------------------------------------------------------------------------------------------------------- |
-| `short`                | Error   | Copper of two different nets touches.                                                                    |
-| `clearance`            | Error   | Copper of different nets (or without a net) is closer than the clearance of the [rules](./design-rules). |
-| `unrouted`             | Error   | Pads of one net are not connected by copper. One finding per missing connection of the ratsnest.         |
-| `track-width`          | Error   | A track is thinner than its minimum, or wider than a custom maximum.                                     |
-| `via-diameter`         | Error   | A via is smaller than the minimum diameter.                                                              |
-| `via-drill`            | Error   | A via drill is smaller than the minimum.                                                                 |
-| `annular-ring`         | Error   | The copper ring around a via or plated hole is narrower than the minimum.                                |
-| `hole-size`            | Error   | A pad hole is smaller than the minimum.                                                                  |
-| `hole-to-hole`         | Error   | Two holes are closer than the minimum distance.                                                          |
-| `copper-to-edge`       | Error   | Copper comes closer to the board edge than allowed (edge-connector pads are left out).                   |
-| `no-outline`           | Error   | The board has no outline.                                                                                |
-| `outline-open`         | Error   | Outline lines do not close (ends more than 10 µm apart).                                                 |
-| `outside-board`        | Error   | A footprint, track or via lies outside the board.                                                        |
-| `keepout`              | Error   | An item lies in a keep-out area that forbids it.                                                         |
-| `courtyard-overlap`    | Error   | The courtyards of two footprints on the same side overlap.                                               |
-| `silk-over-pad`        | Warning | A silkscreen line lies on a pad with a solder mask opening; it would be printed onto solder.             |
-| `silk-width`           | Warning | A silkscreen line is thinner than the minimum.                                                           |
-| `dangling-track`       | Warning | A track end is connected to nothing.                                                                     |
-| `dangling-via`         | Warning | A via connects fewer than two items.                                                                     |
-| `zone-unfilled`        | Warning | A copper zone has no fill (fill it with Shift+B).                                                        |
-| `duplicate-designator` | Error   | Two footprints have the same designator.                                                                 |
-| `missing-footprint`    | Warning | A part of the schematic has no footprint on the board ([update the board](./schematic-to-board)).        |
-| `extra-footprint`      | Warning | A footprint linked to the schematic has no part there any more.                                          |
-| `net-mismatch`         | Error   | A pad is on another net than its pin in the schematic.                                                   |
-| `rule-error`           | Error   | A custom rule has a syntax error and is skipped.                                                         |
+| Code                   | Default | Reported when                                                                                                                  |
+| ---------------------- | ------- | ------------------------------------------------------------------------------------------------------------------------------ |
+| `short`                | Error   | Copper of two different nets touches.                                                                                          |
+| `clearance`            | Error   | Copper of different nets (or without a net) is closer than the clearance of the [rules](./design-rules).                       |
+| `unrouted`             | Error   | Pads of one net are not connected by copper. One finding per missing connection of the ratsnest.                               |
+| `track-width`          | Error   | A track is thinner than its minimum, or wider than a custom maximum.                                                           |
+| `via-diameter`         | Error   | A via is smaller than the minimum diameter.                                                                                    |
+| `via-drill`            | Error   | A via drill is smaller than the minimum.                                                                                       |
+| `annular-ring`         | Error   | The copper ring around a via or plated hole is narrower than the minimum.                                                      |
+| `via-type`             | Error   | A blind, buried or microvia, but the [design rules](./design-rules#board-minimums) do not allow its type.                      |
+| `via-layers`           | Error   | A via ends on a layer the board does not have, connects a layer with itself, or is a microvia whose layers are not neighbours. |
+| `hole-size`            | Error   | A pad hole is smaller than the minimum.                                                                                        |
+| `hole-to-hole`         | Error   | Two holes are closer than the minimum distance.                                                                                |
+| `copper-to-edge`       | Error   | Copper comes closer to the board edge than allowed (edge-connector pads are left out).                                         |
+| `no-outline`           | Error   | The board has no outline.                                                                                                      |
+| `outline-open`         | Error   | Outline lines do not close (ends more than 10 µm apart).                                                                       |
+| `outside-board`        | Error   | A footprint, track or via lies outside the board.                                                                              |
+| `keepout`              | Error   | An item lies in a keep-out area that forbids it.                                                                               |
+| `courtyard-overlap`    | Error   | The courtyards of two footprints on the same side overlap.                                                                     |
+| `silk-over-pad`        | Warning | A silkscreen line lies on a pad with a solder mask opening; it would be printed onto solder.                                   |
+| `silk-width`           | Warning | A silkscreen line is thinner than the minimum.                                                                                 |
+| `dangling-track`       | Warning | A track end is connected to nothing.                                                                                           |
+| `dangling-via`         | Warning | A via connects fewer than two items.                                                                                           |
+| `zone-unfilled`        | Warning | A copper zone has no fill (fill it with Shift+B).                                                                              |
+| `duplicate-designator` | Error   | Two footprints have the same designator.                                                                                       |
+| `missing-footprint`    | Warning | A part of the schematic has no footprint on the board ([update the board](./schematic-to-board)).                              |
+| `extra-footprint`      | Warning | A footprint linked to the schematic has no part there any more.                                                                |
+| `net-mismatch`         | Error   | A pad is on another net than its pin in the schematic.                                                                         |
+| `rule-error`           | Error   | A custom rule has a syntax error and is skipped.                                                                               |
 
 The severities can be changed in the **Checks** tab of the
 [design rules](./design-rules#checks); a check set to **Ignore** does not

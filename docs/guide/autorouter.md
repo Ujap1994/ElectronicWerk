@@ -41,6 +41,7 @@ ElectronicWerk.
 | Planes                 | Copper pours with a net (the router treats them as connected areas).                                          |
 | Parts and pads         | Every footprint as placed, its pads with their shape on each copper layer; holes without copper as keep-outs. |
 | Nets and classes       | Every net with its pins; one class per [net class](./design-rules) with its track width, clearance and via.   |
+| Vias                   | The through via of every class; when the rules allow them, [blind, buried and microvias](./vias) too.         |
 | Existing routing       | Tracks and vias: the router may change them; **locked** ones are marked _protect_, so the router keeps them.  |
 
 Coordinates are micrometres with the y axis up, like the board.
@@ -54,7 +55,8 @@ compared with the board's locked tracks: those are not added twice, every
 other protected wire (for example one you fixed in the router) comes in
 like the rest. Vias get the size of their padstack
 (`Via[0-1]_600:300_um` is a 0.6 mm via with a 0.3 mm drill through both
-layers).
+layers, `Via[1-2]_600:300_um` a buried via between the inner layers of a
+4-layer board, `uVia[0-1]_300:100_um` a microvia).
 
 The import is **one step to undo**: <kbd>Ctrl</kbd>+<kbd>Z</kbd> takes the
 whole session back.
