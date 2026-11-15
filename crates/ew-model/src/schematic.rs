@@ -378,7 +378,9 @@ pub struct Label {
 }
 
 /// Symbol drawn for a power port.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default, Serialize, Deserialize)]
+#[derive(
+    Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Default, Serialize, Deserialize,
+)]
 #[serde(rename_all = "camelCase")]
 pub enum PowerStyle {
     /// A bar (supply).

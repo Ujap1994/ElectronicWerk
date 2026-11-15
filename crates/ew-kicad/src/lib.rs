@@ -14,6 +14,7 @@
 
 pub mod common;
 mod error;
+pub mod export;
 pub mod footprint;
 mod import;
 pub mod library;
@@ -24,6 +25,7 @@ pub mod report;
 pub mod schematic;
 pub mod sexpr;
 pub mod symbol;
+pub mod write;
 
 pub use error::KicadError;
 pub use import::{Imported, import_project, locate};
