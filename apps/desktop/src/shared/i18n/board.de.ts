@@ -56,6 +56,9 @@ export const boardDe: Messages['board'] = {
     corners: '90°-Ecken erlauben',
     cornersTip:
       'Erlaubt rechtwinklige Knicke beim Verlegen. Aus (Standard): Leiterbahnen knicken nur um 45°, das ist besser für Signalqualität und EMV.',
+    routeMode: 'Router',
+    routeModeTip:
+      'Umgehen: Neue Leiterbahnen führen um das Kupfer anderer Netze herum. Wegschieben: Neue Leiterbahnen schieben die Leiterbahnen anderer Netze beiseite (Pads, Vias und gesperrte Leiterbahnen bleiben).',
     viaType: 'Via-Typ',
     viaTypeTip:
       'Das Via, das beim Lagenwechsel gesetzt wird. Sackloch-, vergrabene und Mikrovias verbinden nur einen Teil der Lagen; die Designregeln müssen sie erlauben.',
@@ -105,6 +108,10 @@ export const boardDe: Messages['board'] = {
     diameter: 'Durchmesser',
     drill: 'Bohrung',
     text: 'Text',
+  },
+  routeModes: {
+    walkaround: 'Umgehen',
+    shove: 'Wegschieben',
   },
   viaTypes: {
     through: 'Durchgehendes Via',

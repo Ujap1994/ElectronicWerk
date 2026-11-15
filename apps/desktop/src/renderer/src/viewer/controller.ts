@@ -163,6 +163,8 @@ export class ViewerController {
   private moveOffset: [number, number] | null = null;
   /** Ids drawn by an editing preview instead (stretched wires). */
   private hiddenIds: ReadonlySet<string> = new Set();
+  /** Objects a preview replaces (tracks a route pushes aside). */
+  private previewHidden: ReadonlySet<string> = new Set();
   /** Ids that move along with the selection (labels on dragged pins). */
   private followerIds: ReadonlySet<string> = new Set();
   /** A grid chosen in an editor instead of the document's (nm). */
@@ -386,6 +388,7 @@ export class ViewerController {
     });
     this.moveOffset = null;
     this.hiddenIds = new Set();
+    this.previewHidden = new Set();
     this.followerIds = new Set();
     if (!sameDoc) {
       this.active =
@@ -740,6 +743,16 @@ export class ViewerController {
     this.requestRender();
   }
 
+  /** Leaves out objects that a preview draws elsewhere (or none). */
+  setPreviewHidden(ids: readonly string[]): void {
+    if (ids.length === 0 && this.previewHidden.size === 0) {
+      return;
+    }
+    this.previewHidden = new Set(ids);
+    this.updateFlags();
+    this.requestRender();
+  }
+
   /** Highlights a net: object ids and scene keys (`<id>/pin/<n>`). */
   setHighlight(members: Iterable<string>): void {
     this.highlight = new Set(members);
@@ -832,13 +845,13 @@ export class ViewerController {
     if (this.hovered !== null) {
       mark(this.hovered, HOVERED);
     }
-    if (this.hiddenIds.size > 0 || this.followerIds.size > 0) {
+    if (this.hiddenIds.size > 0 || this.followerIds.size > 0 || this.previewHidden.size > 0) {
       for (let obj = 0; obj < scene.objectCount; obj += 1) {
         if (scene.parentOf(obj) !== null) {
           continue;
         }
         const id = scene.idOf(obj);
-        if (this.hiddenIds.has(id)) {
+        if (this.hiddenIds.has(id) || this.previewHidden.has(id)) {
           mark(obj, HIDDEN);
         } else if (this.followerIds.has(id)) {
           mark(obj, MOVING);

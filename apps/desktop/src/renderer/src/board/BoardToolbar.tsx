@@ -4,18 +4,50 @@ import type { MessageKey } from '@shared/i18n';
 
 import { Icon, type IconName } from '../components/Icon';
 import { useAppState } from '../state';
-import type { BoardEditor, BoardTool, ViaChoice } from './editor';
+import type { BoardEditor, BoardTool, RouteMode, ViaChoice } from './editor';
 import {
   crossProbing,
   drcState,
   routingCorners,
+  routingMode,
   routingVia,
   setRoutingCorners,
+  setRoutingMode,
   setRoutingVia,
   type BoardCommands,
 } from './stores';
 
 const VIA_CHOICES: readonly ViaChoice[] = ['through', 'blind', 'micro'];
+const ROUTE_MODES: readonly RouteMode[] = ['walkaround', 'shove'];
+
+/** Whether routes walk around the tracks of other nets or push them aside. */
+function RouteModeSelect({ editor }: { readonly editor: BoardEditor }): ReactNode {
+  const { t } = useAppState();
+  const mode = useSyncExternalStore(routingMode.subscribe, routingMode.get);
+  return (
+    <label className="board-layer" title={t('board.actions.routeModeTip')}>
+      <span className="board-layer__label">{t('board.actions.routeMode')}</span>
+      <select
+        aria-label={t('board.actions.routeMode')}
+        value={mode}
+        data-testid="board-route-mode"
+        onChange={(event) => {
+          const value = event.target.value;
+          if (value === 'walkaround' || value === 'shove') {
+            setRoutingMode(value);
+            editor.refreshRoute();
+          }
+        }}
+      >
+        {ROUTE_MODES.map((choice) => (
+          <option key={choice} value={choice}>
+            {t(`board.routeModes.${choice}`)}
+          </option>
+        ))}
+      </select>
+    </label>
+  );
+}
 
 /** The via type placed when a route changes layers. */
 function ViaSelect(): ReactNode {
@@ -287,6 +319,7 @@ export function BoardActions({
           editor.refreshRoute();
         }}
       />
+      <RouteModeSelect editor={editor} />
       <ViaSelect />
       <Button
         icon="rotate"

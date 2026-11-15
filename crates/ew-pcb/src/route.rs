@@ -110,8 +110,8 @@ pub struct Start {
 
 /// A router for one board.
 pub struct Router<'a> {
-    board: Board<'a>,
-    rules: RuleSet,
+    pub(crate) board: Board<'a>,
+    pub(crate) rules: RuleSet,
     nets: HashMap<Id, NetInfo>,
     no_net: NetInfo,
 }
@@ -254,7 +254,7 @@ impl<'a> Router<'a> {
         }
     }
 
-    fn net(&self, net: Option<Id>) -> &NetInfo {
+    pub(crate) fn net(&self, net: Option<Id>) -> &NetInfo {
         net.and_then(|id| self.nets.get(&id))
             .unwrap_or(&self.no_net)
     }
@@ -337,6 +337,18 @@ impl<'a> Router<'a> {
     /// `true` if a track from `a` to `b` keeps every rule.
     #[must_use]
     pub fn clear(&self, request: &Request, a: V, b: V) -> bool {
+        self.clear_skipping(request, a, b, &|_| false)
+    }
+
+    /// [`Router::clear`] without the copper items `skip` names (tracks
+    /// that move out of the way).
+    pub(crate) fn clear_skipping(
+        &self,
+        request: &Request,
+        a: V,
+        b: V,
+        skip: &dyn Fn(ItemRef) -> bool,
+    ) -> bool {
         let Some(bit) = self.board.layer_bit(request.layer) else {
             return false;
         };
@@ -356,7 +368,10 @@ impl<'a> Router<'a> {
             let item = &self.board.copper[index];
             // Zone fills are no obstacle: the zones are filled again around
             // new copper.
-            if item.layers & bit == 0 || matches!(item.item, ItemRef::Zone { .. }) {
+            if item.layers & bit == 0
+                || matches!(item.item, ItemRef::Zone { .. })
+                || skip(item.item)
+            {
                 continue;
             }
             if request.net.is_some() && item.net == request.net {
@@ -422,6 +437,27 @@ impl<'a> Router<'a> {
             .windows(2)
             .all(|pair| self.clear(request, pair[0], pair[1]));
         clear.then_some(points)
+    }
+
+    /// The direct two-segment paths from the start to the target whose
+    /// bends are allowed, the preferred one first (no clearance checked).
+    pub(crate) fn direct_paths(request: &Request) -> Vec<Vec<V>> {
+        let previous = request.previous.and_then(dir_index);
+        let (a, b) = (request.start, request.target);
+        shapes(request)
+            .into_iter()
+            .filter_map(|shape| {
+                let c = corner(a, b, shape);
+                let mut points = vec![a];
+                if c.dist(a) >= 1.0 && c.dist(b) >= 1.0 {
+                    points.push(c);
+                }
+                if b.dist(a) >= 1.0 {
+                    points.push(b);
+                }
+                bends_ok(&points, previous, request.corners).then_some(points)
+            })
+            .collect()
     }
 
     /// Routes from the start towards the target.

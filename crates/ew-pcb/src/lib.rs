@@ -33,5 +33,6 @@ pub mod poly;
 pub mod presets;
 pub mod route;
 pub mod rules;
+pub mod shove;
 pub mod specctra;
 pub mod sync;

@@ -53,6 +53,9 @@ export const boardEn = {
     corners: 'Allow 90° corners',
     cornersTip:
       'Allow right-angled bends when routing. Off (the default): tracks only bend by 45°, which is better for signal quality and EMC.',
+    routeMode: 'Router',
+    routeModeTip:
+      'Walk around: new tracks go around the copper of other nets. Push and shove: new tracks push the tracks of other nets aside (pads, vias and locked tracks stay).',
     viaType: 'Via type',
     viaTypeTip:
       'The via placed when a route changes layers. Blind, buried and microvias connect only some layers; the design rules must allow them.',
@@ -102,6 +105,10 @@ export const boardEn = {
     to: 'Last layer',
     micro: 'Microvia (laser-drilled)',
     viaType: 'Type',
+  },
+  routeModes: {
+    walkaround: 'Walk around',
+    shove: 'Push and shove',
   },
   viaTypes: {
     through: 'Through via',

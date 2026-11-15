@@ -10,7 +10,7 @@
 import type { MessageKey } from '@shared/i18n';
 
 import type { Interaction, ViewerController } from '../viewer/controller';
-import { routingCorners, routingVia } from './stores';
+import { routingCorners, routingMode, routingVia } from './stores';
 
 export type Point = readonly [number, number];
 
@@ -139,7 +139,12 @@ interface RouteReply {
   readonly points: readonly Point[];
   readonly reached: boolean;
   readonly viaFits?: boolean;
+  /** In push-and-shove mode: the tracks pushed aside, or `null` if they cannot make room. */
+  readonly shove?: EditPreview | null;
 }
+
+/** How a route deals with the tracks of other nets. */
+export type RouteMode = 'walkaround' | 'shove';
 
 const DRAG_THRESHOLD_PX = 4;
 
@@ -669,6 +674,7 @@ export class BoardEditor implements Interaction {
     }
     this.routing = true;
     const asked = route;
+    const shove = routingMode.get() === 'shove';
     this.host
       .call<RouteReply>('pcb.route', {
         doc: this.host.doc,
@@ -681,11 +687,22 @@ export class BoardEditor implements Interaction {
         corners: routingCorners.get(),
         previous: this.previousDirection(route),
         via: route.viaDiameter,
+        ...(shove
+          ? {
+              mode: 'shove',
+              fixed: route.fixed.map((s) => ({ layer: s.layer, points: s.points })),
+              vias: this.routeVias(route),
+            }
+          : {}),
       })
       .then((reply) => {
         const current = this.state.route;
         if (current !== null && current.start === asked.start && current.layer === asked.layer) {
+          // Pushed tracks are drawn over the board in place of the originals.
+          const pushed = reply.shove ?? null;
+          this.controller.setPreviewHidden(pushed?.hidden ?? []);
           this.update({
+            preview: pushed !== null && pushed.tracks.length > 0 ? pushed.tracks : null,
             route: {
               ...current,
               preview: dedupe(reply.points.map(rounded)),
@@ -798,28 +815,45 @@ export class BoardEditor implements Interaction {
       });
   }
 
-  /** Puts the fixed segments and vias into the board. */
+  /** The vias of a route, as the engine takes them. */
+  private routeVias(route: RouteState): Record<string, unknown>[] {
+    return route.vias.map((via) => ({
+      at: via.at,
+      diameter: Math.round(via.diameter),
+      drill: Math.round(via.drill),
+      from: via.from,
+      to: via.to,
+      micro: via.micro,
+    }));
+  }
+
+  /**
+   * Puts the fixed segments and vias into the board; in push-and-shove
+   * mode the tracks they push move aside in the same step.
+   */
   finishRoute(): void {
     const route = this.state.route;
     if (route === null) {
       return;
     }
-    this.update({ route: null });
+    this.update({ route: null, preview: null });
     if (route.fixed.length === 0 && route.vias.length === 0) {
+      this.controller.setPreviewHidden([]);
       return;
     }
-    this.run('pcb.addTracks', {
+    const shove = routingMode.get() === 'shove';
+    void this.edit('pcb.addTracks', {
       net: route.net,
       width: Math.round(route.width),
       segments: route.fixed.map((s) => ({ layer: s.layer, points: s.points })),
-      vias: route.vias.map((via) => ({
-        at: via.at,
-        diameter: Math.round(via.diameter),
-        drill: Math.round(via.drill),
-        from: via.from,
-        to: via.to,
-        micro: via.micro,
-      })),
+      vias: this.routeVias(route),
+      ...(shove ? { mode: 'shove', corners: routingCorners.get() } : {}),
+    }).then((result) => {
+      // The board reloads and shows the pushed tracks; without a change
+      // the originals come back.
+      if (result?.seq === undefined || result.seq === null) {
+        this.controller.setPreviewHidden([]);
+      }
     });
   }
 
@@ -830,7 +864,8 @@ export class BoardEditor implements Interaction {
     }
     const last = route.fixed.at(-1);
     if (last === undefined) {
-      this.update({ route: null });
+      this.controller.setPreviewHidden([]);
+      this.update({ route: null, preview: null });
       return;
     }
     const start = last.points[0] ?? route.start;

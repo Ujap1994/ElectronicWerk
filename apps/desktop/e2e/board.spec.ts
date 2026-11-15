@@ -309,6 +309,58 @@ test('drags a track while its 45° neighbours keep their direction', async () =>
   expect(sameP(a, newLeft ?? origin0) || sameP(b, newLeft ?? origin0)).toBe(true);
 });
 
+test('pushes a track of another net aside in push-and-shove mode', async () => {
+  launched = await launchApp();
+  const { page, projectsDir } = launched;
+  await page.setViewportSize({ width: 1280, height: 800 });
+  await importAs(launched, 'Shove');
+  const project = join(projectsDir, 'Shove');
+  await openBoard(page, 'Shove');
+  const canvas = viewerCanvas(page);
+  interface Track {
+    id: string;
+    start: Point;
+    end: Point;
+    net?: string;
+  }
+  const before = (readBoard(project).tracks ?? []) as Track[];
+  // The vertical part of /OUT, which ends on R3 pad 1.
+  const out = before.find(
+    (t) => t.start[0] === t.end[0] && Math.abs(t.start[0] - 129_087_500) < 1_000,
+  );
+  expect(out).toBeDefined();
+
+  await page.getByTestId('board-route-mode').selectOption('shove');
+  await canvas.focus();
+  await page.keyboard.press('x');
+  // From free space on the right across the track (points on the 1.25 mm
+  // grid): the track bends around the end of the new one.
+  const from: Point = [132.5 * MM, 100 * MM];
+  const to: Point = [128.75 * MM, 100 * MM];
+  const [fx, fy] = await toScreen(canvas, from);
+  await page.mouse.move(fx, fy);
+  await page.mouse.click(fx, fy);
+  await expect(page.getByTestId('route-status')).toBeVisible();
+  const [tx, ty] = await toScreen(canvas, to);
+  await page.mouse.move(tx, ty, { steps: 6 });
+  await previewReaches(page, tx, ty);
+  // The pushed track is drawn in its new place.
+  await expect(page.getByTestId('edit-preview')).not.toHaveCount(0);
+  await page.mouse.click(tx, ty);
+  await page.keyboard.press('Enter');
+  await expect(page.getByTestId('toolbar-undo')).toHaveAttribute('title', /Route/u);
+  await save(page);
+
+  const after = (readBoard(project).tracks ?? []) as Track[];
+  expect(after.some((t) => t.id === out?.id)).toBe(false);
+  const bent = after.filter(
+    (t) =>
+      t.net === out?.net &&
+      [t.start, t.end].some((p) => p[0] < 128.7 * MM && p[1] > 99 * MM && p[1] < 101 * MM),
+  );
+  expect(bent.length).toBeGreaterThan(0);
+});
+
 test('routes tracks, draws zones, updates from the schematic and imports DXF', async () => {
   launched = await launchApp();
   const { app, page, projectsDir } = launched;

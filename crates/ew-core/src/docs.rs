@@ -308,7 +308,7 @@ pub const SUMMARIES: &[(&str, &str)] = &[
     ),
     (
         "pcb.addTracks",
-        "`{\"doc\", \"net\", \"width\", \"segments\": [{\"layer\", \"points\"}], \"vias\": [{\"at\", \"diameter\", \"drill\", \"from\"?, \"to\"?, \"micro\"?}]}` (`route`): puts routed tracks and vias into the board as one step. Vias go through the board unless `from`/`to` name their first and last layer.",
+        "`{\"doc\", \"net\", \"width\", \"segments\": [{\"layer\", \"points\"}], \"vias\": [{\"at\", \"diameter\", \"drill\", \"from\"?, \"to\"?, \"micro\"?}]}` (`route`): puts routed tracks and vias into the board as one step. Vias go through the board unless `from`/`to` name their first and last layer; `mode: \"shove\"` pushes the tracks of other nets aside in the same step.",
     ),
     (
         "pcb.applyPreset",
@@ -384,7 +384,7 @@ pub const SUMMARIES: &[(&str, &str)] = &[
     ),
     (
         "pcb.route",
-        "`{\"doc\", \"layer\", \"net\", \"width\", \"start\", \"target\", \"corners\"?, \"previous\"?, \"via\"?, \"viaLayers\"?}` → `{\"points\", \"reached\", \"viaFits\"?}`: the walkaround path from `start` towards `target`; changes nothing.",
+        "`{\"doc\", \"layer\", \"net\", \"width\", \"start\", \"target\", \"corners\"?, \"previous\"?, \"via\"?, \"viaLayers\"?, \"mode\"?, \"fixed\"?, \"vias\"?}` → `{\"points\", \"reached\", \"viaFits\"?, \"shove\"?}`: the path from `start` towards `target` around other nets, or with `mode: \"shove\"` the direct path and the tracks it pushes aside; changes nothing.",
     ),
     (
         "pcb.routeStart",

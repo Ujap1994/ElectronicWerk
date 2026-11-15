@@ -239,6 +239,27 @@ struct RouteParams {
     /// The layers of that via (default: through the board).
     #[serde(default)]
     via_layers: Option<[ew_model::layer::CopperLayer; 2]>,
+    /// `walkaround` (default) or `shove`: push the tracks of other nets
+    /// aside.
+    #[serde(default)]
+    mode: RouteMode,
+    /// Segments already fixed on this route (they push too).
+    #[serde(default)]
+    fixed: Vec<Segment>,
+    /// Vias already placed on this route.
+    #[serde(default)]
+    vias: Vec<NewVia>,
+}
+
+/// How a route deals with the tracks of other nets.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Deserialize)]
+#[serde(rename_all = "camelCase")]
+enum RouteMode {
+    /// Around them.
+    #[default]
+    Walkaround,
+    /// Push them aside.
+    Shove,
 }
 
 #[derive(Deserialize)]
@@ -287,6 +308,12 @@ struct AddTracksParams {
     segments: Vec<Segment>,
     #[serde(default)]
     vias: Vec<NewVia>,
+    /// `shove` pushes the tracks of other nets aside, as the preview did.
+    #[serde(default)]
+    mode: RouteMode,
+    /// The bends the pushed tracks may have (default `"45"`).
+    #[serde(default)]
+    corners: ew_pcb::route::Corners,
 }
 
 #[derive(Deserialize)]
@@ -740,8 +767,26 @@ pub fn call(
                 corners: params.corners,
                 previous: params.previous.map(|[x, y]| V::new(x, y)),
             };
-            let route = router.route(&request);
+            let (route, shoved) = if params.mode == RouteMode::Shove {
+                let placed = heads(pcb, params.net, params.width, &params.fixed, &params.vias);
+                let found = router.route_shoving(&request, &placed);
+                (
+                    ew_pcb::route::Route {
+                        points: found.points,
+                        reached: found.reached,
+                    },
+                    Some(found.shoved),
+                )
+            } else {
+                (router.route(&request), None)
+            };
             let mut value = to_value(&route)?;
+            if let (Some(shoved), Some(map)) = (shoved, value.as_object_mut()) {
+                map.insert(
+                    "shove".into(),
+                    shoved.as_ref().map_or(Value::Null, shove_preview),
+                );
+            }
             if let (Some(diameter), Some(end)) = (params.via, route.points.last()) {
                 let fits = router.via_fits(
                     params.net,
@@ -805,6 +850,33 @@ pub fn call(
                         locked: false,
                     };
                     select.push(track.id);
+                    requests.push(Request::Insert {
+                        doc: params.doc,
+                        object: Object::Track(track),
+                    });
+                }
+            }
+            if params.mode == RouteMode::Shove {
+                #[allow(clippy::cast_precision_loss, reason = "track widths fit f64")]
+                let width = params.width as f64;
+                let router = ew_pcb::route::Router::new(pcb, rules(project).map(|(_, r)| r));
+                let shoved = router
+                    .shove(
+                        &heads(pcb, params.net, width, &params.segments, &params.vias),
+                        params.corners,
+                    )
+                    .ok_or_else(|| {
+                        EngineError::invalid_params(
+                            "the tracks of other nets cannot make room for this route",
+                        )
+                    })?;
+                for id in shoved.removed {
+                    requests.push(Request::Delete {
+                        doc: params.doc,
+                        id,
+                    });
+                }
+                for track in shoved.added {
                     requests.push(Request::Insert {
                         doc: params.doc,
                         object: Object::Track(track),
@@ -1314,6 +1386,58 @@ fn rules_info(project: &Project, doc: Option<Id>) -> Result<Value, EngineError> 
         "errors": errors,
         "severities": [ErcSeverity::Error, ErcSeverity::Warning, ErcSeverity::Ignore],
     }))
+}
+
+/// The copper of a route that pushes in push-and-shove mode: its segments
+/// and its vias (on every layer between their first and last one).
+#[allow(clippy::cast_precision_loss, reason = "board lengths fit f64")]
+fn heads(
+    pcb: &Pcb,
+    net: Option<Id>,
+    width: f64,
+    segments: &[Segment],
+    vias: &[NewVia],
+) -> Vec<ew_pcb::shove::Head> {
+    let stack: Vec<ew_model::layer::CopperLayer> = pcb.stackup.copper_layers().collect();
+    let mut out: Vec<ew_pcb::shove::Head> = segments
+        .iter()
+        .filter(|s| s.points.len() >= 2)
+        .map(|s| ew_pcb::shove::Head {
+            layers: vec![s.layer],
+            net,
+            width,
+            points: s.points.iter().map(|p| V::of(*p)).collect(),
+        })
+        .collect();
+    for via in vias {
+        let index = |layer: Option<ew_model::layer::CopperLayer>, fallback: usize| {
+            layer
+                .and_then(|l| stack.iter().position(|own| *own == l))
+                .unwrap_or(fallback)
+        };
+        let (a, b) = (
+            index(via.from, 0),
+            index(via.to, stack.len().saturating_sub(1)),
+        );
+        out.push(ew_pcb::shove::Head {
+            layers: stack[a.min(b)..=a.max(b)].to_vec(),
+            net,
+            width: via.diameter as f64,
+            points: vec![V::of(via.at)],
+        });
+    }
+    out
+}
+
+/// What a push changes, for the preview: the pushed tracks (`tracks`) and
+/// the tracks they replace (`hidden`).
+fn shove_preview(shoved: &ew_pcb::shove::Shoved) -> Value {
+    let tracks: Vec<Value> = shoved
+        .added
+        .iter()
+        .map(|t| json!({"layer": t.layer, "width": t.width, "start": t.start, "end": t.end}))
+        .collect();
+    json!({ "tracks": tracks, "hidden": shoved.removed })
 }
 
 /// The tracks an edit would leave, for a preview: the changed and new

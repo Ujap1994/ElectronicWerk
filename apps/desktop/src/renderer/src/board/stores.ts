@@ -4,7 +4,7 @@
  * commands of the shown board (for the command palette).
  */
 import { Store } from '../schematic/stores';
-import type { Point, ViaChoice } from './editor';
+import type { Point, RouteMode, ViaChoice } from './editor';
 
 export type DrcSeverity = 'error' | 'warning';
 
@@ -84,6 +84,30 @@ function storedCorners(): Corners {
 export const routingCorners = new Store<Corners>(
   typeof window === 'undefined' ? '45' : storedCorners(),
 );
+
+const MODE_KEY = 'ew.routing.mode';
+
+function storedMode(): RouteMode {
+  try {
+    return window.localStorage.getItem(MODE_KEY) === 'shove' ? 'shove' : 'walkaround';
+  } catch {
+    return 'walkaround';
+  }
+}
+
+/** Whether routes walk around the tracks of other nets or push them aside. */
+export const routingMode = new Store<RouteMode>(
+  typeof window === 'undefined' ? 'walkaround' : storedMode(),
+);
+
+export function setRoutingMode(mode: RouteMode): void {
+  routingMode.set(mode);
+  try {
+    window.localStorage.setItem(MODE_KEY, mode);
+  } catch {
+    // Storage may be unavailable; the setting then lasts for the session.
+  }
+}
 
 const VIA_KEY = 'ew.routing.via';
 
