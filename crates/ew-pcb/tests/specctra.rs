@@ -37,6 +37,12 @@ fn rules() -> RuleSet {
 /// Writes a session (as Freerouting does) from the routing of a board:
 /// resolution 0.1 µm, y up like the board.
 fn session_of(pcb: &Pcb) -> String {
+    session_with(pcb, "")
+}
+
+/// A session whose wires and vias all carry `kind` (such as
+/// ` (type protect)`).
+fn session_with(pcb: &Pcb, kind: &str) -> String {
     let v = |nm: i64| (nm as f64 / 100.0).round() as i64;
     let mut out = String::from("(session \"x.ses\" (routes (resolution um 10) (network_out\n");
     for net in &pcb.nets {
@@ -44,7 +50,7 @@ fn session_of(pcb: &Pcb) -> String {
         for track in pcb.tracks.iter().filter(|t| t.net == Some(net.id)) {
             let _ = writeln!(
                 out,
-                "(wire (path {} {} {} {} {} {}))",
+                "(wire (path {} {} {} {} {} {}){kind})",
                 layer_name(track.layer),
                 v(track.width),
                 v(track.start.x),
@@ -56,7 +62,7 @@ fn session_of(pcb: &Pcb) -> String {
         for via in pcb.vias.iter().filter(|via| via.net == Some(net.id)) {
             let _ = writeln!(
                 out,
-                "(via \"Via[0-{}]_{}:{}_um\" {} {})",
+                "(via \"Via[0-{}]_{}:{}_um\" {} {}{kind})",
                 pcb.stackup.copper_count() - 1,
                 via.diameter / 1000,
                 via.drill / 1000,
@@ -160,6 +166,9 @@ fn locked_routing_and_unknown_nets() {
         host: "test",
     });
     assert_eq!(text.matches("(type protect)").count(), 1);
+    // Unlocked routing has no type: Freerouting reads every type but
+    // `normal` as fixed.
+    assert!(!text.contains("(type route)"));
     let net = pcb.nets.iter().next().unwrap().name.clone();
     let session = read_ses(&format!(
         "(session s (routes (resolution mil 1000) (network_out \
@@ -172,4 +181,41 @@ fn locked_routing_and_unknown_nets() {
     assert_eq!(plan.unknown_layers, ["X.Cu"]);
     // The locked track stays.
     assert!(!plan.remove_tracks.contains(&locked));
+}
+
+/// Freerouting writes the wires it was not allowed to change as
+/// `protect`: the board's locked tracks and vias stay single, every other
+/// protected wire comes in.
+#[test]
+fn protected_wires_of_a_session() {
+    let mut pcb = board();
+    let track = pcb.tracks.iter().find(|t| t.net.is_some()).unwrap().id;
+    pcb.tracks.get_mut(track).unwrap().locked = true;
+    // A via without a twin at the same place (the synthetic board has a
+    // few; they count as the locked via too).
+    let via = pcb
+        .vias
+        .iter()
+        .find(|v| {
+            v.net.is_some()
+                && pcb
+                    .vias
+                    .iter()
+                    .filter(|o| o.net == v.net && o.at == v.at)
+                    .count()
+                    == 1
+        })
+        .unwrap()
+        .id;
+    pcb.vias.get_mut(via).unwrap().locked = true;
+    let session = read_ses(&session_with(&pcb, " (type protect)")).unwrap();
+    let plan = plan_session(&pcb, &rules(), &session);
+    let tracks = pcb.tracks.iter().filter(|t| t.net.is_some()).count();
+    let vias = pcb.vias.iter().filter(|v| v.net.is_some()).count();
+    assert_eq!(plan.tracks.len(), tracks - 1);
+    assert_eq!(plan.vias.len(), vias - 1);
+    assert_eq!(plan.remove_tracks.len(), tracks - 1);
+    assert_eq!(plan.remove_vias.len(), vias - 1);
+    assert!(!plan.remove_tracks.contains(&track));
+    assert!(!plan.remove_vias.contains(&via));
 }

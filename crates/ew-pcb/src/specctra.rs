@@ -22,7 +22,7 @@ use ew_model::layer::{CopperLayer, Layer, LayerSpec, Side};
 use ew_model::pcb::{PadKind, Pcb, Track, Via};
 use ew_model::units::{Nm, Point};
 
-use crate::geom::{Core, Shape, V, arc_points};
+use crate::geom::{Core, Shape, V, arc_points, point_segment};
 use crate::items::{footprint_xform, outline, pad_hole, pad_shape};
 use crate::rules::RuleSet;
 
@@ -457,16 +457,7 @@ pub fn write_dsn(input: &DsnInput<'_>) -> String {
         let Some(net) = track.net.and_then(|id| net_names.get(&id)) else {
             continue;
         };
-        let points = match track.mid {
-            Some(mid) => arc_points(
-                V::of(track.start),
-                V::of(mid),
-                V::of(track.end),
-                ARC_TOLERANCE,
-            ),
-            None => vec![V::of(track.start), V::of(track.end)],
-        };
-        let path: Vec<String> = points.iter().map(|&p| xy(p)).collect();
+        let path: Vec<String> = track_points(track).iter().map(|&p| xy(p)).collect();
         let _ = writeln!(
             out,
             "    (wire (path {} {} {}) (net {}){})",
@@ -474,11 +465,7 @@ pub fn write_dsn(input: &DsnInput<'_>) -> String {
             num(track.width as f64),
             path.join(" "),
             quote(net),
-            if track.locked {
-                " (type protect)"
-            } else {
-                " (type route)"
-            }
+            if track.locked { " (type protect)" } else { "" }
         );
     }
     for via in &pcb.vias {
@@ -496,11 +483,7 @@ pub fn write_dsn(input: &DsnInput<'_>) -> String {
             )),
             xy(V::of(via.at)),
             quote(net),
-            if via.locked {
-                " (type protect)"
-            } else {
-                " (type route)"
-            }
+            if via.locked { " (type protect)" } else { "" }
         );
     }
     out.push_str("  )\n)\n");
@@ -847,9 +830,80 @@ pub struct SessionPlan {
     pub unknown_layers: Vec<String>,
 }
 
+/// How far a protected wire of a session may lie from a locked track to be
+/// that track (the session's grid and the arc approximation).
+const SAME_ITEM: f64 = 1_000.0;
+
+/// The centre line of a track as the DSN file describes it.
+fn track_points(track: &Track) -> Vec<V> {
+    match track.mid {
+        Some(mid) => arc_points(
+            V::of(track.start),
+            V::of(mid),
+            V::of(track.end),
+            ARC_TOLERANCE,
+        ),
+        None => vec![V::of(track.start), V::of(track.end)],
+    }
+}
+
+/// The board's locked routing, which protected wires of a session repeat.
+struct Locked {
+    tracks: HashMap<(Id, CopperLayer), Vec<Vec<V>>>,
+    vias: Vec<(Id, V)>,
+}
+
+impl Locked {
+    fn of(pcb: &Pcb) -> Self {
+        let mut tracks: HashMap<(Id, CopperLayer), Vec<Vec<V>>> = HashMap::new();
+        for track in pcb.tracks.iter().filter(|t| t.locked) {
+            if let Some(net) = track.net {
+                tracks
+                    .entry((net, track.layer))
+                    .or_default()
+                    .push(track_points(track));
+            }
+        }
+        let vias = pcb
+            .vias
+            .iter()
+            .filter(|v| v.locked)
+            .filter_map(|v| v.net.map(|net| (net, V::of(v.at))))
+            .collect();
+        Self { tracks, vias }
+    }
+
+    /// The locked centre lines of a net on a layer.
+    fn lines(&self, net: Id, layer: CopperLayer) -> &[Vec<V>] {
+        self.tracks
+            .get(&(net, layer))
+            .map_or(&[][..], Vec::as_slice)
+    }
+
+    /// Whether a via of a net is a locked via.
+    fn has_via(&self, net: Id, at: V) -> bool {
+        self.vias
+            .iter()
+            .any(|&(n, p)| n == net && p.dist(at) <= SAME_ITEM)
+    }
+}
+
+/// Whether a segment lies on one of the given centre lines.
+fn on_locked(a: V, b: V, lines: &[Vec<V>]) -> bool {
+    let near = |p: V, line: &[V]| {
+        line.windows(2)
+            .any(|pair| point_segment(p, pair[0], pair[1]) <= SAME_ITEM)
+    };
+    let mid = a.add(b).scale(0.5);
+    lines
+        .iter()
+        .any(|line| near(a, line) && near(b, line) && near(mid, line))
+}
+
 /// Turns a session into board changes: the routing of every net in the
 /// session replaces the unlocked tracks and vias of that net. Protected
-/// wires (the board's locked tracks) stay as they are.
+/// wires that are the board's locked tracks stay as they are; other
+/// protected wires (fixed in the router) come in like the rest.
 #[must_use]
 pub fn plan_session(pcb: &Pcb, rules: &RuleSet, session: &Session) -> SessionPlan {
     let copper = pcb.stackup.copper_count();
@@ -865,20 +919,22 @@ pub fn plan_session(pcb: &Pcb, rules: &RuleSet, session: &Session) -> SessionPla
     let mut unknown_layers = BTreeSet::new();
     let mut routed: BTreeSet<Id> = BTreeSet::new();
     let round = |p: V| -> Point { p.point() };
+    let locked = Locked::of(pcb);
     for net in &session.nets {
         let Some(&(id, board_class)) = nets.get(net.name.as_str()) else {
             plan.unknown_nets.push(net.name.clone());
             continue;
         };
         routed.insert(id);
-        for wire in net.wires.iter().filter(|w| !w.protect) {
+        for wire in &net.wires {
             let Some(&layer) = by_name.get(&wire.layer) else {
                 unknown_layers.insert(wire.layer.clone());
                 continue;
             };
+            let lines = locked.lines(id, layer);
             for pair in wire.points.windows(2) {
                 let (start, end) = (round(pair[0]), round(pair[1]));
-                if start == end {
+                if start == end || (wire.protect && on_locked(pair[0], pair[1], lines)) {
                     continue;
                 }
                 plan.tracks.push(Track {
@@ -894,7 +950,11 @@ pub fn plan_session(pcb: &Pcb, rules: &RuleSet, session: &Session) -> SessionPla
             }
         }
         let class = rules.class(&rules.class_name(&net.name, board_class));
-        for via in net.vias.iter().filter(|v| !v.protect) {
+        for via in net
+            .vias
+            .iter()
+            .filter(|v| !(v.protect && locked.has_via(id, v.at)))
+        {
             let (from, to, diameter, drill) = parse_via_name(&via.padstack).unwrap_or_else(|| {
                 let diameter = session
                     .padstacks
