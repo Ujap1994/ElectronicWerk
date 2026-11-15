@@ -70,6 +70,23 @@ enum Command {
     /// Edit boards: update from the schematic, place, route, run the DRC.
     #[command(subcommand)]
     Board(design::BoardCommand),
+    /// Print the assembly steps of a board, with the saved progress.
+    Assembly {
+        /// Project folder or `.ewproj` file.
+        path: PathBuf,
+        /// `size` (small parts first), `value`, `count` or `designator`.
+        #[arg(long, default_value = "size")]
+        order: String,
+        /// `top` or `bottom`.
+        #[arg(long, default_value = "top")]
+        first_side: String,
+        /// Board name (default: the first board).
+        #[arg(long)]
+        board: Option<String>,
+        /// Print machine-readable JSON.
+        #[arg(long)]
+        json: bool,
+    },
     /// Import KiCad projects, libraries and netlists.
     #[command(subcommand)]
     Import(ImportCommand),
@@ -169,6 +186,14 @@ enum ProjectCommand {
     },
     /// List the project templates.
     Templates,
+    /// Show the design statistics (parts, pads, holes, track length, …).
+    Stats {
+        /// Project folder or `.ewproj` file.
+        path: PathBuf,
+        /// Print machine-readable JSON.
+        #[arg(long)]
+        json: bool,
+    },
 }
 
 #[derive(Debug, Subcommand)]

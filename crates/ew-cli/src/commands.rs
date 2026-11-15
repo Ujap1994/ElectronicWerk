@@ -94,6 +94,13 @@ pub fn run(command: Command, out: &mut impl Write) -> Outcome {
         }
         Command::Script(args) => crate::script::run(&args, out),
         Command::Schematic(command) => crate::design::schematic(command, out),
+        Command::Assembly {
+            path,
+            order,
+            first_side,
+            board,
+            json,
+        } => assembly(&path, &order, &first_side, board, json, out),
         Command::Board(command) => crate::design::board(command, out),
         Command::Rpc { events, no_journal } => {
             let stdin = io::stdin().lock();
@@ -259,6 +266,138 @@ fn rpc2_request(engine: &mut Engine, value: Value) -> Option<Value> {
             })
         }
     })
+}
+
+fn print_statistics(stats: &Value, out: &mut impl Write) -> io::Result<()> {
+    let s = &stats["schematic"];
+    writeln!(
+        out,
+        "Schematic: sheets {}, parts {}, pins {}, nets {} (named {}, with one pin {})",
+        s["sheets"], s["parts"], s["pins"], s["nets"], s["namedNets"], s["singlePinNets"]
+    )?;
+    let b = &stats["bom"];
+    writeln!(
+        out,
+        "BOM:       lines {}, parts to place {}, not populated {}, without footprint {}, without part number {}",
+        b["lines"], b["parts"], b["dnp"], b["withoutFootprint"], b["withoutPartNumber"]
+    )?;
+    for board in stats["boards"].as_array().into_iter().flatten() {
+        let size = board["size"].as_array().map_or_else(
+            || "no outline".to_owned(),
+            |s| format!("{} × {} mm", s[0], s[1]),
+        );
+        writeln!(
+            out,
+            "Board {}: {size}, {} cm², copper layers {}",
+            board["board"].as_str().unwrap_or(""),
+            board["area"],
+            board["copperLayers"]
+        )?;
+        let fp = &board["footprints"];
+        writeln!(
+            out,
+            "  footprints {} (top {}, bottom {}; SMD {}, THT {}), pads {}, vias {}",
+            fp["total"],
+            fp["top"],
+            fp["bottom"],
+            fp["smd"],
+            fp["throughHole"],
+            board["pads"]["total"],
+            board["vias"]
+        )?;
+        writeln!(
+            out,
+            "  tracks: segments {}, length {} mm; thinnest {} mm, smallest hole {} mm",
+            board["tracks"]["segments"],
+            board["tracks"]["length"],
+            board["smallest"]["track"],
+            board["smallest"]["hole"]
+        )?;
+        for drill in board["holes"]["drills"].as_array().into_iter().flatten() {
+            writeln!(
+                out,
+                "  hole {:>6} mm: {} plated, {} non-plated",
+                drill["diameter"], drill["plated"], drill["nonPlated"]
+            )?;
+        }
+        let routing = &board["routing"];
+        writeln!(
+            out,
+            "  routing {:.1} % (unrouted {} of {} connections)",
+            routing["completion"].as_f64().unwrap_or(0.0) * 100.0,
+            routing["unrouted"],
+            routing["connections"]
+        )?;
+    }
+    Ok(())
+}
+
+fn assembly(
+    path: &Path,
+    order: &str,
+    first_side: &str,
+    board: Option<String>,
+    json: bool,
+    out: &mut impl Write,
+) -> Outcome {
+    let mut engine = Engine::without_journal();
+    call(&mut engine, "project.open", json!({ "path": path }))?;
+    let mut params = json!({ "order": order, "firstSide": first_side });
+    if let Some(board) = board {
+        params["board"] = Value::String(board);
+    }
+    let plan = call(&mut engine, "assembly.plan", params)?;
+    if json {
+        print_json(out, &plan)?;
+        return Ok(ExitCode::SUCCESS);
+    }
+    let placed: std::collections::BTreeSet<&str> = plan["placed"]
+        .as_array()
+        .into_iter()
+        .flatten()
+        .filter_map(Value::as_str)
+        .collect();
+    writeln!(
+        out,
+        "{}: {} of {} parts placed",
+        plan["board"].as_str().unwrap_or(""),
+        plan["done"],
+        plan["total"]
+    )?;
+    for (index, group) in plan["groups"].as_array().into_iter().flatten().enumerate() {
+        let parts: Vec<String> = group["designators"]
+            .as_array()
+            .into_iter()
+            .flatten()
+            .filter_map(Value::as_str)
+            .map(|d| {
+                if placed.contains(d) {
+                    format!("[x] {d}")
+                } else {
+                    format!("[ ] {d}")
+                }
+            })
+            .collect();
+        writeln!(
+            out,
+            "{:>3}. {:<6} {:<12} {:<28} {}",
+            index + 1,
+            group["side"].as_str().unwrap_or(""),
+            group["value"].as_str().unwrap_or(""),
+            group["footprint"].as_str().unwrap_or(""),
+            parts.join("  ")
+        )?;
+    }
+    let dnp: Vec<&str> = plan["dnp"]
+        .as_array()
+        .into_iter()
+        .flatten()
+        .filter_map(Value::as_str)
+        .collect();
+    if !dnp.is_empty() {
+        writeln!(out, "Not populated: {}", dnp.join(", "))?;
+    }
+    Ok(ExitCode::SUCCESS)
 }
 
 fn print_findings(report: &Value, out: &mut impl Write) -> io::Result<()> {
@@ -840,6 +979,16 @@ fn project(command: ProjectCommand, out: &mut impl Write) -> Outcome {
                 },
                 ew_format::SCHEMA_VERSION
             )?;
+            Ok(ExitCode::SUCCESS)
+        }
+        ProjectCommand::Stats { path, json } => {
+            call(&mut engine, "project.open", json!({ "path": path }))?;
+            let stats = call(&mut engine, "project.statistics", Value::Null)?;
+            if json {
+                print_json(out, &stats)?;
+            } else {
+                print_statistics(&stats, out)?;
+            }
             Ok(ExitCode::SUCCESS)
         }
         ProjectCommand::Templates => {

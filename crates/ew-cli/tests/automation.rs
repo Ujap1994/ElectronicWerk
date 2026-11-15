@@ -180,6 +180,16 @@ fn designs_a_board_from_the_command_line() {
     assert_eq!(drc.status.code(), Some(0), "{text}");
     assert!(text.contains("DRC: 0 errors"), "{text}");
 
+    // Statistics and the assembly steps.
+    let stats = json_of(&["project", "stats", p, "--json"]);
+    assert_eq!(stats["schematic"]["parts"], 3);
+    assert_eq!(stats["boards"][0]["footprints"]["total"], 3);
+    assert_eq!(stats["boards"][0]["routing"]["completion"], 1.0);
+    assert!(stats["boards"][0]["tracks"]["length"].as_f64().unwrap() > 5.0);
+    let steps = ok(&["assembly", p]);
+    assert!(steps.starts_with("Blinker: 0 of 3 parts placed"), "{steps}");
+    assert!(steps.contains("[ ] C7"), "{steps}");
+
     ok(&["outputs", "run", p]);
     let written = files_in(&project.join("outputs"));
     assert!(
