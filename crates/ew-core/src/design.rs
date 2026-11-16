@@ -1421,6 +1421,7 @@ fn route(project: &Project, params: &RouteParams) -> Result<Outcome, EngineError
             let request = ew_pcb::route::Request {
                 layer: *layer,
                 net: Some(wire.net),
+                partner: None,
                 width,
                 start: V::new(start.at[0], start.at[1]),
                 target: V::new(end.at[0], end.at[1]),

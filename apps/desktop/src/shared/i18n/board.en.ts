@@ -5,6 +5,7 @@ export const boardEn = {
   cancel: 'Cancel',
   noNet: 'no net',
   routeStatus: 'Routing {net} · {width} mm · {corners}° bends',
+  pairStatus: 'Routing the pair {net} / {partner} · {width} mm, gap {gap} mm · {corners}° bends',
   layers: {
     top: 'Top copper',
     bottom: 'Bottom copper',
@@ -14,6 +15,7 @@ export const boardEn = {
     select: 'Select',
     footprint: 'Place footprint',
     route: 'Route tracks',
+    pair: 'Route differential pair',
     via: 'Place via',
     zone: 'Copper zone',
     keepout: 'Keep-out area',
@@ -26,6 +28,7 @@ export const boardEn = {
     footprint: 'Place a footprint of the project libraries.',
     route:
       'Click on a pad or track to start; the route walks around obstacles. Click to fix, V for a via, double-click to finish.',
+    pair: 'Click on a pad of a differential pair (USB_DP, TX+, …): both nets are routed together at the gap of their class. Click on a pad of the pair at the other end to finish.',
     via: 'Click to place a via; it takes the net of the copper below.',
     zone: 'Click the corners of a copper zone; double-click or Enter closes it.',
     keepout: 'Click the corners of an area where tracks, vias or copper are not allowed.',
@@ -43,6 +46,10 @@ export const boardEn = {
     text: 'Click where the text goes',
     footprint: 'Click places the footprint · R turns it',
     highlight: 'Click copper to highlight its net',
+    pair: 'Click fixes the pair · on a pad of the pair it ends there · / corner first · Backspace back · Enter or double-click ends',
+    noPartner:
+      'No differential pair here: start on a pad of a net named like USB_DP / USB_DN, TX+ / TX- or CANH / CANL, with its partner within 10 mm',
+    pairLayer: 'A pair stays on its layer: finish it, then change the layer of each net with a via',
     viaBlocked: 'No via fits here: move the end of the route',
     viaNotAllowed:
       'The design rules do not allow this via type: switch it on under Design rules → Board minimums, or choose another via type',
@@ -149,6 +156,7 @@ export const boardEn = {
       'via-type': 'Via type not allowed',
       'via-layers': 'Via layers',
       impedance: 'Impedance of a track',
+      'pair-gap': 'Gap of a differential pair',
       'hole-size': 'Hole size',
       'hole-to-hole': 'Hole to hole distance',
       'copper-to-edge': 'Copper to board edge',
@@ -183,6 +191,8 @@ export const boardEn = {
       'via-layers': 'Via on layers {layers} {problem}',
       impedance:
         'Track width {width} gives {impedance}, outside {target} Ω ± {tolerance} % ({profile}); {expected} would fit',
+      'pair-gap':
+        'Gap {actual} between the tracks of the pair {pair} differs from {expected} ({profile})',
       keepout: '{item} lies in {area}',
       'courtyard-overlap': 'The courtyards of {a} and {b} overlap',
       'silk-over-pad': '{owner} lies on {item}',

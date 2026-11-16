@@ -7,6 +7,8 @@ export const boardDe: Messages['board'] = {
   cancel: 'Abbrechen',
   noNet: 'kein Netz',
   routeStatus: 'Verlege {net} · {width} mm · {corners}°-Knicke',
+  pairStatus:
+    'Verlege das Paar {net} / {partner} · {width} mm, Abstand {gap} mm · {corners}°-Knicke',
   layers: {
     top: 'Kupfer oben',
     bottom: 'Kupfer unten',
@@ -16,6 +18,7 @@ export const boardDe: Messages['board'] = {
     select: 'Auswählen',
     footprint: 'Footprint platzieren',
     route: 'Leiterbahnen verlegen',
+    pair: 'Differenzielles Paar verlegen',
     via: 'Via setzen',
     zone: 'Kupferzone',
     keepout: 'Sperrfläche',
@@ -29,6 +32,7 @@ export const boardDe: Messages['board'] = {
     footprint: 'Platziere einen Footprint aus den Projektbibliotheken.',
     route:
       'Klicke auf ein Pad oder eine Leiterbahn, um zu beginnen; die Leiterbahn umfährt Hindernisse. Klicken legt fest, V setzt ein Via, Doppelklick beendet.',
+    pair: 'Klicke auf ein Pad eines differenziellen Paars (USB_DP, TX+, …): Beide Netze werden zusammen im Abstand ihrer Klasse verlegt. Ein Klick auf ein Pad des Paars am anderen Ende schließt ab.',
     via: 'Klicke, um ein Via zu setzen; es übernimmt das Netz des Kupfers darunter.',
     zone: 'Klicke die Ecken einer Kupferzone; Doppelklick oder Enter schließt sie.',
     keepout: 'Klicke die Ecken einer Fläche, in der Leiterbahnen, Vias oder Kupfer verboten sind.',
@@ -46,6 +50,11 @@ export const boardDe: Messages['board'] = {
     text: 'Klicke, wo der Text hin soll',
     footprint: 'Klick platziert den Footprint · R dreht ihn',
     highlight: 'Klicke auf Kupfer, um sein Netz hervorzuheben',
+    pair: 'Klick legt das Paar fest · auf einem Pad des Paars endet es dort · / Ecke zuerst · Rücktaste zurück · Enter oder Doppelklick beendet',
+    noPartner:
+      'Hier beginnt kein differenzielles Paar: Starte auf einem Pad eines Netzes wie USB_DP / USB_DN, TX+ / TX- oder CANH / CANL, dessen Partner höchstens 10 mm entfernt ist',
+    pairLayer:
+      'Ein Paar bleibt auf seiner Lage: Beende es und wechsle danach die Lage jedes Netzes mit einem Via',
     viaBlocked: 'Hier passt kein Via: Bewege das Ende der Leiterbahn',
     viaNotAllowed:
       'Die Designregeln erlauben diesen Via-Typ nicht: Schalte ihn unter Designregeln → Mindestwerte ein oder wähle einen anderen Via-Typ',
@@ -152,6 +161,7 @@ export const boardDe: Messages['board'] = {
       'via-type': 'Via-Typ nicht erlaubt',
       'via-layers': 'Lagen eines Vias',
       impedance: 'Impedanz einer Leiterbahn',
+      'pair-gap': 'Abstand eines differenziellen Paars',
       'hole-size': 'Bohrungsgröße',
       'hole-to-hole': 'Bohrungsabstand',
       'copper-to-edge': 'Kupfer zum Platinenrand',
@@ -187,6 +197,8 @@ export const boardDe: Messages['board'] = {
       'via-layers': 'Via auf den Lagen {layers} {problem}',
       impedance:
         'Leiterbahnbreite {width} ergibt {impedance}, außerhalb von {target} Ω ± {tolerance} % ({profile}); {expected} würde passen',
+      'pair-gap':
+        'Abstand {actual} zwischen den Leiterbahnen des Paars {pair} weicht von {expected} ab ({profile})',
       keepout: '{item} liegt in {area}',
       'courtyard-overlap': 'Die Courtyards von {a} und {b} überlappen sich',
       'silk-over-pad': '{owner} liegt auf {item}',

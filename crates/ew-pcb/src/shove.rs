@@ -471,6 +471,7 @@ impl Router<'_> {
         let request = Request {
             layer,
             net: line.net,
+            partner: None,
             width: line.width,
             start: points[0],
             target: points[points.len() - 1],
@@ -720,6 +721,7 @@ mod tests {
         Request {
             layer: CopperLayer::Top,
             net: Some(net),
+            partner: None,
             width: 250_000.0,
             start: V::new(0.0, 0.0),
             target,

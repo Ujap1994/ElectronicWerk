@@ -4,7 +4,7 @@
  * presets, routing, zones, updating the board from the schematic and the
  * DXF import.
  */
-import { mkdtempSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { cpSync, mkdtempSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 
@@ -273,6 +273,87 @@ test('computes impedance sizes in the beginner mode and takes them by hand in th
   await calc.press('Enter');
   await expect(page.getByTestId('calc-result')).toContainText('Ω');
   await rules.getByRole('button', { name: 'Cancel' }).click();
+});
+
+test('routes a differential pair with both tracks together', async () => {
+  launched = await launchApp();
+  const { app, page, projectsDir } = launched;
+  await page.setViewportSize({ width: 1280, height: 800 });
+  // The blinky board with /TRIG and /OUT renamed to a pair: they end on
+  // the neighbouring pins 2 and 3 of U1.
+  const copy = mkdtempSync(join(tmpdir(), 'ew-pair-'));
+  cpSync(FIXTURE, copy, { recursive: true });
+  const pcbFile = join(copy, 'blinky.kicad_pcb');
+  writeFileSync(
+    pcbFile,
+    readFileSync(pcbFile, 'utf8').replaceAll('"/TRIG"', '"SIG_P"').replaceAll('"/OUT"', '"SIG_N"'),
+  );
+  await queueDialogAnswer(app, join(copy, 'blinky.kicad_pro'));
+  await page.getByTestId('import-kicad').click();
+  await page.getByTestId('kicad-import-name').fill('Pair');
+  await page.getByTestId('kicad-import-start').click();
+  await page
+    .getByTestId('import-report')
+    .getByRole('button', { name: 'Close', exact: true })
+    .last()
+    .click();
+  const project = join(projectsDir, 'Pair');
+  await page.locator('[data-testid^="tree-doc:"]', { hasText: 'Pair' }).first().dblclick();
+  await settle(page);
+  const canvas = viewerCanvas(page);
+  interface Track {
+    start: Point;
+    end: Point;
+    net?: string;
+  }
+  const board = readBoard(project) as Board & { nets: { id: string; name: string }[] };
+  const netId = (name: string): string => board.nets.find((n) => n.name === name)?.id ?? '';
+  const before = (board.tracks ?? []) as Track[];
+
+  const u1 = board.footprints.find((f) => f.designator === 'U1');
+  const padAt = (number: string): Point => {
+    const pad = u1?.pads.find((p) => p.number === number);
+    return [(u1?.at[0] ?? 0) + (pad?.at[0] ?? 0), (u1?.at[1] ?? 0) + (pad?.at[1] ?? 0)];
+  };
+
+  // Not on a pair (pin 7, /DIS): a hint.
+  await canvas.focus();
+  await page.keyboard.press('6');
+  const [dx, dy] = await toScreen(canvas, padAt('7'));
+  await page.mouse.click(dx, dy);
+  await expect(page.getByTestId('editor-hint')).toContainText('No differential pair here');
+
+  // From U1 pin 2 (SIG_P) to free space on the left: both tracks follow.
+  const start = padAt('2');
+  const [sx, sy] = await toScreen(canvas, start);
+  await page.mouse.click(sx, sy);
+  await expect(page.getByTestId('route-status')).toContainText('Routing the pair SIG_P / SIG_N');
+  const [tx, ty] = await toScreen(canvas, [112.5 * MM, start[1] - 1.25 * MM]);
+  await page.mouse.move(tx, ty, { steps: 6 });
+  await expect
+    .poll(async () => {
+      const points = (await page.getByTestId('pair-preview').getAttribute('points')) ?? '';
+      return points.trim().split(/\s+/u).length;
+    })
+    .toBeGreaterThan(2);
+  await page.mouse.click(tx, ty);
+  await page.keyboard.press('Enter');
+  await expect(page.getByTestId('toolbar-undo')).toHaveAttribute('title', /Route/u);
+  await save(page);
+
+  const added = ((readBoard(project).tracks ?? []) as Track[]).filter(
+    (t) => !before.some((b) => sameP(b.start, t.start) && sameP(b.end, t.end)),
+  );
+  const mine = added.filter((t) => t.net === netId('SIG_P'));
+  const theirs = added.filter((t) => t.net === netId('SIG_N'));
+  expect(mine.length).toBeGreaterThan(1);
+  expect(theirs.length).toBe(mine.length);
+  // The coupled horizontal parts run side by side.
+  const level = (tracks: Track[]): number[] =>
+    tracks.filter((t) => t.start[1] === t.end[1]).map((t) => t.start[1]);
+  const gap = Math.min(...level(mine).flatMap((a) => level(theirs).map((b) => Math.abs(a - b))));
+  expect(gap).toBeGreaterThan(0.3 * MM);
+  expect(gap).toBeLessThan(1 * MM);
 });
 
 test('drags a track while its 45° neighbours keep their direction', async () => {

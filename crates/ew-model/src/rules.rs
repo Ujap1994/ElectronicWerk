@@ -342,6 +342,7 @@ pub const DRC_CHECKS: &[(&str, ErcSeverity)] = &[
     ("via-type", ErcSeverity::Error),
     ("via-layers", ErcSeverity::Error),
     ("impedance", ErcSeverity::Warning),
+    ("pair-gap", ErcSeverity::Warning),
     ("hole-size", ErcSeverity::Error),
     ("hole-to-hole", ErcSeverity::Error),
     ("copper-to-edge", ErcSeverity::Error),

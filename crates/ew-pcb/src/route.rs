@@ -53,6 +53,9 @@ pub struct Request {
     pub layer: CopperLayer,
     /// Net of the new track.
     pub net: Option<Id>,
+    /// The other net of a differential pair routed together with `net`:
+    /// its copper is no obstacle either.
+    pub partner: Option<Id>,
     /// Track width.
     pub width: f64,
     /// Start point.
@@ -443,7 +446,7 @@ impl<'a> Router<'a> {
             {
                 continue;
             }
-            if request.net.is_some() && item.net == request.net {
+            if item.net.is_some() && (item.net == request.net || item.net == request.partner) {
                 continue;
             }
             let other = item_props(&self.board, self.net(item.net), item, Some(request.layer));
@@ -823,6 +826,7 @@ mod tests {
         let request = Request {
             layer: CopperLayer::Top,
             net: start.net,
+            partner: None,
             width: start.width,
             start: V::new(0.0, 0.0),
             target: V::new(20e6, 0.0),
@@ -875,6 +879,7 @@ mod tests {
         let request = Request {
             layer: CopperLayer::Top,
             net: Some(gnd),
+            partner: None,
             width: 250_000.0,
             start: V::new(0.0, 0.0),
             target: V::new(10e6, 0.0),
@@ -900,6 +905,7 @@ mod tests {
         let base = Request {
             layer: CopperLayer::Top,
             net: Some(gnd),
+            partner: None,
             width: 250_000.0,
             start: V::new(0.0, -8e6),
             target: V::new(6e6, -14e6),

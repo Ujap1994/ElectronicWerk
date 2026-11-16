@@ -1622,6 +1622,92 @@ test('impedance', async () => {
   await close();
 });
 
+test('differential pairs', async () => {
+  test.setTimeout(180_000);
+  freshProjects();
+  // The blinky board with two nets of U1 renamed to a USB pair.
+  const kicad = '/tmp/ElectronicWerk/KiCad/usb-pair';
+  rmSync(kicad, { recursive: true, force: true });
+  cpSync(KICAD_FIXTURE, kicad, { recursive: true });
+  const pcbFile = join(kicad, 'blinky.kicad_pcb');
+  writeFileSync(
+    pcbFile,
+    readFileSync(pcbFile, 'utf8')
+      .replaceAll('"/TRIG"', '"USB_DP"')
+      .replaceAll('"/OUT"', '"USB_DN"'),
+  );
+  const { app, page, close } = await start({ settings: { theme: 'light' } });
+  await page.setViewportSize({ width: 1500, height: 900 });
+  await queueDialogAnswer(app, join(kicad, 'blinky.kicad_pro'));
+  await page.getByTestId('import-kicad').click();
+  await page.getByTestId('kicad-import-name').fill('USB');
+  await page.getByTestId('kicad-import-start').click();
+  await page
+    .getByTestId('import-report')
+    .getByRole('button', { name: 'Close', exact: true })
+    .last()
+    .click();
+  const board = readBoardJson('USB');
+  await page.locator('[data-testid^="tree-doc:"]').filter({ hasText: /^USB$/u }).dblclick();
+  await settle(page);
+  await expect(page.getByTestId('viewer')).toHaveAttribute('data-kind', 'pcb');
+
+  // A USB class: USB_DP and USB_DN, USB 2.0 impedance.
+  await page.getByTestId('board-rules').click();
+  const rules = page.getByTestId('rules-dialog');
+  await expect(page.getByTestId('class-name-0')).toHaveValue('Default');
+  const index = await page.locator('[data-testid^="class-name-"]').count();
+  await page.getByTestId('class-add').click();
+  const name = page.getByTestId(`class-name-${index.toString()}`);
+  await name.fill('USB');
+  await name.press('Enter');
+  await page.getByTestId('assignment-add').click();
+  const assignments = await page.locator('[data-testid^="assignment-pattern-"]').count();
+  const pattern = page.getByTestId(`assignment-pattern-${(assignments - 1).toString()}`);
+  await pattern.fill('USB_D?');
+  await pattern.press('Enter');
+  await page.getByTestId(`assignment-class-${(assignments - 1).toString()}`).selectOption('USB');
+  await page.getByTestId('rules-tab-impedance').click();
+  await page.getByTestId(`impedance-class-${index.toString()}`).selectOption('usb2');
+  await expect(page.getByTestId('impedance-status-0-0')).toHaveText('Computed');
+  await page.getByTestId('rules-save').click();
+  await expect(rules).toBeHidden();
+
+  // From U1 pin 2 (USB_DP) to the left, both tracks together.
+  const u1 = board.footprints.find((f) => f.designator === 'U1');
+  const pad = u1?.pads.find((p) => p.number === '2');
+  if (u1 === undefined || pad === undefined) {
+    throw new Error('no U1 in the blinky board');
+  }
+  const origin: Point = [u1.at[0] + pad.at[0], u1.at[1] + pad.at[1]];
+  const corner: Point = [origin[0] - 3.75 * MM, origin[1] + 2.5 * MM];
+  const end: Point = [origin[0] - 8.75 * MM, origin[1] + 2.5 * MM];
+  await zoomAt(page, corner, 2);
+  await viewerCanvas(page).focus();
+  await page.keyboard.press('6');
+  await clickPoint(page, origin);
+  await expect(page.getByTestId('route-status')).toContainText('USB_DP / USB_DN');
+  const [cx, cy] = await pointAt(page, corner);
+  await page.mouse.move(cx, cy, { steps: 5 });
+  await expect(page.getByTestId('pair-preview')).toHaveCount(1);
+  await settle(page);
+  await page.mouse.click(cx, cy);
+  const [ex, ey] = await pointAt(page, end);
+  await page.mouse.move(ex, ey, { steps: 5 });
+  await settle(page);
+  await shoot(page, 'pairs-routing');
+  await page.mouse.click(ex, ey);
+  await page.keyboard.press('Enter');
+  await edited(page, /Route/u);
+  await viewerCanvas(page).focus();
+  await page.keyboard.press('Escape');
+  await page.keyboard.press('Escape');
+  await page.mouse.move(10, 10);
+  await settle(page);
+  await shoot(page.locator('.viewer__area'), 'pairs-result');
+  await close();
+});
+
 // --- Manufacturing outputs (M8) ----------------------------------------------
 
 /** Every file below a folder, as paths relative to it. */

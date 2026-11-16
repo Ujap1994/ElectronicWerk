@@ -222,6 +222,39 @@ struct RouteStartParams {
     doc: Id,
     at: [f64; 2],
     layer: ew_model::layer::CopperLayer,
+    /// Also find the other net of a differential pair and where it begins.
+    #[serde(default)]
+    pair: bool,
+}
+
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+struct RoutePairParams {
+    doc: Id,
+    layer: ew_model::layer::CopperLayer,
+    net: Id,
+    partner: Id,
+    width: f64,
+    gap: f64,
+    start: [f64; 2],
+    partner_start: [f64; 2],
+    /// The centre line fixed so far.
+    #[serde(default)]
+    centre: Vec<[f64; 2]>,
+    target: [f64; 2],
+    #[serde(default)]
+    diagonal_first: bool,
+    #[serde(default)]
+    corners: ew_pcb::route::Corners,
+}
+
+/// The tracks of the other net of a differential pair, added together with
+/// the route.
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+struct PairTracks {
+    net: Id,
+    segments: Vec<Segment>,
 }
 
 #[derive(Deserialize)]
@@ -339,6 +372,9 @@ struct AddTracksParams {
     /// The bends the pushed tracks may have (default `"45"`).
     #[serde(default)]
     corners: ew_pcb::route::Corners,
+    /// The other net of a differential pair with its own segments.
+    #[serde(default)]
+    pair: Option<PairTracks>,
 }
 
 #[derive(Deserialize)]
@@ -776,7 +812,58 @@ pub fn call(
             let pcb = board(project, params.doc)?;
             let router = ew_pcb::route::Router::new(pcb, rules(project).map(|(_, r)| r));
             let start = router.start(V::new(params.at[0], params.at[1]), params.layer);
-            Ok(Outcome::Read(to_value(&start)?))
+            let mut value = to_value(&start)?;
+            if params.pair {
+                let partner = start
+                    .net
+                    .and_then(|net| ew_pcb::pairs::partner(pcb, net))
+                    .and_then(|partner| {
+                        let at = ew_pcb::pairs::partner_start(
+                            &router,
+                            partner,
+                            V::new(start.at[0], start.at[1]),
+                            params.layer,
+                        )?;
+                        let name = pcb.nets.get(partner)?.name.clone();
+                        Some(json!({"net": partner, "netName": name, "at": [at.x, at.y]}))
+                    });
+                if let Some(map) = value.as_object_mut() {
+                    map.insert("partner".into(), partner.unwrap_or(Value::Null));
+                }
+            }
+            Ok(Outcome::Read(value))
+        }
+        "pcb.routePair" => {
+            let params: RoutePairParams = parse(params)?;
+            let pcb = board(project, params.doc)?;
+            if params.width <= 0.0 || params.gap <= 0.0 {
+                return Err(EngineError::invalid_params(
+                    "the width and the gap must be positive",
+                ));
+            }
+            let router = ew_pcb::route::Router::new(pcb, rules(project).map(|(_, r)| r));
+            let request = ew_pcb::pairs::PairRequest {
+                layer: params.layer,
+                net: params.net,
+                partner: params.partner,
+                width: params.width,
+                gap: params.gap,
+                start: V::new(params.start[0], params.start[1]),
+                partner_start: V::new(params.partner_start[0], params.partner_start[1]),
+                centre: params.centre.iter().map(|p| V::new(p[0], p[1])).collect(),
+                target: V::new(params.target[0], params.target[1]),
+                diagonal_first: params.diagonal_first,
+                corners: params.corners,
+            };
+            Ok(Outcome::Read(to_value(&router.route_pair(&request))?))
+        }
+        "pcb.pairs" => {
+            let params: DocParams = parse(params)?;
+            let doc = params
+                .doc
+                .ok_or_else(|| EngineError::invalid_params("missing doc"))?;
+            let pcb = board(project, doc)?;
+            Ok(Outcome::Read(pair_table(pcb)))
         }
         "pcb.route" => {
             let params: RouteParams = parse(params)?;
@@ -785,6 +872,7 @@ pub fn call(
             let request = ew_pcb::route::Request {
                 layer: params.layer,
                 net: params.net,
+                partner: None,
                 width: params.width,
                 start: V::new(params.start[0], params.start[1]),
                 target: V::new(params.target[0], params.target[1]),
@@ -879,9 +967,19 @@ pub fn call(
             {
                 return Err(EngineError::not_found(format!("no net {net}")));
             }
+            if let Some(pair) = &params.pair
+                && pcb.nets.get(pair.net).is_none()
+            {
+                return Err(EngineError::not_found(format!("no net {}", pair.net)));
+            }
             let mut requests = Vec::new();
             let mut select = Vec::new();
-            for segment in &params.segments {
+            let own = params.segments.iter().map(|s| (params.net, s));
+            let partner = params
+                .pair
+                .iter()
+                .flat_map(|pair| pair.segments.iter().map(|s| (Some(pair.net), s)));
+            for (net, segment) in own.chain(partner) {
                 if !pcb
                     .stackup
                     .has_layer(ew_model::layer::Layer::Copper(segment.layer))
@@ -898,7 +996,7 @@ pub fn call(
                     let track = ew_model::pcb::Track {
                         id: Id::random(),
                         layer: segment.layer,
-                        net: params.net,
+                        net,
                         width: segment.width.unwrap_or(params.width),
                         start: pair[0],
                         end: pair[1],
@@ -1493,6 +1591,33 @@ fn impedance_table(pcb: &Pcb, rules: Option<&Rules>) -> Value {
         "layers": structures,
         "profiles": profiles,
     })
+}
+
+/// The differential pairs of a board with the routed length of both nets
+/// and their difference (skew), in nm.
+#[allow(clippy::cast_precision_loss, reason = "board lengths fit f64")]
+fn pair_table(pcb: &Pcb) -> Value {
+    let length = |net: Id| -> f64 {
+        pcb.tracks
+            .iter()
+            .filter(|t| t.net == Some(net))
+            .map(|t| V::of(t.start).dist(V::of(t.end)))
+            .sum()
+    };
+    let name = |net: Id| pcb.nets.get(net).map_or(String::new(), |n| n.name.clone());
+    let pairs: Vec<Value> = ew_pcb::pairs::pairs(pcb)
+        .into_iter()
+        .map(|pair| {
+            let (p, n) = (length(pair.positive), length(pair.negative));
+            json!({
+                "name": pair.name,
+                "positive": {"net": pair.positive, "name": name(pair.positive), "length": p},
+                "negative": {"net": pair.negative, "name": name(pair.negative), "length": n},
+                "skew": (p - n).abs(),
+            })
+        })
+        .collect();
+    json!({ "pairs": pairs })
 }
 
 /// The copper of a route that pushes in push-and-shove mode: its segments

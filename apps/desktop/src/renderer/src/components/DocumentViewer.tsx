@@ -125,11 +125,19 @@ function BoardStatus({ editor }: { readonly editor: BoardEditor }): ReactNode {
       )}
       {route !== null && (
         <span className="viewer__hint" data-testid="route-status">
-          {t('board.routeStatus', {
-            net: route.netName === '' ? t('board.noNet') : route.netName,
-            width: (route.width / 1e6).toFixed(3),
-            corners: routingCorners.get(),
-          })}
+          {route.pair === null
+            ? t('board.routeStatus', {
+                net: route.netName === '' ? t('board.noNet') : route.netName,
+                width: (route.width / 1e6).toFixed(3),
+                corners: routingCorners.get(),
+              })
+            : t('board.pairStatus', {
+                net: route.netName,
+                partner: route.pair.netName,
+                width: (route.width / 1e6).toFixed(3),
+                gap: (route.pair.gap / 1e6).toFixed(3),
+                corners: routingCorners.get(),
+              })}
         </span>
       )}
       {state.net !== null && route === null && (

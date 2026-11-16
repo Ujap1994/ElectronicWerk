@@ -29,6 +29,7 @@ pub mod fill;
 pub mod geom;
 pub mod impedance;
 pub mod items;
+pub mod pairs;
 pub mod panel;
 pub mod poly;
 pub mod presets;

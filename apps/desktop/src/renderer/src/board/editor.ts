@@ -15,7 +15,16 @@ import { routingCorners, routingMode, routingVia } from './stores';
 export type Point = readonly [number, number];
 
 export type BoardTool =
-  'select' | 'route' | 'via' | 'zone' | 'keepout' | 'outline' | 'text' | 'footprint' | 'highlight';
+  | 'select'
+  | 'route'
+  | 'pair'
+  | 'via'
+  | 'zone'
+  | 'keepout'
+  | 'outline'
+  | 'text'
+  | 'footprint'
+  | 'highlight';
 
 /** The via type the router places when it changes layers. */
 export type ViaChoice = 'through' | 'blind' | 'micro';
@@ -45,6 +54,32 @@ export interface RouteVia {
 }
 
 /** A route being drawn. */
+/** The other net of a differential pair routed together with the route's net. */
+export interface PairState {
+  readonly net: string;
+  readonly netName: string;
+  /** Where the partner begins. */
+  readonly start: Point;
+  /** Gap between both tracks (edge to edge). */
+  readonly gap: number;
+  /** The centre line fixed so far. */
+  readonly centre: readonly Point[];
+  /** The centre line of the live preview. */
+  readonly live: readonly Point[];
+  /** The partner's track of the live preview (the fixed part included). */
+  readonly preview: readonly Point[];
+  /** Both tracks of the fixed centre line. */
+  readonly fixed: { readonly mine: readonly Point[]; readonly theirs: readonly Point[] };
+  /** Earlier fixed states, for Backspace. */
+  readonly history: readonly {
+    readonly centre: readonly Point[];
+    readonly mine: readonly Point[];
+    readonly theirs: readonly Point[];
+  }[];
+  /** The live preview ends on the pads at the target. */
+  readonly landed: boolean;
+}
+
 export interface RouteState {
   readonly net: string | null;
   readonly netName: string;
@@ -78,6 +113,8 @@ export interface RouteState {
   readonly preview: readonly Point[];
   readonly reached: boolean;
   readonly viaFits: boolean;
+  /** A differential pair: the other net, routed together. */
+  readonly pair: PairState | null;
 }
 
 export interface BoardSnapshot {
@@ -144,6 +181,18 @@ interface StartReply {
   readonly previous?: Point | null;
   /** An impedance profile's track width on every copper layer. */
   readonly layerWidths?: Readonly<Record<string, number>>;
+  readonly pairWidth?: number;
+  readonly pairGap?: number;
+  /** With `pair`: the other net of the differential pair and where it begins. */
+  readonly partner?: { readonly net: string; readonly netName: string; readonly at: Point } | null;
+}
+
+interface PairReply {
+  readonly centre: readonly Point[];
+  readonly points: readonly Point[];
+  readonly partner: readonly Point[];
+  readonly reached: boolean;
+  readonly landed: boolean;
 }
 
 interface RouteReply {
@@ -162,6 +211,7 @@ const DRAG_THRESHOLD_PX = 4;
 const HINTS: Readonly<Record<BoardTool, MessageKey>> = {
   select: 'board.hints.select',
   route: 'board.hints.route',
+  pair: 'board.hints.pair',
   via: 'board.hints.via',
   zone: 'board.hints.zone',
   keepout: 'board.hints.zone',
@@ -603,15 +653,28 @@ export class BoardEditor implements Interaction {
 
   private startRoute(point: Point): void {
     const layer = this.state.layer;
+    const pair = this.state.tool === 'pair';
     this.host
-      .call<StartReply>('pcb.routeStart', { doc: this.host.doc, at: rounded(point), layer })
+      .call<StartReply>('pcb.routeStart', {
+        doc: this.host.doc,
+        at: rounded(point),
+        layer,
+        ...(pair ? { pair: true } : {}),
+      })
       .then((start) => {
         const at = rounded(start.at);
+        const partner = start.partner ?? null;
+        if (pair && (partner === null || start.net === null)) {
+          this.update({ hint: 'board.hints.noPartner' });
+          return;
+        }
+        const pairWidth = start.pairWidth ?? start.width;
         this.update({
+          hint: HINTS[this.state.tool],
           route: {
             net: start.net,
             netName: start.netName,
-            width: start.width,
+            width: pair ? pairWidth : start.width,
             viaDiameter: start.viaDiameter,
             viaDrill: start.viaDrill,
             microViaDiameter: start.microViaDiameter ?? start.viaDiameter,
@@ -626,6 +689,21 @@ export class BoardEditor implements Interaction {
             preview: [at],
             reached: true,
             viaFits: true,
+            pair:
+              pair && partner !== null
+                ? {
+                    net: partner.net,
+                    netName: partner.netName,
+                    start: rounded(partner.at),
+                    gap: start.pairGap ?? pairWidth,
+                    centre: [],
+                    live: [],
+                    preview: [rounded(partner.at)],
+                    fixed: { mine: [], theirs: [] },
+                    history: [],
+                    landed: false,
+                  }
+                : null,
           },
         });
         if (start.netName !== '') {
@@ -644,7 +722,9 @@ export class BoardEditor implements Interaction {
     const obj = this.controller.pickAtPoint(point);
     if (route !== null && scene !== null && obj !== null) {
       const type = scene.typeOf(obj);
-      if ((type === 'pad' || type === 'via') && scene.netOf(obj) === route.netName) {
+      const net = scene.netOf(obj);
+      const ours = net === route.netName || (route.pair !== null && net === route.pair.netName);
+      if ((type === 'pad' || type === 'via') && ours) {
         const [x0, y0, x1, y1] = scene.box(obj);
         const [ox, oy] = scene.meta.origin;
         return rounded([(x0 + x1) / 2 + ox, (y0 + y1) / 2 + oy]);
@@ -685,6 +765,10 @@ export class BoardEditor implements Interaction {
       return;
     }
     this.routing = true;
+    if (route.pair !== null) {
+      this.requestPairRoute(route, route.pair, target);
+      return;
+    }
     const asked = route;
     const shove = routingMode.get() === 'shove';
     this.host
@@ -739,6 +823,56 @@ export class BoardEditor implements Interaction {
       });
   }
 
+  /** The preview of a differential pair: both tracks routed together. */
+  private requestPairRoute(route: RouteState, pair: PairState, target: Point): void {
+    this.host
+      .call<PairReply>('pcb.routePair', {
+        doc: this.host.doc,
+        layer: route.layer,
+        net: route.net,
+        partner: pair.net,
+        width: route.width,
+        gap: pair.gap,
+        start: route.start,
+        partnerStart: pair.start,
+        centre: pair.centre,
+        target,
+        diagonalFirst: this.state.diagonal,
+        corners: routingCorners.get(),
+      })
+      .then((reply) => {
+        const current = this.state.route;
+        if (current?.pair === undefined || current.pair === null) {
+          return;
+        }
+        if (current.pair.centre !== pair.centre) {
+          return;
+        }
+        this.update({
+          route: {
+            ...current,
+            preview: dedupe(reply.points.map(rounded)),
+            reached: reply.reached,
+            pair: {
+              ...current.pair,
+              live: reply.centre.map(rounded),
+              preview: dedupe(reply.partner.map(rounded)),
+              landed: reply.landed,
+            },
+          },
+        });
+      })
+      .catch(() => undefined)
+      .finally(() => {
+        this.routing = false;
+        const next = this.pendingTarget;
+        this.pendingTarget = null;
+        if (next !== null) {
+          this.requestRoute(next);
+        }
+      });
+  }
+
   /** Asks for a new preview (after the corner mode changed). */
   refreshRoute(): void {
     if (this.state.route !== null && this.pointer !== null) {
@@ -751,6 +885,23 @@ export class BoardEditor implements Interaction {
     const route = this.state.route;
     if (route === null) {
       return null;
+    }
+    const pair = route.pair;
+    if (pair !== null) {
+      if (pair.live.length <= pair.centre.length || route.preview.length < 2) {
+        return route;
+      }
+      const fixed: RouteState = {
+        ...route,
+        pair: {
+          ...pair,
+          history: [...pair.history, { centre: pair.centre, ...pair.fixed }],
+          centre: pair.live,
+          fixed: { mine: route.preview, theirs: pair.preview },
+        },
+      };
+      this.update({ route: fixed });
+      return fixed;
     }
     const points = dedupe(route.preview);
     if (points.length < 2) {
@@ -772,6 +923,11 @@ export class BoardEditor implements Interaction {
    * continues on `layer`.
    */
   private switchRouteLayer(layer: string): void {
+    const current = this.state.route;
+    if (current !== null && current.pair !== null) {
+      this.update({ hint: 'board.hints.pairLayer' });
+      return;
+    }
     const route = this.fixPreview();
     if (route === null || layer === route.layer) {
       return;
@@ -854,6 +1010,18 @@ export class BoardEditor implements Interaction {
       return;
     }
     this.update({ route: null, preview: null });
+    const pair = route.pair;
+    if (pair !== null) {
+      if (pair.fixed.mine.length >= 2 && pair.fixed.theirs.length >= 2) {
+        void this.edit('pcb.addTracks', {
+          net: route.net,
+          width: Math.round(route.width),
+          segments: [{ layer: route.layer, points: pair.fixed.mine }],
+          pair: { net: pair.net, segments: [{ layer: route.layer, points: pair.fixed.theirs }] },
+        });
+      }
+      return;
+    }
     if (route.fixed.length === 0 && route.vias.length === 0) {
       this.controller.setPreviewHidden([]);
       return;
@@ -881,6 +1049,33 @@ export class BoardEditor implements Interaction {
   private undoSegment(): void {
     const route = this.state.route;
     if (route === null) {
+      return;
+    }
+    const pair = route.pair;
+    if (pair !== null) {
+      const last = pair.history.at(-1);
+      if (last === undefined) {
+        this.update({ route: null, preview: null });
+        return;
+      }
+      this.update({
+        route: {
+          ...route,
+          preview: last.mine.length > 0 ? last.mine : [route.start],
+          pair: {
+            ...pair,
+            history: pair.history.slice(0, -1),
+            centre: last.centre,
+            live: last.centre,
+            fixed: { mine: last.mine, theirs: last.theirs },
+            preview: last.theirs.length > 0 ? last.theirs : [pair.start],
+            landed: false,
+          },
+        },
+      });
+      if (this.pointer !== null) {
+        this.requestRoute(this.routeTarget(this.pointer));
+      }
       return;
     }
     const last = route.fixed.at(-1);
@@ -1002,13 +1197,19 @@ export class BoardEditor implements Interaction {
         this.press = { start: p, screen: this.controller.screenOf(point), moving: false };
         return true;
       }
-      case 'route': {
+      case 'route':
+      case 'pair': {
         const route = this.state.route;
         if (route === null) {
           this.startRoute(point);
           return true;
         }
         const fixed = this.fixPreview();
+        // A pair that ends on the pads at the target is complete.
+        if (fixed?.pair?.landed === true) {
+          this.finishRoute();
+          return true;
+        }
         // A click on copper of the route's net ends the route.
         const obj = this.controller.pickAtPoint(point);
         const scene = this.controller.currentScene;
@@ -1129,6 +1330,7 @@ export class BoardEditor implements Interaction {
   doubleClick(point: Point): void {
     switch (this.state.tool) {
       case 'route':
+      case 'pair':
         this.finishRoute();
         return;
       case 'zone':
@@ -1273,6 +1475,8 @@ export class BoardEditor implements Interaction {
     switch (key) {
       case 'x':
         return 'route';
+      case '6':
+        return 'pair';
       case 'z':
         return 'zone';
       case 'k':

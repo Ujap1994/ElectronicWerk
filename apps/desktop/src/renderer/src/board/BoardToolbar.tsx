@@ -88,6 +88,7 @@ const TOOLS: readonly ToolSpec[] = [
   { tool: 'select', icon: 'pointer', key: 'Esc' },
   { tool: 'footprint', icon: 'chip', key: 'A' },
   { tool: 'route', icon: 'track', key: 'X' },
+  { tool: 'pair', icon: 'pair', key: '6' },
   { tool: 'via', icon: 'via', key: 'V' },
   { tool: 'zone', icon: 'zone', key: 'Z' },
   { tool: 'keepout', icon: 'keepout', key: 'K' },

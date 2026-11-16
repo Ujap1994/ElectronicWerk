@@ -122,6 +122,7 @@ pub const LOCAL_CODES: &[&str] = &[
     "via-type",
     "via-layers",
     "impedance",
+    "pair-gap",
     "hole-size",
     "hole-to-hole",
     "copper-to-edge",
@@ -403,6 +404,7 @@ pub fn check(pcb: &Pcb, rules: Option<&Rules>, options: &Options) -> Report {
     widths_and_holes(&mut ctx, &in_region);
     via_types(&mut ctx, &in_region);
     impedances(&mut ctx, &in_region);
+    pair_gaps(&mut ctx, &in_region);
     hole_spacing(&mut ctx, &in_region);
     edges_and_outline(&mut ctx, &in_region);
     keepouts(&mut ctx, &in_region);
@@ -720,6 +722,108 @@ fn impedances(ctx: &mut Context<'_>, in_region: &Region<'_>) {
             message,
             at,
             vec![Target::of(item)],
+            Detail {
+                args,
+                layer: Some(layer),
+            },
+        );
+    }
+}
+
+/// Differential pairs whose net class follows a differential impedance
+/// profile: the gap between their coupled (parallel, side by side) tracks
+/// is the profile's gap on that layer, within 10 % (at least 10 µm).
+#[allow(clippy::cast_precision_loss, reason = "board lengths fit f64")]
+fn pair_gaps(ctx: &mut Context<'_>, in_region: &Region<'_>) {
+    let pcb = ctx.board.pcb;
+    let mut found = Vec::new();
+    for pair in crate::pairs::pairs(pcb) {
+        let class_name = ctx.net(Some(pair.positive)).class.clone();
+        let Some(profile) = ctx
+            .rules
+            .profile(&class_name)
+            .filter(|profile| profile.differential)
+        else {
+            continue;
+        };
+        let class = ctx.rules.class(&class_name);
+        let min_gap = ctx.rules.constraints.min_clearance.max(class.clearance) as f64;
+        let straight = |net: Id| {
+            pcb.tracks
+                .iter()
+                .filter(move |t| t.net == Some(net) && t.mid.is_none() && t.start != t.end)
+        };
+        for p in straight(pair.positive) {
+            for n in straight(pair.negative).filter(|n| n.layer == p.layer) {
+                let (a, b) = (V::of(p.start), V::of(p.end));
+                let (c, d) = (V::of(n.start), V::of(n.end));
+                let dir = b.sub(a).unit();
+                if dir.cross(d.sub(c).unit()).abs() > 0.01 {
+                    continue;
+                }
+                let Some(layout) = crate::impedance::layout(
+                    profile,
+                    &pcb.stackup,
+                    p.layer,
+                    ctx.rules.constraints.min_track_width as f64,
+                    min_gap,
+                ) else {
+                    continue;
+                };
+                let expected = layout.gap;
+                // Where both run side by side.
+                let (s0, s1) = (c.sub(a).dot(dir), d.sub(a).dot(dir));
+                let lo = s0.min(s1).max(0.0);
+                let hi = s0.max(s1).min(b.dist(a));
+                let width = (p.width + n.width) as f64 / 2.0;
+                if hi - lo < expected + width {
+                    continue;
+                }
+                let normal = V::new(-dir.y, dir.x);
+                let gap = c.sub(a).dot(normal).abs() - width;
+                // Tracks further apart are not coupled (they lead to their pads).
+                if gap > 3.0 * (expected + width) {
+                    continue;
+                }
+                if (gap - expected).abs() <= (expected * 0.1).max(10_000.0) {
+                    continue;
+                }
+                let at = a
+                    .add(dir.scale(f64::midpoint(lo, hi)))
+                    .add(normal.scale(c.sub(a).dot(normal) / 2.0));
+                if !in_region(BBox::of(at)) {
+                    continue;
+                }
+                found.push((
+                    format!(
+                        "Gap {} between the tracks of the pair {} differs from {} ({})",
+                        mm(gap),
+                        pair.name,
+                        mm(expected),
+                        profile.name
+                    ),
+                    at,
+                    vec![
+                        Target::of(ItemRef::Track { id: p.id }),
+                        Target::of(ItemRef::Track { id: n.id }),
+                    ],
+                    vec![
+                        ("actual", mm(gap)),
+                        ("expected", mm(expected)),
+                        ("pair", pair.name.clone()),
+                        ("profile", profile.name.clone()),
+                    ],
+                    p.layer,
+                ));
+            }
+        }
+    }
+    for (message, at, targets, args, layer) in found {
+        ctx.report(
+            "pair-gap",
+            message,
+            at,
+            targets,
             Detail {
                 args,
                 layer: Some(layer),

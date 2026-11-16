@@ -159,6 +159,19 @@ export function BoardOverlay({
         />,
       );
     }
+    // The other track of a differential pair.
+    if (route.pair !== null && route.pair.preview.length >= 2) {
+      elements.push(
+        <polyline
+          key="pair"
+          className={`board-preview board-preview--live ${layerClass(route.layer)}`}
+          data-reached={route.reached}
+          strokeWidth={Math.max(1, route.width * scale)}
+          points={line(route.pair.preview)}
+          data-testid="pair-preview"
+        />,
+      );
+    }
     for (const [index, via] of route.vias.entries()) {
       const [x, y] = screen(via.at);
       elements.push(

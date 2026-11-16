@@ -308,7 +308,7 @@ pub const SUMMARIES: &[(&str, &str)] = &[
     ),
     (
         "pcb.addTracks",
-        "`{\"doc\", \"net\", \"width\", \"segments\": [{\"layer\", \"points\"}], \"vias\": [{\"at\", \"diameter\", \"drill\", \"from\"?, \"to\"?, \"micro\"?}]}` (`route`): puts routed tracks and vias into the board as one step. Vias go through the board unless `from`/`to` name their first and last layer; `mode: \"shove\"` pushes the tracks of other nets aside in the same step.",
+        "`{\"doc\", \"net\", \"width\", \"segments\": [{\"layer\", \"points\", \"width\"?}], \"vias\": [{\"at\", \"diameter\", \"drill\", \"from\"?, \"to\"?, \"micro\"?}], \"pair\"?: {\"net\", \"segments\"}}` (`route`): puts routed tracks and vias into the board as one step. Vias go through the board unless `from`/`to` name their first and last layer; `mode: \"shove\"` pushes the tracks of other nets aside in the same step; `pair` adds the tracks of the other net of a differential pair in the same step.",
     ),
     (
         "pcb.applyPreset",
@@ -379,6 +379,10 @@ pub const SUMMARIES: &[(&str, &str)] = &[
         "`{\"doc\", \"path\"}` (`import-session`) → `{\"tracks\", \"vias\", \"removedTracks\", \"removedVias\", \"unknownNets\", \"unknownLayers\"}`: reads an autorouter's Specctra session (SES); the routing of each net in it replaces the unlocked tracks and vias of that net, in one undo step.",
     ),
     (
+        "pcb.pairs",
+        "`{\"doc\"}` → `{\"pairs\": [{\"name\", \"positive\", \"negative\", \"skew\"}]}`: the differential pairs of the board, found by their net names (`USB_DP`/`USB_DN`, `TX+`/`TX-`, `CANH`/`CANL`), with the routed track length of each net and their difference in nm.",
+    ),
+    (
         "pcb.place",
         "`{\"doc\", \"footprint\": \"SOIC-8\", \"at\", \"rotation\"?, \"side\"?, \"designator\"?, \"value\"?}` (`place-footprint`). Places a footprint of the project libraries. Without a designator it gets the next free `X<n>`.",
     ),
@@ -395,8 +399,12 @@ pub const SUMMARIES: &[(&str, &str)] = &[
         "`{\"doc\", \"layer\", \"net\", \"width\", \"start\", \"target\", \"corners\"?, \"previous\"?, \"via\"?, \"viaLayers\"?, \"mode\"?, \"fixed\"?, \"vias\"?}` → `{\"points\", \"reached\", \"viaFits\"?, \"shove\"?}`: the path from `start` towards `target` around other nets, or with `mode: \"shove\"` the direct path and the tracks it pushes aside; changes nothing.",
     ),
     (
+        "pcb.routePair",
+        "`{\"doc\", \"layer\", \"net\", \"partner\", \"width\", \"gap\", \"start\", \"partnerStart\", \"centre\"?, \"target\", \"diagonalFirst\"?, \"corners\"?}` → `{\"centre\", \"points\", \"partner\", \"reached\", \"landed\"}`: a differential pair routed together from both starts (and the centre line fixed so far) towards `target`, with both tracks at `gap`; a target on a pad of either net ends both tracks on the pads there (`landed`); changes nothing.",
+    ),
+    (
         "pcb.routeStart",
-        "`{\"doc\", \"at\", \"layer\"}` → `{\"at\", \"net\", \"netName\", \"width\", \"viaDiameter\", \"viaDrill\", \"microViaDiameter\", \"microViaDrill\", \"viaTypes\", \"clearance\", \"previous\"}`: where a route that begins at `at` starts and the sizes and via types from the rules.",
+        "`{\"doc\", \"at\", \"layer\", \"pair\"?}` → `{\"at\", \"net\", \"netName\", \"width\", \"viaDiameter\", \"viaDrill\", \"microViaDiameter\", \"microViaDrill\", \"viaTypes\", \"pairWidth\", \"pairGap\", \"profile\"?, \"impedance\"?, \"layerWidths\"?, \"clearance\", \"previous\", \"partner\"?}`: where a route that begins at `at` starts and the sizes and via types from the rules; with `pair` also the other net of its differential pair and where that begins (`partner`: `{\"net\", \"netName\", \"at\"}` or `null`).",
     ),
     (
         "pcb.rules",
