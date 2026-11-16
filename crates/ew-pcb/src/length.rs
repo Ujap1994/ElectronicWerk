@@ -11,7 +11,7 @@
 //! have 45° corners and parallel legs `spacing` apart (centre to centre);
 //! their height is chosen so the net gets exactly the length it needs.
 
-use std::collections::BTreeSet;
+use std::collections::{BTreeSet, HashMap};
 
 use ew_model::id::Id;
 use ew_model::pcb::{Pcb, Track};
@@ -117,15 +117,22 @@ pub fn group_nets(pcb: &Pcb, group: &ew_model::rules::LengthGroup) -> Vec<Id> {
 #[must_use]
 #[allow(clippy::cast_precision_loss, reason = "board lengths fit f64")]
 pub fn report(pcb: &Pcb, rules: &RuleSet) -> Report {
+    // Every net's length in one pass over the tracks.
+    let mut lengths: HashMap<Id, f64> = HashMap::new();
+    for track in &pcb.tracks {
+        if let Some(net) = track.net {
+            *lengths.entry(net).or_default() += track_length(track);
+        }
+    }
     let entry = |net: Id| NetLength {
         net,
         name: pcb
             .nets
             .get(net)
             .map_or_else(String::new, |n| n.name.clone()),
-        length: net_length(pcb, net),
+        length: lengths.get(&net).copied().unwrap_or(0.0),
     };
-    let routed: BTreeSet<Id> = pcb.tracks.iter().filter_map(|t| t.net).collect();
+    let routed: BTreeSet<Id> = lengths.keys().copied().collect();
     let mut nets: Vec<NetLength> = routed.into_iter().map(entry).collect();
     nets.sort_by(|a, b| a.name.cmp(&b.name));
     let pairs = crate::pairs::pairs(pcb)
@@ -174,6 +181,18 @@ pub fn report(pcb: &Pcb, rules: &RuleSet) -> Report {
         pairs,
         groups,
     }
+}
+
+/// `true` if the rules check lengths on this board at all: a length
+/// group, or a differential pair whose class limits its skew.
+#[must_use]
+pub fn has_rules(pcb: &Pcb, rules: &RuleSet) -> bool {
+    !rules.length_groups.is_empty()
+        || crate::pairs::pairs(pcb).iter().any(|pair| {
+            pcb.nets
+                .get(pair.positive)
+                .is_some_and(|n| rules.class(&rules.class_name(&n.name, &n.class)).max_skew > 0)
+        })
 }
 
 /// To which side of a track meanders go (seen along the track).

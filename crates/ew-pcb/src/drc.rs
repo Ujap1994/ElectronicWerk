@@ -838,6 +838,9 @@ fn pair_gaps(ctx: &mut Context<'_>, in_region: &Region<'_>) {
 #[allow(clippy::cast_precision_loss, reason = "board lengths fit f64")]
 fn lengths(ctx: &mut Context<'_>) {
     let pcb = ctx.board.pcb;
+    if !crate::length::has_rules(pcb, &ctx.rules) {
+        return;
+    }
     let report = crate::length::report(pcb, &ctx.rules);
     let place = |net: Id| -> Option<(V, Target, CopperLayer)> {
         pcb.tracks
