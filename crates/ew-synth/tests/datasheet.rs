@@ -149,3 +149,33 @@ fn recognises_the_ew4410() {
         Some(5.0)
     );
 }
+
+#[test]
+fn generates_parts_that_pass_the_library_checks() {
+    use ew_datasheet::part::{PartOptions, generate};
+    use ew_libedit::check::{Severity, check_footprint, check_symbol};
+    for (pdf, packages) in [
+        (ew7021(), vec!["SOIC-8", "MSOP-8", "DFN-8"]),
+        (ew4410(), vec!["QFN-32", "LQFP-32"]),
+    ] {
+        let draft = recognize(&read(pdf).unwrap_or_else(|e| panic!("{e}")));
+        for package in packages {
+            let part = generate(&draft, package, &PartOptions::default())
+                .unwrap_or_else(|e| panic!("{package}: {e}"));
+            assert!(part.warnings.is_empty(), "{package}: {:?}", part.warnings);
+            let errors: Vec<String> = check_footprint(&part.footprint)
+                .into_iter()
+                .chain(check_symbol(&part.symbol))
+                .filter(|f| f.severity == Severity::Error)
+                .map(|f| f.message)
+                .collect();
+            assert!(errors.is_empty(), "{package}: {errors:?}");
+            let pins: usize = part.symbol.units.iter().map(|u| u.pins.len()).sum();
+            assert_eq!(pins, part.footprint.pads.len(), "{package}");
+            assert_eq!(
+                part.component.footprint.as_deref(),
+                Some(part.footprint.name.as_str())
+            );
+        }
+    }
+}

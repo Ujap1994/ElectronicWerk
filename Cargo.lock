@@ -466,6 +466,8 @@ name = "ew-datasheet"
 version = "0.16.0"
 dependencies = [
  "aes",
+ "ew-libedit",
+ "ew-model",
  "flate2",
  "md-5",
  "serde",
@@ -623,6 +625,7 @@ name = "ew-synth"
 version = "0.16.0"
 dependencies = [
  "ew-datasheet",
+ "ew-libedit",
  "ew-model",
 ]
 

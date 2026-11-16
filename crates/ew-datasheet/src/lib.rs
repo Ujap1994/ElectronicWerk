@@ -17,6 +17,7 @@
 
 pub mod draft;
 pub mod package;
+pub mod part;
 pub mod pdf;
 pub mod recognize;
 pub mod table;

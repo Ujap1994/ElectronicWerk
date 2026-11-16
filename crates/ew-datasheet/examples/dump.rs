@@ -74,6 +74,23 @@ fn main() {
                 for n in &draft.notes {
                     println!("  note: {n}");
                 }
+                for p in &draft.packages {
+                    match ew_datasheet::part::generate(
+                        &draft,
+                        &p.name,
+                        &ew_datasheet::part::PartOptions::default(),
+                    ) {
+                        Ok(part) => println!(
+                            "  part {} → {} / {} ({} units) {:?}",
+                            p.name,
+                            part.symbol.name,
+                            part.footprint.name,
+                            part.symbol.units.len(),
+                            part.warnings
+                        ),
+                        Err(e) => println!("  part {} → error: {e}", p.name),
+                    }
+                }
                 return;
             }
             for mark in sheet.bookmarks.iter().take(60) {

@@ -34,6 +34,21 @@ pub fn recognize_named(sheet: &Datasheet, file_name: &str) -> Draft {
     if pins.is_empty()
         && let Some((figure_pins, count)) = pinout(sheet)
     {
+        // The package named in the caption above the drawing.
+        if let Some(caption) = caption_package(sheet, &figure_pins, count)
+            && !packages.iter().any(|p| p.name == caption.canonical)
+        {
+            packages.retain(|p| p.pins != 0);
+            packages.push(PackageDraft {
+                name: caption.canonical.clone(),
+                family: caption.family,
+                pins: count,
+                exposed_pad: caption.exposed_pad,
+                dimensions: BTreeMap::new(),
+                source: figure_pins.first().map(|f| f.2.clone()),
+                drawing: None,
+            });
+        }
         let names: Vec<String> = packages
             .iter()
             .filter(|p| p.pins == count || p.pins == 0)
@@ -94,6 +109,21 @@ pub fn recognize_named(sheet: &Datasheet, file_name: &str) -> Draft {
     for p in &mut packages {
         if p.family == Family::Other {
             continue;
+        }
+        // A pad numbered one above the pin count is the exposed pad.
+        let beyond = p.pins + 1;
+        if p.pins > 0
+            && matches!(
+                p.family,
+                Family::Qfn | Family::Dfn | Family::Sop | Family::Qfp
+            )
+            && pins.iter().any(|pin| {
+                pin.numbers
+                    .get(&p.name)
+                    .is_some_and(|n| n.iter().any(|x| x.parse::<u32>() == Ok(beyond)))
+            })
+        {
+            p.exposed_pad = true;
         }
         let recognised = Recognised {
             family: p.family,
@@ -176,6 +206,7 @@ fn is_part_number(token: &str) -> bool {
         && !t.chars().all(|c| c.is_ascii_digit() || c == '-')
         && package::recognise(t).is_none()
         && !t.to_ascii_uppercase().starts_with("REV")
+        && !t.to_ascii_uppercase().contains("PAGE")
 }
 
 fn clean_token(token: &str) -> String {
@@ -235,9 +266,10 @@ fn info(sheet: &Datasheet, file_name: &str, draft: &mut Draft) {
             }
         }
     }
-    if is_part_number(&stem) {
+    if stem.len() >= 3 {
         for (token, (weight, _)) in &mut counts {
-            if token.to_ascii_uppercase() == stem {
+            let upper = token.to_ascii_uppercase();
+            if upper == stem || upper.len() >= 4 && stem.starts_with(&upper) {
                 *weight += 1000;
             }
         }
@@ -517,12 +549,12 @@ pub fn infer_type(name: &str) -> PinType {
         "GND", "VSS", "AGND", "DGND", "PGND", "SGND", "V-", "VEE", "AVSS", "DVSS", "VSSA", "VSSIO",
     ]) || n == "GROUND"
         || starts(&[
-            "VCC", "VDD", "V+", "VIN", "VBAT", "AVDD", "DVDD", "VDDA", "VDDIO", "VS", "PVIN",
-            "VBUS", "VREF",
+            "AVCC", "VCCA", "DVCC", "VCC", "VDD", "V+", "VIN", "VBAT", "AVDD", "DVDD", "VDDA",
+            "VDDIO", "VS", "PVIN", "VBUS", "VREF",
         ])
     {
         PinType::PowerIn
-    } else if starts(&["EP", "PAD", "THERMAL", "EXPOSED", "POWERPAD"]) {
+    } else if starts(&["EP", "PAD", "THERMAL", "EXPOSED", "POWERPAD", "AREF"]) {
         PinType::Passive
     } else if starts(&["VOUT", "VO", "SW", "LX"]) {
         PinType::PowerOut
@@ -661,6 +693,13 @@ fn read_pin_table(t: &Table) -> Option<PinTable> {
         return None;
     }
     let upper = normalize(&all_headers);
+    let tokens: BTreeSet<&str> = upper.split([' ', '/', '\n', '.', ',']).collect();
+    let pin_word = ["PIN", "PINS", "BALL", "BALLS", "TERMINAL", "PAD", "LEAD"]
+        .iter()
+        .any(|w| tokens.contains(w));
+    if !pin_word && package::find_all(&all_headers).is_empty() {
+        return None;
+    }
     if [
         "PACKAGE SIZE",
         "BODY SIZE",
@@ -722,8 +761,20 @@ fn read_pin_table(t: &Table) -> Option<PinTable> {
         }
     }
     let name_column = roles.iter().position(|r| *r == Role::Name)?;
+    // Ball names (`A1`) only in columns about balls or BGA packages; port
+    // names such as `PB3` are not pad numbers.
+    let digits_only = |s: &str| {
+        numbers(s).is_some_and(|(n, _)| n.iter().all(|x| x.chars().all(|c| c.is_ascii_digit())))
+    };
     let number_columns: Vec<usize> = (0..t.columns)
         .filter(|c| roles[*c] == Role::Number)
+        .filter(|c| {
+            let h = normalize(&headers[*c]);
+            share(*c, &digits_only) >= 0.6
+                || h.contains("BALL")
+                || h.contains("BGA")
+                || h.contains("CSP")
+        })
         .collect();
     if number_columns.is_empty() {
         return None;
@@ -752,7 +803,11 @@ fn read_pin_table(t: &Table) -> Option<PinTable> {
                     .map(|w| clean_name(w).trim_matches(['(', ')', '.']).to_owned())
                     .filter(|w| !w.is_empty() && !generic.contains(&w.as_str()))
                     .collect();
+                let package_like = ["LCC", "LGA", "CSP", "PAK", "SIP", "ZIP", "CFP", "FLAT"]
+                    .iter()
+                    .any(|w| rest.first().is_some_and(|r| r.contains(w)));
                 if rest.len() == 1
+                    && package_like
                     && (2..=8).contains(&rest[0].len())
                     && rest[0].chars().all(|c| c.is_ascii_alphanumeric())
                 {
@@ -983,6 +1038,67 @@ fn spread_unnamed(pins: &mut [PinDraft], packages: &[PackageDraft]) {
 
 /// Pins of a two-row pinout drawing (DIP, SOIC): pad numbers 1…N/2 down
 /// the left side and N…N/2+1 down the right side, names outside.
+/// A run of numbers down a column: `first`, then +1 (or −1) per row with
+/// an even spacing; other numbers in the column are skipped.
+fn run<'a>(column: &[(&'a Word, u32)], first: u32, step: i64) -> Vec<(&'a Word, u32)> {
+    let mut sorted = column.to_vec();
+    sorted.sort_by(|a, b| a.0.bbox[1].total_cmp(&b.0.bbox[1]));
+    let Some(start) = sorted.iter().position(|(_, n)| *n == first) else {
+        return Vec::new();
+    };
+    let mut out = vec![sorted[start]];
+    let mut spacing: Option<f64> = None;
+    for item in &sorted[start + 1..] {
+        let Some(last) = out.last() else {
+            break;
+        };
+        let expected = i64::from(last.1) + step;
+        if i64::from(item.1) != expected {
+            continue;
+        }
+        let gap = item.0.bbox[1] - last.0.bbox[1];
+        if spacing.is_some_and(|s| (gap - s).abs() > 0.35 * s) {
+            break;
+        }
+        spacing.get_or_insert(gap);
+        out.push(*item);
+    }
+    out
+}
+
+/// A package named in the lines just above a pinout drawing.
+fn caption_package(sheet: &Datasheet, pins: &DrawnPins, count: u32) -> Option<Recognised> {
+    let first = pins.first()?;
+    let page = sheet.pages.get(first.2.page.checked_sub(1)?)?;
+    let boxes: Vec<Rect> = pins.iter().filter_map(|p| p.2.bbox).collect();
+    let top = boxes.iter().map(|b| b[1]).fold(f64::INFINITY, f64::min);
+    let left = boxes.iter().map(|b| b[0]).fold(f64::INFINITY, f64::min) - 120.0;
+    let right = boxes.iter().map(|b| b[2]).fold(f64::NEG_INFINITY, f64::max) + 120.0;
+    let mut lines: Vec<_> = page
+        .lines
+        .iter()
+        .filter(|l| l.angle == 0 && l.bbox[3] <= top && l.bbox[3] > top - 120.0)
+        .collect();
+    lines.sort_by(|a, b| b.bbox[3].total_cmp(&a.bbox[3]));
+    for line in lines {
+        for w in line
+            .words
+            .iter()
+            .filter(|w| w.bbox[2] > left && w.bbox[0] < right)
+        {
+            if let Some(mut r) = package::recognise(&w.text)
+                && r.pins.is_none_or(|n| n == count)
+            {
+                r.pins = Some(count);
+                let base = r.canonical.split('-').next().unwrap_or("").to_owned();
+                r.canonical = format!("{base}-{count}");
+                return Some(r);
+            }
+        }
+    }
+    None
+}
+
 /// Pins of a drawing: name, pad number and where the number is.
 type DrawnPins = Vec<(String, String, Source)>;
 
@@ -991,7 +1107,7 @@ type DrawnPins = Vec<(String, String, Source)>;
     reason = "columns, labels and checks of one drawing"
 )]
 fn pinout(sheet: &Datasheet) -> Option<(DrawnPins, u32)> {
-    for page in sheet.pages.iter().take(6) {
+    for page in sheet.pages.iter().take(40) {
         let text = normalize(
             &page
                 .lines
@@ -1036,22 +1152,17 @@ fn pinout(sheet: &Datasheet) -> Option<(DrawnPins, u32)> {
             }
         }
         for left in &columns {
-            let mut l = left.clone();
-            l.sort_by(|a, b| a.0.bbox[1].total_cmp(&b.0.bbox[1]));
+            let l = run(left, 1, 1);
             let half = l.len() as u32;
-            if half < 2 || l.iter().enumerate().any(|(i, (_, n))| *n != i as u32 + 1) {
+            if half < 2 {
                 continue;
             }
             let total = half * 2;
-            let Some(right) = columns.iter().find(|c| {
-                let mut r = (*c).clone();
-                r.sort_by(|a, b| a.0.bbox[1].total_cmp(&b.0.bbox[1]));
-                r.len() as u32 == half
-                    && r.iter()
-                        .enumerate()
-                        .all(|(i, (_, n))| *n == total - i as u32)
-                    && r[0].0.bbox[0] > l[0].0.bbox[2]
-            }) else {
+            let Some(r) = columns
+                .iter()
+                .map(|c| run(c, total, -1))
+                .find(|r| r.len() as u32 == half && r[0].0.bbox[0] > l[0].0.bbox[2])
+            else {
                 continue;
             };
             let mut out = Vec::new();
@@ -1104,9 +1215,11 @@ fn pinout(sheet: &Datasheet) -> Option<(DrawnPins, u32)> {
                 if outward_left {
                     picked.reverse();
                 }
+                // Alternate functions in parentheses are not the name.
                 picked
                     .iter()
                     .map(|w| w.text.as_str())
+                    .filter(|t| !(t.starts_with('(') && t.ends_with(')')))
                     .collect::<Vec<_>>()
                     .join(" ")
             };
@@ -1117,8 +1230,6 @@ fn pinout(sheet: &Datasheet) -> Option<(DrawnPins, u32)> {
                     Source::at(page.number, w.bbox),
                 ));
             }
-            let mut r = right.clone();
-            r.sort_by(|a, b| a.0.bbox[1].total_cmp(&b.0.bbox[1]));
             for (w, n) in &r {
                 out.push((
                     clean_name(&label(w, false)),

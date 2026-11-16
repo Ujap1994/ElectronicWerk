@@ -12,6 +12,7 @@
 
 pub mod check;
 pub mod footprint;
+pub mod generate;
 pub mod items;
 pub mod refs;
 pub mod symbol;
