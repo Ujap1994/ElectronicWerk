@@ -57,6 +57,14 @@ print_stderr = "warn"
 todo = "warn"
 unwrap_used = "warn"
 
+# Small debug builds: line tables only for the workspace (backtraces keep
+# their file and line), no debug info for dependencies.
+[profile.dev]
+debug = "line-tables-only"
+
+[profile.dev.package."*"]
+debug = false
+
 [profile.release]
 lto = "thin"
 codegen-units = 1
