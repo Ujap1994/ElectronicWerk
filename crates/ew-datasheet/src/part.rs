@@ -369,6 +369,10 @@ pub fn clean_name(text: &str) -> String {
 ///
 /// An unknown package, a package without pins or a footprint the wizard
 /// cannot make.
+#[allow(
+    clippy::too_many_lines,
+    reason = "footprint, symbol and component in order"
+)]
 pub fn generate(
     draft: &Draft,
     package: &str,
