@@ -142,17 +142,17 @@ is relative to the project folder, uses `/` and must not leave the folder.
 
 ## Boards (`.ewpcb`)
 
-| Field             | Content                                                                                                                                                                                                                                     |
-| ----------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `stackup`         | Physical layers from top to bottom (silkscreen, solder mask, copper, dielectric) and the surface finish                                                                                                                                     |
-| `origin`          | Drill and placement origin                                                                                                                                                                                                                  |
-| `nets`            | `name` and net `class`                                                                                                                                                                                                                      |
-| `footprints`      | Placed footprints with their own copy of pads, graphics, texts and 3D models (as seen from the top; `side: "bottom"` mirrors them), `component`, `designator`, `value`, `at`, `rotation`, `locked`, `attributes`                            |
-| `tracks`          | `layer`, `net`, `width`, `start`, `end`, and `mid` for arcs                                                                                                                                                                                 |
-| `vias`            | `at`, `diameter`, `drill`, `net`, `from`/`to` layers (default through), `micro`                                                                                                                                                             |
-| `zones`           | Copper pours and keep-outs: `name`, `net`, `layers`, `outline`, `holes`, `priority`, `keepout` (`tracks`, `vias`, `pads`, `pours`, `footprints`), `fill` settings, and `filled` (the computed copper per layer: `layer`, `points`, `holes`) |
-| `texts`, `shapes` | Free text and graphics; the board outline is drawn on the `outline` layer                                                                                                                                                                   |
-| `drcExclusions`   | Keys of [accepted DRC findings](../guide/drc#accepting-findings) (optional)                                                                                                                                                                 |
+| Field             | Content                                                                                                                                                                                                                                                                                              |
+| ----------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `stackup`         | Physical layers from top to bottom (silkscreen, solder mask, copper, dielectric) and the surface finish                                                                                                                                                                                              |
+| `origin`          | Drill and placement origin                                                                                                                                                                                                                                                                           |
+| `nets`            | `name` and net `class`                                                                                                                                                                                                                                                                               |
+| `footprints`      | Placed footprints with their own copy of pads, graphics, texts and 3D models (as seen from the top; `side: "bottom"` mirrors them), `component`, `designator`, `value`, `at`, `rotation`, `locked`, `attributes`                                                                                     |
+| `tracks`          | `layer`, `net`, `width`, `start`, `end`, and `mid` for arcs                                                                                                                                                                                                                                          |
+| `vias`            | `at`, `diameter`, `drill`, `net`, `from`/`to` layers (default through), `micro`                                                                                                                                                                                                                      |
+| `zones`           | Copper pours and keep-outs: `name`, `net`, `layers`, `outline`, `holes`, `priority`, `keepout` (`tracks`, `vias`, `pads`, `pours`, `footprints`), `fill` settings, `filled` (the computed copper per layer: `layer`, `points`, `holes`), and `teardrop` (`true` for [teardrops](../guide/teardrops)) |
+| `texts`, `shapes` | Free text and graphics; the board outline is drawn on the `outline` layer                                                                                                                                                                                                                            |
+| `drcExclusions`   | Keys of [accepted DRC findings](../guide/drc#accepting-findings) (optional)                                                                                                                                                                                                                          |
 
 The zone filler stores openings of a fill as `holes`; fills imported from
 KiCad cut them in with slits instead. Both read the same way.
@@ -187,7 +187,9 @@ KiCad cut them in with slits instead. Both read the same way.
   (the beginner interface it was made from) and `layers` (sizes set by hand
   by copper layer: `{"cu.top": {"width", "gap"}}`), optionally
   `lengthGroups`: the [length groups](../guide/lengths) with `name`, `nets`
-  (name patterns) and `tolerance`, and
+  (name patterns) and `tolerance`, optionally `teardrops`: the
+  [teardrop](../guide/teardrops) settings when they differ from the
+  defaults, and
   optionally `erc`: the settings of the
   [electrical rules check](../guide/erc#settings) that differ from the
   defaults, `severities` (check code → `error`, `warning` or `ignore`) and

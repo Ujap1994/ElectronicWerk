@@ -980,6 +980,17 @@ partner or the longest net of its group, with meanders on its longest
 straight tracks, nets one after the other. Without `apply` only the
 preview (`tracks`, `hidden`).
 
+### `pcb.teardrops`
+
+`{"doc", "remove"?, "settings"?}` (`teardrops`, or `remove-teardrops`) →
+`{"added", "removed"}`: replaces the [teardrops](../guide/teardrops) of the
+board (zones with `"teardrop": true`) by new ones at every end of a
+straight track in a pad or via of its net, filled at once; with `remove`
+only removes them. `settings` (`pads`, `vias`, `lengthRatio` and
+`widthRatio` in % of the pad size, `maxLength`, `maxWidth`, `curved`) are
+used and kept in the design rules (`teardrops`); without them the rules'
+settings apply.
+
 ### `pcb.viaFits`
 
 `{"doc", "net"?, "at", "diameter", "layers"?: [first, last]}` → `{"fits"}`:

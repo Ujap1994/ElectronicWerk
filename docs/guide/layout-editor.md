@@ -152,6 +152,7 @@ in the toolbar switches it off.
 | [Gerber reference](./gerber-reference) | Gerber reference          | Board: import Gerber files as a reference drawing          |
 | [External autorouter](./autorouter)    | Autorouter                | Board: external autorouter (Specctra DSN/SES, Freerouting) |
 | [Lengths](./lengths)                   | Lengths                   | Board: lengths and length matching                         |
+| [Teardrops](./teardrops)               | Teardrops                 | Board: add or remove teardrops                             |
 | Place a footprint                      | Place footprint (tool)    | Board: place a footprint                                   |
 
 The [keyboard shortcuts](./keyboard-shortcuts#layout-editor) page lists all

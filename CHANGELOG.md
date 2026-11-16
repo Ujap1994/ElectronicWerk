@@ -75,6 +75,15 @@ project uses [Semantic Versioning](https://semver.org/).
   `pair-skew` and `length-match` (warnings); new engine methods
   `pcb.lengths`, `pcb.tuneLength` and `pcb.matchLengths`. See
   [Length matching](https://ujap1994.github.io/ElectronicWerk/guide/lengths).
+- **Teardrops:** a **Teardrops** button in the layout tool bar adds a
+  teardrop at every end of a straight track in a pad or via of its net (or
+  removes them all), each a filled copper zone of the highest priority that
+  keeps the clearance to other nets. In the advanced mode their shape can be
+  set (pads and/or vias, length and width in % of the pad size, longest and
+  widest, curved or straight sides); it is kept in the design rules. KiCad
+  export and import keep teardrop zones as teardrops. New engine method
+  `pcb.teardrops`. See
+  [Teardrops](https://ujap1994.github.io/ElectronicWerk/guide/teardrops).
 - **Working mode** setting: _Beginner_ (default) or _Advanced_ decides how
   much ElectronicWerk computes and applies for you. See
   [Settings](https://ujap1994.github.io/ElectronicWerk/guide/settings#working-mode).
