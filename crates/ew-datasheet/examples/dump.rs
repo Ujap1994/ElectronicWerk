@@ -29,6 +29,52 @@ fn main() {
                 sheet.author,
                 sheet.encrypted
             );
+            if std::env::var_os("DRAFT").is_some() {
+                let draft = ew_datasheet::recognize::recognize_named(&sheet, path);
+                println!(
+                    "name {:?} manufacturer {:?} description {:?}",
+                    draft.name, draft.manufacturer, draft.description
+                );
+                for p in &draft.packages {
+                    let dims: Vec<String> = p
+                        .dimensions
+                        .iter()
+                        .map(|(k, d)| {
+                            format!(
+                                "{k}={:.2}{}",
+                                d.value().unwrap_or(0.0),
+                                if d.source.is_some() { "*" } else { "" }
+                            )
+                        })
+                        .collect();
+                    println!(
+                        "  package {:?} {:?} pins {} ep {} | {}",
+                        p.name,
+                        p.family,
+                        p.pins,
+                        p.exposed_pad,
+                        dims.join(" ")
+                    );
+                }
+                for pin in &draft.pins {
+                    let numbers: Vec<String> = pin
+                        .numbers
+                        .iter()
+                        .map(|(k, v)| format!("{k}:{}", v.join(",")))
+                        .collect();
+                    println!(
+                        "  pin {:12} {:?} [{}] {}",
+                        pin.name,
+                        pin.kind,
+                        numbers.join(" "),
+                        pin.function.chars().take(40).collect::<String>()
+                    );
+                }
+                for n in &draft.notes {
+                    println!("  note: {n}");
+                }
+                return;
+            }
             for mark in sheet.bookmarks.iter().take(60) {
                 println!(
                     "{}- {} (p. {:?})",
@@ -50,6 +96,35 @@ fn main() {
                     page.rules.len(),
                     if page.scanned { ", scanned" } else { "" }
                 );
+                if std::env::var_os("TABLES").is_some() {
+                    for table in ew_datasheet::table::ruled(page) {
+                        println!(
+                            "--- table {:?} ({} columns)",
+                            table.bbox.map(f64::round),
+                            table.columns
+                        );
+                        for row in &table.rows {
+                            let cells: Vec<String> = row
+                                .cells
+                                .iter()
+                                .map(|c| {
+                                    format!(
+                                        "[{}{}] {}",
+                                        c.column,
+                                        if c.span > 1 {
+                                            format!("+{}", c.span - 1)
+                                        } else {
+                                            String::new()
+                                        },
+                                        c.text
+                                    )
+                                })
+                                .collect();
+                            println!("    {}", cells.join(" | "));
+                        }
+                    }
+                    continue;
+                }
                 for line in &page.lines {
                     let cells: Vec<String> = line
                         .words

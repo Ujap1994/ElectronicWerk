@@ -15,7 +15,11 @@
     reason = "PDF numbers are read leniently and limited by the file format"
 )]
 
+pub mod draft;
+pub mod package;
 pub mod pdf;
+pub mod recognize;
+pub mod table;
 pub mod text;
 
 use serde::{Deserialize, Serialize};
