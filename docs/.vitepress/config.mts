@@ -55,6 +55,7 @@ export default defineConfig({
           { text: 'Controlled impedance', link: '/guide/impedance' },
           { text: 'Length matching', link: '/guide/lengths' },
           { text: 'Teardrops', link: '/guide/teardrops' },
+          { text: 'Stitching vias and via fences', link: '/guide/stitching' },
           { text: 'External autorouters', link: '/guide/autorouter' },
           { text: 'Gerber files as a reference', link: '/guide/gerber-reference' },
           { text: 'Copper zones and keep-outs', link: '/guide/zones' },

@@ -84,6 +84,15 @@ project uses [Semantic Versioning](https://semver.org/).
   export and import keep teardrop zones as teardrops. New engine method
   `pcb.teardrops`. See
   [Teardrops](https://ujap1994.github.io/ElectronicWerk/guide/teardrops).
+- **Stitching vias and via fences:** a **Stitching vias** button fills a
+  copper zone with a grid of vias of its net (where another layer has
+  copper of the net too) or puts a via fence of a net along both sides of
+  the selected tracks; vias keep every clearance, hole distance and the
+  board edge, stay off their own net's copper and out of keep-outs, and the
+  zones are filled again. **Remove vias** removes the free vias of the net
+  there. Pitch, staggered rows, gap and via size in the advanced mode. New
+  engine method `pcb.stitch`. See
+  [Stitching vias](https://ujap1994.github.io/ElectronicWerk/guide/stitching).
 - **Working mode** setting: _Beginner_ (default) or _Advanced_ decides how
   much ElectronicWerk computes and applies for you. See
   [Settings](https://ujap1994.github.io/ElectronicWerk/guide/settings#working-mode).

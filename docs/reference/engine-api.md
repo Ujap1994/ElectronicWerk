@@ -980,6 +980,21 @@ partner or the longest net of its group, with meanders on its longest
 straight tracks, nets one after the other. Without `apply` only the
 preview (`tracks`, `hidden`).
 
+### `pcb.stitch`
+
+`{"doc", "zone" | "tracks", "net"?, "pitch"?, "diameter"?, "drill"?,
+"gap"?, "staggered"?, "remove"?, "apply"?}` (`stitch-vias`, or
+`remove-stitching`) → `{"added", "removed", "vias"}`:
+[stitching vias](../guide/stitching). With `zone`: a grid of vias of the
+zone's net (`pitch`, 3 mm by default, `staggered` rows) where they lie in
+its copper and in copper of the net on another layer. With `tracks` (ids):
+a via fence of `net` along both sides (`pitch` 2 mm by default, `gap` from
+the track's edge to the via's edge, the clearance by default). Vias keep
+every clearance and hole distance; the size defaults to the net's class.
+`remove` removes the free vias of the net (no track ends at them) in the
+zone or along the tracks. The zones are filled again. Without `apply` only
+the positions (`vias`).
+
 ### `pcb.teardrops`
 
 `{"doc", "remove"?, "settings"?}` (`teardrops`, or `remove-teardrops`) →

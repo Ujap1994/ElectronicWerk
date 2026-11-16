@@ -153,6 +153,7 @@ in the toolbar switches it off.
 | [External autorouter](./autorouter)    | Autorouter                | Board: external autorouter (Specctra DSN/SES, Freerouting) |
 | [Lengths](./lengths)                   | Lengths                   | Board: lengths and length matching                         |
 | [Teardrops](./teardrops)               | Teardrops                 | Board: add or remove teardrops                             |
+| [Stitching vias](./stitching)          | Stitching vias            | Board: stitching vias and via fences                       |
 | Place a footprint                      | Place footprint (tool)    | Board: place a footprint                                   |
 
 The [keyboard shortcuts](./keyboard-shortcuts#layout-editor) page lists all
