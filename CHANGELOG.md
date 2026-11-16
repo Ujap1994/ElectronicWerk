@@ -6,6 +6,13 @@ project uses [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.16.0] - 2026-11-16
+
+Advanced layout: push-and-shove routing, blind, buried and microvias,
+controlled impedance with a beginner and an advanced working mode,
+differential pairs, length matching with meanders, teardrops, stitching
+vias, channels for repeated sheets and assembly variants.
+
 ### Added
 
 - **Blind, buried and microvias:** two switches in the design rules (_Allow
@@ -120,6 +127,8 @@ channels` makes a small example. See
 - The router no longer treats zone fills of other nets as obstacles: tracks
   and vias may cross a filled zone, which keeps its clearance again when it
   is filled the next time (as in KiCad).
+- Rules dialog: wider, with the new **Impedance** and **Lengths** tabs.
+- Development builds use less disk space (line tables only).
 
 ## [0.15.1] - 2026-11-15
 
@@ -1206,7 +1215,8 @@ quality gates and the delivery pipeline that every later feature builds on.
   process ([ujap1994.github.io/ElectronicWerk](https://ujap1994.github.io/ElectronicWerk/)).
   **Help → Documentation** opens it.
 
-[Unreleased]: https://github.com/Ujap1994/ElectronicWerk/compare/v0.15.1...HEAD
+[Unreleased]: https://github.com/Ujap1994/ElectronicWerk/compare/v0.16.0...HEAD
+[0.16.0]: https://github.com/Ujap1994/ElectronicWerk/compare/v0.15.1...v0.16.0
 [0.15.1]: https://github.com/Ujap1994/ElectronicWerk/compare/v0.15.0...v0.15.1
 [0.15.0]: https://github.com/Ujap1994/ElectronicWerk/compare/v0.14.1...v0.15.0
 [0.14.1]: https://github.com/Ujap1994/ElectronicWerk/compare/v0.14.0...v0.14.1

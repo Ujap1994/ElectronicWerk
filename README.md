@@ -62,6 +62,13 @@ full CLI.
   and island removal, keep-out areas, board outlines (drawn or **imported
   from DXF**), board presets and a stack-up editor, turning, flipping,
   aligning and an editable inspector
+- **Advanced layout:** **push-and-shove** routing and dragging that keeps
+  45° bends; **blind, buried and microvias**; **controlled impedance** with
+  an impedance calculator (a beginner mode picks the interface, an advanced
+  mode sets every value); **differential pairs** routed together;
+  **length matching** with exact meanders; **teardrops**; **stitching vias**
+  and via fences; **channels** that copy the layout of a repeated sheet;
+  **assembly variants** for the outputs
 - **Design rules** with net classes, name patterns, board minimums and
   **custom rules** in a small query language (`A.netclass == 'HV' &&
 B.netclass != 'HV'`)

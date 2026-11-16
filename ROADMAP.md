@@ -1,7 +1,7 @@
 # ElectronicWerk Roadmap
 
-> **Status:** v0.26 (2026-11-15). M0 to M14 are complete (releases v0.1.0 to
-> v0.15.1; M0, M1 and M3 accepted by the maintainer); M15 is in progress.
+> **Status:** v0.27 (2026-11-16). M0 to M15 are complete (releases v0.1.0 to
+> v0.16.0; M0, M1 and M3 accepted by the maintainer); M16 is next.
 > The GitHub integration (M11) is switched off since v0.14.1 until the
 > maintainer decides to offer it (ADR-0014).
 > This roadmap is a living document. It **must** be updated with every feature
@@ -252,7 +252,7 @@ own work only. Maintainer test cycles and feedback come on top. Status values:
 | M12 | CLI and AI automation (complete)                      | v0.13.0 | F12               | 4–6 S           | ✅     |
 | M13 | Assembly assistant and extras                         | v0.14.0 | F11               | 4–6 S           | ✅     |
 | M14 | Interoperability: further open formats                | v0.15.0 | F3                | 5–8 S           | ✅     |
-| M15 | Advanced layout                                       | v0.16.0 | F7                | 12–20 S         | 🟦     |
+| M15 | Advanced layout                                       | v0.16.0 | F7                | 12–20 S         | ✅     |
 | M16 | Part generator from datasheets                        | v0.17.0 | F13               | 8–12 S          | ⬜     |
 | M17 | Mechanical assembly and enclosure check               | v0.18.0 | F14               | 6–10 S          | ⬜     |
 | M18 | Multi-board design                                    | v0.19.0 | F15               | 8–12 S          | ⬜     |
@@ -861,7 +861,7 @@ Delivered (ADR-0015):
 - [x] Eagle XML import (`.sch`/`.brd`/`.lbr`) as a new native project with
       an import report; Eagle libraries go through the duplicate check (M4).
 
-### M15 — Advanced layout (v0.16.0, 12–20 S) 🟦
+### M15 — Advanced layout (v0.16.0, 12–20 S) ✅
 
 - Interactive router with push-and-shove, differential pairs, length tuning
   and matching (meanders), teardrops.
@@ -884,6 +884,13 @@ dragging that keeps 45°; (3) differential pairs with the impedance
 calculator and the working modes; (4) length tuning and matching; (5)
 teardrops; (6) via stitching and shielding; (7) rooms, channels and design
 variants; (8) back drilling if justified, docs, release.
+
+**Done (v0.16.0):** all phases. Rooms are not separate board objects: the
+channels of repeated sheets are known from the schematic, and their layout
+is copied from one channel to the others. Back drilling was not justified
+(only for very fast signals on thick boards, offered by few board makers;
+blind and buried vias avoid the stubs) and stays a post-1.0 candidate. See
+ADR-0016.
 
 ### M16 — Part generator from datasheets (v0.17.0, 8–12 S)
 
@@ -1049,7 +1056,8 @@ joined by cables.
 
 ### Deferred items
 
-- **Post-1.0 candidates:** a plugin API, signal-integrity helpers.
+- **Post-1.0 candidates:** a plugin API, signal-integrity helpers, back
+  drilling, layer changes inside a routed differential pair.
 - **Collaboration (several people on one design):** taken off the plan by
   the maintainer. It is taken up again, and planned properly, only once
   v1.0.0 runs cleanly in the maintainer's daily work.
@@ -1084,3 +1092,4 @@ joined by cables.
 | 2026-11-15 | v0.24      | v0.15.1: the external autorouter tested with a real Freerouting 2.5.0 run (replayed in CI); unlocked routing is no longer passed as fixed, protected wires of a session are kept.                                                                                                                                                                                                                                                                          |
 | 2026-11-15 | v0.25      | Real-time collaboration taken off the post-1.0 candidates: it is planned again only once v1.0.0 runs cleanly in the maintainer's daily work.                                                                                                                                                                                                                                                                                                               |
 | 2026-11-15 | v0.26      | M15 started. Added the impedance calculator to M15 (requested by the maintainer) with two working modes in the settings: Beginner computes and applies the widths, Advanced lets the user set impedance and geometry.                                                                                                                                                                                                                                      |
+| 2026-11-16 | v0.27      | M15 complete: v0.16.0 with blind, buried and microvias, push and shove, the impedance calculator with the working modes, differential pairs, length matching, teardrops, stitching vias, channels and assembly variants. Back drilling deferred (ADR-0016).                                                                                                                                                                                                |
