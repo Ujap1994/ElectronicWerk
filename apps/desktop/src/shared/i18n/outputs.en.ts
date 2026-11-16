@@ -7,6 +7,8 @@ export const outputsEn = {
   generating: 'Generating…',
   folder: 'Output folder',
   folderHint: 'Relative to the project folder.',
+  variant: 'Assembly variant',
+  asDesigned: 'As designed',
   showFolder: 'Show in folder',
   gerberViewer: 'Gerber viewer',
   gerberViewerTip: 'Check the generated Gerber and drill files in the Gerber viewer',

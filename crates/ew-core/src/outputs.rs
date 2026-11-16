@@ -86,6 +86,9 @@ struct RunParams {
 struct BomParams {
     source: Option<Id>,
     options: Option<BomOptions>,
+    /// An assembly variant (as designed when missing).
+    #[serde(default)]
+    variant: Option<String>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -226,7 +229,13 @@ fn bom_preview(session: &Session, params: &BomParams) -> Result<Value, EngineErr
                 }
             }),
         };
-    let parts = bom::parts(project, board);
+    let mut parts = bom::parts(project, board);
+    if let Some(name) = params.variant.as_deref().filter(|n| !n.is_empty()) {
+        let variant = project
+            .variant(name)
+            .ok_or_else(|| EngineError::not_found(format!("no variant {name}")))?;
+        ew_output::variant::apply_parts(&mut parts, variant);
+    }
     let options = params.options.clone().unwrap_or_default();
     let table = bom::build(&parts, &options);
     let rows: Vec<Vec<Value>> = table

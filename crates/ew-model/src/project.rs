@@ -81,6 +81,61 @@ pub struct Manifest {
     /// Editor settings.
     #[serde(default)]
     pub settings: ProjectSettings,
+    /// Assembly variants.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub variants: Vec<Variant>,
+}
+
+/// An assembly variant: the same board with some parts left out, added or
+/// changed (a cheaper version without the display, a 230 V and a 120 V
+/// version).
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Variant {
+    /// Name (unique).
+    pub name: String,
+    /// What it is for.
+    #[serde(default, skip_serializing_if = "String::is_empty")]
+    pub description: String,
+    /// The parts that differ from the design, by designator.
+    #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
+    pub parts: BTreeMap<String, VariantPart>,
+}
+
+/// How one part differs in a variant.
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct VariantPart {
+    /// Fitted (`true`) or left out (`false`); missing: as designed.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub fitted: Option<bool>,
+    /// Another value.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub value: Option<String>,
+    /// Other fields (`MPN`, `Manufacturer`, …).
+    #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
+    pub properties: BTreeMap<String, String>,
+}
+
+impl Variant {
+    /// Applies the variant to the footprints of a board (fitted, value,
+    /// fields).
+    pub fn apply(&self, pcb: &mut crate::pcb::Pcb) {
+        for fp in &mut pcb.footprints {
+            let Some(part) = self.parts.get(&fp.designator) else {
+                continue;
+            };
+            if let Some(fitted) = part.fitted {
+                fp.attributes.dnp = !fitted;
+            }
+            if let Some(value) = &part.value {
+                fp.value.clone_from(value);
+            }
+            for (key, value) in &part.properties {
+                fp.properties.insert(key.clone(), value.clone());
+            }
+        }
+    }
 }
 
 /// Editable project properties (the manifest without its document list).
@@ -104,6 +159,9 @@ pub struct ProjectProps {
     /// Editor settings.
     #[serde(default)]
     pub settings: ProjectSettings,
+    /// Assembly variants.
+    #[serde(default)]
+    pub variants: Vec<Variant>,
 }
 
 /// A project in memory: the manifest and every document.
@@ -129,6 +187,7 @@ impl Project {
                 documents: Vec::new(),
                 root_schematic: None,
                 settings: ProjectSettings::default(),
+                variants: Vec::new(),
             },
             documents: BTreeMap::new(),
         }
@@ -231,6 +290,7 @@ impl Project {
             variables: manifest.variables.clone(),
             root_schematic: manifest.root_schematic,
             settings: manifest.settings,
+            variants: manifest.variants.clone(),
         }
     }
 
@@ -243,6 +303,13 @@ impl Project {
         manifest.variables = props.variables;
         manifest.root_schematic = props.root_schematic;
         manifest.settings = props.settings;
+        manifest.variants = props.variants;
+    }
+
+    /// The variant with this name.
+    #[must_use]
+    pub fn variant(&self, name: &str) -> Option<&Variant> {
+        self.manifest.variants.iter().find(|v| v.name == name)
     }
 
     /// Total number of objects in all documents.

@@ -455,6 +455,13 @@ export function BoardActions({
         onClick={commands.gerberReference}
       />
       <Button
+        icon="channels"
+        label={t('board.actions.channels')}
+        tip={t('board.actions.channelsTip')}
+        testId="board-channels"
+        onClick={commands.channels}
+      />
+      <Button
         icon="stitch"
         label={t('board.actions.stitch')}
         tip={t('board.actions.stitchTip')}

@@ -12,6 +12,7 @@
 //!
 //! The same size and seed always produce exactly the same project.
 
+pub mod channels;
 mod parts;
 mod rng;
 

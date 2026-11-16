@@ -51,6 +51,7 @@ pub mod read;
 pub mod reference;
 pub mod statistics;
 pub mod svg;
+pub mod variant;
 pub mod viewer;
 pub mod xlsx;
 

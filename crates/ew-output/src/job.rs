@@ -912,6 +912,40 @@ fn drawing(
 /// fails does not stop the others.
 #[must_use]
 pub fn run(job: &OutputJob, only: Option<&[Id]>, ctx: &RunContext<'_>) -> RunResult {
+    // A job for a variant sees the project as the variant builds it.
+    if !job.variant.is_empty() {
+        let Some(variant) = ctx.project.variant(&job.variant) else {
+            let mut result = RunResult::default();
+            for spec in &job.outputs {
+                result.results.push(OutputResult {
+                    id: spec.id,
+                    name: spec.name.clone(),
+                    kind: spec.kind,
+                    status: Status::Failed,
+                    message: Some(format!("the project has no variant {}", job.variant)),
+                    files: Vec::new(),
+                });
+            }
+            return result;
+        };
+        let varied = crate::variant::apply(ctx.project, variant);
+        let token = format!("${{{}}}", crate::variant::VARIABLE);
+        let resolve =
+            |text: &str, doc: Option<Id>| (ctx.resolve)(&text.replace(&token, &variant.name), doc);
+        let inner = RunContext {
+            project: &varied,
+            version: ctx.version.clone(),
+            created: ctx.created.clone(),
+            resolve: &resolve,
+            labels: ctx.labels.clone(),
+            model3d: ctx.model3d,
+        };
+        let plain = OutputJob {
+            variant: String::new(),
+            ..job.clone()
+        };
+        return run(&plain, only, &inner);
+    }
     let mut result = RunResult::default();
     let mut done: Vec<(OutputKind, Vec<OutputFile>)> = Vec::new();
     for spec in &job.outputs {

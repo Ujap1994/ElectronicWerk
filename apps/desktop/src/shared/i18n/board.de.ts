@@ -87,6 +87,9 @@ export const boardDe: Messages['board'] = {
     gerberRefTip: 'Gerber- und Bohrdateien als Referenzzeichnung auf Benutzerlagen importieren',
     autorouter: 'Autorouter',
     autorouterTip: 'Die Platine mit einem externen Autorouter entflechten (Specctra DSN und SES)',
+    channels: 'Kanäle',
+    channelsTip:
+      'Das Layout einer Verwendung eines mehrfach genutzten Blatts auf die anderen übertragen',
     stitch: 'Stitching-Vias',
     stitchTip:
       'Eine Kupferzone mit Vias ihres Netzes füllen oder Leiterbahnen mit Masse-Vias einzäunen',
@@ -485,6 +488,22 @@ export const boardDe: Messages['board'] = {
     addRule: 'Regel hinzufügen',
     helpTitle: 'So funktionieren Bedingungen',
     help: "Eine Bedingung vergleicht Eigenschaften des Objekts A (und, zwischen zwei Objekten, B): type ('pad', 'track', 'via', 'zone'), net, netclass, layer, designator, footprint, pad, side, width, diameter und drill. Texte erlauben die Platzhalter * und ?, Zahlen Einheiten (0.2mm, 8mil). Verknüpfe mit &&, || und !, zum Beispiel A.netclass == 'HV' && B.netclass != 'HV'. A.insideZone('RF') ist innerhalb einer benannten Zone wahr.",
+  },
+  channels: {
+    title: 'Kanäle',
+    hint: 'Ein mehrfach verwendetes Schaltplanblatt ergibt auf der Platine eine Bauteilgruppe je Verwendung (einen Kanal). Platziere und verlege einen Kanal und übertrage dann sein Layout: Jedes Bauteil der anderen Kanäle kommt dorthin, wo dasselbe Bauteil der Quelle liegt, verschoben um den Abstand der Kanäle, und die Leiterbahnen und Vias zwischen seinen Bauteilen folgen mit den Netzen des jeweiligen Kanals.',
+    none: 'Der Schaltplan verwendet kein Blatt mehrfach.',
+    sheet: 'Mehrfach verwendetes Blatt',
+    sheetOption: '{name} ({count} Verwendungen)',
+    instance: 'Verwendung',
+    parts: 'Bauteile',
+    source: 'Übertragen von',
+    target: 'Übertragen auf',
+    routing: 'Leiterbahnen und Vias mit übertragen',
+    copy: 'Layout übertragen',
+    copied: '{moved} Bauteile platziert, {tracks} Leiterbahnen übertragen',
+    copiedSkipped:
+      '{moved} Bauteile platziert, {tracks} Leiterbahnen übertragen; unverändert: {skipped}',
   },
   stitch: {
     title: 'Stitching-Vias',

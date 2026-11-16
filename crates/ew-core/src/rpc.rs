@@ -151,6 +151,8 @@ pub const METHODS: &[&str] = &[
     "pcb.applyPreset",
     "pcb.backApply",
     "pcb.backPreview",
+    "pcb.channels",
+    "pcb.copyChannel",
     "pcb.crossProbe",
     "pcb.drc",
     "pcb.dxfPreview",

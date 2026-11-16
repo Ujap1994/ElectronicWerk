@@ -72,6 +72,24 @@ export interface ProjectSettings {
   readonly boardGrid: Nm;
 }
 
+/** How one part differs in an assembly variant. */
+export interface VariantPart {
+  /** Fitted (`true`) or left out (`false`); missing: as designed. */
+  readonly fitted?: boolean;
+  /** Another value. */
+  readonly value?: string;
+  /** Other fields (MPN, …). */
+  readonly properties?: Readonly<Record<string, string>>;
+}
+
+/** An assembly variant of the project. */
+export interface Variant {
+  readonly name: string;
+  readonly description?: string;
+  /** The parts that differ, by designator. */
+  readonly parts?: Readonly<Record<string, VariantPart>>;
+}
+
 /** Result of `project.info`, `project.open` and friends. */
 export interface ProjectSnapshot {
   readonly id: string;
@@ -83,6 +101,8 @@ export interface ProjectSnapshot {
   readonly manifestPath: string;
   readonly rootSchematic: string | null;
   readonly settings: ProjectSettings;
+  /** Assembly variants (missing in older engines). */
+  readonly variants?: readonly Variant[];
   readonly documents: readonly DocumentSummary[];
   readonly history: HistoryState;
   readonly needsUpgrade: boolean;

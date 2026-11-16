@@ -20,6 +20,7 @@ import type { GroupId, TreeTarget } from '../project/tree';
 import { useAppState } from '../state';
 import { isViewable, useOpen3d, useOpenAssembly, useOpenDocument } from '../viewer/open-context';
 import { Icon } from './Icon';
+import { VariantsEditor } from '../project/VariantsEditor';
 
 // --- Small building blocks --------------------------------------------------
 
@@ -489,6 +490,7 @@ function ProjectOverview({ project }: { readonly project: ProjectSnapshot }): Re
         </div>
       </Section>
       <VariablesEditor project={project} />
+      <VariantsEditor project={project} />
       <Section title={t('details.statistics')}>
         <Stats
           items={[

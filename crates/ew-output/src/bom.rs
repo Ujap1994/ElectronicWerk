@@ -93,6 +93,9 @@ pub fn parts(project: &Project, board: Option<&Pcb>) -> Vec<Part> {
             })
             .collect()
     };
+    if let Some(variant) = crate::variant::active(project) {
+        crate::variant::apply_parts(&mut out, variant);
+    }
     out.sort_by(|a, b| natural_cmp(&a.designator, &b.designator));
     out
 }

@@ -1920,6 +1920,65 @@ test('stitching vias', async () => {
   await close();
 });
 
+test('channels and variants', async () => {
+  test.setTimeout(180_000);
+  freshProjects();
+  const folder = join(PROJECTS, 'Channels');
+  execFileSync(ewerkBinary(), ['synth', 'channels', folder]);
+  const { app, page, close } = await start({ settings: { theme: 'light' } });
+  await page.setViewportSize({ width: 1500, height: 900 });
+  await queueDialogAnswer(app, join(folder, 'Channels.ewproj'));
+  await page.getByTestId('open-project').click();
+  await expect(page.getByTestId('project-title')).toHaveText('Channels');
+
+  // Variants in the project overview.
+  await page.getByTestId('variant-add').click();
+  const name = page.getByTestId('variant-name-0');
+  await name.fill('Lite');
+  await name.press('Enter');
+  await expect(page.getByTestId('variant-name-0')).toHaveValue('Lite');
+  await expect(page.getByTestId('variant-parts-0')).toBeVisible();
+  const description = page.getByTestId('variant-description-0');
+  await description.fill('Without the third channel');
+  await description.press('Enter');
+  for (const part of ['R3', 'C3']) {
+    await page.getByTestId(`variant-fitting-${part}`).selectOption('left');
+  }
+  const value = page.getByTestId('variant-value-C1');
+  await value.fill('220n');
+  await value.press('Enter');
+  await expect(page.getByTestId('variant-0')).toContainText('3 changed parts');
+  await page.getByTestId('variants').scrollIntoViewIfNeeded();
+  await shoot(page.getByTestId('variants'), 'variants-editor');
+
+  await page.locator('[data-testid^="tree-doc:"]', { hasText: 'Fabrication' }).first().dblclick();
+  await page.getByTestId('outputs-variant').selectOption('Lite');
+  await shoot(page.locator('.outputs__folder'), 'variants-job');
+
+  // The board: channel 1 placed and routed, the others not yet.
+  await page
+    .locator('[data-testid^="tree-doc:"]')
+    .filter({ hasText: /^Board$/u })
+    .dblclick();
+  await settle(page);
+  await expect(page.getByTestId('viewer')).toHaveAttribute('data-kind', 'pcb');
+  await page.mouse.move(10, 10);
+  await shoot(page.locator('.viewer__area'), 'channels-before');
+  await page.getByTestId('board-channels').click();
+  const dialog = page.getByTestId('channels-dialog');
+  await expect(page.getByTestId('channels-instances')).toBeVisible();
+  await shoot(dialog, 'channels-dialog');
+  await page.getByTestId('channels-copy').click();
+  await expect(dialog).toBeHidden();
+  await closeToasts(page);
+  await viewerCanvas(page).focus();
+  await page.keyboard.press('Escape');
+  await page.mouse.move(10, 10);
+  await settle(page);
+  await shoot(page.locator('.viewer__area'), 'channels-after');
+  await close();
+});
+
 // --- Manufacturing outputs (M8) ----------------------------------------------
 
 /** Every file below a folder, as paths relative to it. */

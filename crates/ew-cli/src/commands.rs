@@ -1204,9 +1204,14 @@ fn parse_size(size: &str) -> Result<DesignSize, Failure> {
 }
 
 fn synth(size: &str, dir: &Path, seed: u64, json: bool, out: &mut impl Write) -> Outcome {
-    let size = parse_size(size)?;
     let started = Instant::now();
-    let project = ew_synth::generate(size, seed);
+    // `channels`: a small design with a repeated sheet (channel layouts).
+    let (project, size_name) = if size.eq_ignore_ascii_case("channels") {
+        (ew_synth::channels::generate(3, seed), "channels".to_owned())
+    } else {
+        let size = parse_size(size)?;
+        (ew_synth::generate(size, seed), size.name().to_owned())
+    };
     let stats = ew_synth::stats(&project);
     let created =
         ew_format::store::create_project(dir, &project).map_err(|err| Failure(err.to_string()))?;
@@ -1217,7 +1222,7 @@ fn synth(size: &str, dir: &Path, seed: u64, json: bool, out: &mut impl Write) ->
             out,
             &json!({
                 "manifestPath": manifest.to_string_lossy(),
-                "size": size.name(),
+                "size": size_name,
                 "seed": seed,
                 "symbols": stats.symbols,
                 "sheets": stats.sheets,
@@ -1234,7 +1239,7 @@ fn synth(size: &str, dir: &Path, seed: u64, json: bool, out: &mut impl Write) ->
     } else {
         writeln!(
             out,
-            "Created synthetic {size} design: {}",
+            "Created synthetic {size_name} design: {}",
             manifest.display()
         )?;
         writeln!(

@@ -172,6 +172,7 @@ export interface BoardCommands {
   readonly lengths: () => void;
   readonly teardrops: () => void;
   readonly stitch: () => void;
+  readonly channels: () => void;
 }
 
 export const activeBoard = new Store<BoardCommands | null>(null);

@@ -118,6 +118,8 @@ pub struct ProjectSnapshot {
     pub root_schematic: Option<Id>,
     /// Editor settings.
     pub settings: ProjectSettings,
+    /// Assembly variants.
+    pub variants: Vec<ew_model::project::Variant>,
     /// Documents in tree order.
     pub documents: Vec<DocumentSummary>,
     /// Undo/redo state.
@@ -207,6 +209,7 @@ pub fn snapshot(session: &Session) -> ProjectSnapshot {
         manifest_path: session.manifest_path().to_string_lossy().into_owned(),
         root_schematic: manifest.root_schematic,
         settings: manifest.settings,
+        variants: manifest.variants.clone(),
         documents,
         history: session.history_state(),
         needs_upgrade: !session.migrated_files().is_empty(),

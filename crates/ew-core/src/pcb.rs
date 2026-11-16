@@ -57,6 +57,8 @@ pub mod labels {
     pub const STITCH: &str = "stitch-vias";
     /// `pcb.stitch` with `remove`.
     pub const REMOVE_STITCH: &str = "remove-stitching";
+    /// `pcb.copyChannel`.
+    pub const COPY_CHANNEL: &str = "copy-channel";
 
     /// The label of a `pcb.edit` operation.
     #[must_use]
@@ -360,6 +362,24 @@ struct MatchParams {
     amplitude: Option<f64>,
     #[serde(default)]
     side: ew_pcb::length::MeanderSide,
+    #[serde(default)]
+    apply: bool,
+}
+
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+struct CopyChannelParams {
+    doc: Id,
+    /// The repeated sheet.
+    sheet: Id,
+    /// The instance whose layout is copied.
+    from: String,
+    /// The instances that get it (all others by default).
+    #[serde(default)]
+    to: Option<Vec<String>>,
+    /// Copy the tracks and vias too.
+    #[serde(default = "yes")]
+    routing: bool,
     #[serde(default)]
     apply: bool,
 }
@@ -1114,6 +1134,85 @@ pub fn call(
             }));
             Ok(Outcome::Commit {
                 label: labels::MATCH,
+                requests,
+                reply,
+            })
+        }
+        "pcb.channels" => {
+            let params: DocParams = parse(params)?;
+            let doc = params
+                .doc
+                .ok_or_else(|| EngineError::invalid_params("missing doc"))?;
+            let pcb = board(project, doc)?;
+            let connectivity = ew_schematic::analyze(project);
+            Ok(Outcome::Read(to_value(&ew_pcb::channels::channels(
+                project,
+                &connectivity,
+                pcb,
+            ))?))
+        }
+        "pcb.copyChannel" => {
+            let params: CopyChannelParams = parse(params)?;
+            let pcb = board(project, params.doc)?;
+            let connectivity = ew_schematic::analyze(project);
+            let channels = ew_pcb::channels::channels(project, &connectivity, pcb);
+            let channel = channels
+                .iter()
+                .find(|c| c.sheet == params.sheet)
+                .ok_or_else(|| {
+                    EngineError::not_found(format!("no repeated sheet {}", params.sheet))
+                })?;
+            if !channel.instances.iter().any(|i| i.key == params.from) {
+                return Err(EngineError::not_found(format!(
+                    "no instance {}",
+                    params.from
+                )));
+            }
+            let to: Vec<String> = params.to.clone().unwrap_or_else(|| {
+                channel
+                    .instances
+                    .iter()
+                    .map(|i| i.key.clone())
+                    .filter(|k| *k != params.from)
+                    .collect()
+            });
+            let copied =
+                ew_pcb::channels::copy_layout(pcb, channel, &params.from, &to, params.routing);
+            let reply = json!({
+                "moved": copied.footprints.len(),
+                "removed": copied.removed.len(),
+                "tracks": copied.tracks.len(),
+                "vias": copied.vias.len(),
+                "skipped": copied.skipped,
+            });
+            if !params.apply {
+                return Ok(Outcome::Read(reply));
+            }
+            let mut requests: Vec<Request> = copied
+                .footprints
+                .into_iter()
+                .map(|fp| Request::Update {
+                    doc: params.doc,
+                    object: Object::Footprint(fp),
+                })
+                .collect();
+            requests.extend(copied.removed.iter().map(|id| Request::Delete {
+                doc: params.doc,
+                id: *id,
+            }));
+            requests.extend(copied.tracks.into_iter().map(|track| Request::Insert {
+                doc: params.doc,
+                object: Object::Track(track),
+            }));
+            requests.extend(copied.vias.into_iter().map(|via| Request::Insert {
+                doc: params.doc,
+                object: Object::Via(via),
+            }));
+            if requests.is_empty() {
+                return Ok(Outcome::Read(reply));
+            }
+            Ok(Outcome::Commit {
+                label: labels::COPY_CHANNEL,
                 requests,
                 reply,
             })

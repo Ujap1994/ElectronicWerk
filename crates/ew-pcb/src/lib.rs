@@ -21,6 +21,7 @@
     reason = "board coordinates are limited to ±10 m, well inside f64 precision"
 )]
 
+pub mod channels;
 pub mod connectivity;
 pub mod drc;
 pub mod dxf;

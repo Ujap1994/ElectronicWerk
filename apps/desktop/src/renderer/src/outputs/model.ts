@@ -101,6 +101,8 @@ export interface OutputJobProps {
   readonly outputs: readonly OutputSpec[];
   /** Board outputs are made for this panel (`null`: single boards). */
   readonly panel: PanelSettings | null;
+  /** The assembly variant the outputs are made for (empty: as designed). */
+  readonly variant: string;
 }
 
 export type OutputStatus = 'done' | 'skipped' | 'failed';

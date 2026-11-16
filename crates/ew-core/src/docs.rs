@@ -323,6 +323,14 @@ pub const SUMMARIES: &[(&str, &str)] = &[
         "The same for back annotation: `setDesignator`, `setValue` and `setFootprint` changes from the board to the schematic (`update-schematic`).",
     ),
     (
+        "pcb.channels",
+        "`{\"doc\"}` → `[{\"sheet\", \"name\", \"instances\": [{\"key\", \"name\", \"parts\", \"designators\"}]}]`: the channels of the board: every schematic sheet used more than once, with the footprints of each use.",
+    ),
+    (
+        "pcb.copyChannel",
+        "`{\"doc\", \"sheet\", \"from\", \"to\"?, \"routing\"?, \"apply\"?}` (`copy-channel`) → `{\"moved\", \"removed\", \"tracks\", \"vias\", \"skipped\"}`: copies the layout of one use of a repeated sheet (instance key `from`) to the others (`to`, all by default): every part goes where the same part of the source is, moved by the offset between the channels; with `routing` (default) the source's tracks and vias are copied with the target's nets and replace the target's routing between its parts. Without `apply` only the counts.",
+    ),
+    (
         "pcb.crossProbe",
         "`{\"doc\", \"symbols\"?: [\"…\"], \"footprints\"?: [\"…\"]}` → `{\"footprints\": [\"…\"], \"symbols\": [{\"doc\", \"id\"}]}`: the footprints of placed symbols and the placed symbols (with their sheets) of footprints.",
     ),

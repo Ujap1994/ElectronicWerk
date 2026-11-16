@@ -212,6 +212,7 @@ export function App(): ReactNode {
             { id: 'lengths', label: 'commands.lengths', run: boardCommands.lengths },
             { id: 'teardrops', label: 'commands.teardrops', run: boardCommands.teardrops },
             { id: 'stitch', label: 'commands.stitch', run: boardCommands.stitch },
+            { id: 'channels', label: 'commands.channels', run: boardCommands.channels },
             {
               id: 'gerber-reference',
               label: 'commands.gerberReference',

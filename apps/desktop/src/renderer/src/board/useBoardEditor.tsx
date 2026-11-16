@@ -22,6 +22,7 @@ import {
 import { AutorouterDialog } from './AutorouterDialog';
 import { GerberReferenceDialog } from './GerberReferenceDialog';
 import { LengthsDialog } from './LengthsDialog';
+import { ChannelsDialog } from './ChannelsDialog';
 import { StitchDialog } from './StitchDialog';
 import { TeardropDialog } from './TeardropDialog';
 import { runDrc, useDrcUpdates } from './DrcPanel';
@@ -48,6 +49,7 @@ type Dialog =
   | { kind: 'gerberReference' }
   | { kind: 'lengths'; track: string | null }
   | { kind: 'teardrops' }
+  | { kind: 'channels' }
   | { kind: 'stitch'; zone: string | null; tracks: string[] }
   | null;
 
@@ -229,6 +231,9 @@ export function useBoardEditor({
       placeFootprint: () => {
         setDialog({ kind: 'chooser' });
       },
+      channels: () => {
+        setDialog({ kind: 'channels' });
+      },
       stitch: () => {
         const zones = selectedOfType(controller, 'zone');
         setDialog({
@@ -301,6 +306,8 @@ export function useBoardEditor({
       <AutorouterDialog doc={doc} onClose={close} />
     ) : dialog.kind === 'gerberReference' ? (
       <GerberReferenceDialog doc={doc} onClose={close} />
+    ) : dialog.kind === 'channels' ? (
+      <ChannelsDialog doc={doc} onClose={close} />
     ) : dialog.kind === 'stitch' ? (
       <StitchDialog
         doc={doc}

@@ -150,6 +150,9 @@ pub struct OutputJob {
     /// Make the board outputs for a panel of the board.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub panel: Option<PanelSettings>,
+    /// The assembly variant the outputs are made for (empty: as designed).
+    #[serde(default, skip_serializing_if = "String::is_empty")]
+    pub variant: String,
 }
 
 /// Editable output job properties (the whole document except its id).
@@ -165,6 +168,9 @@ pub struct OutputJobProps {
     /// Panel of the board outputs (`null`: single boards).
     #[serde(default)]
     pub panel: Option<PanelSettings>,
+    /// Assembly variant (empty: as designed).
+    #[serde(default)]
+    pub variant: String,
 }
 
 /// Default output folder.
@@ -180,6 +186,7 @@ impl OutputJob {
             directory: DEFAULT_OUTPUT_DIRECTORY.to_owned(),
             outputs: Vec::new(),
             panel: None,
+            variant: String::new(),
         }
     }
 
@@ -237,6 +244,7 @@ impl OutputJob {
             directory: self.directory.clone(),
             outputs: self.outputs.clone(),
             panel: self.panel.clone(),
+            variant: self.variant.clone(),
         }
     }
 
@@ -246,6 +254,7 @@ impl OutputJob {
         self.directory = props.directory;
         self.outputs = props.outputs;
         self.panel = props.panel;
+        self.variant = props.variant;
     }
 }
 

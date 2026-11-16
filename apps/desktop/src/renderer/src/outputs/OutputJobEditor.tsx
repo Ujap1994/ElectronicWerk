@@ -53,6 +53,7 @@ function asJob(value: Record<string, unknown> | null): OutputJobProps | null {
       options: output.options ?? {},
     })),
     panel: asPanel(value['panel']),
+    variant: typeof value['variant'] === 'string' ? value['variant'] : '',
   };
 }
 
@@ -323,6 +324,28 @@ export function OutputJobEditor({ document }: { readonly document: DocumentSumma
                 void setDocumentProperties(document.id, { directory: directory.trim() });
               }}
             />
+            {(project?.variants ?? []).length > 0 && (
+              <label className="field field--compact">
+                <span className="field__label">{t('outputs.variant')}</span>
+                <select
+                  className="field__control"
+                  value={job.variant}
+                  data-testid="outputs-variant"
+                  onChange={(event) => {
+                    const variant = event.target.value;
+                    setJob({ ...job, variant });
+                    void setDocumentProperties(document.id, { variant });
+                  }}
+                >
+                  <option value="">{t('outputs.asDesigned')}</option>
+                  {(project?.variants ?? []).map((v) => (
+                    <option key={v.name} value={v.name}>
+                      {v.name}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            )}
           </div>
           <h3 className="outputs__subtitle">{t('outputs.outputs')}</h3>
           <ul className="outputs__items" data-testid="outputs-list">

@@ -9,6 +9,8 @@ export const outputsDe: Messages['outputs'] = {
   generating: 'Wird erzeugt …',
   folder: 'Ausgabeordner',
   folderHint: 'Relativ zum Projektordner.',
+  variant: 'Bestückungsvariante',
+  asDesigned: 'Wie entworfen',
   showFolder: 'Im Ordner zeigen',
   gerberViewer: 'Gerber-Viewer',
   gerberViewerTip: 'Die erzeugten Gerber- und Bohrdateien im Gerber-Viewer prüfen',
