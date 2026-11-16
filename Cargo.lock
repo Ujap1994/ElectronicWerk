@@ -622,6 +622,7 @@ dependencies = [
 name = "ew-synth"
 version = "0.16.0"
 dependencies = [
+ "ew-datasheet",
  "ew-model",
 ]
 

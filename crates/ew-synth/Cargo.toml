@@ -10,6 +10,7 @@ authors.workspace = true
 publish = false
 
 [dependencies]
+ew-datasheet.workspace = true
 ew-model.workspace = true
 
 [lints]

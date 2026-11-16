@@ -631,30 +631,17 @@ fn read_pin_table(t: &Table) -> Option<PinTable> {
     if t.columns < 2 || t.rows.len() < 3 {
         return None;
     }
-    // Header rows: until a row has a pad number and a name-like cell.
-    let mut header_rows = 0;
-    for (i, row) in t.rows.iter().enumerate().take(4) {
-        let numeric = row
-            .cells
-            .iter()
-            .filter(|c| numbers(&c.text).is_some_and(|n| !n.0.is_empty()))
-            .count();
-        let words = keyword_count(
-            &row.cells
+    // Header rows: the rows before the first row with a pad number.
+    let header_rows = t
+        .rows
+        .iter()
+        .take(5)
+        .position(|row| {
+            row.cells
                 .iter()
-                .map(|c| c.text.as_str())
-                .collect::<Vec<_>>()
-                .join(" "),
-            PIN_WORDS,
-        );
-        if numeric > 0 && words == 0 && i > 0 {
-            break;
-        }
-        header_rows = i + 1;
-        if numeric > 0 && words == 0 {
-            break;
-        }
-    }
+                .any(|c| numbers(&c.text).is_some_and(|n| !n.0.is_empty()))
+        })
+        .unwrap_or(0);
     if header_rows == 0 || header_rows >= t.rows.len() {
         return None;
     }
@@ -706,10 +693,7 @@ fn read_pin_table(t: &Table) -> Option<PinTable> {
     let is_numbers = |s: &str| numbers(s).is_some();
     let is_name = |s: &str| {
         let n = clean_name(s);
-        !n.is_empty()
-            && n.len() <= 24
-            && n.chars().any(char::is_alphabetic)
-            && numbers(&n).is_none()
+        !n.is_empty() && n.len() <= 24 && n.chars().any(char::is_alphabetic) && !n.contains(", ")
     };
     for c in 0..t.columns {
         if roles[c] == Role::Number && share(c, &is_numbers) < 0.6 {
@@ -947,7 +931,10 @@ fn pin_tables(tables: &[Table]) -> (Vec<PinDraft>, Vec<NumberColumn>) {
             match pins.iter_mut().find(|p| p.name == pin.name) {
                 Some(existing) => {
                     for (k, v) in pin.numbers {
-                        existing.numbers.entry(k).or_insert(v);
+                        let list = existing.numbers.entry(k).or_default();
+                        list.extend(v);
+                        list.sort_by(|a, b| pad_order(a, b));
+                        list.dedup();
                     }
                     if existing.function.is_empty() {
                         existing.function = pin.function;
@@ -1320,6 +1307,20 @@ fn read_dimension_table(t: &Table, page: &Page) -> Option<DimensionTable> {
         tokens.contains("MIN") && (tokens.contains("MAX") || tokens.contains("NOM"))
     })?;
     let head = &t.rows[header];
+    let head_text = normalize(
+        &head
+            .cells
+            .iter()
+            .map(|c| c.text.as_str())
+            .collect::<Vec<_>>()
+            .join(" "),
+    );
+    if ["PARAMETER", "CONDITION", "TEST", "UNIT"]
+        .iter()
+        .any(|w| head_text.contains(w))
+    {
+        return None;
+    }
     let mut groups: Vec<[Option<usize>; 3]> = Vec::new();
     for c in 0..t.columns {
         let h = normalize(head.text(c));
@@ -1434,9 +1435,7 @@ fn read_dimension_table(t: &Table, page: &Page) -> Option<DimensionTable> {
         let mut lines: Vec<_> = page
             .lines
             .iter()
-            .filter(|l| {
-                l.angle == 0 && l.bbox[3] <= t.bbox[1] + 2.0 && l.bbox[3] > t.bbox[1] - 200.0
-            })
+            .filter(|l| l.angle == 0 && l.bbox[3] <= t.bbox[1] + 2.0)
             .collect();
         lines.sort_by(|a, b| b.bbox[3].total_cmp(&a.bbox[3]));
         hint = lines.iter().find_map(|l| package::recognise(&l.text));
