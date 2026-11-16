@@ -299,7 +299,9 @@ describe('the GitHub account', () => {
   });
 });
 
-describe('projects on GitHub', () => {
+// Real git runs behind these tests; on the Windows runners a test with
+// several clones, commits and pushes takes longer than the default 5 s.
+describe('projects on GitHub', { timeout: 60_000 }, () => {
   it('publishes a project to a new repository', async () => {
     const gh = await signedIn();
     const manifest = makeProject('Blinky');
