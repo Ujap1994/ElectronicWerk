@@ -13,6 +13,7 @@ authors = ["ElectronicWerk contributors"]
 [workspace.dependencies]
 ew-board3d = { path = "crates/ew-board3d" }
 ew-core = { path = "crates/ew-core" }
+ew-datasheet = { path = "crates/ew-datasheet" }
 ew-eagle = { path = "crates/ew-eagle" }
 ew-format = { path = "crates/ew-format" }
 ew-kicad = { path = "crates/ew-kicad" }
