@@ -4,6 +4,7 @@
 #![allow(
     clippy::print_stdout,
     clippy::print_stderr,
+    clippy::too_many_lines,
     reason = "a developer tool"
 )]
 

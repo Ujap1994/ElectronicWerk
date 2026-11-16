@@ -20,6 +20,10 @@ pub fn recognize(sheet: &Datasheet) -> Draft {
 /// Recognises the part, with the datasheet's file name as a hint for the
 /// part number (`lm358.pdf`).
 #[must_use]
+#[allow(
+    clippy::too_many_lines,
+    reason = "the steps of the recognition in order"
+)]
 pub fn recognize_named(sheet: &Datasheet, file_name: &str) -> Draft {
     let mut draft = Draft::default();
     info(sheet, file_name, &mut draft);
@@ -995,6 +999,10 @@ fn spread_unnamed(pins: &mut [PinDraft], packages: &[PackageDraft]) {
 /// Pins of a drawing: name, pad number and where the number is.
 type DrawnPins = Vec<(String, String, Source)>;
 
+#[allow(
+    clippy::too_many_lines,
+    reason = "columns, labels and checks of one drawing"
+)]
 fn pinout(sheet: &Datasheet) -> Option<(DrawnPins, u32)> {
     for page in sheet.pages.iter().take(6) {
         let text = normalize(
