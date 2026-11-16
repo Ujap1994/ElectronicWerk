@@ -423,6 +423,10 @@ pub const SUMMARIES: &[(&str, &str)] = &[
         "`pcb.rules {\"doc\"?}` returns the project's design rules (`rules`: the properties of the rules document), the DRC checks with their default and current severity (`checks`), the nets of each net class on the board `doc` (`nets`) and syntax errors of custom rules (`errors`).",
     ),
     (
+        "pcb.stitch",
+        "`{\"doc\", \"zone\" | \"tracks\", \"net\"?, \"pitch\"?, \"diameter\"?, \"drill\"?, \"gap\"?, \"staggered\"?, \"remove\"?, \"apply\"?}` (`stitch-vias` / `remove-stitching`) → `{\"added\", \"removed\", \"vias\"}`: stitching vias: a grid of vias of a zone's net in its copper (where another layer has copper of the net too), or a via fence of `net` along both sides of tracks; only where they keep every clearance. `remove` removes the free vias (no track ends at them) of the net in the zone or along the tracks. Zones are filled again. Without `apply` only the positions.",
+    ),
+    (
         "pcb.syncApply",
         "`pcb.syncPreview {\"doc\"}` compares the schematic with the board and returns `{\"changes\", \"problems\"}`. Each change has an `index`, a `kind` (`addNet`, `renameNet`, `removeNet`, `addFootprint`, `removeFootprint`, `changeFootprint`, `setDesignator`, `setValue`, `link`, `setPadNet`), its fields and an English `description…",
     ),

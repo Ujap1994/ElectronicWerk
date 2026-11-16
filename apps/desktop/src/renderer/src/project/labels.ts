@@ -59,6 +59,8 @@ const HISTORY_LABELS: Readonly<Record<string, MessageKey>> = {
   'match-lengths': 'history.matchLengths',
   teardrops: 'history.teardrops',
   'remove-teardrops': 'history.removeTeardrops',
+  'stitch-vias': 'history.stitchVias',
+  'remove-stitching': 'history.removeStitching',
 };
 
 /** A readable name for an undo/redo step (scripts may use their own labels). */

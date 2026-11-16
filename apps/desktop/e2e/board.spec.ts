@@ -436,6 +436,46 @@ test('adds and removes teardrops', async () => {
   await expect(page.getByTestId('toolbar-undo')).toHaveAttribute('title', /Remove teardrops/u);
 });
 
+test('fences a selected track with ground vias', async () => {
+  launched = await launchApp();
+  const { page, projectsDir } = launched;
+  await page.setViewportSize({ width: 1280, height: 800 });
+  await importAs(launched, 'Fence');
+  await page.locator('[data-testid^="tree-doc:"]', { hasText: 'Fence' }).first().dblclick();
+  await settle(page);
+  const board = readBoard(join(projectsDir, 'Fence')) as unknown as {
+    nets: { id: string; name: string }[];
+    tracks: { net?: string; layer: string; start: Point; end: Point }[];
+    vias: unknown[];
+  };
+  const out = board.nets.find((n) => n.name === '/OUT')?.id;
+  const track = board.tracks.find(
+    (t) => t.net === out && t.layer === 'cu.top' && t.start[0] === t.end[0],
+  );
+  expect(track).toBeDefined();
+  const canvas = viewerCanvas(page);
+  const middle: Point = [
+    ((track?.start[0] ?? 0) + (track?.end[0] ?? 0)) / 2,
+    ((track?.start[1] ?? 0) + (track?.end[1] ?? 0)) / 2,
+  ];
+  const [x, y] = await toScreen(canvas, middle);
+  await page.mouse.click(x, y);
+
+  await page.getByTestId('board-stitch').click();
+  const dialog = page.getByTestId('stitch-dialog');
+  await expect(dialog).toBeVisible();
+  await expect(page.getByTestId('stitch-mode-fence')).toHaveAttribute('aria-selected', 'true');
+  await expect(page.getByTestId('stitch-tracks')).toHaveText('1 tracks selected');
+  await expect(page.getByTestId('stitch-net').locator('option:checked')).toHaveText('GND');
+  await page.getByTestId('stitch-add').click();
+  await expect(dialog).toBeHidden();
+  await expect(page.getByText(/vias added/u)).toBeVisible();
+  await expect(page.getByTestId('toolbar-undo')).toHaveAttribute('title', /Add stitching vias/u);
+  await save(page);
+  const after = readBoard(join(projectsDir, 'Fence')) as { vias?: unknown[] };
+  expect((after.vias ?? []).length).toBeGreaterThan(board.vias.length);
+});
+
 test('drags a track while its 45° neighbours keep their direction', async () => {
   launched = await launchApp();
   const { page, projectsDir } = launched;

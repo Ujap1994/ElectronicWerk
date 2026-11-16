@@ -136,6 +136,7 @@ export const de: Messages = {
     autorouter: 'Platine: externer Autorouter (Specctra DSN/SES, Freerouting)',
     lengths: 'Platine: Längen und Längenabgleich',
     teardrops: 'Platine: Teardrops hinzufügen oder entfernen',
+    stitch: 'Platine: Stitching-Vias und Via-Zäune',
     gerberReference: 'Platine: Gerber-Dateien als Referenzzeichnung importieren',
     placeFootprint: 'Platine: Footprint platzieren',
     generateOutputs: 'Ausgaben: Fertigungsdaten erzeugen (Ausgabejob)',
@@ -234,6 +235,8 @@ export const de: Messages = {
     matchLengths: 'Längen angleichen',
     teardrops: 'Teardrops hinzufügen',
     removeTeardrops: 'Teardrops entfernen',
+    stitchVias: 'Stitching-Vias hinzufügen',
+    removeStitching: 'Stitching-Vias entfernen',
   },
   kinds: {
     schematic: 'Schaltplan',

@@ -176,6 +176,7 @@ pub const METHODS: &[&str] = &[
     "pcb.routeStart",
     "pcb.rules",
     "pcb.setRules",
+    "pcb.stitch",
     "pcb.syncApply",
     "pcb.syncPreview",
     "pcb.teardrops",

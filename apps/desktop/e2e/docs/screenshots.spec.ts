@@ -1852,6 +1852,74 @@ test('teardrops', async () => {
   await close();
 });
 
+test('stitching vias', async () => {
+  test.setTimeout(180_000);
+  freshProjects();
+  const kicad = '/tmp/ElectronicWerk/KiCad/blinky';
+  rmSync(kicad, { recursive: true, force: true });
+  cpSync(KICAD_FIXTURE, kicad, { recursive: true });
+  const { app, page, close } = await start({ settings: { theme: 'light', workMode: 'advanced' } });
+  await page.setViewportSize({ width: 1500, height: 900 });
+  await queueDialogAnswer(app, join(kicad, 'blinky.kicad_pro'));
+  await page.getByTestId('import-kicad').click();
+  await page.getByTestId('kicad-import-name').fill('Blinky');
+  await page.getByTestId('kicad-import-start').click();
+  await page
+    .getByTestId('import-report')
+    .getByRole('button', { name: 'Close', exact: true })
+    .last()
+    .click();
+  const board = readBoardJson('Blinky') as BoardJson & {
+    nets: { id: string; name: string }[];
+    tracks: { id: string; net?: string; layer: string; start: Point; end: Point }[];
+  };
+  await page
+    .locator('[data-testid^="tree-doc:"]')
+    .filter({ hasText: /^Blinky$/u })
+    .dblclick();
+  await settle(page);
+  await expect(page.getByTestId('viewer')).toHaveAttribute('data-kind', 'pcb');
+
+  // A fence along the /OUT tracks on the top.
+  const out = board.nets.find((n) => n.name === '/OUT')?.id;
+  const tracks = board.tracks.filter((t) => t.net === out && t.layer === 'cu.top');
+  const ends = tracks.flatMap((t) => [t.start, t.end]);
+  const xs = ends.map((p) => p[0]);
+  const ys = ends.map((p) => p[1]);
+  await zoomAt(
+    page,
+    [(Math.min(...xs) + Math.max(...xs)) / 2, (Math.min(...ys) + Math.max(...ys)) / 2],
+    2,
+  );
+  for (const [index, track] of tracks.entries()) {
+    const middle: Point = [
+      (track.start[0] + track.end[0]) / 2,
+      (track.start[1] + track.end[1]) / 2,
+    ];
+    if (index > 0) {
+      await page.keyboard.down('Shift');
+    }
+    await clickPoint(page, middle);
+    await page.keyboard.up('Shift');
+  }
+  await page.getByTestId('board-stitch').click();
+  const dialog = page.getByTestId('stitch-dialog');
+  await expect(page.getByTestId('stitch-tracks')).toBeVisible();
+  const pitch = page.getByTestId('stitch-pitch');
+  await pitch.fill('1.5');
+  await pitch.press('Enter');
+  await shoot(dialog, 'stitch-dialog');
+  await page.getByTestId('stitch-add').click();
+  await expect(dialog).toBeHidden();
+  await closeToasts(page);
+  await viewerCanvas(page).focus();
+  await page.keyboard.press('Escape');
+  await page.mouse.move(10, 10);
+  await settle(page);
+  await shoot(page.locator('.viewer__area'), 'stitch-fence');
+  await close();
+});
+
 // --- Manufacturing outputs (M8) ----------------------------------------------
 
 /** Every file below a folder, as paths relative to it. */

@@ -171,6 +171,7 @@ export interface BoardCommands {
   readonly placeFootprint: () => void;
   readonly lengths: () => void;
   readonly teardrops: () => void;
+  readonly stitch: () => void;
 }
 
 export const activeBoard = new Store<BoardCommands | null>(null);

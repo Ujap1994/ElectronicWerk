@@ -53,6 +53,10 @@ pub mod labels {
     pub const TEARDROPS: &str = "teardrops";
     /// `pcb.teardrops` with `remove`.
     pub const REMOVE_TEARDROPS: &str = "remove-teardrops";
+    /// `pcb.stitch`.
+    pub const STITCH: &str = "stitch-vias";
+    /// `pcb.stitch` with `remove`.
+    pub const REMOVE_STITCH: &str = "remove-stitching";
 
     /// The label of a `pcb.edit` operation.
     #[must_use]
@@ -356,6 +360,37 @@ struct MatchParams {
     amplitude: Option<f64>,
     #[serde(default)]
     side: ew_pcb::length::MeanderSide,
+    #[serde(default)]
+    apply: bool,
+}
+
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+struct StitchParams {
+    doc: Id,
+    /// Stitch this zone …
+    #[serde(default)]
+    zone: Option<Id>,
+    /// … or fence these tracks.
+    #[serde(default)]
+    tracks: Vec<Id>,
+    /// The net of the vias (a zone's own net by default).
+    #[serde(default)]
+    net: Option<Id>,
+    #[serde(default)]
+    pitch: Option<f64>,
+    #[serde(default)]
+    diameter: Option<f64>,
+    #[serde(default)]
+    drill: Option<f64>,
+    /// Fence: from the track's edge to the via's edge.
+    #[serde(default)]
+    gap: Option<f64>,
+    #[serde(default)]
+    staggered: bool,
+    /// Remove the free vias of the net there instead.
+    #[serde(default)]
+    remove: bool,
     #[serde(default)]
     apply: bool,
 }
@@ -1079,6 +1114,133 @@ pub fn call(
             }));
             Ok(Outcome::Commit {
                 label: labels::MATCH,
+                requests,
+                reply,
+            })
+        }
+        "pcb.stitch" => {
+            let params: StitchParams = parse(params)?;
+            let pcb = board(project, params.doc)?;
+            let saved = rules(project).map(|(_, r)| r);
+            let zone = params
+                .zone
+                .map(|id| {
+                    pcb.zones
+                        .get(id)
+                        .ok_or_else(|| EngineError::not_found(format!("no zone {id}")))
+                })
+                .transpose()?;
+            let tracks: Vec<&ew_model::pcb::Track> = params
+                .tracks
+                .iter()
+                .filter_map(|id| pcb.tracks.get(*id))
+                .collect();
+            if zone.is_none() && tracks.is_empty() {
+                return Err(EngineError::invalid_params("give a zone or tracks"));
+            }
+            let net = params
+                .net
+                .or_else(|| zone.and_then(|z| z.net))
+                .ok_or_else(|| EngineError::invalid_params("the vias need a net"))?;
+            if pcb.nets.get(net).is_none() {
+                return Err(EngineError::not_found(format!("no net {net}")));
+            }
+            let router = ew_pcb::route::Router::new(pcb, saved);
+            let class = router.class_of(Some(net)).clone();
+            #[allow(clippy::cast_precision_loss, reason = "board lengths fit f64")]
+            let size = ew_pcb::stitch::ViaSize {
+                diameter: params.diameter.unwrap_or(class.via_diameter as f64),
+                drill: params.drill.unwrap_or(class.via_drill as f64),
+            };
+            #[allow(clippy::cast_precision_loss, reason = "board lengths fit f64")]
+            let gap = params.gap.unwrap_or(class.clearance as f64);
+            // Where: inside the zone, or near the tracks.
+            let near = |at: V| -> bool {
+                if let Some(zone) = zone {
+                    let outline: Vec<V> = zone.outline.iter().map(|p| V::of(*p)).collect();
+                    ew_pcb::geom::Poly::new(outline, Vec::new()).contains(at)
+                } else {
+                    #[allow(clippy::cast_precision_loss, reason = "board lengths fit f64")]
+                    tracks.iter().any(|t| {
+                        ew_pcb::geom::point_segment(at, V::of(t.start), V::of(t.end))
+                            < t.width as f64 / 2.0 + gap + size.diameter + 1.0
+                    })
+                }
+            };
+            let removed: Vec<Id> = ew_pcb::stitch::free_vias(pcb, net)
+                .into_iter()
+                .filter(|via| near(V::of(via.at)))
+                .map(|via| via.id)
+                .collect();
+            let mut after = pcb.clone();
+            let mut positions = Vec::new();
+            if params.remove {
+                for id in &removed {
+                    after.vias.remove(*id);
+                }
+            } else {
+                positions = if let Some(zone) = zone {
+                    router.stitch_zone(
+                        pcb,
+                        zone,
+                        size,
+                        params.pitch.unwrap_or(3_000_000.0),
+                        params.staggered,
+                    )
+                } else {
+                    router.fence(&tracks, net, size, params.pitch.unwrap_or(2_000_000.0), gap)
+                };
+            }
+            drop(router);
+            let stack: Vec<ew_model::layer::CopperLayer> = pcb.stackup.copper_layers().collect();
+            #[allow(clippy::cast_possible_truncation, reason = "via sizes")]
+            let vias: Vec<ew_model::pcb::Via> = positions
+                .iter()
+                .map(|at| ew_model::pcb::Via {
+                    id: Id::random(),
+                    at: at.point(),
+                    diameter: size.diameter.round() as i64,
+                    drill: size.drill.round() as i64,
+                    net: Some(net),
+                    from: stack[0],
+                    to: stack[stack.len() - 1],
+                    micro: false,
+                    locked: false,
+                })
+                .collect();
+            let reply = json!({
+                "added": vias.len(),
+                "removed": if params.remove { removed.len() } else { 0 },
+                "vias": positions.iter().map(|p| p.pair()).collect::<Vec<_>>(),
+            });
+            if !params.apply || (vias.is_empty() && !params.remove) {
+                return Ok(Outcome::Read(reply));
+            }
+            let mut requests: Vec<Request> = Vec::new();
+            if params.remove {
+                requests.extend(removed.iter().map(|id| Request::Delete {
+                    doc: params.doc,
+                    id: *id,
+                }));
+            }
+            for via in vias {
+                after.vias.insert(via.clone());
+                requests.push(Request::Insert {
+                    doc: params.doc,
+                    object: Object::Via(via),
+                });
+            }
+            // The zones fill again around (and through) the new vias.
+            requests.extend(refill(params.doc, &after, saved));
+            if requests.is_empty() {
+                return Ok(Outcome::Read(reply));
+            }
+            Ok(Outcome::Commit {
+                label: if params.remove {
+                    labels::REMOVE_STITCH
+                } else {
+                    labels::STITCH
+                },
                 requests,
                 reply,
             })
@@ -1906,6 +2068,25 @@ fn impedance_table(pcb: &Pcb, rules: Option<&Rules>) -> Value {
         "layers": structures,
         "profiles": profiles,
     })
+}
+
+/// Updates for the zones of a board whose fill changes when they are filled
+/// again.
+fn refill(doc: Id, pcb: &Pcb, rules: Option<&Rules>) -> Vec<Request> {
+    ew_pcb::fill::fill(pcb, rules, None)
+        .into_iter()
+        .filter_map(|filled| {
+            let zone = pcb.zones.get(filled.zone)?;
+            (zone.filled != filled.areas).then(|| {
+                let mut zone = zone.clone();
+                zone.filled = filled.areas;
+                Request::Update {
+                    doc,
+                    object: Object::Zone(zone),
+                }
+            })
+        })
+        .collect()
 }
 
 /// A preview of meanders: the new tracks and the tracks they replace, as

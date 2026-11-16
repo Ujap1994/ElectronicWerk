@@ -38,5 +38,6 @@ pub mod route;
 pub mod rules;
 pub mod shove;
 pub mod specctra;
+pub mod stitch;
 pub mod sync;
 pub mod teardrop;

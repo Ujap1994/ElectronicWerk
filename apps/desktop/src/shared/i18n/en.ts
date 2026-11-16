@@ -139,6 +139,7 @@ export const en = {
     autorouter: 'Board: external autorouter (Specctra DSN/SES, Freerouting)',
     lengths: 'Board: lengths and length matching',
     teardrops: 'Board: add or remove teardrops',
+    stitch: 'Board: stitching vias and via fences',
     gerberReference: 'Board: import Gerber files as a reference drawing',
     placeFootprint: 'Board: place a footprint',
     generateOutputs: 'Outputs: generate manufacturing files (output job)',
@@ -237,6 +238,8 @@ export const en = {
     matchLengths: 'Match lengths',
     teardrops: 'Add teardrops',
     removeTeardrops: 'Remove teardrops',
+    stitchVias: 'Add stitching vias',
+    removeStitching: 'Remove stitching vias',
   },
   kinds: {
     schematic: 'Schematic',
