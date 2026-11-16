@@ -861,12 +861,17 @@ libraries. Without a designator it gets the next free `X<n>`.
 
 `pcb.routeStart {"doc", "at", "layer"}` → `{"at", "net", "netName", "width",
 "viaDiameter", "viaDrill", "microViaDiameter", "microViaDrill", "viaTypes",
+"pairWidth", "pairGap", "profile"?, "impedance"?, "layerWidths"?,
 "clearance", "previous"}`: where a route that begins at `at` starts (snapped
 to a pad or via centre or a track end) and the sizes from the rules.
 `viaTypes` lists the via types the design rules allow (`through` always,
 `blind` and `buried` when blind and buried vias are allowed, `micro` when
 microvias are). `previous` is the direction of the track whose end the route
-starts at (`null` for pads and vias).
+starts at (`null` for pads and vias). When the net's class follows an
+[impedance profile](../guide/impedance), `width`, `pairWidth` and `pairGap`
+are the profile's sizes on `layer`, `profile` is its name, `impedance` what
+these sizes give, and `layerWidths` (`{"cu.top": nm, …}`) the width on every
+copper layer, for the segments after a layer change.
 
 `pcb.route {"doc", "layer", "net", "width", "start", "target",
 "diagonalFirst"?, "corners"?, "previous"?, "via"?, "viaLayers"?}` →
@@ -888,14 +893,40 @@ copper already placed on this route; it pushes too. The reply then has
 (the pushed tracks and the tracks they replace), or `null` when the tracks
 cannot make room.
 
-`pcb.addTracks {"doc", "net", "width", "segments": [{"layer", "points"}],
-"vias": [{"at", "diameter", "drill", "from"?, "to"?, "micro"?}]}` (`route`)
-adds the tracks between consecutive points and the vias. A via goes through
+`pcb.addTracks {"doc", "net", "width", "segments": [{"layer", "points",
+"width"?}], "vias": [{"at", "diameter", "drill", "from"?, "to"?, "micro"?}]}`
+(`route`) adds the tracks between consecutive points and the vias. A
+segment's own `width` wins over the request's (a route through layers with
+different impedance widths). A via goes through
 the board unless `from` and `to` name its first and last layer; `micro`
 marks a microvia. See [Blind, buried and microvias](../guide/vias). With
 `"mode": "shove"` (and `corners`, `"45"` by default) the tracks of other nets
 in the way are pushed aside in the same step, as the preview of `pcb.route`
 showed; if they cannot make room, the call fails and nothing changes.
+
+### `pcb.impedance` / `pcb.impedanceCalc`
+
+`pcb.impedance {"doc", "rules"?}` → `{"presets", "layers", "profiles"}`: the
+[controlled impedance](../guide/impedance) view of a board.
+
+- `presets`: the interfaces of the beginner mode, `{"id", "name",
+"differential", "target", "tolerance"}` (`usb2`, `usb3`, `ethernet`,
+  `hdmi`, `lvds`, `pcie`, `can`, `rf50`).
+- `layers`: every copper layer from the top with its `structure`:
+  `{"kind": "microstrip", "height", "epsilonR", "thickness"}`,
+  `{"kind": "stripline", "above", "below", "epsilonR", "thickness"}` (lengths
+  in nm) or `null` without a plane next to it.
+- `profiles`: every impedance profile of the rules with its `layers`:
+  `[{"layer", "layout": {"width", "gap", "impedance", "manual", "fits"}}]`.
+  `manual` marks sizes set by hand, `fits` sizes within the board minimums;
+  `layout` is `null` when no width reaches the target.
+
+`rules` computes with rules that are still being edited (the `props` of
+`pcb.setRules`) instead of the saved ones; nothing is saved.
+
+`pcb.impedanceCalc {"doc", "layer", "differential"?, "width", "gap"?}` →
+`{"impedance", "structure"}`: the impedance (Ω) of a track, or of a pair
+with this gap, on a layer of the board. Changes nothing.
 
 ### `pcb.viaFits`
 

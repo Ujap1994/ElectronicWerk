@@ -178,8 +178,13 @@ KiCad cut them in with slits instead. Both read the same way.
   `minMicroViaDiameter`, `minMicroViaDrill`, and `allowBlindBuriedVias` and
   `allowMicroVias`, which are written only when switched on), `netClasses`
   (with `microViaDiameter` and `microViaDrill`; older files get the
-  defaults 0.3 mm and 0.1 mm) and pattern-based `assignments` (`GND*` →
-  `Power`), and
+  defaults 0.3 mm and 0.1 mm; `impedance`, the name of the impedance profile
+  the class follows, only when it has one) and pattern-based `assignments`
+  (`GND*` → `Power`), optionally `impedanceProfiles`: the
+  [impedance profiles](../guide/impedance#in-the-files) with `name`,
+  `differential` (only when true), `target` (Ω), `tolerance` (%), `preset`
+  (the beginner interface it was made from) and `layers` (sizes set by hand
+  by copper layer: `{"cu.top": {"width", "gap"}}`), and
   optionally `erc`: the settings of the
   [electrical rules check](../guide/erc#settings) that differ from the
   defaults, `severities` (check code → `error`, `warning` or `ignore`) and

@@ -9,7 +9,7 @@ every board of it uses them.
 
 Open them with the **Design rules** button in the board toolbar or
 **Board: design rules and net classes** in the command palette. The dialog
-has four tabs; **Save the rules** stores all of them as one undo step
+has five tabs; **Save the rules** stores all of them as one undo step
 (`design-rules`).
 
 There are three levels, from general to specific:
@@ -33,7 +33,7 @@ Every net belongs to exactly one net class. A class sets:
 | Track width              | The width of new tracks of the class.                                                       |
 | Via diameter, via drill  | The size of new vias of the class.                                                          |
 | Microvia diameter, drill | The size of new [microvias](./vias) of the class.                                           |
-| Diff. pair width and gap | Reserved for differential pairs (routed as two tracks for now).                             |
+| Diff. pair width and gap | The sizes of a differential pair of the class (set from an impedance profile, see below).   |
 
 The first class, `Default`, holds every net that no other class claims; it
 cannot be renamed or removed. **Add a net class** copies the `Default`
@@ -90,6 +90,17 @@ The defaults suit common low-cost prototype services. A
 [board preset](./board-setup#presets) sets them for other kinds of boards.
 Net classes and custom rules never go below these values (except a custom
 copper-to-edge distance, which may be smaller for edge connectors).
+
+## Impedance
+
+The **Impedance** tab gives net classes a controlled impedance: in the
+beginner working mode you pick the interface of a class (USB 2.0, Ethernet,
+50 Ω RF, …) and the widths and gaps are computed from the stack-up; in the
+advanced mode you edit impedance profiles and their sizes per layer. The
+router uses the sizes of the layer it routes on, and the DRC warns about
+tracks that miss the target. See [Controlled impedance](./impedance).
+
+![The impedance tab in the beginner mode](/screenshots/impedance-beginner.png)
 
 ## Custom rules
 

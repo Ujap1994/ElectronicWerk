@@ -40,6 +40,20 @@ changelog and release notes are always in English.
 
 The appearance also applies to native elements such as menus and dialogs.
 
+## Working mode
+
+How much ElectronicWerk decides for you where a task needs engineering
+values:
+
+| Option                 | Effect                                                                                                                               |
+| ---------------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
+| **Beginner** (default) | You make a few choices (for example the interface a net class carries) and ElectronicWerk computes and applies the values.           |
+| **Advanced**           | You see and set every value yourself (for example target impedance, tolerance, widths and gaps per layer); the app shows the result. |
+
+The working mode changes what the [controlled impedance](./impedance#two-working-modes)
+tab of the design rules shows. Both modes edit the same design rules, so you
+can switch at any time.
+
 ## Updates
 
 | Option                               | Effect                                                                           |
@@ -101,6 +115,7 @@ Example content:
   "schemaVersion": 1,
   "language": "system",
   "theme": "dark",
+  "workMode": "beginner",
   "updates": {
     "checkOnStartup": true,
     "skippedVersion": null

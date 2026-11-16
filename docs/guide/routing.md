@@ -146,7 +146,10 @@ net of the copper below it.
 ## Track widths
 
 New tracks take the track width of their net's class, unless a custom rule
-sets a **track width for routing** for them. The width is shown in the
+sets a **track width for routing** for them. When the class follows an
+[impedance profile](./impedance), the width comes from the profile and
+**changes with the layer**: after a layer change the route goes on with the
+width that gives the target impedance on the new layer. The width is shown in the
 status line while routing. To change the width of tracks afterwards, select
 them and edit the width in the [properties panel](./layout-editor#editing-in-the-properties-panel);
 the [design rules check](./drc) reports tracks thinner than the minimum.

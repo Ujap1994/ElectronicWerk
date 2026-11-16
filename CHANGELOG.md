@@ -34,6 +34,26 @@ project uses [Semantic Versioning](https://semver.org/).
   `pcb.addTracks` take `"mode": "shove"`. See
   [Push and shove](https://ujap1994.github.io/ElectronicWerk/guide/routing#push-and-shove).
 
+- **Controlled impedance:** an **Impedance** tab in the design rules
+  computes track widths and pair gaps for a target impedance from the
+  stack-up (microstrip on outer layers, stripline on inner layers,
+  edge-coupled differential pairs; Hammerstad–Jensen, Wheeler and IPC-2141).
+  Net classes follow **impedance profiles** (target and tolerance); the
+  router routes their nets with the profile's width on each layer and
+  changes the width with the layer, and a new DRC check `impedance`
+  (warning) reports tracks outside the tolerance. In the **beginner**
+  working mode you only pick the interface of a class (USB 2.0, USB 3,
+  Ethernet, HDMI, LVDS/MIPI, PCI Express, CAN/RS-485, 50 Ω RF) and the sizes
+  are computed and applied; in the **advanced** mode you edit the profiles,
+  set widths and gaps per layer by hand and use a calculator. New engine
+  methods `pcb.impedance` and `pcb.impedanceCalc`; `pcb.routeStart` returns
+  the profile's sizes and `layerWidths`, and `pcb.addTracks` takes a width
+  per segment. See
+  [Controlled impedance](https://ujap1994.github.io/ElectronicWerk/guide/impedance).
+- **Working mode** setting: _Beginner_ (default) or _Advanced_ decides how
+  much ElectronicWerk computes and applies for you. See
+  [Settings](https://ujap1994.github.io/ElectronicWerk/guide/settings#working-mode).
+
 ### Changed
 
 - **Dragging a track keeps 45° routing:** the tracks attached to a dragged
