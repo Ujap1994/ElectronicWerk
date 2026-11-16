@@ -32,6 +32,7 @@ pub mod board;
 pub mod export;
 pub mod glb;
 pub mod mesh;
+pub mod package;
 pub mod place;
 pub mod scene;
 pub mod stack;
