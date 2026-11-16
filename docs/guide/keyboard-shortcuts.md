@@ -138,6 +138,7 @@ In the [layout editor](./layout-editor) (click the board first):
 | <kbd>S</kbd>                                 | Select tool                                              |
 | <kbd>A</kbd>                                 | Place a footprint (opens the chooser)                    |
 | <kbd>X</kbd>                                 | Route tracks                                             |
+| <kbd>6</kbd>                                 | Route a differential pair                                |
 | <kbd>V</kbd>                                 | Place vias; while routing: via and layer change          |
 | <kbd>Z</kbd>                                 | Copper zone                                              |
 | <kbd>K</kbd>                                 | Keep-out area                                            |

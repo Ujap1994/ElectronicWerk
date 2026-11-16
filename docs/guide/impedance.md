@@ -140,10 +140,18 @@ A net whose class follows a profile is routed with the profile's sizes:
   the following segments get the width of the new layer: on the
   [4-layer standard stack-up](./board-setup#presets) a USB 2.0 track is
   about 0.3 mm wide on the outer layers and 0.2 mm on the inner ones.
-- The tracks of the two nets of a pair are routed one after the other for
-  now; keep them together at the gap shown in the table.
+- **Route differential pair** (key **6**) routes both nets of a pair
+  together with the profile's width and gap, see
+  [differential pairs](./routing#differential-pairs).
 
 ## Design rules check
+
+The `pair-gap` check (a **Warning** by default) measures the gap between
+the coupled tracks of every [differential pair](./routing#differential-pairs)
+whose class follows a differential profile: where the two tracks run side
+by side, their gap must be the profile's gap on that layer within 10 % (at
+least 10 µm). Where the tracks part to reach their pads they are not
+checked.
 
 The `impedance` check (a **Warning** by default) computes the impedance of
 every track whose net class follows a profile, on its own layer, with the

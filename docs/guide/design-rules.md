@@ -27,13 +27,13 @@ There are three levels, from general to specific:
 
 Every net belongs to exactly one net class. A class sets:
 
-| Field                    | Used for                                                                                    |
-| ------------------------ | ------------------------------------------------------------------------------------------- |
-| Clearance                | Copper-to-copper distance to other nets. Between two classes, the larger clearance applies. |
-| Track width              | The width of new tracks of the class.                                                       |
-| Via diameter, via drill  | The size of new vias of the class.                                                          |
-| Microvia diameter, drill | The size of new [microvias](./vias) of the class.                                           |
-| Diff. pair width and gap | The sizes of a differential pair of the class (set from an impedance profile, see below).   |
+| Field                    | Used for                                                                                                                               |
+| ------------------------ | -------------------------------------------------------------------------------------------------------------------------------------- |
+| Clearance                | Copper-to-copper distance to other nets. Between two classes, the larger clearance applies.                                            |
+| Track width              | The width of new tracks of the class.                                                                                                  |
+| Via diameter, via drill  | The size of new vias of the class.                                                                                                     |
+| Microvia diameter, drill | The size of new [microvias](./vias) of the class.                                                                                      |
+| Diff. pair width and gap | The sizes of a [differential pair](./routing#differential-pairs) of the class (from its impedance profile when it has one, see below). |
 
 The first class, `Default`, holds every net that no other class claims; it
 cannot be renamed or removed. **Add a net class** copies the `Default`

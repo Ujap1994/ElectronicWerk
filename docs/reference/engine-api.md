@@ -897,7 +897,8 @@ cannot make room.
 "width"?}], "vias": [{"at", "diameter", "drill", "from"?, "to"?, "micro"?}]}`
 (`route`) adds the tracks between consecutive points and the vias. A
 segment's own `width` wins over the request's (a route through layers with
-different impedance widths). A via goes through
+different impedance widths). `"pair": {"net", "segments"}` adds the tracks
+of the other net of a differential pair in the same step. A via goes through
 the board unless `from` and `to` name its first and last layer; `micro`
 marks a microvia. See [Blind, buried and microvias](../guide/vias). With
 `"mode": "shove"` (and `corners`, `"45"` by default) the tracks of other nets
@@ -927,6 +928,30 @@ showed; if they cannot make room, the call fails and nothing changes.
 `pcb.impedanceCalc {"doc", "layer", "differential"?, "width", "gap"?}` →
 `{"impedance", "structure"}`: the impedance (Ω) of a track, or of a pair
 with this gap, on a layer of the board. Changes nothing.
+
+### `pcb.routePair` / `pcb.pairs`
+
+`pcb.routePair {"doc", "layer", "net", "partner", "width", "gap", "start",
+"partnerStart", "centre"?, "target", "diagonalFirst"?, "corners"?}` →
+`{"centre", "points", "partner", "reached", "landed"}`: routes a
+[differential pair](../guide/routing#differential-pairs) from the starts of
+both nets (`start` for `net`, `partnerStart` for `partner`) towards
+`target`; changes nothing. `centre` is the centre line fixed so far (empty
+for a new pair; the reply's `centre` continues it). `points` and `partner`
+are the full tracks of both nets from their starts. The new part is
+shortened until both tracks keep every rule; `reached` tells whether it
+ends at the target. A target on a pad, via or track end of either net ends
+both tracks on that point and the other net's nearest one there
+(`landed`).
+
+`pcb.routeStart` with `"pair": true` adds `partner`: `{"net", "netName",
+"at"}` (the other net of the pair and where it begins) or `null`. Put both
+tracks into the board with `pcb.addTracks` and its `pair` field.
+
+`pcb.pairs {"doc"}` → `{"pairs": [{"name", "positive": {"net", "name",
+"length"}, "negative": {…}, "skew"}]}`: the pairs of the board, found by
+their net names, with the routed track length of each net and their
+difference (nm).
 
 ### `pcb.viaFits`
 

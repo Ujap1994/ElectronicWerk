@@ -38,17 +38,18 @@ The editor is built for the usual way of designing a board:
 Pick a tool in the column on the left or with its key. **Esc** ends what is
 in progress, and a second **Esc** returns to the select tool.
 
-| Tool                | Key | What it does                                                                                                                |
-| ------------------- | --- | --------------------------------------------------------------------------------------------------------------------------- |
-| **Select**          | S   | Click to select, drag to move. Dragging a single track keeps it connected (see [dragging](./routing#dragging-tracks)).      |
-| **Place footprint** | A   | Opens the footprint chooser; each click places the chosen footprint. **R** turns the next one.                              |
-| **Route tracks**    | X   | [Interactive routing](./routing) from a pad, track or via. The route walks around copper of other nets.                     |
-| **Place via**       | V   | Each click places a via. It takes the net of the copper below the click and the sizes of that net's class.                  |
-| **Copper zone**     | Z   | Click the corners of a [copper zone](./zones); **Enter** or a double-click closes it and opens its settings.                |
-| **Keep-out area**   | K   | Click the corners of an area where tracks, vias, pads, zones or footprints are not allowed.                                 |
-| **Board outline**   | O   | Two clicks draw a rectangular outline. **/** switches to polygon outlines (click the corners, **Enter** closes).            |
-| **Text**            | T   | Click where a text goes and type it. It goes on the silkscreen of the side of the active layer (mirrored on the bottom).    |
-| **Highlight net**   | N   | Click copper to highlight every pad, track, via and zone of its net. **`** highlights the net under the cursor in any tool. |
+| Tool                        | Key | What it does                                                                                                                |
+| --------------------------- | --- | --------------------------------------------------------------------------------------------------------------------------- |
+| **Select**                  | S   | Click to select, drag to move. Dragging a single track keeps it connected (see [dragging](./routing#dragging-tracks)).      |
+| **Place footprint**         | A   | Opens the footprint chooser; each click places the chosen footprint. **R** turns the next one.                              |
+| **Route tracks**            | X   | [Interactive routing](./routing) from a pad, track or via. The route walks around copper of other nets.                     |
+| **Route differential pair** | 6   | Routes both nets of a [differential pair](./routing#differential-pairs) together at the gap of their class.                 |
+| **Place via**               | V   | Each click places a via. It takes the net of the copper below the click and the sizes of that net's class.                  |
+| **Copper zone**             | Z   | Click the corners of a [copper zone](./zones); **Enter** or a double-click closes it and opens its settings.                |
+| **Keep-out area**           | K   | Click the corners of an area where tracks, vias, pads, zones or footprints are not allowed.                                 |
+| **Board outline**           | O   | Two clicks draw a rectangular outline. **/** switches to polygon outlines (click the corners, **Enter** closes).            |
+| **Text**                    | T   | Click where a text goes and type it. It goes on the silkscreen of the side of the active layer (mirrored on the bottom).    |
+| **Highlight net**           | N   | Click copper to highlight every pad, track, via and zone of its net. **`** highlights the net under the cursor in any tool. |
 
 ## The active layer
 

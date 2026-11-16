@@ -50,6 +50,18 @@ project uses [Semantic Versioning](https://semver.org/).
   the profile's sizes and `layerWidths`, and `pcb.addTracks` takes a width
   per segment. See
   [Controlled impedance](https://ujap1994.github.io/ElectronicWerk/guide/impedance).
+- **Differential pairs:** a **Route differential pair** tool (key **6**)
+  routes both nets of a pair together: pairs are found by their net names
+  (`USB_DP`/`USB_DN`, `D+`/`D-`, `TX_P`/`TX_N`, `CANH`/`CANL`), the router
+  finds a way for both tracks as one, both leave their pads straight and
+  join at 45°, keep the gap of their class (or impedance profile) around
+  every bend, and end on the pads of the pair at the target. Both tracks
+  are one undo step. A new DRC check `pair-gap` (warning) measures the gap
+  of coupled tracks for classes with a differential impedance profile.
+  New engine methods `pcb.routePair` and `pcb.pairs` (pairs with the length
+  of each net and the skew); `pcb.routeStart` finds the partner with
+  `"pair": true` and `pcb.addTracks` takes the partner's tracks. See
+  [Differential pairs](https://ujap1994.github.io/ElectronicWerk/guide/routing#differential-pairs).
 - **Working mode** setting: _Beginner_ (default) or _Advanced_ decides how
   much ElectronicWerk computes and applies for you. See
   [Settings](https://ujap1994.github.io/ElectronicWerk/guide/settings#working-mode).

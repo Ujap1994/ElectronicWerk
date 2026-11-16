@@ -118,6 +118,60 @@ When the tracks in the way cannot make room, the route **walks around**
 them instead, like in the other mode. Vias are placed only where they fit
 without pushing.
 
+## Differential pairs
+
+A differential pair is two nets that carry one signal with opposite
+polarity: the data lines of USB, Ethernet, HDMI, PCI Express or LVDS, or a
+CAN bus. Both tracks must run side by side at a constant gap, with the
+same length. ElectronicWerk finds pairs by the **end of their net names**:
+
+| Positive                   | Negative                        | Example                                                                    |
+| -------------------------- | ------------------------------- | -------------------------------------------------------------------------- |
+| `P`, `+` or `H` at the end | `N`, `M`, `-` or `L` at the end | `USB_DP` / `USB_DN`, `USB_D+` / `USB_D-`, `TX_P` / `TX_N`, `CANH` / `CANL` |
+
+The rest of both names must be the same, and there must be exactly one net
+of each polarity (`VP`, `VN` and `VM` together are no pair).
+
+To route a pair:
+
+1. Choose **Route differential pair** in the tool bar or press **6**.
+2. Click on a pad (or a track end, or a via) of one net of the pair. The
+   other net's nearest pad within 10 mm is the start of its track. The
+   status line shows `Routing the pair USB_DP / USB_DN` with the width and
+   the gap.
+3. Move the cursor: the router finds a way for both tracks together, as if
+   they were one track as wide as both and their gap. Both tracks leave
+   their pads straight and join each other at 45°.
+4. Click to fix the route up to the cursor and go on, as with a single
+   track. **Backspace** takes back the last fixed part, **/** switches
+   between the diagonal and the straight segment first.
+5. Click on a pad of either net at the other end: both tracks end on their
+   pads (each net on its nearest pad there) and the pair is put into the
+   board. Otherwise **Enter**, a double-click or **Esc** ends the pair where
+   it is.
+
+![Routing a USB pair from pins 2 and 3 of U1](/screenshots/pairs-routing.png)
+
+![The finished pair](/screenshots/pairs-result.png)
+
+The **width and gap** come from the net class: its
+[impedance profile](./impedance) on the active layer when it has one,
+otherwise its **Diff. pair width** and **Diff. pair gap**
+([net classes](./design-rules#net-classes)). Keep the gap at least as large
+as the clearance of the class, or the DRC reports the two tracks.
+
+Good to know:
+
+- Both tracks of a pair are one undo step.
+- A pair stays on its layer: finish it, then change the layer of each net
+  with a single route and a via. Pairs are routed around other copper
+  (walkaround), even when the router is set to push and shove.
+- The [design rules check](./drc) measures the gap of coupled tracks
+  (`pair-gap`) for classes with a differential impedance profile.
+- [`pcb.pairs`](../reference/engine-api#pcb-routepair-pcb-pairs) lists the
+  pairs of a board with the routed length of each net and their difference;
+  matching the lengths follows with length tuning.
+
 ## Vias and layer changes
 
 Press **V** while routing to place a via at the end of the live path and
