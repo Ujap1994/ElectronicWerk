@@ -16,7 +16,8 @@ import { CheckInput, LengthInput, NumberInput, SelectInput } from './fields';
 import { FootprintSvg } from './FootprintSvg';
 import type { FootprintDef, Finding } from './types';
 
-export type WizardKind = 'chip' | 'gullWing' | 'noLead' | 'bga' | 'header';
+export type WizardKind =
+  'chip' | 'gullWing' | 'noLead' | 'bga' | 'header' | 'sot' | 'tab' | 'dip' | 'inline';
 
 /** Wizard parameters as the engine takes them. */
 export type WizardParams = { readonly kind: WizardKind } & Readonly<Record<string, unknown>>;
@@ -26,7 +27,20 @@ interface Preset {
   readonly wizard: WizardParams;
 }
 
-const FAMILIES: readonly WizardKind[] = ['chip', 'gullWing', 'noLead', 'bga', 'header'];
+const FAMILIES: readonly WizardKind[] = [
+  'chip',
+  'gullWing',
+  'noLead',
+  'bga',
+  'sot',
+  'tab',
+  'header',
+  'dip',
+  'inline',
+];
+
+/** Families without IPC density levels (through-hole). */
+const THROUGH_HOLE: readonly WizardKind[] = ['header', 'dip', 'inline'];
 
 type Field =
   | { readonly key: string; readonly type: 'length' }
@@ -67,6 +81,44 @@ const FIELDS: Readonly<Record<WizardKind, readonly Field[]>> = {
     length('bodyLength'),
   ],
   header: [count('rows'), count('pinsPerRow'), length('pitch'), length('drill'), length('pad')],
+  sot: [
+    count('pins'),
+    length('pitch'),
+    length('leadSpan'),
+    length('leadLength'),
+    length('leadWidth'),
+    length('bodyWidth'),
+    length('bodyLength'),
+  ],
+  tab: [
+    count('leads'),
+    { key: 'omitMiddle', type: 'flag' },
+    length('pitch'),
+    length('leadSpan'),
+    length('leadLength'),
+    length('leadWidth'),
+    length('tabWidth'),
+    length('tabLength'),
+    length('bodyWidth'),
+    length('bodyLength'),
+  ],
+  dip: [
+    count('pins'),
+    length('pitch'),
+    length('rowSpacing'),
+    length('drill'),
+    length('pad'),
+    length('bodyWidth'),
+    length('bodyLength'),
+  ],
+  inline: [
+    count('pins'),
+    length('pitch'),
+    length('drill'),
+    length('pad'),
+    length('bodyWidth'),
+    length('bodyDepth'),
+  ],
 };
 
 interface Preview {
@@ -312,7 +364,7 @@ export function WizardDialog({
                   />
                 );
               })}
-              {family === 'noLead' && (
+              {(family === 'noLead' || family === 'gullWing') && (
                 <>
                   <CheckInput
                     label={t('libedit.wizard.fields.exposedPad')}
@@ -348,7 +400,7 @@ export function WizardDialog({
                   )}
                 </>
               )}
-              {family !== 'header' && (
+              {!THROUGH_HOLE.includes(family) && (
                 <SelectInput
                   label={t('libedit.wizard.density')}
                   value={

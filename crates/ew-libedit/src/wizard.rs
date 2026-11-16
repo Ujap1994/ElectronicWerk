@@ -89,9 +89,97 @@ pub enum Wizard {
         body_width: Nm,
         /// Body size along the rows (y).
         body_length: Nm,
+        /// Exposed pad under the body (`HTSSOP`, `PowerPAD`), if any.
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        exposed_pad: Option<Size>,
         /// Density level.
         #[serde(default)]
         density: Density,
+    },
+    /// Small outline transistor with gull-wing leads (SOT-23 with 3, 5, 6
+    /// or 8 leads, SC-70): odd counts leave a place free on one side.
+    #[serde(rename_all = "camelCase")]
+    Sot {
+        /// Number of leads.
+        pins: u32,
+        /// Lead pitch.
+        pitch: Nm,
+        /// Lead span from tip to tip.
+        lead_span: Nm,
+        /// Length of the lead foot on the board.
+        lead_length: Nm,
+        /// Lead width.
+        lead_width: Nm,
+        /// Body size across the rows (x).
+        body_width: Nm,
+        /// Body size along the rows (y).
+        body_length: Nm,
+        /// Density level.
+        #[serde(default)]
+        density: Density,
+    },
+    /// Leads on one side and a wide tab on the other (SOT-223, SOT-89,
+    /// TO-252/DPAK, TO-263/D²PAK).
+    #[serde(rename_all = "camelCase")]
+    Tab {
+        /// Number of lead places on the lead side.
+        leads: u32,
+        /// The middle lead is cut off (DPAK); the tab takes its number.
+        #[serde(default)]
+        omit_middle: bool,
+        /// Lead pitch.
+        pitch: Nm,
+        /// From the lead tips to the end of the tab.
+        lead_span: Nm,
+        /// Length of the lead foot on the board.
+        lead_length: Nm,
+        /// Lead width.
+        lead_width: Nm,
+        /// Tab width (along the lead row).
+        tab_width: Nm,
+        /// Length of the tab on the board.
+        tab_length: Nm,
+        /// Body size across (x, from the leads to the tab).
+        body_width: Nm,
+        /// Body size along the lead row (y).
+        body_length: Nm,
+        /// Density level.
+        #[serde(default)]
+        density: Density,
+    },
+    /// Through-hole dual in-line package (DIP).
+    #[serde(rename_all = "camelCase")]
+    Dip {
+        /// Number of pins.
+        pins: u32,
+        /// Pin pitch.
+        pitch: Nm,
+        /// Distance between the two rows.
+        row_spacing: Nm,
+        /// Drill diameter.
+        drill: Nm,
+        /// Pad diameter.
+        pad: Nm,
+        /// Body width (across the rows).
+        body_width: Nm,
+        /// Body length (along the rows).
+        body_length: Nm,
+    },
+    /// Through-hole leads in one row through a body (TO-92, TO-220).
+    #[serde(rename_all = "camelCase")]
+    Inline {
+        /// Number of leads.
+        pins: u32,
+        /// Lead pitch.
+        pitch: Nm,
+        /// Drill diameter.
+        drill: Nm,
+        /// Pad size along the row (pads are oval when longer across).
+        pad: Nm,
+        /// Body size along the row.
+        body_width: Nm,
+        /// Body thickness across the row.
+        body_depth: Nm,
     },
     /// Leadless packages with terminals under the edge (QFN on four sides,
     /// DFN on two), optionally with an exposed pad.
@@ -488,6 +576,7 @@ fn bga_row(index: u32) -> String {
 
 /// A footprint name in the style of the KiCad libraries.
 #[must_use]
+#[allow(clippy::too_many_lines, reason = "one name pattern per package family")]
 pub fn suggest_name(wizard: &Wizard) -> String {
     match *wizard {
         Wizard::Chip {
@@ -513,6 +602,7 @@ pub fn suggest_name(wizard: &Wizard) -> String {
             pitch,
             body_width,
             body_length,
+            exposed_pad,
             ..
         } => {
             let family = if quad {
@@ -522,12 +612,47 @@ pub fn suggest_name(wizard: &Wizard) -> String {
             } else {
                 "SSOP"
             };
+            let ep = exposed_pad.map_or_else(String::new, |s| {
+                format!("-1EP_EP{}x{}mm", fmt(mm(s.w)), fmt(mm(s.h)))
+            });
             format!(
-                "{family}-{pins}_{}x{}mm_P{}mm",
+                "{family}-{pins}_{}x{}mm_P{}mm{ep}",
                 fmt(mm(body_width)),
                 fmt(mm(body_length)),
                 fmt(mm(pitch))
             )
+        }
+        Wizard::Sot {
+            pins,
+            pitch,
+            body_width,
+            body_length,
+            ..
+        } => format!(
+            "SOT-23-{pins}_{}x{}mm_P{}mm",
+            fmt(mm(body_width)),
+            fmt(mm(body_length)),
+            fmt(mm(pitch))
+        ),
+        Wizard::Tab {
+            leads,
+            omit_middle,
+            pitch,
+            body_width,
+            body_length,
+            ..
+        } => format!(
+            "TabPackage-{}_{}x{}mm_P{}mm",
+            if omit_middle { leads } else { leads + 1 },
+            fmt(mm(body_width)),
+            fmt(mm(body_length)),
+            fmt(mm(pitch))
+        ),
+        Wizard::Dip {
+            pins, row_spacing, ..
+        } => format!("DIP-{pins}_W{}mm", fmt(mm(row_spacing))),
+        Wizard::Inline { pins, pitch, .. } => {
+            format!("Inline-{pins}_P{}mm_Vertical", fmt(mm(pitch)))
         }
         Wizard::NoLead {
             pins,
@@ -585,6 +710,7 @@ pub fn suggest_name(wizard: &Wizard) -> String {
 /// # Errors
 ///
 /// Fails for impossible dimensions (lands that overlap, no pins, …).
+#[allow(clippy::too_many_lines, reason = "one call per package family")]
 pub fn generate(wizard: &Wizard, name: &str) -> Result<FootprintDef, WizardError> {
     match *wizard {
         Wizard::Chip {
@@ -602,6 +728,7 @@ pub fn generate(wizard: &Wizard, name: &str) -> Result<FootprintDef, WizardError
             lead_width,
             body_width,
             body_length,
+            exposed_pad,
             density,
         } => gull_wing(
             name,
@@ -610,7 +737,75 @@ pub fn generate(wizard: &Wizard, name: &str) -> Result<FootprintDef, WizardError
             mm(pitch),
             (mm(lead_span), mm(lead_length), mm(lead_width)),
             (mm(body_width), mm(body_length)),
+            exposed_pad.map(|s| (mm(s.w), mm(s.h))),
             density,
+        ),
+        Wizard::Sot {
+            pins,
+            pitch,
+            lead_span,
+            lead_length,
+            lead_width,
+            body_width,
+            body_length,
+            density,
+        } => sot(
+            name,
+            pins,
+            mm(pitch),
+            (mm(lead_span), mm(lead_length), mm(lead_width)),
+            (mm(body_width), mm(body_length)),
+            density,
+        ),
+        Wizard::Tab {
+            leads,
+            omit_middle,
+            pitch,
+            lead_span,
+            lead_length,
+            lead_width,
+            tab_width,
+            tab_length,
+            body_width,
+            body_length,
+            density,
+        } => tab(
+            name,
+            (leads, omit_middle),
+            mm(pitch),
+            (mm(lead_span), mm(lead_length), mm(lead_width)),
+            (mm(tab_width), mm(tab_length)),
+            (mm(body_width), mm(body_length)),
+            density,
+        ),
+        Wizard::Dip {
+            pins,
+            pitch,
+            row_spacing,
+            drill,
+            pad,
+            body_width,
+            body_length,
+        } => dip(
+            name,
+            pins,
+            (mm(pitch), mm(row_spacing)),
+            (mm(drill), mm(pad)),
+            (mm(body_width), mm(body_length)),
+        ),
+        Wizard::Inline {
+            pins,
+            pitch,
+            drill,
+            pad,
+            body_width,
+            body_depth,
+        } => inline(
+            name,
+            pins,
+            mm(pitch),
+            (mm(drill), mm(pad)),
+            (mm(body_width), mm(body_depth)),
         ),
         Wizard::NoLead {
             pins,
@@ -789,6 +984,7 @@ fn gull_wing(
     pitch: f64,
     (span, foot, lead): (f64, f64, f64),
     (body_x, body_y): (f64, f64),
+    exposed: Option<(f64, f64)>,
     density: Density,
 ) -> Result<FootprintDef, WizardError> {
     positive(&[
@@ -829,6 +1025,17 @@ fn gull_wing(
             ROUND_RECT
         };
         b.smd(&number, px, py, w, h, shape);
+    }
+    if let Some((ew, eh)) = exposed {
+        if ew / 2.0 >= centre - land / 2.0 - SILK_CLEARANCE {
+            return Err(invalid(
+                "the exposed pad is too large: it comes too close to the lands",
+            ));
+        }
+        b.smd(&(pins + 1).to_string(), 0.0, 0.0, ew, eh, PadShape::Rect);
+        if let Some(pad) = b.pads.last_mut() {
+            pad.paste_margin = Some(-nm(ew.min(eh) * 0.1));
+        }
     }
     let (half_x, half_y) = (body_x / 2.0, body_y / 2.0);
     b.fab_body(half_x, half_y);
@@ -1028,6 +1235,345 @@ fn bga(
     ))
 }
 
+/// IPC-7351B gull-wing lands (table 3-2): land length, land centre, land
+/// width and courtyard excess.
+fn gull_lands(
+    span: f64,
+    foot: f64,
+    lead: f64,
+    pitch: f64,
+    density: Density,
+) -> Result<(f64, f64, f64, f64), WizardError> {
+    let toe = density.pick([0.55, 0.35, 0.15]);
+    let heel = density.pick([0.45, 0.35, 0.25]);
+    let side = if pitch > 0.625 {
+        density.pick([0.05, 0.03, 0.01])
+    } else {
+        density.pick([0.01, -0.02, -0.04])
+    };
+    let excess = density.pick([0.5, 0.25, 0.1]);
+    let z = span + 2.0 * toe;
+    let g = span - 2.0 * foot - 2.0 * heel;
+    if g <= 0.0 {
+        return Err(invalid("the leads are longer than half the lead span"));
+    }
+    let (land, centre) = lands(z, g);
+    let x = lead + 2.0 * side;
+    if x >= pitch {
+        return Err(invalid(
+            "the lands touch: the lead width is too large for the pitch",
+        ));
+    }
+    Ok((land, centre, x, excess))
+}
+
+fn sot(
+    name: &str,
+    pins: u32,
+    pitch: f64,
+    (span, foot, lead): (f64, f64, f64),
+    (body_x, body_y): (f64, f64),
+    density: Density,
+) -> Result<FootprintDef, WizardError> {
+    positive(&[
+        (pitch, "the pitch"),
+        (span, "the lead span"),
+        (foot, "the lead length"),
+        (lead, "the lead width"),
+        (body_x, "the body width"),
+        (body_y, "the body length"),
+    ])?;
+    let (land, centre, x, excess) = gull_lands(span, foot, lead, pitch, density)?;
+    // (number, side, y): left side top to bottom, right side bottom to top.
+    let places: Vec<(f64, f64)> = match pins {
+        3 => vec![(-1.0, pitch), (-1.0, -pitch), (1.0, 0.0)],
+        5 => vec![
+            (-1.0, pitch),
+            (-1.0, 0.0),
+            (-1.0, -pitch),
+            (1.0, -pitch),
+            (1.0, pitch),
+        ],
+        n if n >= 2 && n % 2 == 0 => {
+            let ys: Vec<f64> = row(n / 2, pitch).collect();
+            ys.iter()
+                .map(|y| (-1.0, *y))
+                .chain(ys.iter().rev().map(|y| (1.0, *y)))
+                .collect()
+        }
+        _ => return Err(invalid("SOT packages have 3, 5 or an even number of leads")),
+    };
+    let mut b = Builder::new();
+    for (i, (side, y)) in places.iter().enumerate() {
+        let shape = if i == 0 { PadShape::Rect } else { ROUND_RECT };
+        b.smd(&(i + 1).to_string(), side * centre, *y, land, x, shape);
+    }
+    let (half_x, half_y) = (body_x / 2.0, body_y / 2.0);
+    b.fab_body(half_x, half_y);
+    let silk = Layer::Silkscreen(Side::Top);
+    let rows = places.iter().map(|p| p.1.abs()).fold(0.0, f64::max);
+    let y = half_y.max(rows + x / 2.0 + SILK_CLEARANCE) + 0.11;
+    b.line(silk, SILK_WIDTH, (-(centre + land / 2.0), y), (half_x, y));
+    b.line(silk, SILK_WIDTH, (-half_x, -y), (half_x, -y));
+    let courtyard = b.courtyard(excess);
+    let description = format!(
+        "SOT {pins} leads, pitch {} mm, body {} × {} mm, lead span {} mm, IPC-7351 {density:?} density",
+        fmt(pitch),
+        fmt(body_x),
+        fmt(body_y),
+        fmt(span)
+    );
+    Ok(b.finish(
+        name,
+        description,
+        "SOT SC-70 small outline transistor",
+        Mounting::Smd,
+        courtyard,
+    ))
+}
+
+#[allow(
+    clippy::too_many_arguments,
+    reason = "one parameter per package dimension"
+)]
+fn tab(
+    name: &str,
+    (leads, omit_middle): (u32, bool),
+    pitch: f64,
+    (span, foot, lead): (f64, f64, f64),
+    (tab_w, tab_l): (f64, f64),
+    (body_x, body_y): (f64, f64),
+    density: Density,
+) -> Result<FootprintDef, WizardError> {
+    positive(&[
+        (pitch, "the pitch"),
+        (span, "the lead span"),
+        (foot, "the lead length"),
+        (lead, "the lead width"),
+        (tab_w, "the tab width"),
+        (tab_l, "the tab length"),
+        (body_x, "the body width"),
+        (body_y, "the body length"),
+    ])?;
+    if leads == 0 {
+        return Err(invalid("a tab package needs at least one lead"));
+    }
+    let toe = density.pick([0.55, 0.35, 0.15]);
+    let heel = density.pick([0.45, 0.35, 0.25]);
+    let side = density.pick([0.05, 0.03, 0.01]);
+    let excess = density.pick([0.5, 0.25, 0.1]);
+    let lead_land = foot + toe + heel;
+    let lead_x = -span / 2.0 + (foot + heel - toe) / 2.0;
+    let tab_land = tab_l + toe + heel;
+    let tab_x = span / 2.0 + (toe - tab_l - heel) / 2.0;
+    if lead_x + lead_land / 2.0 + SILK_CLEARANCE >= tab_x - tab_land / 2.0 {
+        return Err(invalid("the lead lands reach the tab land"));
+    }
+    let w = lead + 2.0 * side;
+    if leads > 1 && w >= pitch {
+        return Err(invalid(
+            "the lands touch: the lead width is too large for the pitch",
+        ));
+    }
+    let middle = (leads % 2 == 1).then_some(leads / 2 + 1);
+    let mut b = Builder::new();
+    for (i, y) in row(leads, pitch).enumerate() {
+        let number = i as u32 + 1;
+        if omit_middle && Some(number) == middle {
+            continue;
+        }
+        let shape = if number == 1 {
+            PadShape::Rect
+        } else {
+            ROUND_RECT
+        };
+        b.smd(&number.to_string(), lead_x, y, lead_land, w, shape);
+    }
+    let tab_number = if omit_middle {
+        middle.unwrap_or(leads + 1)
+    } else {
+        leads + 1
+    };
+    b.smd(
+        &tab_number.to_string(),
+        tab_x,
+        0.0,
+        tab_land,
+        tab_w + 2.0 * side,
+        PadShape::Rect,
+    );
+    let (half_x, half_y) = (body_x / 2.0, body_y / 2.0);
+    b.fab_body(half_x, half_y);
+    let silk = Layer::Silkscreen(Side::Top);
+    let y = half_y.max(tab_w / 2.0 + side + SILK_CLEARANCE) + 0.11;
+    b.line(silk, SILK_WIDTH, (lead_x - lead_land / 2.0, y), (half_x, y));
+    b.line(silk, SILK_WIDTH, (-half_x, -y), (half_x, -y));
+    let courtyard = b.courtyard(excess);
+    let description = format!(
+        "{} leads and a tab, pitch {} mm, body {} × {} mm, tab {} × {} mm, IPC-7351 {density:?} density",
+        if omit_middle { leads - 1 } else { leads },
+        fmt(pitch),
+        fmt(body_x),
+        fmt(body_y),
+        fmt(tab_w),
+        fmt(tab_l)
+    );
+    Ok(b.finish(
+        name,
+        description,
+        "SOT-223 SOT-89 DPAK D2PAK TO-252 TO-263 tab",
+        Mounting::Smd,
+        courtyard,
+    ))
+}
+
+fn dip(
+    name: &str,
+    pins: u32,
+    (pitch, spacing): (f64, f64),
+    (drill, pad): (f64, f64),
+    (body_x, body_y): (f64, f64),
+) -> Result<FootprintDef, WizardError> {
+    positive(&[
+        (pitch, "the pitch"),
+        (spacing, "the row spacing"),
+        (drill, "the drill"),
+        (pad, "the pad diameter"),
+        (body_x, "the body width"),
+        (body_y, "the body length"),
+    ])?;
+    if pins < 2 || pins % 2 != 0 {
+        return Err(invalid("a DIP has an even number of pins"));
+    }
+    if drill >= pad {
+        return Err(invalid("the drill must be smaller than the pad"));
+    }
+    if pad >= pitch {
+        return Err(invalid(
+            "the pads touch: the pad is too large for the pitch",
+        ));
+    }
+    let mut b = Builder::new();
+    for (number, px, py, _) in perimeter(pins, false, pitch, spacing / 2.0, 0.0)? {
+        let shape = if number == "1" {
+            PadShape::Rect
+        } else {
+            PadShape::Circle
+        };
+        b.tht(&number, px, py, pad, drill, shape);
+    }
+    let (half_x, half_y) = (body_x / 2.0, body_y / 2.0);
+    b.fab_body(half_x, half_y);
+    // Silkscreen outline between the rows with a notch at pin 1's end.
+    let silk = Layer::Silkscreen(Side::Top);
+    let inner = (spacing / 2.0 - pad / 2.0 - SILK_CLEARANCE).min(half_x + 0.11);
+    let y = half_y + 0.11;
+    let notch = 0.8_f64.min(inner * 0.5);
+    b.polygon(
+        silk,
+        SILK_WIDTH,
+        &[
+            (-notch, y),
+            (-inner, y),
+            (-inner, -y),
+            (inner, -y),
+            (inner, y),
+            (notch, y),
+        ],
+    );
+    b.line(
+        silk,
+        SILK_WIDTH,
+        (-notch, y),
+        (-notch * 0.3, y - notch * 0.7),
+    );
+    b.line(
+        silk,
+        SILK_WIDTH,
+        (-notch * 0.3, y - notch * 0.7),
+        (notch * 0.3, y - notch * 0.7),
+    );
+    b.line(silk, SILK_WIDTH, (notch * 0.3, y - notch * 0.7), (notch, y));
+    let courtyard = b.courtyard(0.5);
+    let description = format!(
+        "DIP {pins} pins, pitch {} mm, rows {} mm apart, drill {} mm, pad {} mm",
+        fmt(pitch),
+        fmt(spacing),
+        fmt(drill),
+        fmt(pad)
+    );
+    Ok(b.finish(
+        name,
+        description,
+        "DIP dual in-line through hole",
+        Mounting::ThroughHole,
+        courtyard,
+    ))
+}
+
+fn inline(
+    name: &str,
+    pins: u32,
+    pitch: f64,
+    (drill, pad): (f64, f64),
+    (body_x, body_y): (f64, f64),
+) -> Result<FootprintDef, WizardError> {
+    positive(&[
+        (pitch, "the pitch"),
+        (drill, "the drill"),
+        (pad, "the pad size"),
+        (body_x, "the body width"),
+        (body_y, "the body depth"),
+    ])?;
+    if pins == 0 {
+        return Err(invalid("at least one lead is needed"));
+    }
+    if drill >= pad {
+        return Err(invalid("the drill must be smaller than the pad"));
+    }
+    let along = pad.min(pitch - 0.2);
+    if along <= drill + 0.1 {
+        return Err(invalid(
+            "the pads touch: the pitch is too small for the drill",
+        ));
+    }
+    let across = pad.max(along * 1.4);
+    let mut b = Builder::new();
+    let xs: Vec<f64> = row(pins, pitch).map(|x| -x).collect();
+    for (i, x) in xs.iter().enumerate() {
+        let number = (i + 1).to_string();
+        let shape = if i == 0 {
+            PadShape::Rect
+        } else {
+            PadShape::Oval
+        };
+        b.tht(&number, *x, 0.0, along, drill, shape);
+        if let Some(pad) = b.pads.last_mut() {
+            pad.size = Size::new(nm(along), nm(across));
+        }
+        b.include(Bounds::centred(along / 2.0, across / 2.0).shifted(*x, 0.0));
+    }
+    let body = Bounds::centred(body_x / 2.0, body_y / 2.0);
+    b.rect(Layer::Fabrication(Side::Top), FAB_WIDTH, body);
+    b.include(body);
+    b.rect(Layer::Silkscreen(Side::Top), SILK_WIDTH, body.grow(0.11));
+    let courtyard = b.courtyard(0.5);
+    let description = format!(
+        "{pins} leads in a row, pitch {} mm, drill {} mm, body {} × {} mm",
+        fmt(pitch),
+        fmt(drill),
+        fmt(body_x),
+        fmt(body_y)
+    );
+    Ok(b.finish(
+        name,
+        description,
+        "TO-92 TO-220 inline through hole",
+        Mounting::ThroughHole,
+        courtyard,
+    ))
+}
+
 fn header(
     name: &str,
     rows: u32,
@@ -1199,7 +1745,116 @@ pub fn presets() -> Vec<Preset> {
                 lead_width: um(lead),
                 body_width: um(bx),
                 body_length: um(by),
+                exposed_pad: None,
                 density,
+            },
+        });
+    }
+    for (name, pins, pitch, span, foot, lead, bx, by) in [
+        ("SOT-23", 3, 950, 2_400, 450, 400, 1_300, 2_900),
+        ("SOT-23-5", 5, 950, 2_800, 450, 400, 1_600, 2_900),
+        ("SOT-23-6", 6, 950, 2_800, 450, 400, 1_600, 2_900),
+        ("SC-70-5", 5, 650, 2_100, 360, 220, 1_250, 2_000),
+    ] {
+        out.push(Preset {
+            name: name.to_owned(),
+            wizard: Wizard::Sot {
+                pins,
+                pitch: um(pitch),
+                lead_span: um(span),
+                lead_length: um(foot),
+                lead_width: um(lead),
+                body_width: um(bx),
+                body_length: um(by),
+                density,
+            },
+        });
+    }
+    for (name, leads, omit, pitch, span, foot, lead, tw, tl, bx, by) in [
+        (
+            "SOT-223", 3, false, 2_300, 7_000, 900, 700, 3_000, 1_500, 3_500, 6_500,
+        ),
+        (
+            "SOT-89", 3, false, 1_500, 4_100, 1_000, 440, 1_700, 2_100, 2_500, 4_500,
+        ),
+        (
+            "TO-252 (DPAK)",
+            3,
+            true,
+            2_290,
+            9_900,
+            1_600,
+            760,
+            5_350,
+            5_500,
+            6_100,
+            6_500,
+        ),
+        (
+            "TO-263 (D2PAK)",
+            3,
+            true,
+            2_540,
+            15_250,
+            2_300,
+            810,
+            8_000,
+            9_000,
+            9_000,
+            10_100,
+        ),
+    ] {
+        out.push(Preset {
+            name: name.to_owned(),
+            wizard: Wizard::Tab {
+                leads,
+                omit_middle: omit,
+                pitch: um(pitch),
+                lead_span: um(span),
+                lead_length: um(foot),
+                lead_width: um(lead),
+                tab_width: um(tw),
+                tab_length: um(tl),
+                body_width: um(bx),
+                body_length: um(by),
+                density,
+            },
+        });
+    }
+    for pins in [8, 14, 16, 20, 28] {
+        let length = match pins {
+            8 => 9_270,
+            14 => 19_050,
+            16 => 19_300,
+            20 => 25_000,
+            _ => 35_600,
+        };
+        out.push(Preset {
+            name: format!("DIP-{pins}"),
+            wizard: Wizard::Dip {
+                pins,
+                pitch: um(2_540),
+                row_spacing: um(7_620),
+                drill: um(800),
+                pad: um(1_600),
+                body_width: um(6_350),
+                body_length: um(length),
+            },
+        });
+    }
+    for (name, pitch, drill, pad, bw, bd) in [
+        ("TO-92", 1_270, 750, 1_050, 4_600, 3_600),
+        ("TO-220", 2_540, 1_100, 1_900, 10_000, 4_500),
+    ] {
+        out.push(Preset {
+            name: name.to_owned(),
+            wizard: Wizard::Inline {
+                pins: 3,
+                pitch: um(pitch),
+                drill: um(drill),
+                pad: um(pad),
+                body_width: um(bw),
+                body_depth: um(bd),
             },
         });
     }
@@ -1441,6 +2096,7 @@ mod tests {
             lead_width: um(1_300),
             body_width,
             body_length,
+            exposed_pad: None,
             density,
         };
         assert!(generate(&touching, "x").is_err());
@@ -1453,9 +2109,57 @@ mod tests {
             lead_width: um(410),
             body_width,
             body_length,
+            exposed_pad: None,
             density,
         };
         assert!(generate(&odd, "x").is_err());
+    }
+
+    fn pad_at(def: &FootprintDef, number: &str) -> (f64, f64) {
+        let pad = def
+            .pads
+            .iter()
+            .find(|p| p.number == number)
+            .unwrap_or_else(|| panic!("no pad {number}"));
+        (mm(pad.at.x), mm(pad.at.y))
+    }
+
+    #[test]
+    fn sot_packages_leave_places_free() {
+        let def = generate(&preset("SOT-23"), "x").unwrap_or_else(|e| panic!("{e}"));
+        assert_eq!(def.pads.len(), 3);
+        let (x1, y1) = pad_at(&def, "1");
+        let (x2, y2) = pad_at(&def, "2");
+        let (x3, y3) = pad_at(&def, "3");
+        assert!(x1 < 0.0 && x2 < 0.0 && x3 > 0.0);
+        assert!((y1 - 0.95).abs() < 1e-6 && (y2 + 0.95).abs() < 1e-6 && y3.abs() < 1e-6);
+        let five = generate(&preset("SOT-23-5"), "x").unwrap_or_else(|e| panic!("{e}"));
+        let (x4, y4) = pad_at(&five, "4");
+        let (_, y5) = pad_at(&five, "5");
+        assert!(x4 > 0.0 && (y4 + 0.95).abs() < 1e-6 && (y5 - 0.95).abs() < 1e-6);
+    }
+
+    #[test]
+    fn tab_packages_number_the_tab() {
+        let dpak = generate(&preset("TO-252 (DPAK)"), "x").unwrap_or_else(|e| panic!("{e}"));
+        let numbers: Vec<&str> = dpak.pads.iter().map(|p| p.number.as_str()).collect();
+        assert_eq!(numbers, vec!["1", "3", "2"]);
+        let (tab_x, _) = pad_at(&dpak, "2");
+        assert!(tab_x > 0.0);
+        let sot223 = generate(&preset("SOT-223"), "x").unwrap_or_else(|e| panic!("{e}"));
+        assert_eq!(sot223.pads.len(), 4);
+        assert!(pad_at(&sot223, "4").0 > 0.0);
+    }
+
+    #[test]
+    fn dip_pins_run_round_the_package() {
+        let def = generate(&preset("DIP-8"), "x").unwrap_or_else(|e| panic!("{e}"));
+        assert_eq!(def.attributes.mounting, Mounting::ThroughHole);
+        let (x1, y1) = pad_at(&def, "1");
+        let (x8, y8) = pad_at(&def, "8");
+        let (x4, _) = pad_at(&def, "4");
+        assert!((x1 + 3.81).abs() < 1e-6 && (x8 - 3.81).abs() < 1e-6 && (x4 + 3.81).abs() < 1e-6);
+        assert!((y1 - y8).abs() < 1e-6 && y1 > 0.0);
     }
 
     #[test]

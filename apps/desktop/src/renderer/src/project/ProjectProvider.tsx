@@ -196,7 +196,9 @@ export function ProjectProvider({ children }: { readonly children: ReactNode }):
   const [project, setProject] = useState<ProjectSnapshot | null>(null);
   const [files, setFiles] = useState<readonly FileEntry[]>([]);
   const [templates, setTemplates] = useState<readonly TemplateInfo[]>([]);
-  const [busy, setBusy] = useState<MessageKey | null>(null);
+  // Kept in an object: a bare key would put the whole union of message keys
+  // into the dependency list below, which TypeScript cannot reduce.
+  const [busy, setBusy] = useState<{ readonly key: MessageKey } | null>(null);
   const [reloads, setReloads] = useState(0);
   const [notices, setNotices] = useState<readonly Notice[]>([]);
   const [prompts, setPrompts] = useState<ProjectPrompts>(EMPTY_PROMPTS);
@@ -235,7 +237,7 @@ export function ProjectProvider({ children }: { readonly children: ReactNode }):
   const run = useCallback(
     async <T,>(label: MessageKey | null, task: () => Promise<T>): Promise<T | null> => {
       if (label !== null) {
-        setBusy(label);
+        setBusy({ key: label });
       }
       try {
         return await task();
@@ -994,7 +996,7 @@ export function ProjectProvider({ children }: { readonly children: ReactNode }):
       project,
       files,
       templates,
-      busy,
+      busy: busy?.key ?? null,
       notices,
       prompts,
       dismissNotice,
