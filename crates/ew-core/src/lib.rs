@@ -19,6 +19,7 @@
 pub mod assembly;
 pub mod board3d;
 pub mod change;
+pub mod datasheet;
 pub mod design;
 pub mod docs;
 pub mod downloads;

@@ -80,6 +80,10 @@ pub const METHODS: &[&str] = &[
     "board3d.parts",
     "board3d.resolve",
     "board3d.scene",
+    "datasheet.extract",
+    "datasheet.page",
+    "datasheet.read",
+    "datasheet.text",
     "design.arrange",
     "design.board",
     "design.components",
@@ -147,6 +151,9 @@ pub const METHODS: &[&str] = &[
     "outputs.panelPreview",
     "outputs.presets",
     "outputs.run",
+    "part.duplicates",
+    "part.generate",
+    "part.preview",
     "pcb.addTracks",
     "pcb.applyPreset",
     "pcb.backApply",
@@ -267,6 +274,7 @@ pub struct Engine {
     journaling: bool,
     library: LibraryState,
     drc: crate::pcb::DrcCache,
+    datasheets: crate::datasheet::Datasheets,
 }
 
 impl Default for Engine {
@@ -485,6 +493,7 @@ impl Engine {
             journaling: true,
             library: LibraryState::default(),
             drc: crate::pcb::DrcCache::default(),
+            datasheets: crate::datasheet::Datasheets::default(),
         }
     }
 
@@ -497,6 +506,7 @@ impl Engine {
             journaling: false,
             library: LibraryState::default(),
             drc: crate::pcb::DrcCache::default(),
+            datasheets: crate::datasheet::Datasheets::default(),
         }
     }
 
@@ -683,6 +693,10 @@ impl Engine {
             _ if method.starts_with("outputs.") => self.call_outputs(method, params),
             _ if method.starts_with("design.") => self.call_design(method, params),
             _ if method.starts_with("assembly.") => self.call_assembly(method, params),
+            _ if method.starts_with("datasheet.") => {
+                crate::datasheet::call_datasheet(&mut self.datasheets, method, params)
+            }
+            _ if method.starts_with("part.") => self.call_part(method, params),
             "board3d.scene" => {
                 let session = self.session.as_ref().ok_or_else(EngineError::no_project)?;
                 let (mut meta, data) = crate::board3d::scene(session, &mut self.library, params)?;
@@ -1445,6 +1459,32 @@ impl Engine {
             self.events.push(event);
         }
         Ok(reply.result)
+    }
+
+    fn call_part(&mut self, method: &str, params: &Value) -> Result<Value, EngineError> {
+        let project = self.session.as_ref().map(|s| (s.project(), s.root()));
+        match crate::datasheet::call_part(project, &mut self.library, method, params)? {
+            crate::datasheet::Outcome::Read(value) => Ok(value),
+            crate::datasheet::Outcome::Commit {
+                files,
+                requests,
+                reply,
+            } => {
+                for (path, data) in files {
+                    if let Some(dir) = path.parent() {
+                        std::fs::create_dir_all(dir).map_err(EngineError::internal)?;
+                    }
+                    std::fs::write(&path, data)
+                        .map_err(|e| EngineError::internal(format!("{}: {e}", path.display())))?;
+                }
+                let change_set = self.commit(crate::datasheet::GENERATE, requests)?;
+                let mut out = json!({"seq": change_set.seq, "history": change_set.history});
+                if let (Some(out), Value::Object(extra)) = (out.as_object_mut(), reply) {
+                    out.extend(extra);
+                }
+                Ok(out)
+            }
+        }
     }
 
     fn call_design(&mut self, method: &str, params: &Value) -> Result<Value, EngineError> {

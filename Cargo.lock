@@ -442,6 +442,7 @@ name = "ew-core"
 version = "0.16.0"
 dependencies = [
  "ew-board3d",
+ "ew-datasheet",
  "ew-eagle",
  "ew-format",
  "ew-kicad",

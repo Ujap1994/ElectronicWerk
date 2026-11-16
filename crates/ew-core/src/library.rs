@@ -736,4 +736,16 @@ impl LibraryState {
     pub(crate) fn find(&mut self, kind: Kind, name: &str) -> Result<Option<i64>, EngineError> {
         self.index()?.find(kind, name).map_err(library_error)
     }
+
+    /// Searches the index (the part generator's duplicate check).
+    ///
+    /// # Errors
+    ///
+    /// Fails if no library is installed.
+    pub(crate) fn search(
+        &mut self,
+        query: &Query,
+    ) -> Result<ew_library::index::SearchResult, EngineError> {
+        self.index()?.search(query).map_err(library_error)
+    }
 }

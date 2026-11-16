@@ -10,6 +10,34 @@ pub const REFERENCE: &str = "https://ujap1994.github.io/ElectronicWerk/reference
 /// Every method with its summary, in the order of [`crate::rpc::METHODS`].
 pub const SUMMARIES: &[(&str, &str)] = &[
     (
+        "datasheet.read",
+        "`datasheet.read {\"path\"}` → `{\"title\", \"author\", \"subject\", \"encrypted\", \"bookmarks\", \"pages\": [{number, width, height, scanned}]}`: opens a PDF datasheet (no project needed).",
+    ),
+    (
+        "datasheet.page",
+        "`datasheet.page {\"path\", \"page\"}` → `{\"number\", \"width\", \"height\", \"lines\": [{text, bbox, size, angle, words}], \"rules\", \"scanned\"}`: the text of one page with positions in points from the top left.",
+    ),
+    (
+        "datasheet.text",
+        "`datasheet.text {\"path\", \"from\"?, \"to\"?}` → `{\"pages\": [{page, text, scanned}]}`: the plain text of pages, line by line (for AI agents).",
+    ),
+    (
+        "datasheet.extract",
+        "`datasheet.extract {\"path\"}` → a part draft `{name, manufacturer, mpn, description, datasheet, packages: [{name, family, pins, exposedPad, dimensions: {A, b, D, E, E1, e, L …: {min?, nom?, max?, source?}}}], pins: [{name, numbers: {package: [pads]}, kind, function, source?}], notes}` recognised in the datasheet; every value keeps its page and box.",
+    ),
+    (
+        "part.preview",
+        "`part.preview {\"draft\", \"package\", \"options\"?, \"model\"?}` → `{symbol, footprint, component, wizard, warnings, findings, step?}`: the part the generator makes for one package of a draft, with the library checks and, with `model: true`, the 3D model as STEP text. Options: density (least | nominal | most), name, footprint, splitAbove, unitSize.",
+    ),
+    (
+        "part.duplicates",
+        "`part.duplicates {\"draft\", \"package\"}` → `{matches, related}`: parts of the project libraries and the base library with the draft's name or part number; `matches` also have nearly the same pads (the same numbers, centres within 0.15 mm), `related` are the part in other packages.",
+    ),
+    (
+        "part.generate",
+        "`part.generate {\"draft\", \"package\", \"options\"?, \"doc\"?, \"model\"?}` stores the symbol, footprint and component in a project library (default: the first) as one undo step and writes the 3D model to models/<footprint>.step (unless model is false). Taken names get a suffix. Returns `{symbol, footprint, component, model, warnings}`.",
+    ),
+    (
         "outputs.panelPreview",
         "{\"settings\": {columns, rows, separation: mouseBites | vScore, gap, rails: none | topBottom | leftRight | all, railWidth, fiducials, toolingHoles, tabs, tabWidth} (nm), \"board\"?} → {size (mm), boards, warnings, svg}: the panel an output job with these settings makes.",
     ),
