@@ -52,7 +52,9 @@ fn recognises_the_ew7021() {
     assert_eq!(soic.family, Family::Sop);
     assert_eq!(soic.pins, 8);
     let value = |p: &ew_datasheet::draft::PackageDraft, k: &str| {
-        p.dimensions.get(k).and_then(|d| d.value())
+        p.dimensions
+            .get(k)
+            .and_then(ew_datasheet::draft::Dimension::value)
     };
     assert_eq!(value(soic, "D"), Some(4.9));
     assert_eq!(value(soic, "E1"), Some(3.9));
@@ -140,5 +142,10 @@ fn recognises_the_ew4410() {
         .iter()
         .find(|p| p.name == "QFN-32")
         .unwrap_or_else(|| panic!("no QFN"));
-    assert_eq!(qfn.dimensions.get("E").and_then(|d| d.value()), Some(5.0));
+    assert_eq!(
+        qfn.dimensions
+            .get("E")
+            .and_then(ew_datasheet::draft::Dimension::value),
+        Some(5.0)
+    );
 }
