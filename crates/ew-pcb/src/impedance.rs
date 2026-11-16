@@ -292,6 +292,9 @@ pub struct Preset {
     pub target: u16,
     /// Allowed deviation (%).
     pub tolerance: u8,
+    /// The usual largest length difference of the two nets of a pair (µm;
+    /// 0: not critical).
+    pub skew: u32,
 }
 
 /// The interfaces the beginner mode offers.
@@ -302,6 +305,7 @@ pub const PRESETS: &[Preset] = &[
         differential: true,
         target: 90,
         tolerance: 10,
+        skew: 1250,
     },
     Preset {
         id: "usb3",
@@ -309,6 +313,7 @@ pub const PRESETS: &[Preset] = &[
         differential: true,
         target: 90,
         tolerance: 7,
+        skew: 125,
     },
     Preset {
         id: "ethernet",
@@ -316,6 +321,7 @@ pub const PRESETS: &[Preset] = &[
         differential: true,
         target: 100,
         tolerance: 10,
+        skew: 1250,
     },
     Preset {
         id: "hdmi",
@@ -323,6 +329,7 @@ pub const PRESETS: &[Preset] = &[
         differential: true,
         target: 100,
         tolerance: 10,
+        skew: 125,
     },
     Preset {
         id: "lvds",
@@ -330,6 +337,7 @@ pub const PRESETS: &[Preset] = &[
         differential: true,
         target: 100,
         tolerance: 10,
+        skew: 125,
     },
     Preset {
         id: "pcie",
@@ -337,6 +345,7 @@ pub const PRESETS: &[Preset] = &[
         differential: true,
         target: 85,
         tolerance: 10,
+        skew: 125,
     },
     Preset {
         id: "can",
@@ -344,6 +353,7 @@ pub const PRESETS: &[Preset] = &[
         differential: true,
         target: 120,
         tolerance: 10,
+        skew: 0,
     },
     Preset {
         id: "rf50",
@@ -351,6 +361,7 @@ pub const PRESETS: &[Preset] = &[
         differential: false,
         target: 50,
         tolerance: 10,
+        skew: 0,
     },
 ];
 

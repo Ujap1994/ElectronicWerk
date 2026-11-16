@@ -1,6 +1,6 @@
 /**
  * The design rules: net classes, which nets belong to them, the board's
- * manufacturing minimums, impedance profiles, custom rules in the query language and the
+ * manufacturing minimums, impedance profiles, length rules, custom rules in the query language and the
  * severities of the DRC checks. Everything is stored in the project's
  * rules document.
  */
@@ -15,6 +15,7 @@ import { useProject } from '../project/ProjectProvider';
 import { errorMessage } from '../project/labels';
 import { useAppState } from '../state';
 import { ImpedanceTab } from './ImpedanceTab';
+import { LengthRulesTab } from './LengthRulesTab';
 import type {
   Constraints,
   NetClass,
@@ -27,7 +28,7 @@ import type {
 /** The board minimums that are lengths. */
 type LengthConstraint = Exclude<keyof Constraints, 'allowBlindBuriedVias' | 'allowMicroVias'>;
 
-type Tab = 'classes' | 'constraints' | 'impedance' | 'custom' | 'checks';
+type Tab = 'classes' | 'constraints' | 'impedance' | 'lengths' | 'custom' | 'checks';
 
 const CONSTRAINTS: readonly LengthConstraint[] = [
   'minClearance',
@@ -43,7 +44,10 @@ const CONSTRAINTS: readonly LengthConstraint[] = [
   'minMicroViaDrill',
 ];
 
-const CLASS_FIELDS: readonly (keyof Omit<NetClass, 'name' | 'description' | 'impedance'>)[] = [
+const CLASS_FIELDS: readonly (keyof Omit<
+  NetClass,
+  'name' | 'description' | 'impedance' | 'maxSkew'
+>)[] = [
   'clearance',
   'trackWidth',
   'viaDiameter',
@@ -207,23 +211,25 @@ export function RulesDialog({
       }
     >
       <div className="segmented" role="tablist">
-        {(['classes', 'constraints', 'impedance', 'custom', 'checks'] as const).map((value) => (
-          <button
-            key={value}
-            type="button"
-            role="tab"
-            aria-selected={tab === value}
-            className={
-              tab === value ? 'segmented__item segmented__item--active' : 'segmented__item'
-            }
-            data-testid={`rules-tab-${value}`}
-            onClick={() => {
-              setTab(value);
-            }}
-          >
-            {t(`board.rules.tabs.${value}`)}
-          </button>
-        ))}
+        {(['classes', 'constraints', 'impedance', 'lengths', 'custom', 'checks'] as const).map(
+          (value) => (
+            <button
+              key={value}
+              type="button"
+              role="tab"
+              aria-selected={tab === value}
+              className={
+                tab === value ? 'segmented__item segmented__item--active' : 'segmented__item'
+              }
+              data-testid={`rules-tab-${value}`}
+              onClick={() => {
+                setTab(value);
+              }}
+            >
+              {t(`board.rules.tabs.${value}`)}
+            </button>
+          ),
+        )}
       </div>
       {rules === null || reply === null ? (
         <p className="dialog__text dialog__text--muted">{t('board.rules.loading')}</p>
@@ -420,6 +426,8 @@ export function RulesDialog({
           rules={rules}
           update={update}
         />
+      ) : tab === 'lengths' ? (
+        <LengthRulesTab units={units} rules={rules} update={update} />
       ) : tab === 'custom' ? (
         <>
           <p className="field__hint">{t('board.rules.customHint')}</p>

@@ -45,6 +45,10 @@ pub mod labels {
     pub const SESSION: &str = "import-session";
     /// `pcb.importGerbers`.
     pub const GERBER: &str = "import-gerber";
+    /// `pcb.tuneLength`.
+    pub const TUNE: &str = "tune-length";
+    /// `pcb.matchLengths`.
+    pub const MATCH: &str = "match-lengths";
 
     /// The label of a `pcb.edit` operation.
     #[must_use]
@@ -314,6 +318,68 @@ struct ImpedanceCalcParams {
     width: f64,
     #[serde(default)]
     gap: f64,
+}
+
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+struct TuneParams {
+    doc: Id,
+    track: Id,
+    /// How much longer the net gets (nm) …
+    #[serde(default)]
+    extra: Option<f64>,
+    /// … or the length the net should get.
+    #[serde(default)]
+    length: Option<f64>,
+    #[serde(default)]
+    spacing: Option<f64>,
+    #[serde(default)]
+    amplitude: Option<f64>,
+    #[serde(default)]
+    side: ew_pcb::length::MeanderSide,
+    /// Change the board (otherwise only show the result).
+    #[serde(default)]
+    apply: bool,
+}
+
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+struct MatchParams {
+    doc: Id,
+    #[serde(default)]
+    spacing: Option<f64>,
+    #[serde(default)]
+    amplitude: Option<f64>,
+    #[serde(default)]
+    side: ew_pcb::length::MeanderSide,
+    #[serde(default)]
+    apply: bool,
+}
+
+/// The shape of meanders; missing values come from the track and its class.
+struct MeanderParams {
+    spacing: Option<f64>,
+    amplitude: Option<f64>,
+    side: ew_pcb::length::MeanderSide,
+}
+
+impl MeanderParams {
+    fn options(&self, base: ew_pcb::length::MeanderOptions) -> ew_pcb::length::MeanderOptions {
+        ew_pcb::length::MeanderOptions {
+            spacing: self.spacing.filter(|s| *s > 0.0).unwrap_or(base.spacing),
+            max_amplitude: self
+                .amplitude
+                .filter(|a| *a > 0.0)
+                .unwrap_or(base.max_amplitude),
+            side: self.side,
+        }
+    }
+
+    const fn is_set(&self) -> bool {
+        self.spacing.is_some()
+            || self.amplitude.is_some()
+            || !matches!(self.side, ew_pcb::length::MeanderSide::Auto)
+    }
 }
 
 #[derive(Deserialize)]
@@ -856,6 +922,150 @@ pub fn call(
                 corners: params.corners,
             };
             Ok(Outcome::Read(to_value(&router.route_pair(&request))?))
+        }
+        "pcb.lengths" => {
+            let params: DocParams = parse(params)?;
+            let doc = params
+                .doc
+                .ok_or_else(|| EngineError::invalid_params("missing doc"))?;
+            let pcb = board(project, doc)?;
+            let mut set = ew_pcb::rules::RuleSet::new(rules(project).map(|(_, r)| r));
+            set.cache_classes(pcb.nets.iter().map(|n| (n.name.clone(), n.class.clone())));
+            Ok(Outcome::Read(to_value(&ew_pcb::length::report(pcb, &set))?))
+        }
+        "pcb.tuneLength" => {
+            let params: TuneParams = parse(params)?;
+            let pcb = board(project, params.doc)?;
+            let track = pcb
+                .tracks
+                .get(params.track)
+                .ok_or_else(|| EngineError::not_found(format!("no track {}", params.track)))?;
+            let net = track
+                .net
+                .ok_or_else(|| EngineError::invalid_params("the track has no net"))?;
+            let before = ew_pcb::length::net_length(pcb, net);
+            let extra = match (params.extra, params.length) {
+                (Some(extra), None) => extra,
+                (None, Some(length)) => length - before,
+                _ => {
+                    return Err(EngineError::invalid_params("give either extra or length"));
+                }
+            };
+            let router = ew_pcb::route::Router::new(pcb, rules(project).map(|(_, r)| r));
+            let class = router.class_of(track.net);
+            #[allow(clippy::cast_precision_loss, reason = "track sizes fit f64")]
+            let base = ew_pcb::length::MeanderOptions::for_track(
+                track.width as f64,
+                class.clearance as f64,
+            );
+            let tuned = router
+                .tune(
+                    track,
+                    extra,
+                    &MeanderParams {
+                        spacing: params.spacing,
+                        amplitude: params.amplitude,
+                        side: params.side,
+                    }
+                    .options(base),
+                )
+                .ok_or_else(|| {
+                    EngineError::invalid_params(
+                        "no meander fits on this track: it is too short, curved, locked or hemmed in",
+                    )
+                })?;
+            let reply = json!({
+                "extra": tuned.extra,
+                "length": before + tuned.extra,
+                "reached": tuned.extra + 0.5 >= extra,
+            });
+            if !params.apply {
+                return Ok(Outcome::Read(tuned_preview(
+                    reply,
+                    &[tuned.track],
+                    &tuned.tracks,
+                )));
+            }
+            let mut requests = vec![Request::Delete {
+                doc: params.doc,
+                id: tuned.track,
+            }];
+            let select: Vec<Id> = tuned.tracks.iter().map(|t| t.id).collect();
+            requests.extend(tuned.tracks.into_iter().map(|track| Request::Insert {
+                doc: params.doc,
+                object: Object::Track(track),
+            }));
+            let mut reply = reply;
+            if let Some(map) = reply.as_object_mut() {
+                map.insert("select".into(), json!(select));
+            }
+            Ok(Outcome::Commit {
+                label: labels::TUNE,
+                requests,
+                reply,
+            })
+        }
+        "pcb.matchLengths" => {
+            let params: MatchParams = parse(params)?;
+            let pcb = board(project, params.doc)?;
+            let saved = rules(project).map(|(_, r)| r);
+            let mut set = ew_pcb::rules::RuleSet::new(saved);
+            set.cache_classes(pcb.nets.iter().map(|n| (n.name.clone(), n.class.clone())));
+            let report = ew_pcb::length::report(pcb, &set);
+            let wanted = ew_pcb::length::shortfalls(&report);
+            let given = MeanderParams {
+                spacing: params.spacing,
+                amplitude: params.amplitude,
+                side: params.side,
+            };
+            #[allow(clippy::cast_precision_loss, reason = "track sizes fit f64")]
+            let shape = given.is_set().then(|| {
+                let width = pcb.tracks.iter().map(|t| t.width).max().unwrap_or(0) as f64;
+                let clearance = set.constraints.min_clearance as f64;
+                given.options(ew_pcb::length::MeanderOptions::for_track(width, clearance))
+            });
+            let done = ew_pcb::length::lengthen(pcb, saved, &wanted, shape);
+            let nets: Vec<Value> = done
+                .nets
+                .iter()
+                .map(|(net, wanted, gained)| {
+                    json!({
+                        "net": net,
+                        "name": pcb.nets.get(*net).map_or("", |n| n.name.as_str()),
+                        "wanted": wanted,
+                        "gained": gained,
+                        "reached": gained + 0.5 >= *wanted,
+                    })
+                })
+                .collect();
+            let reply = json!({ "nets": nets });
+            if !params.apply {
+                return Ok(Outcome::Read(tuned_preview(
+                    reply,
+                    &done.removed,
+                    &done.added,
+                )));
+            }
+            if done.added.is_empty() {
+                return Ok(Outcome::Read(reply));
+            }
+            let mut requests: Vec<Request> = done
+                .removed
+                .iter()
+                .map(|id| Request::Delete {
+                    doc: params.doc,
+                    id: *id,
+                })
+                .collect();
+            requests.extend(done.added.into_iter().map(|track| Request::Insert {
+                doc: params.doc,
+                object: Object::Track(track),
+            }));
+            Ok(Outcome::Commit {
+                label: labels::MATCH,
+                requests,
+                reply,
+            })
         }
         "pcb.pairs" => {
             let params: DocParams = parse(params)?;
@@ -1591,6 +1801,24 @@ fn impedance_table(pcb: &Pcb, rules: Option<&Rules>) -> Value {
         "layers": structures,
         "profiles": profiles,
     })
+}
+
+/// A preview of meanders: the new tracks and the tracks they replace, as
+/// `pcb.editPreview` shows them.
+fn tuned_preview(mut reply: Value, hidden: &[Id], tracks: &[ew_model::pcb::Track]) -> Value {
+    if let Some(map) = reply.as_object_mut() {
+        map.insert("hidden".into(), json!(hidden));
+        map.insert(
+            "tracks".into(),
+            json!(
+                tracks
+                    .iter()
+                    .map(|t| json!({"layer": t.layer, "width": t.width, "start": t.start, "end": t.end}))
+                    .collect::<Vec<_>>()
+            ),
+        );
+    }
+    reply
 }
 
 /// The differential pairs of a board with the routed length of both nets

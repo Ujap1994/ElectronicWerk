@@ -625,6 +625,8 @@ pub struct RuleSet {
     fallback: NetClass,
     /// Impedance profiles of the net classes.
     pub profiles: Vec<ew_model::rules::ImpedanceProfile>,
+    /// Groups of nets with matched lengths.
+    pub length_groups: Vec<ew_model::rules::LengthGroup>,
 }
 
 impl RuleSet {
@@ -663,6 +665,7 @@ impl RuleSet {
                 .cloned()
                 .unwrap_or_else(NetClass::default_class),
             profiles: rules.impedance_profiles.clone(),
+            length_groups: rules.length_groups.clone(),
         }
     }
 

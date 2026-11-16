@@ -137,6 +137,7 @@ export const en = {
     designRules: 'Board: design rules and net classes',
     importDxf: 'Board: import a DXF drawing',
     autorouter: 'Board: external autorouter (Specctra DSN/SES, Freerouting)',
+    lengths: 'Board: lengths and length matching',
     gerberReference: 'Board: import Gerber files as a reference drawing',
     placeFootprint: 'Board: place a footprint',
     generateOutputs: 'Outputs: generate manufacturing files (output job)',
@@ -231,6 +232,8 @@ export const en = {
     autoRoute: 'Route automatically',
     fillZones: 'Fill zones',
     unfillZones: 'Empty zones',
+    tuneLength: 'Tune length',
+    matchLengths: 'Match lengths',
   },
   kinds: {
     schematic: 'Schematic',

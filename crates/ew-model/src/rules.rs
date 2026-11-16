@@ -97,6 +97,41 @@ pub struct NetClass {
     /// The impedance profile its tracks follow (empty: none).
     #[serde(default, skip_serializing_if = "String::is_empty")]
     pub impedance: String,
+    /// The largest length difference of the two nets of a differential
+    /// pair in the class (0: not checked).
+    #[serde(default, skip_serializing_if = "is_zero")]
+    pub max_skew: Nm,
+}
+
+/// Nets whose routed lengths must match (the data lines of a parallel bus,
+/// for example).
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct LengthGroup {
+    /// Name (unique).
+    pub name: String,
+    /// Net name patterns (`*` and `?` wildcards), separated by spaces or
+    /// commas: `DQ? DQS*`.
+    pub nets: String,
+    /// How much shorter than the longest net of the group a net may be.
+    pub tolerance: Nm,
+}
+
+impl LengthGroup {
+    /// The patterns of the group.
+    pub fn patterns(&self) -> impl Iterator<Item = &str> {
+        self.nets
+            .split(|c: char| c == ',' || c.is_whitespace())
+            .filter(|p| !p.is_empty())
+    }
+}
+
+#[allow(
+    clippy::trivially_copy_pass_by_ref,
+    reason = "serde's skip_serializing_if signature"
+)]
+const fn is_zero(value: &Nm) -> bool {
+    *value == 0
 }
 
 /// A target impedance for the tracks of net classes: their width (and the
@@ -162,6 +197,7 @@ impl NetClass {
             diff_pair_width: um(200),
             diff_pair_gap: um(250),
             impedance: String::new(),
+            max_skew: 0,
         }
     }
 
@@ -343,6 +379,8 @@ pub const DRC_CHECKS: &[(&str, ErcSeverity)] = &[
     ("via-layers", ErcSeverity::Error),
     ("impedance", ErcSeverity::Warning),
     ("pair-gap", ErcSeverity::Warning),
+    ("pair-skew", ErcSeverity::Warning),
+    ("length-match", ErcSeverity::Warning),
     ("hole-size", ErcSeverity::Error),
     ("hole-to-hole", ErcSeverity::Error),
     ("copper-to-edge", ErcSeverity::Error),
@@ -488,6 +526,9 @@ pub struct Rules {
     /// Impedance profiles of the net classes.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub impedance_profiles: Vec<ImpedanceProfile>,
+    /// Groups of nets with matched lengths.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub length_groups: Vec<LengthGroup>,
 }
 
 /// Editable rule properties (the whole document except its id).
@@ -515,6 +556,9 @@ pub struct RulesProps {
     /// Impedance profiles.
     #[serde(default)]
     pub impedance_profiles: Vec<ImpedanceProfile>,
+    /// Groups of nets with matched lengths.
+    #[serde(default)]
+    pub length_groups: Vec<LengthGroup>,
 }
 
 impl Rules {
@@ -531,6 +575,7 @@ impl Rules {
             custom: Vec::new(),
             drc: DrcSettings::default(),
             impedance_profiles: Vec::new(),
+            length_groups: Vec::new(),
         }
     }
 
@@ -546,6 +591,7 @@ impl Rules {
             custom: self.custom.clone(),
             drc: self.drc.clone(),
             impedance_profiles: self.impedance_profiles.clone(),
+            length_groups: self.length_groups.clone(),
         }
     }
 
@@ -559,6 +605,7 @@ impl Rules {
         self.custom = props.custom;
         self.drc = props.drc;
         self.impedance_profiles = props.impedance_profiles;
+        self.length_groups = props.length_groups;
     }
 
     /// The impedance profile with this name.

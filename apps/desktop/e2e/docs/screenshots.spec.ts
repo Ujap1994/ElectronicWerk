@@ -1708,6 +1708,104 @@ test('differential pairs', async () => {
   await close();
 });
 
+test('length matching', async () => {
+  test.setTimeout(180_000);
+  freshProjects();
+  // The blinky board with two nets of U1 renamed to a USB pair of
+  // different lengths.
+  const kicad = '/tmp/ElectronicWerk/KiCad/usb-skew';
+  rmSync(kicad, { recursive: true, force: true });
+  cpSync(KICAD_FIXTURE, kicad, { recursive: true });
+  const pcbFile = join(kicad, 'blinky.kicad_pcb');
+  writeFileSync(
+    pcbFile,
+    readFileSync(pcbFile, 'utf8')
+      .replaceAll('"/TRIG"', '"USB_DP"')
+      .replaceAll('"/OUT"', '"USB_DN"'),
+  );
+  const { app, page, close } = await start({ settings: { theme: 'light' } });
+  await page.setViewportSize({ width: 1500, height: 1000 });
+  await queueDialogAnswer(app, join(kicad, 'blinky.kicad_pro'));
+  await page.getByTestId('import-kicad').click();
+  await page.getByTestId('kicad-import-name').fill('Skew');
+  await page.getByTestId('kicad-import-start').click();
+  await page
+    .getByTestId('import-report')
+    .getByRole('button', { name: 'Close', exact: true })
+    .last()
+    .click();
+  await page
+    .locator('[data-testid^="tree-doc:"]')
+    .filter({ hasText: /^Skew$/u })
+    .dblclick();
+  await settle(page);
+  await expect(page.getByTestId('viewer')).toHaveAttribute('data-kind', 'pcb');
+
+  // A USB class (USB 2.0 in the beginner mode sets its skew), and a bus group.
+  await page.getByTestId('board-rules').click();
+  const rules = page.getByTestId('rules-dialog');
+  await expect(page.getByTestId('class-name-0')).toHaveValue('Default');
+  const index = await page.locator('[data-testid^="class-name-"]').count();
+  await page.getByTestId('class-add').click();
+  const name = page.getByTestId(`class-name-${index.toString()}`);
+  await name.fill('USB');
+  await name.press('Enter');
+  await page.getByTestId('assignment-add').click();
+  const assignments = await page.locator('[data-testid^="assignment-pattern-"]').count();
+  const pattern = page.getByTestId(`assignment-pattern-${(assignments - 1).toString()}`);
+  await pattern.fill('USB_D?');
+  await pattern.press('Enter');
+  await page.getByTestId(`assignment-class-${(assignments - 1).toString()}`).selectOption('USB');
+  await page.getByTestId('rules-tab-impedance').click();
+  await page.getByTestId(`impedance-class-${index.toString()}`).selectOption('usb2');
+  await expect(page.getByTestId('impedance-status-0-0')).toHaveText('Computed');
+  await page.getByTestId('rules-tab-lengths').click();
+  await expect(page.getByTestId(`class-maxSkew-${index.toString()}`)).toHaveValue('1.25');
+  await page.getByTestId('group-add').click();
+  const group = page.getByTestId('group-name-0');
+  await group.fill('Data bus');
+  await group.press('Enter');
+  const nets = page.getByTestId('group-nets-0');
+  await nets.fill('D0 D1 D2 D3');
+  await nets.press('Enter');
+  await shoot(rules, 'lengths-rules');
+  await page.getByTestId('group-remove-0').click();
+  await page.getByTestId('rules-save').click();
+  await expect(rules).toBeHidden();
+
+  // The report, then matched.
+  await page.getByTestId('board-lengths').click();
+  const dialog = page.getByTestId('lengths-dialog');
+  await expect(page.getByTestId('lengths-pair-status-0')).toHaveText('Too much skew');
+  await shoot(dialog, 'lengths-report');
+  await page.getByTestId('lengths-match').click();
+  await expect(page.getByTestId('lengths-pair-status-0')).toHaveText('OK');
+  await shoot(dialog, 'lengths-matched');
+  await dialog.getByRole('button', { name: 'Close', exact: true }).last().click();
+  await closeToasts(page);
+
+  // The meanders on the board.
+  const board = readBoardJson('Skew') as BoardJson & {
+    nets: { id: string; name: string }[];
+    tracks: { net?: string; start: Point; end: Point }[];
+  };
+  const dp = board.nets.find((n) => n.name === 'USB_DP')?.id;
+  const points = board.tracks.filter((t) => t.net === dp).flatMap((t) => [t.start, t.end]);
+  const xs = points.map((p) => p[0]);
+  const ys = points.map((p) => p[1]);
+  await zoomAt(
+    page,
+    [(Math.min(...xs) + Math.max(...xs)) / 2, (Math.min(...ys) + Math.max(...ys)) / 2],
+    2,
+  );
+  await viewerCanvas(page).focus();
+  await page.keyboard.press('Escape');
+  await page.mouse.move(10, 10);
+  await settle(page);
+  await shoot(page.locator('.viewer__area'), 'lengths-meanders');
+  await close();
+});
+
 // --- Manufacturing outputs (M8) ----------------------------------------------
 
 /** Every file below a folder, as paths relative to it. */

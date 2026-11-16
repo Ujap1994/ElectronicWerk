@@ -405,6 +405,7 @@ pub fn check(pcb: &Pcb, rules: Option<&Rules>, options: &Options) -> Report {
     via_types(&mut ctx, &in_region);
     impedances(&mut ctx, &in_region);
     pair_gaps(&mut ctx, &in_region);
+    lengths(&mut ctx);
     hole_spacing(&mut ctx, &in_region);
     edges_and_outline(&mut ctx, &in_region);
     keepouts(&mut ctx, &in_region);
@@ -824,6 +825,100 @@ fn pair_gaps(ctx: &mut Context<'_>, in_region: &Region<'_>) {
             message,
             at,
             targets,
+            Detail {
+                args,
+                layer: Some(layer),
+            },
+        );
+    }
+}
+
+/// Length rules: the skew of differential pairs and the lengths of length
+/// groups. Reported at the longest track of the net that is too short.
+#[allow(clippy::cast_precision_loss, reason = "board lengths fit f64")]
+fn lengths(ctx: &mut Context<'_>) {
+    let pcb = ctx.board.pcb;
+    let report = crate::length::report(pcb, &ctx.rules);
+    let place = |net: Id| -> Option<(V, Target, CopperLayer)> {
+        pcb.tracks
+            .iter()
+            .filter(|t| t.net == Some(net))
+            .max_by(|a, b| {
+                crate::length::track_length(a).total_cmp(&crate::length::track_length(b))
+            })
+            .map(|t| {
+                (
+                    V::of(t.start).add(V::of(t.end)).scale(0.5),
+                    Target::of(ItemRef::Track { id: t.id }),
+                    t.layer,
+                )
+            })
+    };
+    let mut found = Vec::new();
+    for pair in report.pairs.iter().filter(|p| !p.ok) {
+        let shorter = if pair.positive.length < pair.negative.length {
+            &pair.positive
+        } else {
+            &pair.negative
+        };
+        let Some((at, target, layer)) = place(shorter.net) else {
+            continue;
+        };
+        found.push((
+            "pair-skew",
+            format!(
+                "The nets of the pair {} differ by {} in length, more than {}",
+                pair.name,
+                mm(pair.skew),
+                mm(pair.max_skew)
+            ),
+            at,
+            target,
+            vec![
+                ("pair", pair.name.clone()),
+                ("skew", mm(pair.skew)),
+                ("max", mm(pair.max_skew)),
+                ("net", shorter.name.clone()),
+            ],
+            layer,
+        ));
+    }
+    for group in report.groups.iter().filter(|g| !g.ok) {
+        for net in &group.nets {
+            let short = group.longest - net.length;
+            if short <= group.tolerance + 0.5 {
+                continue;
+            }
+            let Some((at, target, layer)) = place(net.net) else {
+                continue;
+            };
+            found.push((
+                "length-match",
+                format!(
+                    "Net {} is {} shorter than the longest net of the group {}, more than {}",
+                    net.name,
+                    mm(short),
+                    group.name,
+                    mm(group.tolerance)
+                ),
+                at,
+                target,
+                vec![
+                    ("net", net.name.clone()),
+                    ("short", mm(short)),
+                    ("group", group.name.clone()),
+                    ("tolerance", mm(group.tolerance)),
+                ],
+                layer,
+            ));
+        }
+    }
+    for (code, message, at, target, args, layer) in found {
+        ctx.report(
+            code,
+            message,
+            at,
+            vec![target],
             Detail {
                 args,
                 layer: Some(layer),

@@ -455,6 +455,13 @@ export function BoardActions({
         onClick={commands.gerberReference}
       />
       <Button
+        icon="length"
+        label={t('board.actions.lengths')}
+        tip={t('board.actions.lengthsTip')}
+        testId="board-lengths"
+        onClick={commands.lengths}
+      />
+      <Button
         icon="track"
         label={t('board.actions.autorouter')}
         tip={t('board.actions.autorouterTip')}

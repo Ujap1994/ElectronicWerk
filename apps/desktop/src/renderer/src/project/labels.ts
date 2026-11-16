@@ -55,6 +55,8 @@ const HISTORY_LABELS: Readonly<Record<string, MessageKey>> = {
   'auto-route': 'history.autoRoute',
   'fill-zones': 'history.fillZones',
   'unfill-zones': 'history.unfillZones',
+  'tune-length': 'history.tuneLength',
+  'match-lengths': 'history.matchLengths',
 };
 
 /** A readable name for an undo/redo step (scripts may use their own labels). */

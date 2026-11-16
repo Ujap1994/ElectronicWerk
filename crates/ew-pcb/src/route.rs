@@ -271,6 +271,12 @@ impl<'a> Router<'a> {
         }
     }
 
+    /// The net class of a net.
+    #[must_use]
+    pub fn class_of(&self, net: Option<Id>) -> &ew_model::rules::NetClass {
+        self.rules.class(&self.net(net).class)
+    }
+
     pub(crate) fn net(&self, net: Option<Id>) -> &NetInfo {
         net.and_then(|id| self.nets.get(&id))
             .unwrap_or(&self.no_net)

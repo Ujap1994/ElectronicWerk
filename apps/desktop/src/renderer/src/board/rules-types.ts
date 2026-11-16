@@ -19,6 +19,17 @@ export interface NetClass {
   diffPairGap: number;
   /** The impedance profile its tracks follow (missing: none). */
   impedance?: string;
+  /** Largest length difference of the nets of a pair (missing: not checked). */
+  maxSkew?: number;
+}
+
+/** Nets whose routed lengths must match. */
+export interface LengthGroup {
+  name: string;
+  /** Net name patterns separated by spaces or commas. */
+  nets: string;
+  /** How much shorter than the longest net a net may be. */
+  tolerance: number;
 }
 
 export interface Constraints {
@@ -88,6 +99,7 @@ export interface RulesProps {
   custom: CustomRule[];
   drc: { severities?: Record<string, Severity> };
   impedanceProfiles?: ImpedanceProfile[];
+  lengthGroups?: LengthGroup[];
 }
 
 export interface RulesReply {
@@ -131,6 +143,8 @@ export interface Preset {
   readonly differential: boolean;
   readonly target: number;
   readonly tolerance: number;
+  /** Usual largest skew of a pair (µm; 0: not critical). */
+  readonly skew: number;
 }
 
 export interface ImpedanceTable {
@@ -247,14 +261,23 @@ export function applyLayouts(rules: RulesProps, table: ImpedanceTable, only?: st
     if (row === undefined || top === null) {
       return cls;
     }
-    const next =
+    const preset = table.presets.find((p) => p.id === row.profile.preset);
+    const skew = preset === undefined || preset.skew === 0 ? {} : { maxSkew: preset.skew * 1000 };
+    const next: NetClass =
       row.profile.differential === true
-        ? { ...cls, trackWidth: top.width, diffPairWidth: top.width, diffPairGap: top.gap }
+        ? {
+            ...cls,
+            trackWidth: top.width,
+            diffPairWidth: top.width,
+            diffPairGap: top.gap,
+            ...skew,
+          }
         : { ...cls, trackWidth: top.width };
     if (
       next.trackWidth === cls.trackWidth &&
       next.diffPairWidth === cls.diffPairWidth &&
-      next.diffPairGap === cls.diffPairGap
+      next.diffPairGap === cls.diffPairGap &&
+      next.maxSkew === cls.maxSkew
     ) {
       return cls;
     }

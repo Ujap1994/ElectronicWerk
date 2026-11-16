@@ -356,6 +356,57 @@ test('routes a differential pair with both tracks together', async () => {
   expect(gap).toBeLessThan(1 * MM);
 });
 
+test('reports the skew of a pair and matches it with meanders', async () => {
+  launched = await launchApp();
+  const { app, page } = launched;
+  await page.setViewportSize({ width: 1280, height: 800 });
+  // The blinky board with /TRIG and /OUT renamed to a pair of different lengths.
+  const copy = mkdtempSync(join(tmpdir(), 'ew-skew-'));
+  cpSync(FIXTURE, copy, { recursive: true });
+  const pcbFile = join(copy, 'blinky.kicad_pcb');
+  writeFileSync(
+    pcbFile,
+    readFileSync(pcbFile, 'utf8').replaceAll('"/TRIG"', '"SIG_P"').replaceAll('"/OUT"', '"SIG_N"'),
+  );
+  await queueDialogAnswer(app, join(copy, 'blinky.kicad_pro'));
+  await page.getByTestId('import-kicad').click();
+  await page.getByTestId('kicad-import-name').fill('Skew');
+  await page.getByTestId('kicad-import-start').click();
+  await page
+    .getByTestId('import-report')
+    .getByRole('button', { name: 'Close', exact: true })
+    .last()
+    .click();
+  await page.locator('[data-testid^="tree-doc:"]', { hasText: 'Skew' }).first().dblclick();
+  await settle(page);
+
+  // At most 0.1 mm skew for the Default class.
+  await page.getByTestId('board-rules').click();
+  const rules = page.getByTestId('rules-dialog');
+  await expect(page.getByTestId('class-name-0')).toHaveValue('Default');
+  await page.getByTestId('rules-tab-lengths').click();
+  const skew = page.getByTestId('class-maxSkew-0');
+  await skew.fill('0.1');
+  await skew.press('Enter');
+  await page.getByTestId('group-add').click();
+  await expect(page.getByTestId('group-name-0')).toHaveValue('Group 1');
+  await page.getByTestId('group-remove-0').click();
+  await page.getByTestId('rules-save').click();
+  await expect(rules).toBeHidden();
+
+  // The lengths: too much skew, then matched with meanders.
+  await page.getByTestId('board-lengths').click();
+  const dialog = page.getByTestId('lengths-dialog');
+  await expect(dialog).toBeVisible();
+  await expect(page.getByTestId('lengths-pair-0')).toContainText('SIG_P');
+  await expect(page.getByTestId('lengths-pair-status-0')).toHaveText('Too much skew');
+  await page.getByTestId('lengths-match').click();
+  await expect(page.getByTestId('lengths-pair-status-0')).toHaveText('OK');
+  await expect(page.getByTestId('lengths-match')).toBeDisabled();
+  await dialog.getByRole('button', { name: 'Close', exact: true }).last().click();
+  await expect(page.getByTestId('toolbar-undo')).toHaveAttribute('title', /Match lengths/u);
+});
+
 test('drags a track while its 45° neighbours keep their direction', async () => {
   launched = await launchApp();
   const { page, projectsDir } = launched;

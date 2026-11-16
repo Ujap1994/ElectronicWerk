@@ -134,6 +134,7 @@ export const de: Messages = {
     designRules: 'Platine: Designregeln und Netzklassen',
     importDxf: 'Platine: DXF-Zeichnung importieren',
     autorouter: 'Platine: externer Autorouter (Specctra DSN/SES, Freerouting)',
+    lengths: 'Platine: Längen und Längenabgleich',
     gerberReference: 'Platine: Gerber-Dateien als Referenzzeichnung importieren',
     placeFootprint: 'Platine: Footprint platzieren',
     generateOutputs: 'Ausgaben: Fertigungsdaten erzeugen (Ausgabejob)',
@@ -228,6 +229,8 @@ export const de: Messages = {
     autoRoute: 'Automatisch routen',
     fillZones: 'Zonen füllen',
     unfillZones: 'Zonen leeren',
+    tuneLength: 'Länge abgleichen',
+    matchLengths: 'Längen angleichen',
   },
   kinds: {
     schematic: 'Schaltplan',

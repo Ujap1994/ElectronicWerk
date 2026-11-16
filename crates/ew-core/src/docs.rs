@@ -379,6 +379,14 @@ pub const SUMMARIES: &[(&str, &str)] = &[
         "`{\"doc\", \"path\"}` (`import-session`) → `{\"tracks\", \"vias\", \"removedTracks\", \"removedVias\", \"unknownNets\", \"unknownLayers\"}`: reads an autorouter's Specctra session (SES); the routing of each net in it replaces the unlocked tracks and vias of that net, in one undo step.",
     ),
     (
+        "pcb.lengths",
+        "`{\"doc\"}` → `{\"nets\", \"pairs\", \"groups\"}`: the routed length of every net (its tracks; vias are not counted), the differential pairs with their skew and the class's `maxSkew`, and the length groups of the rules with their longest net and tolerance; `ok` tells whether a pair or group keeps its rule.",
+    ),
+    (
+        "pcb.matchLengths",
+        "`{\"doc\", \"spacing\"?, \"amplitude\"?, \"side\"?, \"apply\"?}` (`match-lengths`) → `{\"nets\": [{\"net\", \"name\", \"wanted\", \"gained\", \"reached\"}]}`: makes every net that breaks a length rule (a pair's skew, a group's tolerance) as long as its partner or the longest net of its group, with meanders on its longest straight tracks. Without `apply` only the preview (`tracks`, `hidden`).",
+    ),
+    (
         "pcb.pairs",
         "`{\"doc\"}` → `{\"pairs\": [{\"name\", \"positive\", \"negative\", \"skew\"}]}`: the differential pairs of the board, found by their net names (`USB_DP`/`USB_DN`, `TX+`/`TX-`, `CANH`/`CANL`), with the routed track length of each net and their difference in nm.",
     ),
@@ -421,6 +429,10 @@ pub const SUMMARIES: &[(&str, &str)] = &[
     (
         "pcb.syncPreview",
         "`pcb.syncPreview {\"doc\"}` compares the schematic with the board and returns `{\"changes\", \"problems\"}`. Each change has an `index`, a `kind` (`addNet`, `renameNet`, `removeNet`, `addFootprint`, `removeFootprint`, `changeFootprint`, `setDesignator`, `setValue`, `link`, `setPadNet`), its fields and an English `description…",
+    ),
+    (
+        "pcb.tuneLength",
+        "`{\"doc\", \"track\", \"extra\" | \"length\", \"spacing\"?, \"amplitude\"?, \"side\"?: \"auto\" | \"left\" | \"right\", \"apply\"?}` (`tune-length`) → `{\"extra\", \"length\", \"reached\"}`: replaces a straight track by meanders with 45° corners that make its net `extra` longer (or `length` long). Without `apply` only the preview (`tracks`, `hidden`).",
     ),
     (
         "pcb.unfillZones",

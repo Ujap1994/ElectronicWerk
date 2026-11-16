@@ -84,6 +84,7 @@ const PATHS = {
   component: 'M7 6h10v12H7zM3 9h4M3 15h4M17 9h4M17 15h4M10 10h4M10 14h2',
   track: 'M4 20l7-7h5l4-4M4 20h.01M20 9h.01',
   pair: 'M3 15l5-5h13M3 20l5-5h13',
+  length: 'M3 17h3v-6h3v6h3v-6h3v6h3v-6h3M3 7h18M3 5v4M21 5v4',
   via: 'M12 19a7 7 0 1 0 0-14 7 7 0 0 0 0 14zM12 14.5a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5z',
   zone: 'M4 5h16v14H4zM4 9l4-4M4 14l9-9M4 19l14-14M9 19l11-11M14 19l6-6',
   keepout: 'M4 5h16v14H4zM8 9l8 6M16 9l-8 6',

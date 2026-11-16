@@ -53,7 +53,14 @@ function rules(classes: NetClass[], profiles: RulesProps['impedanceProfiles'] = 
   };
 }
 
-const USB: Preset = { id: 'usb2', name: 'USB 2.0', differential: true, target: 90, tolerance: 10 };
+const USB: Preset = {
+  id: 'usb2',
+  name: 'USB 2.0',
+  differential: true,
+  target: 90,
+  tolerance: 10,
+  skew: 1250,
+};
 
 describe('impedance profiles in the rules', () => {
   it('makes a profile for an interface once and reuses it', () => {
@@ -101,7 +108,13 @@ describe('impedance profiles in the rules', () => {
   });
 
   it('applies the top layer sizes to a class', () => {
-    const profile = { name: 'USB 2.0', target: 90, tolerance: 10, differential: true };
+    const profile = {
+      name: 'USB 2.0',
+      target: 90,
+      tolerance: 10,
+      differential: true,
+      preset: 'usb2',
+    };
     const start = rules([netClass('Default'), netClass('USB', 'USB 2.0')], [profile]);
     const table: ImpedanceTable = {
       presets: [USB],
@@ -123,6 +136,7 @@ describe('impedance profiles in the rules', () => {
       trackWidth: 180_000,
       diffPairWidth: 180_000,
       diffPairGap: 160_000,
+      maxSkew: 1_250_000,
     });
     expect(applied.netClasses[0]).toBe(start.netClasses[0]);
     // Nothing left to change: the same rules come back.
