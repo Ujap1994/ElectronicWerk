@@ -9,7 +9,7 @@ every board of it uses them.
 
 Open them with the **Design rules** button in the board toolbar or
 **Board: design rules and net classes** in the command palette. The dialog
-has five tabs; **Save the rules** stores all of them as one undo step
+has six tabs; **Save the rules** stores all of them as one undo step
 (`design-rules`).
 
 There are three levels, from general to specific:
@@ -101,6 +101,12 @@ router uses the sizes of the layer it routes on, and the DRC warns about
 tracks that miss the target. See [Controlled impedance](./impedance).
 
 ![The impedance tab in the beginner mode](/screenshots/impedance-beginner.png)
+
+## Lengths
+
+The **Lengths** tab sets the largest **skew** (length difference) of the
+differential pairs of every net class and the **length groups**: nets whose
+lengths must match within a tolerance. See [Length matching](./lengths).
 
 ## Custom rules
 

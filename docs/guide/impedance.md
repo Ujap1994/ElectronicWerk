@@ -65,7 +65,8 @@ every copper layer: the **Structure** of the layer (see
 the **Gap**, the **Impedance** these sizes give and a status. The sizes of
 the top layer are also written into the class (**Track width**, **Diff. pair
 width** and **Diff. pair gap** on the **Net classes** tab), so exports that
-know only one width per class get them too.
+know only one width per class get them too, and for a pair interface the
+usual largest **skew** ([length matching](./lengths)).
 
 The interfaces:
 

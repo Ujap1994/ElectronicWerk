@@ -168,9 +168,8 @@ Good to know:
   (walkaround), even when the router is set to push and shove.
 - The [design rules check](./drc) measures the gap of coupled tracks
   (`pair-gap`) for classes with a differential impedance profile.
-- [`pcb.pairs`](../reference/engine-api#pcb-routepair-pcb-pairs) lists the
-  pairs of a board with the routed length of each net and their difference;
-  matching the lengths follows with length tuning.
+- [Length matching](./lengths) checks the skew of the pairs and evens it
+  out with meanders.
 
 ## Vias and layer changes
 

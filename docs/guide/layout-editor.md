@@ -151,6 +151,7 @@ in the toolbar switches it off.
 | Import a DXF drawing                   | Import a DXF drawing      | Board: import a DXF drawing                                |
 | [Gerber reference](./gerber-reference) | Gerber reference          | Board: import Gerber files as a reference drawing          |
 | [External autorouter](./autorouter)    | Autorouter                | Board: external autorouter (Specctra DSN/SES, Freerouting) |
+| [Lengths](./lengths)                   | Lengths                   | Board: lengths and length matching                         |
 | Place a footprint                      | Place footprint (tool)    | Board: place a footprint                                   |
 
 The [keyboard shortcuts](./keyboard-shortcuts#layout-editor) page lists all

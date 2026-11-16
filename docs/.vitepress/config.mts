@@ -53,6 +53,7 @@ export default defineConfig({
           { text: 'Routing tracks', link: '/guide/routing' },
           { text: 'Blind, buried and microvias', link: '/guide/vias' },
           { text: 'Controlled impedance', link: '/guide/impedance' },
+          { text: 'Length matching', link: '/guide/lengths' },
           { text: 'External autorouters', link: '/guide/autorouter' },
           { text: 'Gerber files as a reference', link: '/guide/gerber-reference' },
           { text: 'Copper zones and keep-outs', link: '/guide/zones' },

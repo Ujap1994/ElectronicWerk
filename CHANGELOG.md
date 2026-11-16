@@ -62,6 +62,19 @@ project uses [Semantic Versioning](https://semver.org/).
   of each net and the skew); `pcb.routeStart` finds the partner with
   `"pair": true` and `pcb.addTracks` takes the partner's tracks. See
   [Differential pairs](https://ujap1994.github.io/ElectronicWerk/guide/routing#differential-pairs).
+- **Length matching:** a **Lengths** tab in the design rules sets the
+  largest skew of the differential pairs per net class (the beginner mode
+  sets the usual value of the interface: 1.25 mm for USB 2.0 and Ethernet,
+  0.125 mm for USB 3, HDMI, LVDS/MIPI and PCI Express) and **length groups**
+  (nets by name pattern that must match within a tolerance). The new
+  **Lengths** dialog lists the pairs and groups with their lengths and
+  status; **Match lengths** makes every net that breaks a rule long enough
+  with meanders (45° corners, exact length, the side with room, clearances
+  kept, one undo step). In the advanced mode the meander shape can be set
+  and a selected track tuned to a length of its own. New DRC checks
+  `pair-skew` and `length-match` (warnings); new engine methods
+  `pcb.lengths`, `pcb.tuneLength` and `pcb.matchLengths`. See
+  [Length matching](https://ujap1994.github.io/ElectronicWerk/guide/lengths).
 - **Working mode** setting: _Beginner_ (default) or _Advanced_ decides how
   much ElectronicWerk computes and applies for you. See
   [Settings](https://ujap1994.github.io/ElectronicWerk/guide/settings#working-mode).

@@ -953,6 +953,33 @@ tracks into the board with `pcb.addTracks` and its `pair` field.
 their net names, with the routed track length of each net and their
 difference (nm).
 
+### `pcb.lengths` / `pcb.tuneLength` / `pcb.matchLengths`
+
+`pcb.lengths {"doc"}` → `{"nets", "pairs", "groups"}`: the
+[lengths](../guide/lengths) of a board. `nets`: every net with tracks,
+`{"net", "name", "length"}` (the length of its tracks in nm; vias are not
+counted). `pairs`: every differential pair, `{"name", "positive",
+"negative", "skew", "maxSkew", "ok"}` (`maxSkew` 0: not checked). `groups`:
+every length group of the rules, `{"name", "tolerance", "longest", "nets",
+"ok"}` with its nets longest first.
+
+`pcb.tuneLength {"doc", "track", "extra" | "length", "spacing"?,
+"amplitude"?, "side"?, "apply"?}` (`tune-length`) → `{"extra", "length",
+"reached"}`: replaces a straight, unlocked track by meanders with 45°
+corners that make its net `extra` nm longer, or `length` nm long. `spacing`
+(legs centre to centre) and `amplitude` (the highest bump) default to the
+track's class; `side` is `auto` (the default), `left` or `right` (seen along
+the track). `reached` is false when only part fits. Without `apply` nothing
+changes and the reply has the preview: `tracks` (`[{"layer", "width",
+"start", "end"}]`) and `hidden` (the replaced track).
+
+`pcb.matchLengths {"doc", "spacing"?, "amplitude"?, "side"?, "apply"?}`
+(`match-lengths`) → `{"nets": [{"net", "name", "wanted", "gained",
+"reached"}]}`: makes every net that breaks a length rule as long as its
+partner or the longest net of its group, with meanders on its longest
+straight tracks, nets one after the other. Without `apply` only the
+preview (`tracks`, `hidden`).
+
 ### `pcb.viaFits`
 
 `{"doc", "net"?, "at", "diameter", "layers"?: [first, last]}` → `{"fits"}`:
