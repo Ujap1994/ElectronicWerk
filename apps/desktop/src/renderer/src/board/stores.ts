@@ -170,6 +170,7 @@ export interface BoardCommands {
   readonly gerberReference: () => void;
   readonly placeFootprint: () => void;
   readonly lengths: () => void;
+  readonly teardrops: () => void;
 }
 
 export const activeBoard = new Store<BoardCommands | null>(null);

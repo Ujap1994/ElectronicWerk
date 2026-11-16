@@ -210,6 +210,7 @@ export function App(): ReactNode {
             { id: 'import-dxf', label: 'commands.importDxf', run: boardCommands.importDxf },
             { id: 'autorouter', label: 'commands.autorouter', run: boardCommands.autorouter },
             { id: 'lengths', label: 'commands.lengths', run: boardCommands.lengths },
+            { id: 'teardrops', label: 'commands.teardrops', run: boardCommands.teardrops },
             {
               id: 'gerber-reference',
               label: 'commands.gerberReference',

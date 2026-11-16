@@ -508,6 +508,7 @@ impl<'a> Generator<'a> {
                     keepout: None,
                     fill: ZoneFill::default(),
                     filled: Vec::new(),
+                    teardrop: false,
                 });
             }
         }

@@ -126,6 +126,48 @@ impl LengthGroup {
     }
 }
 
+/// How teardrops are made: the smooth widening of a track where it meets a
+/// pad or via.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase", default)]
+#[allow(clippy::struct_excessive_bools, reason = "independent switches")]
+pub struct TeardropSettings {
+    /// At pads.
+    pub pads: bool,
+    /// At vias.
+    pub vias: bool,
+    /// Length beyond the pad edge, in per cent of the pad size.
+    pub length_ratio: u16,
+    /// The longest teardrop.
+    pub max_length: Nm,
+    /// Width at the pad, in per cent of the pad size.
+    pub width_ratio: u16,
+    /// The widest teardrop.
+    pub max_width: Nm,
+    /// Curved sides (otherwise straight).
+    pub curved: bool,
+}
+
+impl Default for TeardropSettings {
+    fn default() -> Self {
+        Self {
+            pads: true,
+            vias: true,
+            length_ratio: 50,
+            max_length: um(1_000),
+            width_ratio: 100,
+            max_width: um(2_000),
+            curved: true,
+        }
+    }
+}
+
+impl TeardropSettings {
+    fn is_default(&self) -> bool {
+        *self == Self::default()
+    }
+}
+
 #[allow(
     clippy::trivially_copy_pass_by_ref,
     reason = "serde's skip_serializing_if signature"
@@ -529,6 +571,9 @@ pub struct Rules {
     /// Groups of nets with matched lengths.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub length_groups: Vec<LengthGroup>,
+    /// How teardrops are made.
+    #[serde(default, skip_serializing_if = "TeardropSettings::is_default")]
+    pub teardrops: TeardropSettings,
 }
 
 /// Editable rule properties (the whole document except its id).
@@ -559,6 +604,9 @@ pub struct RulesProps {
     /// Groups of nets with matched lengths.
     #[serde(default)]
     pub length_groups: Vec<LengthGroup>,
+    /// How teardrops are made.
+    #[serde(default)]
+    pub teardrops: TeardropSettings,
 }
 
 impl Rules {
@@ -576,6 +624,7 @@ impl Rules {
             drc: DrcSettings::default(),
             impedance_profiles: Vec::new(),
             length_groups: Vec::new(),
+            teardrops: TeardropSettings::default(),
         }
     }
 
@@ -592,6 +641,7 @@ impl Rules {
             drc: self.drc.clone(),
             impedance_profiles: self.impedance_profiles.clone(),
             length_groups: self.length_groups.clone(),
+            teardrops: self.teardrops,
         }
     }
 
@@ -606,6 +656,7 @@ impl Rules {
         self.drc = props.drc;
         self.impedance_profiles = props.impedance_profiles;
         self.length_groups = props.length_groups;
+        self.teardrops = props.teardrops;
     }
 
     /// The impedance profile with this name.

@@ -82,6 +82,8 @@ export const boardEn = {
     gerberRefTip: 'Import Gerber and drill files as a reference drawing on user layers',
     autorouter: 'Autorouter',
     autorouterTip: 'Route the board with an external autorouter (Specctra DSN and SES)',
+    teardrops: 'Teardrops',
+    teardropsTip: 'Add or remove teardrops where tracks meet pads and vias',
     lengths: 'Lengths',
     lengthsTip:
       'Lengths of differential pairs and length groups, and length matching with meanders',
@@ -474,6 +476,23 @@ export const boardEn = {
     addRule: 'Add a rule',
     helpTitle: 'How conditions work',
     help: "A condition compares properties of the item A (and, between two items, B): type ('pad', 'track', 'via', 'zone'), net, netclass, layer, designator, footprint, pad, side, width, diameter and drill. Strings take * and ? wildcards, numbers units (0.2mm, 8mil). Combine with &&, || and !, for example A.netclass == 'HV' && B.netclass != 'HV'. A.insideZone('RF') is true inside a named zone.",
+  },
+  teardrops: {
+    title: 'Teardrops',
+    hint: 'A teardrop widens a track smoothly where it meets a pad or via: the joint is stronger against heat, bending and an off-centre drill. Add teardrops puts one at every end of a straight track in a pad or via of its net (and replaces the old ones); they keep the clearance to other nets.',
+    add: 'Add teardrops',
+    remove: 'Remove teardrops',
+    added: '{count} teardrops added',
+    removed: '{count} teardrops removed',
+    pads: 'At pads',
+    vias: 'At vias',
+    curved: 'Curved sides',
+    lengthRatio: 'Length (of the pad size)',
+    maxLength: 'Longest',
+    widthRatio: 'Width at the pad (of the pad size)',
+    maxWidth: 'Widest',
+    refill:
+      'Teardrops are zones: after moving tracks or footprints, add them again or fill all zones (Shift+B).',
   },
   lengths: {
     title: 'Lengths',

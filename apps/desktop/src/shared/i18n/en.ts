@@ -138,6 +138,7 @@ export const en = {
     importDxf: 'Board: import a DXF drawing',
     autorouter: 'Board: external autorouter (Specctra DSN/SES, Freerouting)',
     lengths: 'Board: lengths and length matching',
+    teardrops: 'Board: add or remove teardrops',
     gerberReference: 'Board: import Gerber files as a reference drawing',
     placeFootprint: 'Board: place a footprint',
     generateOutputs: 'Outputs: generate manufacturing files (output job)',
@@ -234,6 +235,8 @@ export const en = {
     unfillZones: 'Empty zones',
     tuneLength: 'Tune length',
     matchLengths: 'Match lengths',
+    teardrops: 'Add teardrops',
+    removeTeardrops: 'Remove teardrops',
   },
   kinds: {
     schematic: 'Schematic',

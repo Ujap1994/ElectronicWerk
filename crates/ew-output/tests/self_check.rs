@@ -163,6 +163,7 @@ fn test_board() -> Pcb {
         keepout: None,
         fill: ZoneFill::default(),
         filled: Vec::new(),
+        teardrop: false,
     };
     let zone_id = zone.id;
     pcb.zones.insert(zone);

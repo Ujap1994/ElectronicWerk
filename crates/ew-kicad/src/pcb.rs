@@ -285,6 +285,11 @@ fn zone(
             ..defaults
         },
         filled,
+        // KiCad 7+ keeps teardrops as zones marked `(attr (teardrop …))`.
+        teardrop: node
+            .get("attr")
+            .and_then(|attr| attr.get("teardrop"))
+            .is_some(),
     })
 }
 

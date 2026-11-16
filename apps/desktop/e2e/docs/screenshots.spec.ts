@@ -1806,6 +1806,52 @@ test('length matching', async () => {
   await close();
 });
 
+test('teardrops', async () => {
+  test.setTimeout(180_000);
+  freshProjects();
+  const kicad = '/tmp/ElectronicWerk/KiCad/blinky';
+  rmSync(kicad, { recursive: true, force: true });
+  cpSync(KICAD_FIXTURE, kicad, { recursive: true });
+  const { app, page, close } = await start({ settings: { theme: 'light', workMode: 'advanced' } });
+  await page.setViewportSize({ width: 1500, height: 900 });
+  await queueDialogAnswer(app, join(kicad, 'blinky.kicad_pro'));
+  await page.getByTestId('import-kicad').click();
+  await page.getByTestId('kicad-import-name').fill('Blinky');
+  await page.getByTestId('kicad-import-start').click();
+  await page
+    .getByTestId('import-report')
+    .getByRole('button', { name: 'Close', exact: true })
+    .last()
+    .click();
+  const board = readBoardJson('Blinky');
+  await page
+    .locator('[data-testid^="tree-doc:"]')
+    .filter({ hasText: /^Blinky$/u })
+    .dblclick();
+  await settle(page);
+  await expect(page.getByTestId('viewer')).toHaveAttribute('data-kind', 'pcb');
+
+  await page.getByTestId('board-teardrops').click();
+  const dialog = page.getByTestId('teardrop-dialog');
+  await expect(page.getByTestId('teardrop-settings')).toBeVisible();
+  await shoot(dialog, 'teardrops-dialog');
+  await page.getByTestId('teardrops-add').click();
+  await expect(dialog).toBeHidden();
+  await closeToasts(page);
+
+  // Around U1 and R3, where the tracks meet the pads.
+  const u1 = board.footprints.find((f) => f.designator === 'U1');
+  if (u1 === undefined) {
+    throw new Error('no U1 in the blinky board');
+  }
+  await zoomAt(page, [u1.at[0] + 4 * MM, u1.at[1]], 3);
+  await viewerCanvas(page).focus();
+  await page.mouse.move(10, 10);
+  await settle(page);
+  await shoot(page.locator('.viewer__area'), 'teardrops-board');
+  await close();
+});
+
 // --- Manufacturing outputs (M8) ----------------------------------------------
 
 /** Every file below a folder, as paths relative to it. */

@@ -783,8 +783,19 @@ fn zone_sx(zone: &Zone, page: Page, nets: &BTreeMap<Id, (u32, String)>) -> Sx {
     if zone.priority > 0 {
         node = node.child(Sx::list("priority").word(zone.priority.to_string()));
     }
+    if zone.teardrop {
+        node = node.child(
+            Sx::list("attr").child(Sx::list("teardrop").child(Sx::list("type").word("padvia"))),
+        );
+    }
+    let mut connect = Sx::list("connect_pads");
+    match zone.fill.pad_connection {
+        ew_model::pcb::PadConnection::Solid => connect = connect.word("yes"),
+        ew_model::pcb::PadConnection::None => connect = connect.word("no"),
+        ew_model::pcb::PadConnection::Thermal => {}
+    }
     node = node
-        .child(Sx::list("connect_pads").child(Sx::list("clearance").mm(zone.fill.clearance)))
+        .child(connect.child(Sx::list("clearance").mm(zone.fill.clearance)))
         .child(Sx::list("min_thickness").mm(zone.fill.min_width))
         .child(Sx::flag("filled_areas_thickness", false));
     if let Some(keepout) = zone.keepout {

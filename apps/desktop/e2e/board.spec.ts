@@ -407,6 +407,35 @@ test('reports the skew of a pair and matches it with meanders', async () => {
   await expect(page.getByTestId('toolbar-undo')).toHaveAttribute('title', /Match lengths/u);
 });
 
+test('adds and removes teardrops', async () => {
+  launched = await launchApp();
+  const { page } = launched;
+  await page.setViewportSize({ width: 1280, height: 800 });
+  await importAs(launched, 'Teardrops');
+  await page.locator('[data-testid^="tree-doc:"]', { hasText: 'Teardrops' }).first().dblclick();
+  await settle(page);
+
+  await page.getByTestId('board-teardrops').click();
+  const dialog = page.getByTestId('teardrop-dialog');
+  await expect(dialog).toBeVisible();
+  // The beginner mode shows no settings.
+  await expect(page.getByTestId('teardrop-settings')).toHaveCount(0);
+  await page.getByTestId('teardrops-add').click();
+  await expect(dialog).toBeHidden();
+  await expect(page.getByText(/teardrops added/u)).toBeVisible();
+  await expect(page.getByTestId('toolbar-undo')).toHaveAttribute('title', /Add teardrops/u);
+
+  // The advanced mode shows the shape.
+  await page.getByTestId('open-settings').click();
+  await page.getByTestId('setting-work-mode').selectOption('advanced');
+  await page.keyboard.press('Escape');
+  await page.getByTestId('board-teardrops').click();
+  await expect(page.getByTestId('teardrop-settings')).toBeVisible();
+  await page.getByTestId('teardrops-curved').uncheck();
+  await page.getByTestId('teardrops-remove').click();
+  await expect(page.getByTestId('toolbar-undo')).toHaveAttribute('title', /Remove teardrops/u);
+});
+
 test('drags a track while its 45° neighbours keep their direction', async () => {
   launched = await launchApp();
   const { page, projectsDir } = launched;

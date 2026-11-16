@@ -22,6 +22,7 @@ import {
 import { AutorouterDialog } from './AutorouterDialog';
 import { GerberReferenceDialog } from './GerberReferenceDialog';
 import { LengthsDialog } from './LengthsDialog';
+import { TeardropDialog } from './TeardropDialog';
 import { runDrc, useDrcUpdates } from './DrcPanel';
 import { BoardEditor, type Point } from './editor';
 import { RulesDialog } from './RulesDialog';
@@ -45,6 +46,7 @@ type Dialog =
   | { kind: 'autorouter' }
   | { kind: 'gerberReference' }
   | { kind: 'lengths'; track: string | null }
+  | { kind: 'teardrops' }
   | null;
 
 export interface BoardUi {
@@ -225,6 +227,9 @@ export function useBoardEditor({
       placeFootprint: () => {
         setDialog({ kind: 'chooser' });
       },
+      teardrops: () => {
+        setDialog({ kind: 'teardrops' });
+      },
       lengths: () => {
         const tracks = selectedOfType(controller, 'track');
         setDialog({ kind: 'lengths', track: tracks.length === 1 ? (tracks[0] ?? null) : null });
@@ -286,6 +291,8 @@ export function useBoardEditor({
       <AutorouterDialog doc={doc} onClose={close} />
     ) : dialog.kind === 'gerberReference' ? (
       <GerberReferenceDialog doc={doc} onClose={close} />
+    ) : dialog.kind === 'teardrops' ? (
+      <TeardropDialog doc={doc} units={units} onClose={close} />
     ) : dialog.kind === 'lengths' ? (
       <LengthsDialog doc={doc} units={units} trackId={dialog.track} onClose={close} />
     ) : (

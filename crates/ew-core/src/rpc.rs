@@ -178,6 +178,7 @@ pub const METHODS: &[&str] = &[
     "pcb.setRules",
     "pcb.syncApply",
     "pcb.syncPreview",
+    "pcb.teardrops",
     "pcb.tuneLength",
     "pcb.unfillZones",
     "pcb.validateRule",

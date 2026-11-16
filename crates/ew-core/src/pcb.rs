@@ -49,6 +49,10 @@ pub mod labels {
     pub const TUNE: &str = "tune-length";
     /// `pcb.matchLengths`.
     pub const MATCH: &str = "match-lengths";
+    /// `pcb.teardrops`.
+    pub const TEARDROPS: &str = "teardrops";
+    /// `pcb.teardrops` with `remove`.
+    pub const REMOVE_TEARDROPS: &str = "remove-teardrops";
 
     /// The label of a `pcb.edit` operation.
     #[must_use]
@@ -354,6 +358,18 @@ struct MatchParams {
     side: ew_pcb::length::MeanderSide,
     #[serde(default)]
     apply: bool,
+}
+
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+struct TeardropParams {
+    doc: Id,
+    /// Remove the teardrops instead of making them.
+    #[serde(default)]
+    remove: bool,
+    /// Settings to use and keep in the design rules.
+    #[serde(default)]
+    settings: Option<ew_model::rules::TeardropSettings>,
 }
 
 /// The shape of meanders; missing values come from the track and its class.
@@ -1063,6 +1079,95 @@ pub fn call(
             }));
             Ok(Outcome::Commit {
                 label: labels::MATCH,
+                requests,
+                reply,
+            })
+        }
+        "pcb.teardrops" => {
+            let params: TeardropParams = parse(params)?;
+            let pcb = board(project, params.doc)?;
+            let saved = rules(project);
+            let old: Vec<Id> = pcb
+                .zones
+                .iter()
+                .filter(|z| z.teardrop)
+                .map(|z| z.id)
+                .collect();
+            let mut requests: Vec<Request> = old
+                .iter()
+                .map(|id| Request::Delete {
+                    doc: params.doc,
+                    id: *id,
+                })
+                .collect();
+            let mut added = 0;
+            if !params.remove {
+                let settings = params
+                    .settings
+                    .or_else(|| saved.map(|(_, r)| r.teardrops))
+                    .unwrap_or_default();
+                // Made and filled on the board without the old teardrops.
+                let mut fresh = pcb.clone();
+                for id in &old {
+                    fresh.zones.remove(*id);
+                }
+                let zones = ew_pcb::teardrop::teardrops(&fresh, saved.map(|(_, r)| r), &settings);
+                let ids: Vec<Id> = zones.iter().map(|z| z.id).collect();
+                for zone in zones {
+                    fresh.zones.insert(zone);
+                }
+                let fills = ew_pcb::fill::fill(&fresh, saved.map(|(_, r)| r), Some(&ids));
+                for id in &ids {
+                    let Some(mut zone) = fresh.zones.get(*id).cloned() else {
+                        continue;
+                    };
+                    zone.filled = fills
+                        .iter()
+                        .find(|f| f.zone == *id)
+                        .map(|f| f.areas.clone())
+                        .unwrap_or_default();
+                    added += 1;
+                    requests.push(Request::Insert {
+                        doc: params.doc,
+                        object: Object::Zone(zone),
+                    });
+                }
+                // The settings stay with the design rules.
+                if let Some(settings) = params.settings
+                    && saved.is_none_or(|(_, r)| r.teardrops != settings)
+                {
+                    let mut props = saved.map_or_else(
+                        || Rules::new(Id::random(), "Design rules").props(),
+                        |(_, r)| r.props(),
+                    );
+                    props.teardrops = settings;
+                    let Value::Object(props) = to_value(&props)? else {
+                        return Err(EngineError::internal("rules are not an object"));
+                    };
+                    if let Some((doc, _)) = saved {
+                        requests.push(Request::SetProps { doc, props });
+                    } else {
+                        let doc = Id::random();
+                        requests.push(Request::AddDocument {
+                            kind: DocumentKind::Rules,
+                            name: "Design rules".into(),
+                            path: None,
+                            id: Some(doc),
+                        });
+                        requests.push(Request::SetProps { doc, props });
+                    }
+                }
+            }
+            let reply = json!({"added": added, "removed": old.len()});
+            if requests.is_empty() {
+                return Ok(Outcome::Read(reply));
+            }
+            Ok(Outcome::Commit {
+                label: if params.remove {
+                    labels::REMOVE_TEARDROPS
+                } else {
+                    labels::TEARDROPS
+                },
                 requests,
                 reply,
             })

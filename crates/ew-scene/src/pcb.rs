@@ -218,6 +218,51 @@ pub fn plot(pcb: &Pcb, options: &Options<'_>) -> crate::plot::Plot {
     b.plot(header)
 }
 
+/// The copper of a zone (its fill, or a hatch while unfilled) and its
+/// outline (none for a filled teardrop).
+fn draw_zone(
+    b: &mut SceneBuilder,
+    layers: &BoardLayers,
+    zone: &ew_model::pcb::Zone,
+    obj: u32,
+    local: &dyn Fn(Point) -> P,
+) {
+    let outline: Vec<P> = zone.outline.iter().map(|p| local(*p)).collect();
+    let holes: Vec<Vec<P>> = zone
+        .holes
+        .iter()
+        .map(|hole| hole.iter().map(|p| local(*p)).collect())
+        .collect();
+    for copper in &zone.layers {
+        let Some(layer) = layers.copper(*copper) else {
+            continue;
+        };
+        // A filled zone shows its copper; an unfilled one is hatched.
+        let mut filled = false;
+        for area in zone.filled.iter().filter(|area| area.layer == *copper) {
+            let points: Vec<P> = area.points.iter().map(|p| local(*p)).collect();
+            let holes: Vec<Vec<P>> = area
+                .holes
+                .iter()
+                .map(|hole| hole.iter().map(|p| local(*p)).collect())
+                .collect();
+            b.polygon(layer, obj, &points, &holes, 0);
+            filled = true;
+        }
+        if !filled {
+            b.polygon(layer, obj, &outline, &holes, MESH_HATCH);
+        }
+        // Teardrops are part of their track: no outline of their own.
+        if zone.teardrop && filled {
+            continue;
+        }
+        b.polyline(layer, obj, &outline, true, 0.0);
+        for hole in &holes {
+            b.polyline(layer, obj, hole, true, 0.0);
+        }
+    }
+}
+
 fn draw_board(pcb: &Pcb, grid: i64, options: &Options<'_>, record: bool) -> (SceneBuilder, Header) {
     let outline = pcb.outline_bounds();
     let origin = outline.map_or(Point::ORIGIN, |r| {
@@ -242,36 +287,7 @@ fn draw_board(pcb: &Pcb, grid: i64, options: &Options<'_>, record: bool) -> (Sce
     for zone in &pcb.zones {
         let obj = b.object(ObjType::Zone, zone.id, None, None);
         b.set_net(obj, net_of(zone.net));
-        let outline: Vec<P> = zone.outline.iter().map(|p| local(*p)).collect();
-        let holes: Vec<Vec<P>> = zone
-            .holes
-            .iter()
-            .map(|hole| hole.iter().map(|p| local(*p)).collect())
-            .collect();
-        for copper in &zone.layers {
-            let Some(layer) = layers.copper(*copper) else {
-                continue;
-            };
-            // A filled zone shows its copper; an unfilled one is hatched.
-            let mut filled = false;
-            for area in zone.filled.iter().filter(|area| area.layer == *copper) {
-                let points: Vec<P> = area.points.iter().map(|p| local(*p)).collect();
-                let holes: Vec<Vec<P>> = area
-                    .holes
-                    .iter()
-                    .map(|hole| hole.iter().map(|p| local(*p)).collect())
-                    .collect();
-                b.polygon(layer, obj, &points, &holes, 0);
-                filled = true;
-            }
-            if !filled {
-                b.polygon(layer, obj, &outline, &holes, MESH_HATCH);
-            }
-            b.polyline(layer, obj, &outline, true, 0.0);
-            for hole in &holes {
-                b.polyline(layer, obj, hole, true, 0.0);
-            }
-        }
+        draw_zone(&mut b, &layers, zone, obj, &local);
     }
 
     graphics(&mut b, &layers, pcb, origin_p, options);

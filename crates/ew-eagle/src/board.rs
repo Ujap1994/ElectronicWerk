@@ -466,6 +466,7 @@ pub fn read(
                                 ..defaults
                             },
                             filled: Vec::new(),
+                            teardrop: false,
                         });
                         zones += 1;
                     }

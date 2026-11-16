@@ -431,6 +431,10 @@ pub const SUMMARIES: &[(&str, &str)] = &[
         "`pcb.syncPreview {\"doc\"}` compares the schematic with the board and returns `{\"changes\", \"problems\"}`. Each change has an `index`, a `kind` (`addNet`, `renameNet`, `removeNet`, `addFootprint`, `removeFootprint`, `changeFootprint`, `setDesignator`, `setValue`, `link`, `setPadNet`), its fields and an English `description…",
     ),
     (
+        "pcb.teardrops",
+        "`{\"doc\", \"remove\"?, \"settings\"?}` (`teardrops` / `remove-teardrops`) → `{\"added\", \"removed\"}`: replaces the teardrops of the board (zones marked `teardrop`) by new ones at every end of a straight track in a pad or via of its net, filled at once; `remove` only removes them. `settings` (`pads`, `vias`, `lengthRatio`, `maxLength`, `widthRatio`, `maxWidth`, `curved`) are used and kept in the design rules; without them the rules' settings apply.",
+    ),
+    (
         "pcb.tuneLength",
         "`{\"doc\", \"track\", \"extra\" | \"length\", \"spacing\"?, \"amplitude\"?, \"side\"?: \"auto\" | \"left\" | \"right\", \"apply\"?}` (`tune-length`) → `{\"extra\", \"length\", \"reached\"}`: replaces a straight track by meanders with 45° corners that make its net `extra` longer (or `length` long). Without `apply` only the preview (`tracks`, `hidden`).",
     ),

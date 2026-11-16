@@ -39,3 +39,4 @@ pub mod rules;
 pub mod shove;
 pub mod specctra;
 pub mod sync;
+pub mod teardrop;

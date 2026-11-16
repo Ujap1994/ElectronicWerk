@@ -1758,6 +1758,7 @@ mod tests {
             keepout: None,
             fill: ZoneFill::default(),
             filled: Vec::new(),
+            teardrop: false,
         });
         let report = check(&pcb, None, &Options::default());
         let codes = codes(&report);

@@ -90,6 +90,29 @@ export interface ImpedanceProfile {
   layers?: Record<string, TrackGeometry>;
 }
 
+/** How teardrops are made (kept in the design rules). */
+export interface TeardropSettings {
+  pads: boolean;
+  vias: boolean;
+  /** Length beyond the pad edge, % of the pad size. */
+  lengthRatio: number;
+  maxLength: number;
+  /** Width at the pad, % of the pad size. */
+  widthRatio: number;
+  maxWidth: number;
+  curved: boolean;
+}
+
+export const DEFAULT_TEARDROPS: TeardropSettings = {
+  pads: true,
+  vias: true,
+  lengthRatio: 50,
+  maxLength: 1_000_000,
+  widthRatio: 100,
+  maxWidth: 2_000_000,
+  curved: true,
+};
+
 export interface RulesProps {
   name: string;
   constraints: Constraints;
@@ -100,6 +123,7 @@ export interface RulesProps {
   drc: { severities?: Record<string, Severity> };
   impedanceProfiles?: ImpedanceProfile[];
   lengthGroups?: LengthGroup[];
+  teardrops?: Partial<TeardropSettings>;
 }
 
 export interface RulesReply {

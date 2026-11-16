@@ -135,6 +135,7 @@ export const de: Messages = {
     importDxf: 'Platine: DXF-Zeichnung importieren',
     autorouter: 'Platine: externer Autorouter (Specctra DSN/SES, Freerouting)',
     lengths: 'Platine: Längen und Längenabgleich',
+    teardrops: 'Platine: Teardrops hinzufügen oder entfernen',
     gerberReference: 'Platine: Gerber-Dateien als Referenzzeichnung importieren',
     placeFootprint: 'Platine: Footprint platzieren',
     generateOutputs: 'Ausgaben: Fertigungsdaten erzeugen (Ausgabejob)',
@@ -231,6 +232,8 @@ export const de: Messages = {
     unfillZones: 'Zonen leeren',
     tuneLength: 'Länge abgleichen',
     matchLengths: 'Längen angleichen',
+    teardrops: 'Teardrops hinzufügen',
+    removeTeardrops: 'Teardrops entfernen',
   },
   kinds: {
     schematic: 'Schaltplan',

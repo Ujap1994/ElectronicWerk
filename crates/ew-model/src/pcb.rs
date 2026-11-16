@@ -706,6 +706,10 @@ pub struct Zone {
     /// The filled copper (computed by the zone filler or imported).
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub filled: Vec<FilledArea>,
+    /// A teardrop: made by the teardrop generator between a track and a
+    /// pad or via (and replaced when it runs again).
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub teardrop: bool,
 }
 
 /// One filled copper polygon of a zone.

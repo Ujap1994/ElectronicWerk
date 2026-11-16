@@ -455,6 +455,13 @@ export function BoardActions({
         onClick={commands.gerberReference}
       />
       <Button
+        icon="teardrop"
+        label={t('board.actions.teardrops')}
+        tip={t('board.actions.teardropsTip')}
+        testId="board-teardrops"
+        onClick={commands.teardrops}
+      />
+      <Button
         icon="length"
         label={t('board.actions.lengths')}
         tip={t('board.actions.lengthsTip')}
