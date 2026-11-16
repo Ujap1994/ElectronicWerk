@@ -112,16 +112,17 @@ Example (`pcb/board.ewpcb`, shortened):
 
 ## The manifest (`.ewproj`)
 
-| Field           | Type   | Meaning                                                     |
-| --------------- | ------ | ----------------------------------------------------------- |
-| `id`            | UUID   | Project id                                                  |
-| `name`          | string | Project name                                                |
-| `revision`      | string | Revision (optional)                                         |
-| `description`   | string | Description (optional)                                      |
-| `variables`     | object | User text variables, `{"AUTHOR": "Lab"}` (optional)         |
-| `documents`     | array  | `{"id", "kind", "path"}` per document, in tree order        |
-| `rootSchematic` | UUID   | The top sheet (optional)                                    |
-| `settings`      | object | `units` (`mm`, `mil`, `inch`), `schematicGrid`, `boardGrid` |
+| Field           | Type   | Meaning                                                                                                                              |
+| --------------- | ------ | ------------------------------------------------------------------------------------------------------------------------------------ |
+| `id`            | UUID   | Project id                                                                                                                           |
+| `name`          | string | Project name                                                                                                                         |
+| `revision`      | string | Revision (optional)                                                                                                                  |
+| `description`   | string | Description (optional)                                                                                                               |
+| `variables`     | object | User text variables, `{"AUTHOR": "Lab"}` (optional)                                                                                  |
+| `documents`     | array  | `{"id", "kind", "path"}` per document, in tree order                                                                                 |
+| `rootSchematic` | UUID   | The top sheet (optional)                                                                                                             |
+| `settings`      | object | `units` (`mm`, `mil`, `inch`), `schematicGrid`, `boardGrid`                                                                          |
+| `variants`      | array  | [Assembly variants](../guide/variants): `name`, `description`, `parts` by designator with `fitted`, `value`, `properties` (optional) |
 
 `kind` is one of `schematic`, `pcb`, `library`, `rules`, `outputJob`. `path`
 is relative to the project folder, uses `/` and must not leave the folder.
@@ -252,6 +253,9 @@ Layers are written as in boards (`cu.top`, `cu.in1`, `mask.bottom`,
 versions.
 
 ### Panels
+
+An output job with a `variant` (the name of an
+[assembly variant](../guide/variants)) makes its outputs for that variant.
 
 An output job with a `panel` makes its Gerber, drill, drill map and
 pick-and-place outputs for a [panel](../guide/panels) of the board. Without

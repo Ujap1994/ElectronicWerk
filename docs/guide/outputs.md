@@ -114,6 +114,13 @@ A project with more than one board shows a **Board** choice in the settings
 of every board output. **First board of the project** follows the order of
 the project tree.
 
+## Assembly variants
+
+A job can be made for an [assembly variant](./variants): choose it under
+**Assembly variant** next to the output folder. The bill of materials,
+pick-and-place, solder paste, IPC-2581, documentation and 3D model then show
+the parts as the variant has them.
+
 ## Panels
 
 With a [panel](./panels) switched on, the Gerber, drill, drill map and

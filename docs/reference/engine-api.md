@@ -238,8 +238,10 @@ Returns the snapshot of the open project.
 
 Changes project properties with a JSON merge patch: `name`, `revision`,
 `description`, `variables` (`null` removes a variable), `rootSchematic`,
-`settings` (`units`, `schematicGrid`, `boardGrid`). One undo step. Returns the
-history state.
+`settings` (`units`, `schematicGrid`, `boardGrid`), `variants` (the whole
+list of [assembly variants](../guide/variants): `[{"name", "description"?,
+"parts"?: {"R1": {"fitted"?, "value"?, "properties"?}}}]`). One undo step.
+Returns the history state.
 
 ```json
 { "method": "project.setProperties", "params": { "variables": { "AUTHOR": "Lab", "OLD": null } } }
@@ -980,6 +982,20 @@ partner or the longest net of its group, with meanders on its longest
 straight tracks, nets one after the other. Without `apply` only the
 preview (`tracks`, `hidden`).
 
+### `pcb.channels` / `pcb.copyChannel`
+
+`pcb.channels {"doc"}` → `[{"sheet", "name", "instances": [{"key", "name",
+"parts", "designators"}]}]`: the [channels](../guide/channels) of a board,
+every schematic sheet used more than once with the footprints of each use.
+
+`pcb.copyChannel {"doc", "sheet", "from", "to"?, "routing"?, "apply"?}`
+(`copy-channel`) → `{"moved", "removed", "tracks", "vias", "skipped"}`:
+copies the layout of the use `from` (an instance key) to the uses `to` (all
+others by default): placement, and with `routing` (on by default) the tracks
+and vias between the source's parts with the target's nets, replacing the
+target's own. `skipped` names the parts left as they are (another footprint,
+locked). Without `apply` only the counts.
+
 ### `pcb.stitch`
 
 `{"doc", "zone" | "tracks", "net"?, "pitch"?, "diameter"?, "drill"?,
@@ -1127,9 +1143,10 @@ folder and every subfolder must lie inside the project folder.
 
 ### `outputs.bom`
 
-`outputs.bom {"source"?, "options"?}` → `{"headers", "rows", "parts",
-"fields"}`: the bill of materials for the given BOM options (columns,
-grouping, …) without writing a file — the preview of the editor. `fields` lists
+`outputs.bom {"source"?, "options"?, "variant"?}` → `{"headers", "rows",
+"parts", "fields"}`: the bill of materials for the given BOM options
+(columns, grouping, …) without writing a file — the preview of the editor;
+with `variant` as that assembly variant has it. `fields` lists
 the fields that columns can show.
 
 ### `outputs.panelPreview`

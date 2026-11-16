@@ -93,6 +93,19 @@ project uses [Semantic Versioning](https://semver.org/).
   there. Pitch, staggered rows, gap and via size in the advanced mode. New
   engine method `pcb.stitch`. See
   [Stitching vias](https://ujap1994.github.io/ElectronicWerk/guide/stitching).
+- **Channels:** a sheet used more than once gives one group of parts per
+  use. The new **Channels** dialog copies the layout of one channel to the
+  others: placement (moved by the offset between the channels) and, if
+  wanted, the tracks and vias with each channel's nets, as one undo step.
+  New engine methods `pcb.channels` and `pcb.copyChannel`; `ewerk synth
+channels` makes a small example. See
+  [Channels](https://ujap1994.github.io/ElectronicWerk/guide/channels).
+- **Assembly variants:** variants in the project overview list the parts
+  that differ from the design (fitted, not fitted, another value). Output
+  jobs are made for a variant (bill of materials, pick-and-place, solder
+  paste, IPC-2581, documentation, 3D model; `${VARIANT}` holds its name).
+  `project.setProperties` takes `variants`, `outputs.bom` a `variant`. See
+  [Assembly variants](https://ujap1994.github.io/ElectronicWerk/guide/variants).
 - **Working mode** setting: _Beginner_ (default) or _Advanced_ decides how
   much ElectronicWerk computes and applies for you. See
   [Settings](https://ujap1994.github.io/ElectronicWerk/guide/settings#working-mode).

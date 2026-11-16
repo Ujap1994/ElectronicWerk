@@ -154,6 +154,7 @@ in the toolbar switches it off.
 | [Lengths](./lengths)                   | Lengths                   | Board: lengths and length matching                         |
 | [Teardrops](./teardrops)               | Teardrops                 | Board: add or remove teardrops                             |
 | [Stitching vias](./stitching)          | Stitching vias            | Board: stitching vias and via fences                       |
+| [Channels](./channels)                 | Channels                  | Board: copy the layout of a channel                        |
 | Place a footprint                      | Place footprint (tool)    | Board: place a footprint                                   |
 
 The [keyboard shortcuts](./keyboard-shortcuts#layout-editor) page lists all

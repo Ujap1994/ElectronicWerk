@@ -56,6 +56,8 @@ export default defineConfig({
           { text: 'Length matching', link: '/guide/lengths' },
           { text: 'Teardrops', link: '/guide/teardrops' },
           { text: 'Stitching vias and via fences', link: '/guide/stitching' },
+          { text: 'Channels', link: '/guide/channels' },
+          { text: 'Assembly variants', link: '/guide/variants' },
           { text: 'External autorouters', link: '/guide/autorouter' },
           { text: 'Gerber files as a reference', link: '/guide/gerber-reference' },
           { text: 'Copper zones and keep-outs', link: '/guide/zones' },

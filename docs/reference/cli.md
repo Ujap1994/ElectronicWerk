@@ -930,12 +930,13 @@ any engine method; see [AI agents (MCP)](../guide/automation#ai-agents-mcp).
 ### `ewerk synth`
 
 ```text
-ewerk synth <S|M|L|XL> <dir> [--seed <n>] [--json]
+ewerk synth <S|M|L|XL|channels> <dir> [--seed <n>] [--json]
 ```
 
 Generates a synthetic, reproducible reference design (see
 [Benchmarks](../development/benchmarks)). The same size and seed always
-produce the same project.
+produce the same project. `channels` makes a small design with a sheet used
+three times, to try out [channels](../guide/channels).
 
 ```console
 $ ewerk synth M demo-m
