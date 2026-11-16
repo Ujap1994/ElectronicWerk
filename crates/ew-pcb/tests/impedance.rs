@@ -87,6 +87,10 @@ fn the_router_and_the_drc_follow_the_profile() {
     assert_eq!(start.profile.as_deref(), Some("USB 2.0"));
     assert!((start.pair_width - layout.width).abs() < 1.0);
     assert!((start.pair_gap - layout.gap).abs() < 1.0);
+    // Every copper layer has its own width; the route changes to it with
+    // the layer.
+    assert_eq!(start.layer_widths.len(), 4);
+    assert!(start.layer_widths["cu.in1"] < start.layer_widths["cu.top"]);
     drop(router);
     // An inner layer (stripline) needs narrower tracks for the same target.
     let inner = impedance::layout(

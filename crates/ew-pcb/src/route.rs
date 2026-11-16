@@ -10,7 +10,7 @@
 //! point.
 
 use std::cmp::Reverse;
-use std::collections::{BinaryHeap, HashMap};
+use std::collections::{BTreeMap, BinaryHeap, HashMap};
 
 use ew_model::id::Id;
 use ew_model::layer::CopperLayer;
@@ -111,6 +111,10 @@ pub struct Start {
     /// The impedance the width (and gap) give on this layer.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub impedance: Option<f64>,
+    /// The profile's track width on every copper layer (`cu.top`, …), so a
+    /// route changes its width with the layer.
+    #[serde(skip_serializing_if = "BTreeMap::is_empty")]
+    pub layer_widths: BTreeMap<String, f64>,
     /// Clearance of the net class.
     pub clearance: f64,
     /// Direction of the track whose end the route starts at (towards that
@@ -329,6 +333,7 @@ impl<'a> Router<'a> {
             via_types.push(ViaType::Micro.as_str());
         }
         let class = self.rules.class(&info.class);
+        let min_gap = (self.rules.constraints.min_clearance.max(class.clearance)) as f64;
         // An impedance profile sets the width (and the pair's gap) on this
         // layer from the stack-up.
         let layout = self.rules.profile(&info.class).and_then(|profile| {
@@ -337,10 +342,11 @@ impl<'a> Router<'a> {
                 &self.board.pcb.stackup,
                 layer,
                 self.rules.constraints.min_track_width as f64,
-                (self.rules.constraints.min_clearance.max(class.clearance)) as f64,
+                min_gap,
             )
             .map(|layout| (profile, layout))
         });
+        let layer_widths = self.profile_widths(&info.class, min_gap);
         let (track_width, pair_width, pair_gap) = match layout {
             Some((profile, l)) if profile.differential => (l.width, l.width, l.gap),
             Some((_, l)) => (
@@ -363,6 +369,7 @@ impl<'a> Router<'a> {
             pair_gap,
             profile: layout.map(|(p, _)| p.name.clone()),
             impedance: layout.map(|(_, l)| l.impedance),
+            layer_widths,
             via_diameter: via.preferred_diameter,
             via_drill: via.preferred_drill,
             micro_via_diameter: micro.preferred_diameter,
@@ -371,6 +378,29 @@ impl<'a> Router<'a> {
             clearance: class.clearance as f64,
             previous: direction.map(V::pair),
         }
+    }
+
+    /// The track width of a net class's impedance profile on every copper
+    /// layer (empty without a profile).
+    #[allow(clippy::cast_precision_loss, reason = "board lengths fit f64")]
+    fn profile_widths(&self, class: &str, min_gap: f64) -> BTreeMap<String, f64> {
+        let Some(profile) = self.rules.profile(class) else {
+            return BTreeMap::new();
+        };
+        let stackup = &self.board.pcb.stackup;
+        stackup
+            .copper_layers()
+            .filter_map(|copper| {
+                crate::impedance::layout(
+                    profile,
+                    stackup,
+                    copper,
+                    self.rules.constraints.min_track_width as f64,
+                    min_gap,
+                )
+                .map(|l| (copper.to_string(), l.width))
+            })
+            .collect()
     }
 
     /// `true` if a track from `a` to `b` keeps every rule.

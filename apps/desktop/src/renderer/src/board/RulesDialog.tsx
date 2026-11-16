@@ -1,6 +1,6 @@
 /**
  * The design rules: net classes, which nets belong to them, the board's
- * manufacturing minimums, custom rules in the query language and the
+ * manufacturing minimums, impedance profiles, custom rules in the query language and the
  * severities of the DRC checks. Everything is stored in the project's
  * rules document.
  */
@@ -14,79 +14,20 @@ import { CheckInput, LengthInput, TextInput } from '../libedit/fields';
 import { useProject } from '../project/ProjectProvider';
 import { errorMessage } from '../project/labels';
 import { useAppState } from '../state';
-
-type Severity = 'error' | 'warning' | 'ignore';
-
-interface NetClass {
-  name: string;
-  description?: string;
-  clearance: number;
-  trackWidth: number;
-  viaDiameter: number;
-  viaDrill: number;
-  microViaDiameter: number;
-  microViaDrill: number;
-  diffPairWidth: number;
-  diffPairGap: number;
-}
-
-interface Constraints {
-  minClearance: number;
-  minTrackWidth: number;
-  minViaDiameter: number;
-  minViaDrill: number;
-  minAnnularRing: number;
-  minHole: number;
-  minHoleToHole: number;
-  minCopperToEdge: number;
-  minSilkWidth: number;
-  minMicroViaDiameter: number;
-  minMicroViaDrill: number;
-  /** Missing when off. */
-  allowBlindBuriedVias?: boolean;
-  allowMicroVias?: boolean;
-}
+import { ImpedanceTab } from './ImpedanceTab';
+import type {
+  Constraints,
+  NetClass,
+  RuleConstraints,
+  RulesProps,
+  RulesReply,
+  Severity,
+} from './rules-types';
 
 /** The board minimums that are lengths. */
 type LengthConstraint = Exclude<keyof Constraints, 'allowBlindBuriedVias' | 'allowMicroVias'>;
 
-type RuleConstraints = Partial<{
-  clearance: number;
-  trackWidthMin: number;
-  trackWidthMax: number;
-  trackWidth: number;
-  viaDiameterMin: number;
-  viaDrillMin: number;
-  annularRingMin: number;
-  holeMin: number;
-  holeToHoleMin: number;
-  edgeClearance: number;
-}>;
-
-interface CustomRule {
-  name: string;
-  enabled?: boolean;
-  condition?: string;
-  constraints: RuleConstraints;
-}
-
-interface RulesProps {
-  name: string;
-  constraints: Constraints;
-  netClasses: NetClass[];
-  assignments: { pattern: string; class: string }[];
-  erc: unknown;
-  custom: CustomRule[];
-  drc: { severities?: Record<string, Severity> };
-}
-
-interface RulesReply {
-  readonly rules: RulesProps;
-  readonly checks: readonly { code: string; default: Severity; severity: Severity }[];
-  readonly nets: Readonly<Record<string, readonly string[]>>;
-}
-
-type Tab = 'classes' | 'constraints' | 'custom' | 'checks';
+type Tab = 'classes' | 'constraints' | 'impedance' | 'custom' | 'checks';
 
 const CONSTRAINTS: readonly LengthConstraint[] = [
   'minClearance',
@@ -102,7 +43,7 @@ const CONSTRAINTS: readonly LengthConstraint[] = [
   'minMicroViaDrill',
 ];
 
-const CLASS_FIELDS: readonly (keyof Omit<NetClass, 'name' | 'description'>)[] = [
+const CLASS_FIELDS: readonly (keyof Omit<NetClass, 'name' | 'description' | 'impedance'>)[] = [
   'clearance',
   'trackWidth',
   'viaDiameter',
@@ -194,7 +135,7 @@ export function RulesDialog({
   readonly initialTab?: Tab;
   readonly onClose: () => void;
 }): ReactNode {
-  const { t, engine } = useAppState();
+  const { t, engine, snapshot } = useAppState();
   const { notify } = useProject();
   const [reply, setReply] = useState<RulesReply | null>(null);
   const [rules, setRules] = useState<RulesProps | null>(null);
@@ -234,6 +175,9 @@ export function RulesDialog({
       setRules({ ...rules, ...next });
     }
   };
+  const update = (change: (current: RulesProps) => RulesProps): void => {
+    setRules((current) => (current === null ? null : change(current)));
+  };
 
   const classes = rules?.netClasses ?? [];
   const severities = rules?.drc.severities ?? {};
@@ -244,7 +188,7 @@ export function RulesDialog({
       title={t('board.rules.title')}
       onClose={onClose}
       testId="rules-dialog"
-      className="dialog--wide"
+      className="dialog--wide dialog--rules"
       footer={
         <>
           <button type="button" className="button" onClick={onClose}>
@@ -263,7 +207,7 @@ export function RulesDialog({
       }
     >
       <div className="segmented" role="tablist">
-        {(['classes', 'constraints', 'custom', 'checks'] as const).map((value) => (
+        {(['classes', 'constraints', 'impedance', 'custom', 'checks'] as const).map((value) => (
           <button
             key={value}
             type="button"
@@ -468,6 +412,14 @@ export function RulesDialog({
             }}
           />
         </div>
+      ) : tab === 'impedance' ? (
+        <ImpedanceTab
+          doc={doc}
+          units={units}
+          mode={snapshot.settings.workMode}
+          rules={rules}
+          update={update}
+        />
       ) : tab === 'custom' ? (
         <>
           <p className="field__hint">{t('board.rules.customHint')}</p>

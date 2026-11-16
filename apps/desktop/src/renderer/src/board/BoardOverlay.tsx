@@ -142,7 +142,7 @@ export function BoardOverlay({
         <polyline
           key={`fixed-${index.toString()}`}
           className={`board-preview ${layerClass(segment.layer)}`}
-          strokeWidth={Math.max(1, route.width * scale)}
+          strokeWidth={Math.max(1, segment.width * scale)}
           points={line(segment.points)}
         />,
       );

@@ -160,6 +160,15 @@ struct SetRulesParams {
 
 #[derive(Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
+struct ImpedanceParams {
+    doc: Id,
+    /// Rules that are still being edited (instead of the saved ones).
+    #[serde(default)]
+    rules: Option<RulesProps>,
+}
+
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
 struct ValidateParams {
     condition: String,
 }
@@ -292,6 +301,10 @@ struct ViaFitsParams {
 struct Segment {
     layer: ew_model::layer::CopperLayer,
     points: Vec<ew_model::units::Point>,
+    /// Its own track width (an impedance profile sets one per layer);
+    /// otherwise the width of the request.
+    #[serde(default)]
+    width: Option<ew_model::units::Nm>,
 }
 
 #[derive(Deserialize)]
@@ -813,15 +826,15 @@ pub fn call(
             Ok(Outcome::Read(value))
         }
         "pcb.impedance" => {
-            let params: DocParams = parse(params)?;
-            let doc = params
-                .doc
-                .ok_or_else(|| EngineError::invalid_params("missing doc"))?;
-            let pcb = board(project, doc)?;
-            Ok(Outcome::Read(impedance_table(
-                pcb,
-                rules(project).map(|(_, r)| r),
-            )))
+            let params: ImpedanceParams = parse(params)?;
+            let pcb = board(project, params.doc)?;
+            let edited = params.rules.map(|props| {
+                let mut edited = Rules::new(Id::random(), &props.name);
+                edited.set_props(props);
+                edited
+            });
+            let rules = edited.as_ref().or_else(|| rules(project).map(|(_, r)| r));
+            Ok(Outcome::Read(impedance_table(pcb, rules)))
         }
         "pcb.impedanceCalc" => {
             let params: ImpedanceCalcParams = parse(params)?;
@@ -886,7 +899,7 @@ pub fn call(
                         id: Id::random(),
                         layer: segment.layer,
                         net: params.net,
-                        width: params.width,
+                        width: segment.width.unwrap_or(params.width),
                         start: pair[0],
                         end: pair[1],
                         mid: None,
@@ -1499,7 +1512,7 @@ fn heads(
         .map(|s| ew_pcb::shove::Head {
             layers: vec![s.layer],
             net,
-            width,
+            width: s.width.map_or(width, |w| w as f64),
             points: s.points.iter().map(|p| V::of(*p)).collect(),
         })
         .collect();

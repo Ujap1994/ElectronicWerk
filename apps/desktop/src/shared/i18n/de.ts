@@ -61,6 +61,11 @@ export const de: Messages = {
     checkNow: 'Jetzt suchen',
     skippedVersion: 'Übersprungene Version: {version}',
     resetSkipped: 'Wieder anzeigen',
+    workMode: 'Arbeitsmodus',
+    workModeBeginner: 'Einsteiger',
+    workModeAdvanced: 'Fortgeschritten',
+    workModeHint:
+      'Einsteiger: ElectronicWerk berechnet technische Werte wie Leiterbahnbreiten für eine Impedanz aus wenigen Angaben und wendet sie an. Fortgeschritten: Du legst jeden Wert selbst fest, das Programm zeigt das Ergebnis.',
   },
   updates: {
     checking: 'Suche nach Updates …',

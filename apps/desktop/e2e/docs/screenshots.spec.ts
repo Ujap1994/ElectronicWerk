@@ -1549,6 +1549,79 @@ test('push and shove', async () => {
   await close();
 });
 
+test('impedance', async () => {
+  test.setTimeout(180_000);
+  freshProjects();
+  const kicad = '/tmp/ElectronicWerk/KiCad/blinky';
+  rmSync(kicad, { recursive: true, force: true });
+  cpSync(KICAD_FIXTURE, kicad, { recursive: true });
+  const { app, page, close } = await start({ settings: { theme: 'light' } });
+  await page.setViewportSize({ width: 1500, height: 1000 });
+  await queueDialogAnswer(app, join(kicad, 'blinky.kicad_pro'));
+  await page.getByTestId('import-kicad').click();
+  await page.getByTestId('kicad-import-name').fill('Blinky');
+  await page.getByTestId('kicad-import-start').click();
+  await page
+    .getByTestId('import-report')
+    .getByRole('button', { name: 'Close', exact: true })
+    .last()
+    .click();
+  await page
+    .locator('[data-testid^="tree-doc:"]')
+    .filter({ hasText: /^Blinky$/u })
+    .dblclick();
+  await settle(page);
+  await expect(page.getByTestId('viewer')).toHaveAttribute('data-kind', 'pcb');
+
+  // Two net classes with controlled impedance.
+  await page.getByTestId('board-rules').click();
+  const rules = page.getByTestId('rules-dialog');
+  await expect(page.getByTestId('class-name-0')).toHaveValue('Default');
+  const first = await page.locator('[data-testid^="class-name-"]').count();
+  for (const [offset, name] of [
+    [0, 'USB'],
+    [1, 'RF'],
+  ] as const) {
+    await page.getByTestId('class-add').click();
+    const field = page.getByTestId(`class-name-${(first + offset).toString()}`);
+    await field.fill(name);
+    await field.press('Enter');
+  }
+
+  // Beginner mode: pick the interfaces, the sizes follow.
+  await page.getByTestId('rules-tab-impedance').click();
+  await page.getByTestId(`impedance-class-${first.toString()}`).selectOption('usb2');
+  await page.getByTestId(`impedance-class-${(first + 1).toString()}`).selectOption('rf50');
+  await expect(page.getByTestId('impedance-status-1-0')).toHaveText('Computed');
+  await shoot(rules, 'impedance-beginner');
+  await page.getByTestId('rules-save').click();
+  await expect(rules).toBeHidden();
+
+  // The working mode in the settings.
+  await page.getByTestId('open-settings').click();
+  await page.getByTestId('setting-work-mode').selectOption('advanced');
+  await shoot(page.getByTestId('settings-dialog'), 'impedance-work-mode');
+  await page.keyboard.press('Escape');
+
+  // Advanced mode: the RF width set by hand on the top layer.
+  await page.getByTestId('board-rules').click();
+  await page.getByTestId('rules-tab-impedance').click();
+  await expect(page.getByTestId('impedance-advanced')).toBeVisible();
+  const width = page.getByTestId('impedance-width-1-0');
+  await width.fill('0.35');
+  await width.press('Enter');
+  await expect(page.getByTestId('impedance-status-1-0')).toHaveText('Set by hand');
+  await shoot(rules, 'impedance-advanced');
+  const calc = page.getByTestId('calc-width');
+  await calc.fill('0.3');
+  await calc.press('Enter');
+  await page.getByTestId('calc-layer').selectOption('cu.in1');
+  await expect(page.getByTestId('calc-result')).toContainText('Ω');
+  await page.getByTestId('impedance-calculator').scrollIntoViewIfNeeded();
+  await shoot(rules, 'impedance-calculator');
+  await close();
+});
+
 // --- Manufacturing outputs (M8) ----------------------------------------------
 
 /** Every file below a folder, as paths relative to it. */

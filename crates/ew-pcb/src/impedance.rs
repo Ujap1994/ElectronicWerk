@@ -25,7 +25,11 @@ const ETA0: f64 = 376.730_313;
 
 /// How a track sits between its planes (lengths in nm).
 #[derive(Debug, Clone, Copy, PartialEq, Serialize)]
-#[serde(rename_all = "camelCase", tag = "kind")]
+#[serde(
+    rename_all = "camelCase",
+    rename_all_fields = "camelCase",
+    tag = "kind"
+)]
 pub enum Structure {
     /// On an outer layer, `height` above the plane under it.
     Microstrip {

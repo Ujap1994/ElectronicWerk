@@ -364,7 +364,7 @@ pub const SUMMARIES: &[(&str, &str)] = &[
     ),
     (
         "pcb.impedance",
-        "`{\"doc\"}` → `{\"presets\", \"layers\", \"profiles\"}`: the interfaces of the beginner mode (USB, Ethernet, …), the structure of every copper layer (microstrip or stripline with its dielectric) and for every impedance profile its track width, gap and impedance on every layer (`manual` when set by hand).",
+        "`{\"doc\", \"rules\"?}` → `{\"presets\", \"layers\", \"profiles\"}`: the interfaces of the beginner mode (USB, Ethernet, …), the structure of every copper layer (microstrip or stripline with its dielectric) and for every impedance profile its track width, gap and impedance on every layer (`manual` when set by hand). `rules` computes with rules that are still being edited (the props of `pcb.setRules`) instead of the saved ones.",
     ),
     (
         "pcb.impedanceCalc",

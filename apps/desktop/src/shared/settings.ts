@@ -2,11 +2,19 @@ import { isLanguage, type LanguageSetting } from './i18n';
 
 export type ThemeSetting = 'system' | 'light' | 'dark';
 
+/**
+ * How much the app decides for the user. `beginner` computes and applies
+ * engineering values (for example track widths for an impedance) from a few
+ * choices; `advanced` shows every value and lets the user set it.
+ */
+export type WorkMode = 'beginner' | 'advanced';
+
 /** User settings, persisted as JSON in the user data directory. */
 export interface Settings {
   readonly schemaVersion: 1;
   readonly language: LanguageSetting;
   readonly theme: ThemeSetting;
+  readonly workMode: WorkMode;
   readonly updates: {
     readonly checkOnStartup: boolean;
     /** A release the user chose to skip (for example `0.2.0`), or `null`. */
@@ -18,6 +26,7 @@ export interface Settings {
 export interface SettingsPatch {
   readonly language?: LanguageSetting;
   readonly theme?: ThemeSetting;
+  readonly workMode?: WorkMode;
   readonly updates?: Partial<Settings['updates']>;
 }
 
@@ -25,10 +34,12 @@ export const DEFAULT_SETTINGS: Settings = {
   schemaVersion: 1,
   language: 'system',
   theme: 'system',
+  workMode: 'beginner',
   updates: { checkOnStartup: true, skippedVersion: null },
 };
 
 const THEMES: readonly ThemeSetting[] = ['system', 'light', 'dark'];
+const WORK_MODES: readonly WorkMode[] = ['beginner', 'advanced'];
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
@@ -40,6 +51,10 @@ function isLanguageSetting(value: unknown): value is LanguageSetting {
 
 function isThemeSetting(value: unknown): value is ThemeSetting {
   return typeof value === 'string' && (THEMES as readonly string[]).includes(value);
+}
+
+function isWorkMode(value: unknown): value is WorkMode {
+  return typeof value === 'string' && (WORK_MODES as readonly string[]).includes(value);
 }
 
 /**
@@ -55,6 +70,7 @@ export function sanitizeSettings(raw: unknown): Settings {
     schemaVersion: 1,
     language: isLanguageSetting(input['language']) ? input['language'] : DEFAULT_SETTINGS.language,
     theme: isThemeSetting(input['theme']) ? input['theme'] : DEFAULT_SETTINGS.theme,
+    workMode: isWorkMode(input['workMode']) ? input['workMode'] : DEFAULT_SETTINGS.workMode,
     updates: {
       checkOnStartup:
         typeof updates['checkOnStartup'] === 'boolean'

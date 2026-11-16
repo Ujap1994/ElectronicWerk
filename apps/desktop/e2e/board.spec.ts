@@ -205,6 +205,76 @@ test('routes with a blind via once the design rules allow it', async () => {
   expect(blind).toHaveLength(1);
 });
 
+test('computes impedance sizes in the beginner mode and takes them by hand in the advanced mode', async () => {
+  launched = await launchApp();
+  const { page } = launched;
+  await page.setViewportSize({ width: 1280, height: 800 });
+  await importAs(launched, 'Impedance');
+  await page.locator('[data-testid^="tree-doc:"]', { hasText: 'Impedance' }).first().dblclick();
+  await settle(page);
+
+  // A net class for the USB data lines.
+  await page.getByTestId('board-rules').click();
+  const rules = page.getByTestId('rules-dialog');
+  await expect(rules).toBeVisible();
+  await expect(page.getByTestId('class-name-0')).toHaveValue('Default');
+  await page.getByTestId('class-add').click();
+  const usb = (await page.locator('[data-testid^="class-name-"]').count()) - 1;
+  const name = page.getByTestId(`class-name-${usb.toString()}`);
+  await name.fill('USB');
+  await name.press('Enter');
+
+  // Beginner (the default): choose the interface, the sizes are computed.
+  await page.getByTestId('rules-tab-impedance').click();
+  await expect(page.getByTestId('impedance-beginner')).toBeVisible();
+  await page.getByTestId(`impedance-class-${usb.toString()}`).selectOption('usb2');
+  const layers = page.getByTestId('impedance-layers-0');
+  await expect(layers).toBeVisible();
+  await expect(page.getByTestId('impedance-status-0-0')).toHaveText('Computed');
+  await expect(page.getByTestId('impedance-value-0-0')).toContainText('Ω');
+  await expect(layers.locator('input')).toHaveCount(0);
+  const top = (await page.getByTestId('impedance-width-0-0').textContent()) ?? '';
+  const gap = (await page.getByTestId('impedance-gap-0-0').textContent()) ?? '';
+  // An inner layer between two planes needs another width.
+  await expect(page.getByTestId('impedance-width-0-1')).not.toHaveText(top);
+
+  // The class takes the top layer's sizes.
+  await page.getByTestId('rules-tab-classes').click();
+  await expect(page.getByTestId(`class-diffPairWidth-${usb.toString()}`)).toHaveValue(
+    top.replace(' mm', ''),
+  );
+  await expect(page.getByTestId(`class-diffPairGap-${usb.toString()}`)).toHaveValue(
+    gap.replace(' mm', ''),
+  );
+  await page.getByTestId('rules-save').click();
+  await expect(rules).toBeHidden();
+
+  // Advanced: the profile, its target and the sizes per layer are editable.
+  await page.getByTestId('open-settings').click();
+  await page.getByTestId('setting-work-mode').selectOption('advanced');
+  await page.keyboard.press('Escape');
+  await expect(page.getByTestId('settings-dialog')).toBeHidden();
+  await page.getByTestId('board-rules').click();
+  await page.getByTestId('rules-tab-impedance').click();
+  await expect(page.getByTestId('impedance-advanced')).toBeVisible();
+  await expect(page.getByTestId('profile-name-0')).toHaveValue('USB 2.0');
+  await expect(page.getByTestId('profile-target-0')).toHaveValue('90');
+  const width = page.getByTestId('impedance-width-0-0');
+  await width.fill('0.5');
+  await width.press('Enter');
+  await expect(page.getByTestId('impedance-status-0-0')).toHaveText('Outside the tolerance');
+  await page.getByTestId('impedance-reset-0-0').click();
+  await expect(page.getByTestId('impedance-status-0-0')).toHaveText('Computed');
+  await expect(page.getByTestId('impedance-width-0-0')).toHaveValue(top.replace(' mm', ''));
+
+  // The calculator.
+  const calc = page.getByTestId('calc-width');
+  await calc.fill('0.3');
+  await calc.press('Enter');
+  await expect(page.getByTestId('calc-result')).toContainText('Ω');
+  await rules.getByRole('button', { name: 'Cancel' }).click();
+});
+
 test('drags a track while its 45° neighbours keep their direction', async () => {
   launched = await launchApp();
   const { page, projectsDir } = launched;

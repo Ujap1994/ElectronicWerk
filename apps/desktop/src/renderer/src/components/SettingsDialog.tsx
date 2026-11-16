@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react';
 
 import { LANGUAGES, isLanguage, type LanguageSetting } from '@shared/i18n';
-import type { ThemeSetting } from '@shared/settings';
+import type { ThemeSetting, WorkMode } from '@shared/settings';
 
 import { useAppState } from '../state';
 import { AutomationSettings } from '../automation/AutomationSettings';
@@ -19,6 +19,11 @@ const THEMES = [
   { value: 'light', label: 'settings.themeLight' },
   { value: 'dark', label: 'settings.themeDark' },
 ] as const satisfies readonly { value: ThemeSetting; label: string }[];
+
+const WORK_MODES = [
+  { value: 'beginner', label: 'settings.workModeBeginner' },
+  { value: 'advanced', label: 'settings.workModeAdvanced' },
+] as const satisfies readonly { value: WorkMode; label: string }[];
 
 function toLanguageSetting(value: string): LanguageSetting {
   return isLanguage(value) ? value : 'system';
@@ -69,6 +74,26 @@ export function SettingsDialog({ onClose, onCheckUpdates }: SettingsDialogProps)
             </option>
           ))}
         </select>
+      </label>
+
+      <label className="field">
+        <span className="field__label">{t('settings.workMode')}</span>
+        <select
+          className="field__control"
+          value={settings.workMode}
+          data-testid="setting-work-mode"
+          onChange={(event) => {
+            const mode = WORK_MODES.find((m) => m.value === event.target.value)?.value;
+            updateSettings({ workMode: mode ?? 'beginner' });
+          }}
+        >
+          {WORK_MODES.map((mode) => (
+            <option key={mode.value} value={mode.value}>
+              {t(mode.label)}
+            </option>
+          ))}
+        </select>
+        <span className="field__hint">{t('settings.workModeHint')}</span>
       </label>
 
       <fieldset className="field field--group">

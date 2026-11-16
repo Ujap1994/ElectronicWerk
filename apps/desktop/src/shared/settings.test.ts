@@ -14,6 +14,7 @@ describe('sanitizeSettings', () => {
       sanitizeSettings({
         language: 'de',
         theme: 'neon',
+        workMode: 'advanced',
         updates: { checkOnStartup: false, skippedVersion: '0.2.0' },
         unknown: true,
       }),
@@ -21,6 +22,7 @@ describe('sanitizeSettings', () => {
       schemaVersion: 1,
       language: 'de',
       theme: 'system',
+      workMode: 'advanced',
       updates: { checkOnStartup: false, skippedVersion: '0.2.0' },
     });
   });
@@ -32,6 +34,11 @@ describe('sanitizeSettings', () => {
     });
     expect(result.language).toBe('system');
     expect(result.updates.skippedVersion).toBeNull();
+  });
+
+  it('falls back to the beginner work mode', () => {
+    expect(sanitizeSettings({ workMode: 'expert' }).workMode).toBe('beginner');
+    expect(sanitizeSettings({}).workMode).toBe('beginner');
   });
 });
 

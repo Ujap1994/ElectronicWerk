@@ -55,6 +55,11 @@ export interface RouteState {
   readonly microViaDrill: number;
   /** The via types the design rules allow (`through`, `blind`, `buried`, `micro`). */
   readonly viaTypes: readonly string[];
+  /**
+   * The track width on each copper layer when the net's class follows an
+   * impedance profile: the route changes its width with the layer.
+   */
+  readonly layerWidths: Readonly<Record<string, number>>;
   /** Direction of the existing track the route started at (bends from it count). */
   readonly startDirection: Point | null;
   /** The layer of the live segment. */
@@ -62,7 +67,11 @@ export interface RouteState {
   /** Start of the live segment. */
   readonly start: Point;
   /** Segments fixed with a click, not yet in the board. */
-  readonly fixed: readonly { readonly layer: string; readonly points: readonly Point[] }[];
+  readonly fixed: readonly {
+    readonly layer: string;
+    readonly points: readonly Point[];
+    readonly width: number;
+  }[];
   /** Vias placed while routing. */
   readonly vias: readonly RouteVia[];
   /** The live path from `start` towards the cursor. */
@@ -133,6 +142,8 @@ interface StartReply {
   readonly microViaDrill?: number;
   readonly viaTypes?: readonly string[];
   readonly previous?: Point | null;
+  /** An impedance profile's track width on every copper layer. */
+  readonly layerWidths?: Readonly<Record<string, number>>;
 }
 
 interface RouteReply {
@@ -606,6 +617,7 @@ export class BoardEditor implements Interaction {
             microViaDiameter: start.microViaDiameter ?? start.viaDiameter,
             microViaDrill: start.microViaDrill ?? start.viaDrill,
             viaTypes: start.viaTypes ?? ['through'],
+            layerWidths: start.layerWidths ?? {},
             startDirection: start.previous ?? null,
             layer,
             start: at,
@@ -690,7 +702,11 @@ export class BoardEditor implements Interaction {
         ...(shove
           ? {
               mode: 'shove',
-              fixed: route.fixed.map((s) => ({ layer: s.layer, points: s.points })),
+              fixed: route.fixed.map((s) => ({
+                layer: s.layer,
+                points: s.points,
+                width: Math.round(s.width),
+              })),
               vias: this.routeVias(route),
             }
           : {}),
@@ -743,7 +759,7 @@ export class BoardEditor implements Interaction {
     const end = points.at(-1) ?? route.start;
     const fixed = {
       ...route,
-      fixed: [...route.fixed, { layer: route.layer, points }],
+      fixed: [...route.fixed, { layer: route.layer, points, width: route.width }],
       start: end,
       preview: [end],
     };
@@ -778,6 +794,7 @@ export class BoardEditor implements Interaction {
         route: {
           ...route,
           layer,
+          width: route.layerWidths[layer] ?? route.width,
           vias: [...route.vias, { at: route.start, ...via, diameter, drill }],
         },
       });
@@ -845,7 +862,11 @@ export class BoardEditor implements Interaction {
     void this.edit('pcb.addTracks', {
       net: route.net,
       width: Math.round(route.width),
-      segments: route.fixed.map((s) => ({ layer: s.layer, points: s.points })),
+      segments: route.fixed.map((s) => ({
+        layer: s.layer,
+        points: s.points,
+        width: Math.round(s.width),
+      })),
       vias: this.routeVias(route),
       ...(shove ? { mode: 'shove', corners: routingCorners.get() } : {}),
     }).then((result) => {
@@ -877,6 +898,7 @@ export class BoardEditor implements Interaction {
         fixed: route.fixed.slice(0, -1),
         start,
         layer: last.layer,
+        width: last.width,
         preview: [start],
         vias,
       },

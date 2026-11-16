@@ -64,6 +64,11 @@ export const en = {
     checkNow: 'Check now',
     skippedVersion: 'Skipped version: {version}',
     resetSkipped: 'Show again',
+    workMode: 'Working mode',
+    workModeBeginner: 'Beginner',
+    workModeAdvanced: 'Advanced',
+    workModeHint:
+      'Beginner: ElectronicWerk computes and applies engineering values such as track widths for an impedance from a few choices. Advanced: you set every value yourself and the app shows the result.',
   },
   updates: {
     checking: 'Checking for updates…',

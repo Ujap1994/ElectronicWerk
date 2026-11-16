@@ -350,6 +350,11 @@ select {
   width: min(640px, calc(100vw - 32px));
 }
 
+/* The design rules: wide tables of lengths. */
+.dialog--rules {
+  width: min(880px, calc(100vw - 32px));
+}
+
 .dialog__footer {
   display: flex;
   align-items: center;
@@ -5477,4 +5482,32 @@ textarea.field__control {
 
 .autorouter__step .button {
   flex: none;
+}
+
+/* The impedance tab of the design rules. */
+.impedance-layers {
+  white-space: nowrap;
+}
+
+.impedance-layers__structure {
+  min-width: 16em;
+  color: var(--color-text-muted);
+  white-space: normal;
+}
+
+.impedance-status {
+  margin-inline-end: var(--space-1);
+  color: var(--color-ok);
+}
+
+.impedance-status--bad {
+  color: var(--color-warn);
+}
+
+.impedance-result {
+  align-self: end;
+  margin: 0;
+  padding-block-end: var(--space-1);
+  font-size: var(--font-size-l);
+  font-weight: 600;
 }
