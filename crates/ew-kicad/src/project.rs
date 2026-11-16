@@ -173,6 +173,7 @@ pub fn settings(json: &Value) -> ProjectSettings {
                 micro_via_drill: get("microvia_drill", defaults.micro_via_drill),
                 diff_pair_width: get("diff_pair_width", defaults.diff_pair_width),
                 diff_pair_gap: get("diff_pair_gap", defaults.diff_pair_gap),
+                impedance: String::new(),
             });
         }
         out.net_classes

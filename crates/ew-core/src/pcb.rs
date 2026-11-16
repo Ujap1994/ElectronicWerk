@@ -264,6 +264,18 @@ enum RouteMode {
 
 #[derive(Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
+struct ImpedanceCalcParams {
+    doc: Id,
+    layer: ew_model::layer::CopperLayer,
+    #[serde(default)]
+    differential: bool,
+    width: f64,
+    #[serde(default)]
+    gap: f64,
+}
+
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
 struct ViaFitsParams {
     doc: Id,
     #[serde(default)]
@@ -799,6 +811,37 @@ pub fn call(
                 }
             }
             Ok(Outcome::Read(value))
+        }
+        "pcb.impedance" => {
+            let params: DocParams = parse(params)?;
+            let doc = params
+                .doc
+                .ok_or_else(|| EngineError::invalid_params("missing doc"))?;
+            let pcb = board(project, doc)?;
+            Ok(Outcome::Read(impedance_table(
+                pcb,
+                rules(project).map(|(_, r)| r),
+            )))
+        }
+        "pcb.impedanceCalc" => {
+            let params: ImpedanceCalcParams = parse(params)?;
+            let pcb = board(project, params.doc)?;
+            let structure =
+                ew_pcb::impedance::structure(&pcb.stackup, params.layer).ok_or_else(|| {
+                    EngineError::invalid_params(format!(
+                        "the layer {} has no plane next to it",
+                        params.layer
+                    ))
+                })?;
+            let kind = if params.differential {
+                ew_pcb::impedance::Kind::Differential
+            } else {
+                ew_pcb::impedance::Kind::Single
+            };
+            let value = ew_pcb::impedance::impedance(&structure, kind, params.width, params.gap);
+            Ok(Outcome::Read(
+                json!({"impedance": value, "structure": structure}),
+            ))
         }
         "pcb.viaFits" => {
             let params: ViaFitsParams = parse(params)?;
@@ -1386,6 +1429,57 @@ fn rules_info(project: &Project, doc: Option<Id>) -> Result<Value, EngineError> 
         "errors": errors,
         "severities": [ErcSeverity::Error, ErcSeverity::Warning, ErcSeverity::Ignore],
     }))
+}
+
+/// The impedance view of a board: the interfaces of the beginner mode, the
+/// structure of every copper layer and every profile on every layer.
+#[allow(clippy::cast_precision_loss, reason = "board lengths fit f64")]
+fn impedance_table(pcb: &Pcb, rules: Option<&Rules>) -> Value {
+    let set = ew_pcb::rules::RuleSet::new(rules);
+    let layers: Vec<ew_model::layer::CopperLayer> = pcb.stackup.copper_layers().collect();
+    let structures: Vec<Value> = layers
+        .iter()
+        .map(|&layer| {
+            json!({
+                "layer": layer,
+                "structure": ew_pcb::impedance::structure(&pcb.stackup, layer),
+            })
+        })
+        .collect();
+    let min_width = set.constraints.min_track_width as f64;
+    let profiles: Vec<Value> = set
+        .profiles
+        .iter()
+        .map(|profile| {
+            // The smallest gap: the largest clearance of the classes that
+            // use the profile (at least the board minimum).
+            let clearance = rules
+                .and_then(|r| {
+                    r.net_classes
+                        .iter()
+                        .filter(|c| c.impedance == profile.name)
+                        .map(|c| c.clearance)
+                        .max()
+                })
+                .unwrap_or(0)
+                .max(set.constraints.min_clearance) as f64;
+            let per_layer: Vec<Value> = layers
+                .iter()
+                .map(|&layer| {
+                    json!({
+                        "layer": layer,
+                        "layout": ew_pcb::impedance::layout(profile, &pcb.stackup, layer, min_width, clearance),
+                    })
+                })
+                .collect();
+            json!({"profile": profile, "layers": per_layer})
+        })
+        .collect();
+    json!({
+        "presets": ew_pcb::impedance::PRESETS,
+        "layers": structures,
+        "profiles": profiles,
+    })
 }
 
 /// The copper of a route that pushes in push-and-shove mode: its segments

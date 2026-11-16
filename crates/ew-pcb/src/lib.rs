@@ -27,6 +27,7 @@ pub mod dxf;
 pub mod edit;
 pub mod fill;
 pub mod geom;
+pub mod impedance;
 pub mod items;
 pub mod panel;
 pub mod poly;

@@ -160,6 +160,8 @@ pub const METHODS: &[&str] = &[
     "pcb.exportSpecctra",
     "pcb.fillZones",
     "pcb.gerberPreview",
+    "pcb.impedance",
+    "pcb.impedanceCalc",
     "pcb.importDxf",
     "pcb.importGerbers",
     "pcb.importSession",

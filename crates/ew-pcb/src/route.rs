@@ -101,6 +101,16 @@ pub struct Start {
     /// The via types the design rules allow (`through`, `blind`, `buried`,
     /// `micro`).
     pub via_types: Vec<&'static str>,
+    /// Track width of a differential pair of the net's class.
+    pub pair_width: f64,
+    /// Gap of a differential pair of the net's class.
+    pub pair_gap: f64,
+    /// The impedance profile of the net's class, if it has one.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub profile: Option<String>,
+    /// The impedance the width (and gap) give on this layer.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub impedance: Option<f64>,
     /// Clearance of the net class.
     pub clearance: f64,
     /// Direction of the track whose end the route starts at (towards that
@@ -319,11 +329,40 @@ impl<'a> Router<'a> {
             via_types.push(ViaType::Micro.as_str());
         }
         let class = self.rules.class(&info.class);
+        // An impedance profile sets the width (and the pair's gap) on this
+        // layer from the stack-up.
+        let layout = self.rules.profile(&info.class).and_then(|profile| {
+            crate::impedance::layout(
+                profile,
+                &self.board.pcb.stackup,
+                layer,
+                self.rules.constraints.min_track_width as f64,
+                (self.rules.constraints.min_clearance.max(class.clearance)) as f64,
+            )
+            .map(|layout| (profile, layout))
+        });
+        let (track_width, pair_width, pair_gap) = match layout {
+            Some((profile, l)) if profile.differential => (l.width, l.width, l.gap),
+            Some((_, l)) => (
+                l.width,
+                class.diff_pair_width as f64,
+                class.diff_pair_gap as f64,
+            ),
+            None => (
+                width.preferred,
+                class.diff_pair_width as f64,
+                class.diff_pair_gap as f64,
+            ),
+        };
         Start {
             at: point.pair(),
             net,
             net_name: info.name.clone(),
-            width: width.preferred,
+            width: track_width,
+            pair_width,
+            pair_gap,
+            profile: layout.map(|(p, _)| p.name.clone()),
+            impedance: layout.map(|(_, l)| l.impedance),
             via_diameter: via.preferred_diameter,
             via_drill: via.preferred_drill,
             micro_via_diameter: micro.preferred_diameter,

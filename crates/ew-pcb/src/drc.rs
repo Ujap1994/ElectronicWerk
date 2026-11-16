@@ -121,6 +121,7 @@ pub const LOCAL_CODES: &[&str] = &[
     "annular-ring",
     "via-type",
     "via-layers",
+    "impedance",
     "hole-size",
     "hole-to-hole",
     "copper-to-edge",
@@ -401,6 +402,7 @@ pub fn check(pcb: &Pcb, rules: Option<&Rules>, options: &Options) -> Report {
     copper_clearance(&mut ctx, &in_region);
     widths_and_holes(&mut ctx, &in_region);
     via_types(&mut ctx, &in_region);
+    impedances(&mut ctx, &in_region);
     hole_spacing(&mut ctx, &in_region);
     edges_and_outline(&mut ctx, &in_region);
     keepouts(&mut ctx, &in_region);
@@ -648,6 +650,81 @@ fn report_clearance(ctx: &mut Context<'_>, hits: Vec<(usize, usize, f64, Limit, 
                 },
             );
         }
+    }
+}
+
+/// Tracks of net classes with an impedance profile: the impedance their
+/// width gives on their layer within the profile's tolerance.
+#[allow(clippy::cast_precision_loss, reason = "board lengths fit f64")]
+fn impedances(ctx: &mut Context<'_>, in_region: &Region<'_>) {
+    let mut found = Vec::new();
+    for track in ctx.board.pcb.tracks.iter().filter(|t| t.mid.is_none()) {
+        let at = V::of(track.start).add(V::of(track.end)).scale(0.5);
+        if !in_region(BBox::of(V::of(track.start)).with(V::of(track.end))) {
+            continue;
+        }
+        let class_name = ctx.net(track.net).class.clone();
+        let Some(profile) = ctx.rules.profile(&class_name) else {
+            continue;
+        };
+        let class = ctx.rules.class(&class_name);
+        let min_gap = ctx.rules.constraints.min_clearance.max(class.clearance) as f64;
+        let Some(layout) = crate::impedance::layout(
+            profile,
+            &ctx.board.pcb.stackup,
+            track.layer,
+            ctx.rules.constraints.min_track_width as f64,
+            min_gap,
+        ) else {
+            continue;
+        };
+        let Some(structure) = crate::impedance::structure(&ctx.board.pcb.stackup, track.layer)
+        else {
+            continue;
+        };
+        let kind = if profile.differential {
+            crate::impedance::Kind::Differential
+        } else {
+            crate::impedance::Kind::Single
+        };
+        let value = crate::impedance::impedance(&structure, kind, track.width as f64, layout.gap);
+        if crate::impedance::within(profile, value) {
+            continue;
+        }
+        let ohms = format!("{value:.0} Ω");
+        found.push((
+            format!(
+                "Track width {} gives {ohms}, outside {} Ω ± {} % ({}); {} would fit",
+                mm(track.width as f64),
+                profile.target,
+                profile.tolerance,
+                profile.name,
+                mm(layout.width)
+            ),
+            at,
+            ItemRef::Track { id: track.id },
+            vec![
+                ("width", mm(track.width as f64)),
+                ("impedance", ohms),
+                ("target", profile.target.to_string()),
+                ("tolerance", profile.tolerance.to_string()),
+                ("profile", profile.name.clone()),
+                ("expected", mm(layout.width)),
+            ],
+            track.layer,
+        ));
+    }
+    for (message, at, item, args, layer) in found {
+        ctx.report(
+            "impedance",
+            message,
+            at,
+            vec![Target::of(item)],
+            Detail {
+                args,
+                layer: Some(layer),
+            },
+        );
     }
 }
 

@@ -623,6 +623,8 @@ pub struct RuleSet {
     layer_rules: bool,
     class_cache: HashMap<String, String>,
     fallback: NetClass,
+    /// Impedance profiles of the net classes.
+    pub profiles: Vec<ew_model::rules::ImpedanceProfile>,
 }
 
 impl RuleSet {
@@ -660,7 +662,18 @@ impl RuleSet {
                 .first()
                 .cloned()
                 .unwrap_or_else(NetClass::default_class),
+            profiles: rules.impedance_profiles.clone(),
         }
+    }
+
+    /// The impedance profile of a net class, if it has one.
+    #[must_use]
+    pub fn profile(&self, class: &str) -> Option<&ew_model::rules::ImpedanceProfile> {
+        let name = &self.class(class).impedance;
+        if name.is_empty() {
+            return None;
+        }
+        self.profiles.iter().find(|p| &p.name == name)
     }
 
     /// `true` if some custom rule tests the layer (checks then run per

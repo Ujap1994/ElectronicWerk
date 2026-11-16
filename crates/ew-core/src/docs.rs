@@ -363,6 +363,14 @@ pub const SUMMARIES: &[(&str, &str)] = &[
         "`pcb.dxfPreview {\"path\", \"scale\"?}` → `{\"layers\", \"units\", \"count\", \"bounds\", \"skipped\"}`. `pcb.importDxf {\"doc\", \"path\", \"layer\", \"layers\"?, \"replace\"?, \"scale\"?, \"origin\"?, \"width\"?}` (`import-dxf`) imports the shapes of the chosen DXF layers onto a board layer (`outline`, `mech.1`, …); `scale` is nanometres per draw…",
     ),
     (
+        "pcb.impedance",
+        "`{\"doc\"}` → `{\"presets\", \"layers\", \"profiles\"}`: the interfaces of the beginner mode (USB, Ethernet, …), the structure of every copper layer (microstrip or stripline with its dielectric) and for every impedance profile its track width, gap and impedance on every layer (`manual` when set by hand).",
+    ),
+    (
+        "pcb.impedanceCalc",
+        "`{\"doc\", \"layer\", \"differential\"?, \"width\", \"gap\"?}` → `{\"impedance\", \"structure\"}`: the impedance of a track (or pair) of this width on a layer of the board.",
+    ),
+    (
         "pcb.importGerbers",
         "`{\"doc\", \"files\": [{\"path\", \"layer\"}], \"origin\"?, \"replace\"?}` (`import-gerber`) → `{\"shapes\", \"layers\"}`: draws Gerber and Excellon files as filled areas on board layers (a reference for tracing or comparing); `origin` moves the lower left corner of all files there.",
     ),

@@ -94,6 +94,48 @@ pub struct NetClass {
     pub diff_pair_width: Nm,
     /// Differential pair gap.
     pub diff_pair_gap: Nm,
+    /// The impedance profile its tracks follow (empty: none).
+    #[serde(default, skip_serializing_if = "String::is_empty")]
+    pub impedance: String,
+}
+
+/// A target impedance for the tracks of net classes: their width (and the
+/// gap of pairs) on every copper layer follow from it and the stack-up.
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ImpedanceProfile {
+    /// Name (unique).
+    pub name: String,
+    /// A pair of tracks (the differential impedance) instead of one.
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub differential: bool,
+    /// Target impedance in ohms.
+    pub target: u16,
+    /// Allowed deviation in per cent.
+    #[serde(default = "impedance_tolerance")]
+    pub tolerance: u8,
+    /// The interface it was made for (`usb2`, `ethernet`, …), if any.
+    #[serde(default, skip_serializing_if = "String::is_empty")]
+    pub preset: String,
+    /// Widths and gaps set by hand per copper layer (`cu.top`, …); other
+    /// layers are computed from the stack-up.
+    #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
+    pub layers: BTreeMap<String, TrackGeometry>,
+}
+
+/// Track width and pair gap on one layer.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct TrackGeometry {
+    /// Track width.
+    pub width: Nm,
+    /// Gap between the tracks of a pair.
+    #[serde(default)]
+    pub gap: Nm,
+}
+
+const fn impedance_tolerance() -> u8 {
+    10
 }
 
 const fn micro_via_diameter() -> Nm {
@@ -119,6 +161,7 @@ impl NetClass {
             micro_via_drill: micro_via_drill(),
             diff_pair_width: um(200),
             diff_pair_gap: um(250),
+            impedance: String::new(),
         }
     }
 
@@ -298,6 +341,7 @@ pub const DRC_CHECKS: &[(&str, ErcSeverity)] = &[
     ("annular-ring", ErcSeverity::Error),
     ("via-type", ErcSeverity::Error),
     ("via-layers", ErcSeverity::Error),
+    ("impedance", ErcSeverity::Warning),
     ("hole-size", ErcSeverity::Error),
     ("hole-to-hole", ErcSeverity::Error),
     ("copper-to-edge", ErcSeverity::Error),
@@ -440,6 +484,9 @@ pub struct Rules {
     /// Design rules check settings.
     #[serde(default, skip_serializing_if = "DrcSettings::is_empty")]
     pub drc: DrcSettings,
+    /// Impedance profiles of the net classes.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub impedance_profiles: Vec<ImpedanceProfile>,
 }
 
 /// Editable rule properties (the whole document except its id).
@@ -464,6 +511,9 @@ pub struct RulesProps {
     /// Design rules check settings.
     #[serde(default)]
     pub drc: DrcSettings,
+    /// Impedance profiles.
+    #[serde(default)]
+    pub impedance_profiles: Vec<ImpedanceProfile>,
 }
 
 impl Rules {
@@ -479,6 +529,7 @@ impl Rules {
             erc: ErcSettings::default(),
             custom: Vec::new(),
             drc: DrcSettings::default(),
+            impedance_profiles: Vec::new(),
         }
     }
 
@@ -493,6 +544,7 @@ impl Rules {
             erc: self.erc.clone(),
             custom: self.custom.clone(),
             drc: self.drc.clone(),
+            impedance_profiles: self.impedance_profiles.clone(),
         }
     }
 
@@ -505,6 +557,13 @@ impl Rules {
         self.erc = props.erc;
         self.custom = props.custom;
         self.drc = props.drc;
+        self.impedance_profiles = props.impedance_profiles;
+    }
+
+    /// The impedance profile with this name.
+    #[must_use]
+    pub fn impedance_profile(&self, name: &str) -> Option<&ImpedanceProfile> {
+        self.impedance_profiles.iter().find(|p| p.name == name)
     }
 
     /// The net class with this name.
