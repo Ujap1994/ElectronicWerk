@@ -109,6 +109,7 @@ pub fn run(command: Command, out: &mut impl Write) -> Outcome {
         Command::Project(command) => project(command, out),
         Command::Import(command) => import(command, out),
         Command::Library(command) => crate::library::run(command, out),
+        Command::Part(command) => crate::part::run(command, out),
         Command::Outputs(command) => outputs(command, out),
         Command::Export3d(args) => export_3d(&args, out),
         Command::Synth {
@@ -1532,6 +1533,59 @@ mod tests {
         let value: Value = serde_json::from_str(&output).unwrap();
         assert_eq!(value["symbols"], 1);
         assert!(target.join("3d/UltraLibrarian/DBV0005A.step").is_file());
+    }
+
+    #[test]
+    fn makes_parts_from_datasheets() {
+        let dir = tempfile::tempdir().unwrap();
+        let (code, output) = run_to_string(Command::Synth {
+            size: "datasheets".into(),
+            dir: dir.path().join("ds"),
+            seed: 1,
+            json: true,
+        });
+        assert_eq!(code, ExitCode::SUCCESS);
+        let files: Value = serde_json::from_str(&output).unwrap();
+        assert_eq!(files["files"].as_array().unwrap().len(), 2);
+        let pdf = dir.path().join("ds").join("ew4410.pdf");
+        let draft = dir.path().join("ew4410.part.json");
+        let (code, output) = run_to_string(Command::Part(crate::part::PartCommand::Extract {
+            datasheet: pdf.clone(),
+            out: Some(draft.clone()),
+            json: false,
+        }));
+        assert_eq!(code, ExitCode::SUCCESS);
+        assert!(output.contains("Package QFN-32"), "{output}");
+        let (_, output) = run_to_string(Command::Part(crate::part::PartCommand::Text {
+            datasheet: pdf,
+            from: Some(2),
+            to: Some(2),
+        }));
+        assert!(output.contains("Pin Functions (continued)"));
+        let project = dir.path().join("P");
+        let mut engine = Engine::without_journal();
+        call(
+            &mut engine,
+            "project.create",
+            json!({"path": project, "name": "P", "template": "empty"}),
+        )
+        .unwrap();
+        drop(engine);
+        let (code, output) = run_to_string(Command::Part(crate::part::PartCommand::Generate {
+            draft,
+            project: project.clone(),
+            package: "QFN-32".into(),
+            library: None,
+            density: Some("least".into()),
+            name: None,
+            no_model: false,
+            json: true,
+        }));
+        assert_eq!(code, ExitCode::SUCCESS);
+        let made: Value = serde_json::from_str(&output).unwrap();
+        assert_eq!(made["generated"]["component"], "EW4410_QFN-32");
+        let model = made["generated"]["model"].as_str().unwrap();
+        assert!(project.join(model).is_file());
     }
 
     #[test]

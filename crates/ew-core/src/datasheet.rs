@@ -582,6 +582,35 @@ fn target_library(project: &Project, doc: Option<Id>) -> Result<(Id, &Library), 
     }
 }
 
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct DraftSaveParams {
+    draft: Draft,
+    #[serde(default)]
+    path: Option<PathBuf>,
+}
+
+/// Where a draft is saved by default: `parts/<name>.part.json` in the
+/// project, else next to the datasheet.
+fn draft_path(root: Option<&Path>, draft: &Draft) -> Result<PathBuf, EngineError> {
+    let name = ew_datasheet::part::clean_name(&draft.name);
+    let name = if name.is_empty() {
+        "part".to_owned()
+    } else {
+        name
+    };
+    if let Some(root) = root {
+        return Ok(root.join("parts").join(format!("{name}.part.json")));
+    }
+    let sheet = PathBuf::from(&draft.datasheet);
+    if draft.datasheet.is_empty() || !sheet.is_absolute() {
+        return Err(EngineError::invalid_params(
+            "give a path: no project is open and the draft names no datasheet",
+        ));
+    }
+    Ok(sheet.with_extension("part.json"))
+}
+
 /// The `part.*` methods.
 ///
 /// # Errors
@@ -620,6 +649,29 @@ pub fn call_part(
                 );
             }
             Ok(Outcome::Read(reply))
+        }
+        "part.draftSave" => {
+            let p: DraftSaveParams = parse(params)?;
+            let path = match p.path {
+                Some(path) => path,
+                None => draft_path(project.map(|(_, root)| root), &p.draft)?,
+            };
+            if let Some(dir) = path.parent() {
+                std::fs::create_dir_all(dir)
+                    .map_err(|e| EngineError::internal(format!("{}: {e}", dir.display())))?;
+            }
+            let text = serde_json::to_string_pretty(&p.draft).map_err(EngineError::internal)?;
+            std::fs::write(&path, text + "\n")
+                .map_err(|e| EngineError::internal(format!("{}: {e}", path.display())))?;
+            Ok(Outcome::Read(json!({ "path": path })))
+        }
+        "part.draftLoad" => {
+            let p: PathParams = parse(params)?;
+            let text = std::fs::read_to_string(&p.path)
+                .map_err(|e| EngineError::not_found(format!("{}: {e}", p.path.display())))?;
+            let draft: Draft = serde_json::from_str(&text)
+                .map_err(|e| EngineError::invalid_params(format!("{}: {e}", p.path.display())))?;
+            Ok(Outcome::Read(to_value(&draft)?))
         }
         "part.duplicates" => {
             let p: PartParams = parse(params)?;

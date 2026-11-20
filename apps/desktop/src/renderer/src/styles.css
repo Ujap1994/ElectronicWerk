@@ -5902,3 +5902,20 @@ textarea.field__control {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
+
+.partgen-agent {
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-s);
+}
+
+.partgen-agent summary {
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.partgen-agent__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}

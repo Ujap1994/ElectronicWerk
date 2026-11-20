@@ -35,7 +35,12 @@ or the base library, e.g. Device:R; footprints as names or wizard presets such a
 SOIC-8, see list_footprint_presets); connect_pins to make nets (pins as R1.2 or U1.VCC); \
 run_erc; update_board; arrange_footprints or place_footprint; route_board; run_drc; \
 generate_outputs. Lengths are millimetres, angles degrees, y points up. Read list_parts and \
-board_info to see the state. Changes are saved after each tool unless autosave is off.";
+board_info to see the state. Changes are saved after each tool unless autosave is off. \
+Parts that are in no library come from their PDF datasheet: datasheet_extract gives a draft \
+(pins with pad numbers per package, packages with JEDEC dimensions in mm, each value with \
+its page); check it against datasheet_text, correct it, then part_preview and part_generate. \
+When the user works in the app's part generator, read and write their draft file with \
+part_draft_read and part_draft_write.";
 
 /// A tool: name, title, description, input schema, read-only.
 struct Tool {
@@ -315,6 +320,87 @@ fn tools() -> Vec<Tool> {
             read_only: false,
         },
         Tool {
+            name: "datasheet_info",
+            title: "Datasheet info",
+            description: "Opens a PDF datasheet: title, author, page sizes, bookmarks with pages, scanned pages.",
+            schema: object(
+                json!({"path": {"type": "string", "description": "Absolute path of the PDF file"}}),
+                &["path"],
+            ),
+            read_only: true,
+        },
+        Tool {
+            name: "datasheet_text",
+            title: "Datasheet text",
+            description: "The text of datasheet pages, line by line (tables keep their rows). Use from/to to read a few pages at a time.",
+            schema: object(
+                json!({
+                    "path": {"type": "string"},
+                    "from": {"type": "integer", "minimum": 1},
+                    "to": {"type": "integer", "minimum": 1},
+                }),
+                &["path"],
+            ),
+            read_only: true,
+        },
+        Tool {
+            name: "datasheet_extract",
+            title: "Extract a part draft",
+            description: "Recognises the part in a PDF datasheet: name, manufacturer, packages (family, pins, JEDEC dimensions A, A1, b, c, D, E, E1, e, L, D2, E2 in mm with min/nom/max) and pins (name, type, function, pad numbers per package name). Values without a source are standard package values. Check and correct the draft before generating.",
+            schema: object(json!({"path": {"type": "string"}}), &["path"]),
+            read_only: true,
+        },
+        Tool {
+            name: "part_draft_read",
+            title: "Read a part draft",
+            description: "Reads a part draft file (*.part.json), for example the one the user saved in the app's part generator.",
+            schema: object(json!({"path": {"type": "string"}}), &["path"]),
+            read_only: true,
+        },
+        Tool {
+            name: "part_draft_write",
+            title: "Write a part draft",
+            description: "Writes a part draft file (same shape as datasheet_extract returns). Without path: parts/<name>.part.json in the open project. The app loads it again in its part generator.",
+            schema: object(
+                json!({
+                    "draft": {"type": "object"},
+                    "path": {"type": "string"},
+                }),
+                &["draft"],
+            ),
+            read_only: false,
+        },
+        Tool {
+            name: "part_preview",
+            title: "Preview a part",
+            description: "What part_generate would make for one package of a draft: symbol (units, pins), footprint (name, pads), component, warnings and library check findings. Nothing is stored.",
+            schema: object(
+                json!({
+                    "draft": {"type": "object"},
+                    "package": {"type": "string", "description": "A package name of the draft"},
+                    "options": {"type": "object", "description": "density (least|nominal|most), name, footprint, splitAbove, unitSize"},
+                }),
+                &["draft", "package"],
+            ),
+            read_only: true,
+        },
+        Tool {
+            name: "part_generate",
+            title: "Generate a part",
+            description: "Stores symbol, footprint (IPC-7351 lands), 3D model (models/<footprint>.step) and component for one package of a draft in a project library. Check part_preview and the duplicates it reports first.",
+            schema: object(
+                json!({
+                    "draft": {"type": "object"},
+                    "package": {"type": "string"},
+                    "options": {"type": "object"},
+                    "library": {"type": "string", "description": "Library name (default: the first project library)"},
+                    "model": {"type": "boolean", "description": "Write the 3D model (default true)"},
+                }),
+                &["draft", "package"],
+            ),
+            read_only: false,
+        },
+        Tool {
             name: "list_engine_methods",
             title: "Engine methods",
             description: "Every method of the ElectronicWerk engine with a summary, for call_engine.",
@@ -465,6 +551,61 @@ impl Server {
                     .map(|doc| doc["id"].clone())
                     .ok_or_else(|| "the project has no such output job".to_owned())?;
                 self.engine_call("outputs.run", json!({ "job": job }))
+            }
+            "datasheet_info" => self.engine_call("datasheet.read", pick(args, &["path"])),
+            "datasheet_text" => {
+                self.engine_call("datasheet.text", pick(args, &["path", "from", "to"]))
+            }
+            "datasheet_extract" => self.engine_call("datasheet.extract", pick(args, &["path"])),
+            "part_draft_read" => self.engine_call("part.draftLoad", pick(args, &["path"])),
+            "part_draft_write" => {
+                self.engine_call("part.draftSave", pick(args, &["draft", "path"]))
+            }
+            "part_preview" => {
+                let preview =
+                    self.engine_call("part.preview", pick(args, &["draft", "package", "options"]))?;
+                let duplicates = self
+                    .engine_call(
+                        "part.duplicates",
+                        pick(args, &["draft", "package", "options"]),
+                    )
+                    .unwrap_or(Value::Null);
+                let pins: Vec<Value> = preview["symbol"]["units"]
+                    .as_array()
+                    .into_iter()
+                    .flatten()
+                    .flat_map(|unit| unit["pins"].as_array().cloned().unwrap_or_default())
+                    .map(|pin| json!({"number": pin["number"], "name": pin["name"], "kind": pin["kind"]}))
+                    .collect();
+                let pads: Vec<Value> = preview["footprint"]["pads"]
+                    .as_array()
+                    .into_iter()
+                    .flatten()
+                    .map(|pad| json!({"number": pad["number"], "at": pad["at"], "size": pad["size"]}))
+                    .collect();
+                Ok(json!({
+                    "symbol": {"name": preview["symbol"]["name"], "units": preview["symbol"]["units"].as_array().map_or(0, Vec::len), "pins": pins},
+                    "footprint": {"name": preview["footprint"]["name"], "description": preview["footprint"]["description"], "pads": pads},
+                    "component": preview["component"],
+                    "warnings": preview["warnings"],
+                    "findings": preview["findings"],
+                    "duplicates": duplicates,
+                }))
+            }
+            "part_generate" => {
+                let mut params = pick(args, &["draft", "package", "options", "model"]);
+                if let Some(name) = args.get("library").and_then(Value::as_str) {
+                    let info = self.engine_call("project.info", Value::Null)?;
+                    let doc = info["documents"]
+                        .as_array()
+                        .into_iter()
+                        .flatten()
+                        .find(|d| d["kind"] == "library" && d["name"] == name)
+                        .map(|d| d["id"].clone())
+                        .ok_or_else(|| format!("the project has no library {name}"))?;
+                    params["doc"] = doc;
+                }
+                self.engine_call("part.generate", params)
             }
             "undo" => self.engine_call("edit.undo", Value::Null),
             "redo" => self.engine_call("edit.redo", Value::Null),
@@ -708,6 +849,80 @@ mod tests {
                 .unwrap()
                 .iter()
                 .any(|m| m["name"] == "design.route")
+        );
+    }
+
+    #[test]
+    fn makes_a_part_from_a_datasheet() {
+        let dir = tempfile::tempdir().unwrap();
+        let pdf = dir.path().join("ew7021.pdf");
+        std::fs::write(&pdf, ew_synth::datasheet::ew7021()).unwrap();
+        let project = dir.path().join("Agent");
+        let call = |id: u32, name: &str, arguments: Value| json!({"jsonrpc": "2.0", "id": id, "method": "tools/call", "params": {"name": name, "arguments": arguments}});
+        // The draft as the recognition gives it, written and read back.
+        let first = session(&[
+            json!({"jsonrpc": "2.0", "id": 1, "method": "initialize", "params": {"protocolVersion": "2025-11-25"}}),
+            call(
+                2,
+                "datasheet_text",
+                json!({"path": pdf, "from": 2, "to": 2}),
+            ),
+            call(3, "datasheet_extract", json!({"path": pdf})),
+        ]);
+        assert!(
+            first[1]["result"]["structuredContent"]["pages"][0]["text"]
+                .as_str()
+                .unwrap()
+                .contains("Pin Functions")
+        );
+        let mut draft = first[2]["result"]["structuredContent"].clone();
+        assert_eq!(draft["name"], "EW7021");
+        // The agent corrects a pin name.
+        for pin in draft["pins"].as_array_mut().unwrap() {
+            if pin["name"] == "VCC" {
+                pin["name"] = json!("VDD");
+            }
+        }
+        let file = dir.path().join("ew7021.part.json");
+        let replies = session(&[
+            json!({"jsonrpc": "2.0", "id": 1, "method": "initialize", "params": {"protocolVersion": "2025-11-25"}}),
+            call(2, "part_draft_write", json!({"draft": draft, "path": file})),
+            call(3, "part_draft_read", json!({"path": file})),
+            call(
+                4,
+                "create_project",
+                json!({"path": project, "name": "Agent", "template": "empty"}),
+            ),
+            call(
+                5,
+                "part_preview",
+                json!({"draft": draft, "package": "SOIC-8"}),
+            ),
+            call(
+                6,
+                "part_generate",
+                json!({"draft": draft, "package": "SOIC-8", "model": false}),
+            ),
+        ]);
+        for reply in &replies[1..] {
+            assert_eq!(reply["result"]["isError"], false, "{reply}");
+        }
+        assert_eq!(
+            replies[2]["result"]["structuredContent"]["pins"],
+            draft["pins"]
+        );
+        let preview = &replies[4]["result"]["structuredContent"];
+        assert_eq!(preview["footprint"]["name"], "SOIC-8_3.9x4.9mm_P1.27mm");
+        assert!(
+            preview["symbol"]["pins"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .any(|p| p["name"] == "VDD")
+        );
+        assert_eq!(
+            replies[5]["result"]["structuredContent"]["component"],
+            "EW7021_SOIC-8"
         );
     }
 }

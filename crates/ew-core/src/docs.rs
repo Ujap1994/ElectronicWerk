@@ -30,6 +30,14 @@ pub const SUMMARIES: &[(&str, &str)] = &[
         "`part.preview {\"draft\", \"package\", \"options\"?, \"model\"?}` → `{symbol, footprint, component, wizard, warnings, findings, step?}`: the part the generator makes for one package of a draft, with the library checks and, with `model: true`, the 3D model as STEP text. Options: density (least | nominal | most), name, footprint, splitAbove, unitSize.",
     ),
     (
+        "part.draftSave",
+        "`part.draftSave {\"draft\", \"path\"?}` → `{\"path\"}`: writes a part draft as JSON — by default to parts/<name>.part.json in the project, else next to its datasheet — so an AI agent or a person can correct it.",
+    ),
+    (
+        "part.draftLoad",
+        "`part.draftLoad {\"path\"}` → the part draft of a JSON file written by part.draftSave (and corrected by an agent).",
+    ),
+    (
         "part.duplicates",
         "`part.duplicates {\"draft\", \"package\"}` → `{matches, related}`: parts of the project libraries and the base library with the draft's name or part number; `matches` also have nearly the same pads (the same numbers, centres within 0.15 mm), `related` are the part in other packages.",
     ),

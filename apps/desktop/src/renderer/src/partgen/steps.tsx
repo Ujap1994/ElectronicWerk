@@ -3,7 +3,7 @@
  * dimensions, the pins of the package and the result with previews. Every
  * value read from the datasheet has a button that shows its place.
  */
-import type { ReactNode } from 'react';
+import { useState, type ReactNode } from 'react';
 
 import {
   FAMILIES,
@@ -81,6 +81,90 @@ export function SourceButton({
   );
 }
 
+/**
+ * Help from the user's own AI agent through the MCP server: the draft is
+ * saved as a file, the agent corrects it, the app loads it again. No API
+ * key is stored in the app.
+ */
+function AgentHelp({
+  draft,
+  onChange,
+}: {
+  readonly draft: Draft;
+  readonly onChange: (draft: Draft) => void;
+}): ReactNode {
+  const { engine, t } = useAppState();
+  const [file, setFile] = useState<string | null>(null);
+  const [status, setStatus] = useState<string | null>(null);
+  return (
+    <details className="partgen-agent" data-testid="partgen-agent">
+      <summary>{t('partgen.ai.title')}</summary>
+      <p className="field__hint">{t('partgen.ai.intro')}</p>
+      <div className="partgen-agent__actions">
+        <button
+          type="button"
+          className="button button--small"
+          data-testid="partgen-agent-save"
+          onClick={() => {
+            void engine
+              .call<{ path: string }>('part.draftSave', { draft })
+              .then((saved) => {
+                setFile(saved.path);
+                setStatus(t('partgen.ai.saved', { path: saved.path }));
+              })
+              .catch((error: unknown) => {
+                setStatus(error instanceof Error ? error.message : String(error));
+              });
+          }}
+        >
+          {t('partgen.ai.save')}
+        </button>
+        <button
+          type="button"
+          className="button button--small"
+          disabled={file === null}
+          data-testid="partgen-agent-copy"
+          onClick={() => {
+            const request = t('partgen.ai.request', {
+              datasheet: draft.datasheet ?? '',
+              draft: file ?? '',
+            });
+            void navigator.clipboard.writeText(request).then(() => {
+              setStatus(t('partgen.ai.copied'));
+            });
+          }}
+        >
+          {t('partgen.ai.copy')}
+        </button>
+        <button
+          type="button"
+          className="button button--small"
+          disabled={file === null}
+          data-testid="partgen-agent-load"
+          onClick={() => {
+            void engine
+              .call<Draft>('part.draftLoad', { path: file })
+              .then((loaded) => {
+                onChange(loaded);
+                setStatus(t('partgen.ai.loaded'));
+              })
+              .catch((error: unknown) => {
+                setStatus(error instanceof Error ? error.message : String(error));
+              });
+          }}
+        >
+          {t('partgen.ai.load')}
+        </button>
+      </div>
+      {status !== null && (
+        <p className="field__hint" data-testid="partgen-agent-status">
+          {status}
+        </p>
+      )}
+    </details>
+  );
+}
+
 export function PartStep({
   draft,
   onChange,
@@ -129,6 +213,7 @@ export function PartStep({
           onChange({ ...draft, description });
         }}
       />
+      <AgentHelp draft={draft} onChange={onChange} />
       {(draft.notes?.length ?? 0) > 0 && (
         <div className="partgen-notes" data-testid="partgen-notes">
           <h4 className="partgen-subtitle">{t('partgen.part.notes')}</h4>

@@ -7,6 +7,7 @@ mod commands;
 mod design;
 mod library;
 mod mcp;
+mod part;
 mod script;
 
 use std::io::Write as _;
@@ -93,6 +94,9 @@ enum Command {
     /// Build, search and distribute the base library.
     #[command(subcommand)]
     Library(LibraryCommand),
+    /// Parts from PDF datasheets: text, recognised draft, generation.
+    #[command(subcommand)]
+    Part(part::PartCommand),
     /// Generate manufacturing outputs (Gerber, drill, BOM, prints, …).
     #[command(subcommand)]
     Outputs(OutputsCommand),

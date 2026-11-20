@@ -151,6 +151,8 @@ pub const METHODS: &[&str] = &[
     "outputs.panelPreview",
     "outputs.presets",
     "outputs.run",
+    "part.draftLoad",
+    "part.draftSave",
     "part.duplicates",
     "part.generate",
     "part.preview",

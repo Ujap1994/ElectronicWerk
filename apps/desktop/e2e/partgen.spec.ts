@@ -5,6 +5,7 @@
  * library, and the duplicate check finds it the second time.
  */
 import { execFileSync } from 'node:child_process';
+import { readFileSync, writeFileSync } from 'node:fs';
 import { homedir } from 'node:os';
 import { join, resolve } from 'node:path';
 
@@ -93,6 +94,16 @@ test('makes a part from a datasheet', async () => {
     timeout: 60_000,
   });
 
+  // Help from an AI agent: the saved draft is changed outside and loaded.
+  await page.getByTestId('partgen-agent').locator('summary').click();
+  await page.getByTestId('partgen-agent-save').click();
+  await expect(page.getByTestId('partgen-agent-status')).toContainText('.part.json');
+  const status = (await page.getByTestId('partgen-agent-status').textContent()) ?? '';
+  const file = status.slice(status.indexOf(':') + 1).trim();
+  const saved = JSON.parse(readFileSync(file, 'utf8')) as Record<string, unknown>;
+  writeFileSync(file, JSON.stringify({ ...saved, description: 'Checked by an agent' }));
+  await page.getByTestId('partgen-agent-load').click();
+  await expect(page.getByTestId('partgen-description')).toHaveValue('Checked by an agent');
   await shot(page, '1-part');
 
   // Step 2: the packages; SOIC-8 dimensions from the table on page 4.
