@@ -1478,9 +1478,97 @@ suggested name unless `name` is given. A wizard is one of:
 { "kind": "bga", "rows": 8, "columns": 8, "pitch": 800000, "ball": 400000,
   "bodyWidth": 7000000, "bodyLength": 7000000 }
 { "kind": "header", "rows": 2, "pinsPerRow": 5, "pitch": 2540000, "drill": 1000000, "pad": 1700000 }
+{ "kind": "sot", "pins": 5, "pitch": 950000, "leadSpan": 2800000, "leadLength": 450000,
+  "leadWidth": 400000, "bodyWidth": 1600000, "bodyLength": 2900000 }
+{ "kind": "tab", "leads": 3, "omitMiddle": false, "pitch": 2300000, "leadSpan": 7000000,
+  "leadLength": 900000, "leadWidth": 700000, "tabWidth": 3000000, "tabLength": 1500000,
+  "bodyWidth": 3500000, "bodyLength": 6500000 }
+{ "kind": "dip", "pins": 8, "pitch": 2540000, "rowSpacing": 7620000, "drill": 800000,
+  "pad": 1600000, "bodyWidth": 6350000, "bodyLength": 9270000 }
+{ "kind": "inline", "pins": 3, "pitch": 2540000, "drill": 1100000, "pad": 1900000,
+  "bodyWidth": 10000000, "bodyDepth": 4500000 }
 ```
 
-`density` is `least`, `nominal` (default) or `most`; lengths are nanometres.
+`gullWing` takes an optional `"exposedPad": [w, h]` too. `density` is
+`least`, `nominal` (default) or `most`; lengths are nanometres.
+
+## Datasheets and parts
+
+The [part generator](../guide/part-generator) (ADR-0017). `datasheet.*`
+methods need no open project; paths are absolute. Page boxes are
+`[x0, y0, x1, y1]` in points (1/72 inch) from the top left of the visible
+page, with the page rotation applied — the coordinates of a PDF viewer at
+100 %. A datasheet is read once and kept while its file is unchanged (the
+three last ones).
+
+### `datasheet.read`
+
+`{"path"}` → `{"path", "title", "author", "subject", "encrypted", "bookmarks":
+[{"title", "level", "page"?}], "pages": [{"number", "width", "height",
+"scanned"}]}`. `encrypted` is true for files protected against copying
+(opened with the empty password). A file that needs a password fails with
+`invalidParams`. `scanned` pages are an image without text.
+
+### `datasheet.page`
+
+`{"path", "page"}` (1-based) → `{"number", "width", "height", "lines":
+[{"text", "bbox", "size", "angle"?, "words": [{"text", "bbox", "size",
+"bold"?}]}], "rules": [[x0, y0, x1, y1]], "scanned"?}`: the lines in reading
+order (top to bottom; text turned by 90°, 180° or 270° has its `angle`) and
+the horizontal and vertical lines drawn on the page (table rules), merged.
+
+### `datasheet.text`
+
+`{"path", "from"?, "to"?}` → `{"pages": [{"page", "text", "scanned"}]}`: the
+text of the pages, one line per line of the page.
+
+### `datasheet.extract`
+
+`{"path"}` → a [part draft](./file-format#part-drafts) with the recognised
+part: name (the file name helps for family datasheets), manufacturer,
+description, packages with their dimensions (from dimension tables, else the
+package's standard values without `source`), pins with pad numbers per
+package, type and function, and `notes` (`{"code", "message", "args"}`:
+`pinout`, `no-numbers`, `scanned`).
+
+### `part.preview`
+
+`{"draft", "package", "options"?, "model"?}` → `{"symbol", "footprint",
+"component", "wizard", "warnings", "findings", "step"?}`: what
+`part.generate` would make for one package of a draft. `options`:
+`density` (`least`, `nominal`, `most`), `name` (symbol and component),
+`footprint`, `splitAbove` (default 64; 0: one unit), `unitSize` (default
+40). `warnings` are notes (`pin-no-pad`, `pad-exposed`, `pad-no-pin`);
+`findings` are the [library checks](../guide/library-checks) as `{"item":
+"symbol" | "footprint" | "component", "finding"}`. With `model: true` the
+3D model comes as the text of a STEP file.
+
+### `part.duplicates`
+
+`{"draft", "package", "options"?}` → `{"matches", "related"}`: parts of the
+project libraries (`{"source": "project", "library", "doc", "kind", "name",
+"footprint"}`) and of the installed base library (`"source": "base"`, with
+the entry `id`) whose name, value or part number is the draft's (an ordering
+suffix of up to six characters allowed). `matches` have nearly the same pads
+as the generated footprint (the same numbers, centres within 0.15 mm after
+centring); `related` are the part in another package.
+
+### `part.generate`
+
+`{"draft", "package", "options"?, "doc"?, "model"?}` (`generate-part`).
+Stores the symbol, footprint and component in a library of the open project
+(`doc`, default the first library) as one undo step, and writes the 3D model
+to `models/<footprint>.step` in the project folder (unless `model` is
+`false`; the footprint refers to it). Names already in the library get a
+suffix (`_2`). Returns `{"symbol", "footprint", "component", "model",
+"warnings", "seq", "history"}`.
+
+### `part.draftSave` / `part.draftLoad`
+
+`part.draftSave` `{"draft", "path"?}` writes a draft as JSON — by default to
+`parts/<name>.part.json` in the open project, else next to its datasheet —
+and returns `{"path"}`. `part.draftLoad` `{"path"}` reads one back. AI
+agents correct drafts in between (see [AI agents](../guide/automation#parts-from-datasheets)).
 
 ## Import
 
@@ -1790,6 +1878,11 @@ part of the Rust engine):
   named by the first 32 hex digits of the file's SHA-256 (the engine finds
   these meshes for [GLB and VRML exports](../guide/export-3d)); returns
   `{"data", "cached"}`.
+- `datasheet.file` `{"path"}` returns the bytes of an absolute PDF path as
+  `{"data"}` for the datasheet view of the part generator.
+- `datasheet.previewModel` `{"step"}` keeps the STEP text of a
+  `part.preview` in a temporary file named by its content and returns
+  `{"file"}` for `mesh.tessellate`.
 
 ## Engine
 

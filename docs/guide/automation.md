@@ -198,8 +198,29 @@ tools:
 | `place_footprint`, `arrange_footprints`          | Place footprints                                 |
 | `route_board`, `fill_zones`, `run_drc`           | Route, fill zones and check the board            |
 | `generate_outputs`                               | Write the manufacturing files of the output job  |
+| `datasheet_info`, `datasheet_text`               | Read a PDF datasheet: pages, bookmarks, text     |
+| `datasheet_extract`                              | The part draft recognised in a datasheet         |
+| `part_draft_read`, `part_draft_write`            | Read and write a part draft file (`*.part.json`) |
+| `part_preview`, `part_generate`                  | Check and make a part from a draft               |
 | `undo`, `redo`, `save_project`                   | Undo and redo (each tool call is one step), save |
 | `list_engine_methods`, `call_engine`             | Any other engine method, for advanced agents     |
+
+### Parts from datasheets
+
+Ask the agent for a part that is in no library, for example: _"Make the part
+from ~/Downloads/tps54331.pdf in the SOIC-8 package and add it to the project
+library."_ The agent reads the datasheet (`datasheet_text`), gets the draft
+the [part generator](./part-generator) recognises (`datasheet_extract`),
+corrects pins and dimensions against the text, checks the result with
+`part_preview` — which also reports parts that are already in a library —
+and stores it with `part_generate`. Every value of a draft keeps the page it
+was read from.
+
+The agent can also help with a draft you work on in the app's part
+generator: save it there with **Save draft for the agent**, paste the copied
+request into the agent, and load the corrected draft again. The agent reads
+and writes the draft with `part_draft_read` and `part_draft_write`; the app
+never talks to an AI service and stores no API key.
 
 Changes are **saved after every tool call**, so you can look at them in the
 app at any time (reopen the project). `ewerk mcp --no-autosave` keeps them in

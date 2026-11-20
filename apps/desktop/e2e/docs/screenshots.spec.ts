@@ -1979,6 +1979,122 @@ test('channels and variants', async () => {
   await close();
 });
 
+// --- Part generator (M16) ----------------------------------------------------
+
+/** Waits until the datasheet page is drawn. */
+async function pageDrawn(page: Page): Promise<void> {
+  await expect(
+    page.locator('[data-testid="partgen-viewer"] .partgen-viewer__page[data-ready="true"]'),
+  ).toBeVisible({ timeout: 60_000 });
+}
+
+/** Opens a datasheet in the part generator from the library editor. */
+async function openDatasheet(app: LaunchedApp['app'], page: Page, file: string): Promise<void> {
+  await queueDialogAnswer(app, file);
+  await page.getByTestId('libedit-datasheet').click();
+  await page.getByTestId('partgen-open').click();
+  await expect(page.getByTestId('partgen-step-part')).toBeVisible({ timeout: 60_000 });
+  await pageDrawn(page);
+}
+
+test('part generator', async () => {
+  test.setTimeout(300_000);
+  freshProjects();
+  const sheets = join(PROJECTS, 'Datasheets');
+  execFileSync(ewerkBinary(), ['synth', 'datasheets', sheets]);
+  const { app, page, close } = await start({ settings: { theme: 'light' } });
+  await page.setViewportSize({ width: 1500, height: 940 });
+  await createProjectWithWizard(page, 'Sensor board');
+  await page.locator('[data-testid^="tree-doc:"]', { hasText: 'Library' }).first().dblclick();
+  await expect(page.getByTestId('library-editor')).toBeVisible();
+  await shoot(page, 'partgen-entry');
+
+  await page.getByTestId('libedit-datasheet').click();
+  await expect(page.getByTestId('partgen-open')).toBeVisible();
+  await shoot(page.getByTestId('partgen'), 'partgen-start');
+  await page.getByTestId('partgen-close').click();
+
+  // Step 1: the part, read from the title page.
+  await openDatasheet(app, page, join(sheets, 'ew7021.pdf'));
+  await page.getByTestId('partgen-name-source').click();
+  await pageDrawn(page);
+  await shoot(page.getByTestId('partgen'), 'partgen-part');
+  await page.getByTestId('partgen-agent').locator('summary').click();
+  await page.getByTestId('partgen-agent-save').click();
+  await expect(page.getByTestId('partgen-agent-status')).toContainText('.part.json');
+  await shoot(page.getByTestId('partgen-agent'), 'partgen-agent');
+
+  // Step 2: packages and dimensions, a value shown in the datasheet.
+  await page.getByTestId('partgen-tab-package').click();
+  await page.getByTestId('partgen-package-SOIC-8').click();
+  await page.getByTestId('partgen-dim-D-source').click();
+  await pageDrawn(page);
+  await expect(page.getByTestId('partgen-highlight')).toBeVisible();
+  await page.waitForTimeout(2600);
+  await shoot(page.getByTestId('partgen'), 'partgen-package');
+  await page.getByTestId('partgen-all-dimensions').click();
+  await shoot(page.getByTestId('partgen-step-package'), 'partgen-dimensions');
+
+  // Step 3: the pins of the package.
+  await page.getByTestId('partgen-tab-pins').click();
+  await page.locator('[data-testid^="partgen-pin-source-"]').first().click();
+  await pageDrawn(page);
+  await page.waitForTimeout(2600);
+  await shoot(page.getByTestId('partgen'), 'partgen-pins');
+
+  // Step 4: the result with previews and checks.
+  await page.getByTestId('partgen-tab-result').click();
+  await expect(page.getByTestId('partgen-symbol').locator('svg')).toBeVisible({ timeout: 60_000 });
+  await expect(page.getByTestId('partgen-model').locator('canvas')).toBeVisible();
+  await page.waitForTimeout(4000);
+  await shoot(page.getByTestId('partgen'), 'partgen-result');
+  await page.getByTestId('partgen-generate').click();
+  await expect(page.getByTestId('partgen')).toBeHidden({ timeout: 60_000 });
+  await page.waitForTimeout(800);
+  await shoot(page, 'partgen-done');
+  await closeToasts(page);
+
+  // The same part again: the duplicate check.
+  await openDatasheet(app, page, join(sheets, 'ew7021.pdf'));
+  await page.getByTestId('partgen-tab-package').click();
+  await page.getByTestId('partgen-package-SOIC-8').click();
+  await page.getByTestId('partgen-tab-result').click();
+  await expect(page.getByTestId('partgen-duplicate')).toBeVisible({ timeout: 60_000 });
+  await shoot(page.getByTestId('partgen-step-result'), 'partgen-duplicate');
+  await page.getByTestId('partgen-close').click();
+
+  // A QFN with an exposed pad from an encrypted datasheet.
+  await openDatasheet(app, page, join(sheets, 'ew4410.pdf'));
+  await page.getByTestId('partgen-tab-package').click();
+  await page.getByTestId('partgen-package-QFN-32').click();
+  await page.getByTestId('partgen-tab-result').click();
+  await expect(page.getByTestId('partgen-model').locator('canvas')).toBeVisible({
+    timeout: 60_000,
+  });
+  await page.waitForTimeout(4000);
+  await shoot(page.getByTestId('partgen'), 'partgen-qfn');
+  await page.getByTestId('partgen-close').click();
+  await page.getByTestId('toolbar-save').click();
+  await expect(page.getByTestId('toolbar-save')).toBeDisabled();
+  await close();
+
+  // The advanced mode: every dimension can be changed.
+  const advanced = await start({ settings: { theme: 'light', workMode: 'advanced' } });
+  await advanced.page.setViewportSize({ width: 1500, height: 940 });
+  await queueDialogAnswer(advanced.app, join(PROJECTS, 'Sensor board', 'Sensor board.ewproj'));
+  await advanced.page.getByTestId('open-project').click();
+  await expect(advanced.page.getByTestId('workspace')).toBeVisible();
+  await advanced.page
+    .locator('[data-testid^="tree-doc:"]', { hasText: 'Library' })
+    .first()
+    .dblclick();
+  await openDatasheet(advanced.app, advanced.page, join(sheets, 'ew7021.pdf'));
+  await advanced.page.getByTestId('partgen-tab-package').click();
+  await advanced.page.getByTestId('partgen-package-DFN-8').click();
+  await shoot(advanced.page.getByTestId('partgen-step-package'), 'partgen-advanced');
+  await advanced.close();
+});
+
 // --- Manufacturing outputs (M8) ----------------------------------------------
 
 /** Every file below a folder, as paths relative to it. */

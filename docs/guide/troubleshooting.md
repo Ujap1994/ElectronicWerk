@@ -102,3 +102,19 @@ Use **Help → Report an Issue** in the app or open an issue on
 - your operating system and processor type,
 - what you did, what you expected and what happened,
 - screenshots if they help. Remove personal data from them first.
+
+## The part generator reads too little from a datasheet
+
+- **Nothing at all**: the datasheet needs a password to open, or its pages
+  are scanned images (_Page … is a scanned image_ in the notes). Enter the
+  values by hand or let your [AI agent](./part-generator#help-from-your-ai-agent)
+  read the pages.
+- **No pins**: the pins are only in a pinout drawing of a four-sided
+  package (QFN, QFP), or in a table without a _Pin_, _No._ or package
+  column. Add them in step 3, or save the draft for your AI agent.
+- **Dimensions marked _standard_**: the datasheet has its package drawing
+  without a dimension table, so the usual values of the package are used.
+  Compare them with the drawing; in the advanced mode you can change every
+  value.
+- **The wrong part name** in a datasheet that covers a family: name the PDF
+  file after the part (`lm358.pdf`), or change the name in step 1.

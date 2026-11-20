@@ -37,13 +37,23 @@ instead of a preview.
 
 ## Package families
 
-| Family              | Inputs                                                                                              | Presets                                                                         |
-| ------------------- | --------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------- |
-| **Chip**            | Body length and width, terminal length                                                              | 0402, 0603, 0805, 1206, 1210, 2010, 2512                                        |
-| **Gull-wing leads** | Pins, leads on four sides (QFP), pitch, lead span tip to tip, lead foot length and width, body size | SOIC-8, SOIC-14, SOIC-16, TSSOP-14, TSSOP-20, SSOP-20, LQFP-32 7x7, LQFP-48 7x7 |
-| **No leads**        | Pins, four sides (QFN) or two (DFN), pitch, body size, terminal length and width, exposed pad       | DFN-8 3x3, QFN-16 3x3, QFN-20 4x4, QFN-32 5x5, QFN-48 7x7                       |
-| **Ball grid array** | Rows, columns, pitch, ball diameter, body size                                                      | BGA-64 8x8 P0.8, BGA-100 10x10 P1.0, BGA-256 16x16 P1.0                         |
-| **Pin header**      | Rows (one or two), pins per row, pitch, drill, pad diameter                                         | 1×2 … 1×10 and 2×5 … 2×20, 2.54 mm                                              |
+| Family                       | Inputs                                                                                                                               | Presets                                                                         |
+| ---------------------------- | ------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------- |
+| **Chip**                     | Body length and width, terminal length                                                                                               | 0402, 0603, 0805, 1206, 1210, 2010, 2512                                        |
+| **Gull-wing leads**          | Pins, leads on four sides (QFP), pitch, lead span tip to tip, lead foot length and width, body size                                  | SOIC-8, SOIC-14, SOIC-16, TSSOP-14, TSSOP-20, SSOP-20, LQFP-32 7x7, LQFP-48 7x7 |
+| **No leads**                 | Pins, four sides (QFN) or two (DFN), pitch, body size, terminal length and width, exposed pad                                        | DFN-8 3x3, QFN-16 3x3, QFN-20 4x4, QFN-32 5x5, QFN-48 7x7                       |
+| **Ball grid array**          | Rows, columns, pitch, ball diameter, body size                                                                                       | BGA-64 8x8 P0.8, BGA-100 10x10 P1.0, BGA-256 16x16 P1.0                         |
+| **Pin header**               | Rows (one or two), pins per row, pitch, drill, pad diameter                                                                          | 1×2 … 1×10 and 2×5 … 2×20, 2.54 mm                                              |
+| **Small outline transistor** | Leads (3, 5, 6 or 8), pitch, lead span, lead foot length and width, body size                                                        | SOT-23, SOT-23-5, SOT-23-6, SC-70-5                                             |
+| **Leads and a tab**          | Lead places, middle lead cut off, pitch, span from lead tips to tab end, lead foot length and width, tab width and length, body size | SOT-223, SOT-89, TO-252 (DPAK), TO-263 (D²PAK)                                  |
+| **Dual in-line**             | Pins, pitch, row spacing, drill, pad diameter, body size                                                                             | DIP-8, DIP-14, DIP-16, DIP-20, DIP-28 (7.62 mm rows)                            |
+| **Leads in a row**           | Leads, pitch, drill, pad size, body width and depth                                                                                  | TO-92, TO-220                                                                   |
+
+Gull-wing packages can have an **exposed pad** under the body as well
+(HTSSOP, PowerPAD SOIC): switch on **Exposed pad** and enter its size.
+
+The [part generator](./part-generator) fills these inputs from the
+dimensions of a datasheet.
 
 Where the datasheet gives a range (minimum, nominal, maximum), use the
 nominal value.
@@ -62,6 +72,18 @@ nominal value.
   come `AA`, `AB` …. Ball A1 has a rectangular land, the others round ones.
 - Headers: pin 1 at the origin with a square pad; on two-row headers the
   numbers go across the rows (`1 2 / 3 4 / …`), like KiCad's headers.
+- Small outline transistors: pins down the left side, then up the right side
+  as on gull-wing packages. Odd counts leave a place free: SOT-23 has pins 1
+  and 2 on the left (top and bottom) and pin 3 in the middle of the right
+  side; SOT-23-5 has pins 4 and 5 at the outer places of the right side.
+- Leads and a tab: the leads down the left side, the tab on the right with
+  the next number (`4` on a SOT-223). With **Middle lead cut off** (DPAK,
+  D²PAK) the middle lead has no pad and the tab takes its number (`1`, `3`
+  and the tab `2`).
+- Dual in-line: pin 1 at the top of the left row with a square pad, counting
+  counterclockwise; the footprint is centred on the package.
+- Leads in a row: pin 1 on the left with a rectangular pad, the others oval
+  (longer across the row when the pitch is small).
 
 ## How the pads are computed
 
@@ -101,7 +123,9 @@ All values in millimetres. Choose the level by how the board is made:
 - **Nominal**: the usual choice for machine assembly.
 - **Least**: the smallest lands, for dense boards (phones, small modules).
 
-Pin headers have no density level: their pads are the diameter you enter.
+Pin headers, DIP packages and leads in a row have no density level: their
+pads are the size you enter. SOT and tab packages use the gull-wing values
+(the tab's land reaches the toe and heel fillets beyond the tab length).
 
 ## What else the wizard draws
 
@@ -113,5 +137,5 @@ Pin headers have no density level: their pads are the diameter you enter.
   the density level away.
 - **Texts**: the designator (`REF**`) on the silkscreen above the courtyard
   and the value (the footprint name) on the fabrication layer below it.
-- **Attributes**: surface mount for chips, gull-wing, no-lead and BGA
-  packages; through-hole for headers.
+- **Attributes**: surface mount for chips, gull-wing, no-lead, BGA, SOT and
+  tab packages; through-hole for headers, DIP and leads in a row.

@@ -46,6 +46,7 @@ export default defineConfig({
           { text: 'Drawing footprints', link: '/guide/footprint-editor' },
           { text: 'Footprint wizard', link: '/guide/footprint-wizard' },
           { text: 'Components', link: '/guide/components' },
+          { text: 'Parts from datasheets', link: '/guide/part-generator' },
           { text: 'Library checks', link: '/guide/library-checks' },
           { text: 'The layout editor', link: '/guide/layout-editor' },
           { text: 'Schematic and board', link: '/guide/schematic-to-board' },

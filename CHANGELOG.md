@@ -6,6 +6,81 @@ project uses [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.17.0] - 2026-11-20
+
+Parts from datasheets: open a part's PDF datasheet and get its symbol, an
+IPC-7351 footprint, a 3D STEP model and the component, after checking every
+value next to the datasheet. Your own AI agent can help through MCP.
+
+### Added
+
+- **Part generator:** _Create from a datasheet_ in the library editor,
+  _Generate a part from a datasheet_ in the command palette, or a PDF dropped
+  onto the window opens a dialog with the datasheet on the left (page by
+  page, zoom) and four steps on the right. Every value read from the
+  datasheet has a page button that turns to its page and frames the place it
+  came from. See [Parts from datasheets](docs/guide/part-generator.md).
+  - **Part:** name, manufacturer, part number and description from the PDF's
+    title, author and pages; for family datasheets the file name chooses
+    the part (`lm358.pdf`).
+  - **Package:** every package found (SOIC, SSOP, TSSOP, MSOP, QFP, QFN,
+    DFN, BGA, SOT-23, SC-70, SOT-223, SOT-89, DPAK, DIP, TO-220, TO-92,
+    chips …) with family and pin count; the dimensions (JEDEC symbols, min,
+    nom and max in millimetres) from the datasheet's dimension tables —
+    millimetre or inch columns, TYP and BSC values, manufacturer letters
+    matched by value — and standard values of the package for the rest,
+    marked _standard_. The beginner mode shows the main dimensions, the
+    advanced mode lets you change every value, the family and the exposed
+    pad.
+  - **Pins:** from pin tables with or without rules, over several pages,
+    with one column of pad numbers per package; from two-row pinout drawings
+    when there is no table. Pad numbers (also lists and ranges), names, types
+    (from the type column or the name) and functions can be corrected, pins
+    added and removed.
+  - **Result:** previews of the symbol (pins by function: supply on top,
+    ground at the bottom, inputs left, outputs right, groups together, units
+    above 64 pins), the footprint and the 3D model, the library checks and
+    notes; names, IPC density and unit size in the advanced mode. _Generate
+    part_ adds symbol, footprint and component to a project library in one
+    undo step and writes the model to `models/<footprint>.step`.
+  - **Duplicate check:** a part of the project libraries or the base library
+    with the part's name or part number **and** nearly the same pads (same
+    numbers, centres within 0.15 mm) is named with its library; use it or
+    make the new one anyway. The part in other packages is mentioned.
+  - **Help from your AI agent:** save the draft (`parts/<name>.part.json`),
+    copy a request for your agent, load the corrected draft. The app never
+    talks to an AI service and stores no API key.
+- **PDF reader** of its own: compressed and broken files, object streams,
+  files protected against copying (RC4, AES-128, AES-256), simple and
+  composite fonts, rotated pages; a 650-page datasheet reads in about 0.3 s.
+- **Footprint wizard:** new families _Small outline transistor_ (SOT-23 with
+  3, 5, 6 or 8 leads, SC-70), _Leads and a tab_ (SOT-223, SOT-89, TO-252,
+  TO-263 with the cut middle lead), _Dual in-line_ (DIP) and _Leads in a row_
+  (TO-92, TO-220), with presets; gull-wing packages can have an exposed pad.
+  See [Footprint wizard](docs/guide/footprint-wizard.md).
+- **3D models of packages** as exact solids (STEP): bodies, gull-wing leads,
+  terminals, balls, pins, tabs and exposed pads with a pin-1 mark.
+- **Engine methods** `datasheet.read`, `datasheet.page`, `datasheet.text`,
+  `datasheet.extract`, `part.preview`, `part.duplicates`, `part.generate`,
+  `part.draftSave`, `part.draftLoad`. See the
+  [engine API](docs/reference/engine-api.md#datasheets-and-parts).
+- **MCP tools** `datasheet_info`, `datasheet_text`, `datasheet_extract`,
+  `part_draft_read`, `part_draft_write`, `part_preview`, `part_generate`.
+- **Command line:** `ewerk part text | extract | generate`;
+  `ewerk synth datasheets` writes two synthetic datasheets to try the
+  generator. See the [command-line reference](docs/reference/cli.md#ewerk-part).
+
+### Changed
+
+- Pad numbers in footprint previews are at most 1.2 mm high, so large
+  exposed pads keep a readable number.
+
+### Notes
+
+- Scanned datasheet pages have no text to read (no OCR); four-sided pinout
+  drawings are not read. Enter such values by hand or let your AI agent
+  read them. See ADR-0017.
+
 ## [0.16.0] - 2026-11-16
 
 Advanced layout: push-and-shove routing, blind, buried and microvias,
@@ -1215,7 +1290,8 @@ quality gates and the delivery pipeline that every later feature builds on.
   process ([ujap1994.github.io/ElectronicWerk](https://ujap1994.github.io/ElectronicWerk/)).
   **Help → Documentation** opens it.
 
-[Unreleased]: https://github.com/Ujap1994/ElectronicWerk/compare/v0.16.0...HEAD
+[Unreleased]: https://github.com/Ujap1994/ElectronicWerk/compare/v0.17.0...HEAD
+[0.17.0]: https://github.com/Ujap1994/ElectronicWerk/compare/v0.16.0...v0.17.0
 [0.16.0]: https://github.com/Ujap1994/ElectronicWerk/compare/v0.15.1...v0.16.0
 [0.15.1]: https://github.com/Ujap1994/ElectronicWerk/compare/v0.15.0...v0.15.1
 [0.15.0]: https://github.com/Ujap1994/ElectronicWerk/compare/v0.14.1...v0.15.0

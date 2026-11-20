@@ -211,7 +211,8 @@ export function FootprintSvg({
         // Chromium caps font sizes, so the numbers are laid out in µm.
         <g transform="scale(1000)">
           {(def.pads ?? []).map((pad, index) => {
-            const size = (Math.min(pad.size[0], pad.size[1]) * 0.55) / 1000;
+            // At most 1.2 mm high, so large exposed pads keep a small number.
+            const size = Math.min(Math.min(pad.size[0], pad.size[1]) * 0.55, 1_200_000) / 1000;
             return (
               <text
                 // eslint-disable-next-line @eslint-react/no-array-index-key -- see above

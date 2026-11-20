@@ -57,13 +57,14 @@ here.
 
 ## Creating, copying, renaming and deleting
 
-| Button        | What it does                                                                                                                                                                                                                                                   |
-| ------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **New**       | Asks for a name and creates an empty symbol (prefix `U`), an empty footprint, or a component without symbol. Names must be unique per kind within the library.                                                                                                 |
-| **Wizard**    | Footprints only: opens the [footprint wizard](./footprint-wizard).                                                                                                                                                                                             |
-| **Duplicate** | Copies the chosen item under a new name (the dialog suggests `<name>_copy`). Use it to start a variant: a 16-pin version of an 8-pin footprint, a symbol with an extra pin.                                                                                    |
-| **Rename**    | In the side panel, next to the item's name. Every reference in the project follows: placed symbols on sheets, footprints on boards, the default footprint of symbols and the symbol and footprint of components. A message tells you how many objects changed. |
-| **Delete**    | Asks first. If the item is still in use, the dialog says where. Placed parts keep the name, so restoring the item (undo, or a new item of the same name) brings their drawing back.                                                                            |
+| Button                      | What it does                                                                                                                                                                                                                                                   |
+| --------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **New**                     | Asks for a name and creates an empty symbol (prefix `U`), an empty footprint, or a component without symbol. Names must be unique per kind within the library.                                                                                                 |
+| **Wizard**                  | Footprints only: opens the [footprint wizard](./footprint-wizard).                                                                                                                                                                                             |
+| **Create from a datasheet** | Opens the [part generator](./part-generator): symbol, footprint, 3D model and component of a part from its PDF datasheet, stored in this library.                                                                                                              |
+| **Duplicate**               | Copies the chosen item under a new name (the dialog suggests `<name>_copy`). Use it to start a variant: a 16-pin version of an 8-pin footprint, a symbol with an extra pin.                                                                                    |
+| **Rename**                  | In the side panel, next to the item's name. Every reference in the project follows: placed symbols on sheets, footprints on boards, the default footprint of symbols and the symbol and footprint of components. A message tells you how many objects changed. |
+| **Delete**                  | Asks first. If the item is still in use, the dialog says where. Placed parts keep the name, so restoring the item (undo, or a new item of the same name) brings their drawing back.                                                                            |
 
 ![Naming a new symbol](/screenshots/libedit-new.png)
 

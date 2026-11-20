@@ -63,6 +63,7 @@ Project commands appear only while a project is open.
 | Check project                              | Runs the [project check](./projects#checking-a-project)           |
 | Project properties                         | Shows the [project properties](./project-tree#project-properties) |
 | Add schematic sheet                        | Adds a sheet below the top sheet                                  |
+| Generate a part from a datasheet           | Opens the [part generator](./part-generator)                      |
 | Outputs: generate manufacturing files      | Opens the [output job](./outputs) (creates one if there is none)  |
 | Gerber viewer: open Gerber and drill files | Opens files in the [Gerber viewer](./gerber-viewer)               |
 | Show project folder                        | Reveals the project in your file manager                          |

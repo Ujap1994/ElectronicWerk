@@ -1,7 +1,7 @@
 # ElectronicWerk Roadmap
 
-> **Status:** v0.27 (2026-11-16). M0 to M15 are complete (releases v0.1.0 to
-> v0.16.0; M0, M1 and M3 accepted by the maintainer); M16 is next.
+> **Status:** v0.28 (2026-11-20). M0 to M16 are complete (releases v0.1.0 to
+> v0.17.0; M0, M1 and M3 accepted by the maintainer); M17 is next.
 > The GitHub integration (M11) is switched off since v0.14.1 until the
 > maintainer decides to offer it (ADR-0014).
 > This roadmap is a living document. It **must** be updated with every feature
@@ -253,7 +253,7 @@ own work only. Maintainer test cycles and feedback come on top. Status values:
 | M13 | Assembly assistant and extras                         | v0.14.0 | F11               | 4–6 S           | ✅     |
 | M14 | Interoperability: further open formats                | v0.15.0 | F3                | 5–8 S           | ✅     |
 | M15 | Advanced layout                                       | v0.16.0 | F7                | 12–20 S         | ✅     |
-| M16 | Part generator from datasheets                        | v0.17.0 | F13               | 8–12 S          | ⬜     |
+| M16 | Part generator from datasheets                        | v0.17.0 | F13               | 8–12 S          | ✅     |
 | M17 | Mechanical assembly and enclosure check               | v0.18.0 | F14               | 6–10 S          | ⬜     |
 | M18 | Multi-board design                                    | v0.19.0 | F15               | 8–12 S          | ⬜     |
 | M19 | Hardening, UX audit, final docs and videos            | v1.0.0  | T3–T5, D1         | 6–10 S          | ⬜     |
@@ -892,7 +892,7 @@ is copied from one channel to the others. Back drilling was not justified
 blind and buried vias avoid the stubs) and stays a post-1.0 candidate. See
 ADR-0016.
 
-### M16 — Part generator from datasheets (v0.17.0, 8–12 S)
+### M16 — Part generator from datasheets (v0.17.0, 8–12 S) ✅
 
 Requested by the maintainer: a part is made from its datasheet instead of
 being drawn by hand.
@@ -919,6 +919,24 @@ being drawn by hand.
   computer (PDF text and table recognition, OCR for scanned datasheets) or
   optionally with AI help (the user's own API key, or the user's AI agent
   through the MCP server of M12).
+
+**Decision (2026-11-16, maintainer):** local reading by default, optional
+help from the user's own AI agent through the MCP server; no API key in the
+app. Added at the maintainer's request: users load their own datasheets, and
+a part already in a library is named only when its name or part number and
+its package (nearly the same pads) match.
+
+**Done (v0.17.0):** own PDF reader (encrypted, compressed and broken files,
+composite fonts) with positions; recognition of pin tables (ruled or not,
+one column per package), two-row pinout drawings, package names and
+dimension tables (millimetres or inches, manufacturer letters matched by
+value), standard JEDEC values for the rest; a review dialog with the
+datasheet beside it (every value framed on its page), beginner and advanced
+mode; footprint wizards for SOT, tab packages, DIP and leads in a row; symbols
+by pin function with units; parametric STEP models as solids; the duplicate
+check; AI help through drafts and MCP tools; `ewerk part`. OCR for scanned
+datasheets was not added (rare for current parts; the AI agent covers them),
+and four-sided pinout drawings are not read. See ADR-0017.
 
 ### M17 — Mechanical assembly and enclosure check (v0.18.0, 6–10 S)
 
@@ -1092,4 +1110,5 @@ joined by cables.
 | 2026-11-15 | v0.24      | v0.15.1: the external autorouter tested with a real Freerouting 2.5.0 run (replayed in CI); unlocked routing is no longer passed as fixed, protected wires of a session are kept.                                                                                                                                                                                                                                                                          |
 | 2026-11-15 | v0.25      | Real-time collaboration taken off the post-1.0 candidates: it is planned again only once v1.0.0 runs cleanly in the maintainer's daily work.                                                                                                                                                                                                                                                                                                               |
 | 2026-11-15 | v0.26      | M15 started. Added the impedance calculator to M15 (requested by the maintainer) with two working modes in the settings: Beginner computes and applies the widths, Advanced lets the user set impedance and geometry.                                                                                                                                                                                                                                      |
+| 2026-11-20 | v0.28      | M16 complete: v0.17.0 with the part generator: own PDF reader, recognition of pins, packages and dimensions, review next to the datasheet, symbol, IPC-7351 footprint, STEP model and component, duplicate check (name and nearly the same pads, requested by the maintainer), AI help through the user's agent and MCP (no API key in the app, the maintainer's choice). OCR deferred (ADR-0017).                                                         |
 | 2026-11-16 | v0.27      | M15 complete: v0.16.0 with blind, buried and microvias, push and shove, the impedance calculator with the working modes, differential pairs, length matching, teardrops, stitching vias, channels and assembly variants. Back drilling deferred (ADR-0016).                                                                                                                                                                                                |

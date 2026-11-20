@@ -338,6 +338,62 @@ changes):
 or unreadable file means nothing is placed yet. Whether to commit it to
 source control is up to you: it shares the state of a build with others.
 
+## Part drafts
+
+The [part generator](../guide/part-generator) saves a draft of a part for
+AI agents in `parts/<name>.part.json` (with `ewerk part extract --out` where
+you like). It is not a project document: the project ignores it, and it is
+safe to delete. Lengths are **millimetres**, boxes points on the page (see
+[datasheets and parts](./engine-api#datasheets-and-parts)):
+
+```json
+{
+  "name": "EW7021",
+  "manufacturer": "Example Semiconductors",
+  "mpn": "EW7021",
+  "description": "Dual Low-Power Comparator",
+  "datasheet": "/home/lab/datasheets/ew7021.pdf",
+  "packages": [
+    {
+      "name": "SOIC-8",
+      "family": "sop",
+      "pins": 8,
+      "dimensions": {
+        "e": { "nom": 1.27, "source": { "page": 4, "bbox": [94, 646, 553, 661] } },
+        "D": {
+          "min": 4.8,
+          "nom": 4.9,
+          "max": 5.0,
+          "source": { "page": 4, "bbox": [94, 593, 553, 608] }
+        },
+        "A": { "min": 1.35, "nom": 1.55, "max": 1.75 }
+      },
+      "source": { "page": 2, "bbox": [208, 237, 298, 252] }
+    }
+  ],
+  "pins": [
+    {
+      "name": "OUT1",
+      "numbers": { "SOIC-8": ["1"], "MSOP-8": ["1"], "DFN-8": ["1"] },
+      "kind": "output",
+      "function": "Output of comparator 1",
+      "source": { "page": 2, "bbox": [81, 252, 719, 272] }
+    }
+  ],
+  "notes": [{ "code": "pinout", "message": "Pins were read from a pinout drawing; …" }]
+}
+```
+
+| Field                   | Meaning                                                                                                                                                                   |
+| ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `packages[].family`     | `sop`, `qfp`, `qfn`, `dfn`, `bga`, `sot23`, `sot223`, `sot89`, `dpak`, `dip`, `to220`, `to92`, `chip`, `header` or `other` — chooses the footprint wizard and the 3D body |
+| `packages[].pins`       | Number of terminals without an exposed pad                                                                                                                                |
+| `packages[].exposedPad` | An exposed pad under the body (its number is `pins + 1`; size `E2` × `D2`)                                                                                                |
+| `packages[].dimensions` | JEDEC symbols (`A`, `A1`, `b`, `c`, `D`, `D1`, `D2`, `E`, `E1`, `E2`, `e`, `L` …) with `min`, `nom` and `max`; without `source` they are standard values of the package   |
+| `pins[].numbers`        | Pad numbers per package name; a package without an entry does not have the pin                                                                                            |
+| `pins[].kind`           | `input`, `output`, `bidirectional`, `triState`, `passive`, `powerIn`, `powerOut`, `openCollector`, `notConnected` or `unspecified`                                        |
+| `source`                | Where a value was read: `page` (1-based) and optionally `bbox`                                                                                                            |
+
 ## Local state (`.ewerk/`)
 
 | File                             | Purpose                                                                   |

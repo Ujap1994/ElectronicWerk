@@ -61,6 +61,7 @@ macOS quarantines downloaded programs. Run
 | [`ewerk library duplicates`](#ewerk-library-duplicates) | Print the deduplication report                        |
 | [`ewerk library pack`](#ewerk-library-pack)             | Write library packs for a library release             |
 | [`ewerk library install`](#ewerk-library-install)       | Install a library pack                                |
+| [`ewerk part …`](#ewerk-part)                           | Make a part from its PDF datasheet                    |
 | [`ewerk rpc`](#ewerk-rpc)                               | Run an engine session over standard input and output  |
 | [`ewerk call`](#ewerk-call-method-params)               | Call one engine method                                |
 | [`ewerk methods`](#ewerk-methods)                       | List every engine method (with summaries)             |
@@ -788,6 +789,56 @@ $ ewerk library install packs/ewerk-library-demo-meshes-Demo.zip
 Installed: index unchanged, 3 meshes
 ```
 
+## Parts from datasheets
+
+### `ewerk part`
+
+```text
+ewerk part text <datasheet.pdf> [--from <page>] [--to <page>]
+ewerk part extract <datasheet.pdf> [--out <draft.json>] [--json]
+ewerk part generate <draft.json> --project <dir> --package <name>
+                    [--library <name>] [--density least|nominal|most]
+                    [--name <part name>] [--no-model] [--json]
+```
+
+The [part generator](../guide/part-generator) on the command line:
+
+- `text` prints the text of datasheet pages line by line (tables keep their
+  rows) — handy to check a draft or to give to a script.
+- `extract` recognises the part: its name, manufacturer, packages with their
+  dimensions and pins with their pad numbers per package. It prints a
+  summary (or the draft with `--json`) and writes the draft to `--out`. The
+  draft is JSON (see [part drafts](./file-format#part-drafts)); correct it
+  with any editor or an AI agent.
+- `generate` makes the symbol, the footprint (IPC-7351 lands at the given
+  density), the 3D model (`models/<footprint>.step`, unless `--no-model`) and
+  the component of one package in a library of the project (the first one,
+  or `--library`) and saves the project. It notes parts that are already in
+  a library with nearly the same package.
+
+```console
+$ ewerk synth datasheets sheets
+Wrote synthetic datasheet: sheets/ew7021.pdf
+Wrote synthetic datasheet: sheets/ew4410.pdf
+$ ewerk part extract sheets/ew7021.pdf --out ew7021.part.json
+EW7021 (Example Semiconductors)
+Package DFN-8: 9 pins, 9 of 9 dimensions from the datasheet
+Package MSOP-8: 8 pins, 0 of 9 dimensions from the datasheet
+Package SOIC-8: 8 pins, 9 of 9 dimensions from the datasheet
+Draft written to ew7021.part.json
+$ ewerk part generate ew7021.part.json --project board --package SOIC-8
+Generated EW7021_SOIC-8: symbol EW7021_SOIC-8, footprint SOIC-8_3.9x4.9mm_P1.27mm, 3D model models/SOIC-8_3.9x4.9mm_P1.27mm.step
+$ ewerk part text sheets/ew7021.pdf --from 2 --to 2
+--- page 2
+EW7021 Pin Configuration and Functions
+3 Pin Configuration and Functions
+Table 3-1. Pin Functions
+PIN TYPE DESCRIPTION
+NAME SOIC-8, MSOP-8 DFN-8
+OUT1 1 1 O Output of comparator 1
+…
+```
+
 ## Engine access
 
 ### `ewerk rpc`
@@ -930,13 +981,15 @@ any engine method; see [AI agents (MCP)](../guide/automation#ai-agents-mcp).
 ### `ewerk synth`
 
 ```text
-ewerk synth <S|M|L|XL|channels> <dir> [--seed <n>] [--json]
+ewerk synth <S|M|L|XL|channels|datasheets> <dir> [--seed <n>] [--json]
 ```
 
 Generates a synthetic, reproducible reference design (see
 [Benchmarks](../development/benchmarks)). The same size and seed always
 produce the same project. `channels` makes a small design with a sheet used
-three times, to try out [channels](../guide/channels).
+three times, to try out [channels](../guide/channels). `datasheets` writes
+the two synthetic PDF datasheets of the [part generator](../guide/part-generator)
+(`ew7021.pdf`, `ew4410.pdf`) into `dir`.
 
 ```console
 $ ewerk synth M demo-m

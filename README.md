@@ -69,6 +69,11 @@ full CLI.
   **length matching** with exact meanders; **teardrops**; **stitching vias**
   and via fences; **channels** that copy the layout of a repeated sheet;
   **assembly variants** for the outputs
+- **Parts from datasheets:** open a part's PDF datasheet and get its symbol,
+  an IPC-7351 footprint, a 3D STEP model and the component — pins, packages
+  and dimensions are read from the datasheet and shown beside it for
+  checking; a part already in a library is named instead; your own AI agent
+  can help through MCP (no API key in the app)
 - **Design rules** with net classes, name patterns, board minimums and
   **custom rules** in a small query language (`A.netclass == 'HV' &&
 B.netclass != 'HV'`)
