@@ -18,6 +18,9 @@ export const libeditEn = {
     component: 'Component',
   },
   list: {
+    fromDatasheet: 'Create from a datasheet',
+    fromDatasheetHint:
+      'Make symbol, footprint, 3D model and component from the PDF datasheet of a part.',
     label: 'Items of the library',
     search: 'Search by name or description',
     emptySymbols: 'This library has no symbols yet.',

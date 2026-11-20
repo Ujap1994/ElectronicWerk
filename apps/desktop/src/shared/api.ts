@@ -72,6 +72,7 @@ export const IPC = {
   providersStatus: 'providers:status',
   providersDownload: 'providers:download',
   dialogChooseDownload: 'dialog:choose-download',
+  dialogChooseDatasheet: 'dialog:choose-datasheet',
   githubStatus: 'github:status',
   githubChanged: 'github:changed',
   githubSignInToken: 'github:sign-in-token',
@@ -287,6 +288,10 @@ export interface EwApi {
     chooseModelFile: (format: ModelFormat, defaultPath: string) => Promise<string | null>;
     /** Asks where to save a PNG image and writes it. */
     saveImage: (defaultPath: string, data: Uint8Array) => Promise<string | null>;
+    /** Lets the user pick a PDF datasheet for the part generator. */
+    chooseDatasheet: () => Promise<string | null>;
+    /** The path of a file dropped onto the window (empty if it has none). */
+    pathOfFile: (file: File) => string;
   };
   readonly view3d: {
     /** Shows the 3D view of a board in its own window. */

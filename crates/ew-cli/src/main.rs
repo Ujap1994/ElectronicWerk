@@ -101,8 +101,9 @@ enum Command {
     Export3d(Export3dArgs),
     /// Generate a synthetic reference design (for tests and benchmarks).
     Synth {
-        /// Size class: S, M, L or XL, or `channels` (a small design with a
-        /// sheet used three times).
+        /// Size class: S, M, L or XL, `channels` (a small design with a
+        /// sheet used three times) or `datasheets` (the synthetic PDF
+        /// datasheets of the part generator, written into `dir`).
         size: String,
         /// Target folder (must not exist or be empty).
         dir: PathBuf,

@@ -3,7 +3,7 @@
  * Preload script: the only bridge between the sandboxed UI and the main
  * process. It exposes a small, typed API as `window.ew` and nothing else.
  */
-import { contextBridge, ipcRenderer, type IpcRendererEvent } from 'electron';
+import { contextBridge, ipcRenderer, webUtils, type IpcRendererEvent } from 'electron';
 
 import { ENGINE_PORT_MESSAGE, IPC, type EwApi, type Unsubscribe } from '@shared/api';
 import type { EngineStatus } from '@shared/engine';
@@ -59,6 +59,8 @@ const api: EwApi = {
     chooseModelFile: (format, defaultPath) =>
       ipcRenderer.invoke(IPC.dialogChooseModel, format, defaultPath),
     saveImage: (defaultPath, data) => ipcRenderer.invoke(IPC.exportSaveImage, defaultPath, data),
+    chooseDatasheet: () => ipcRenderer.invoke(IPC.dialogChooseDatasheet),
+    pathOfFile: (file) => webUtils.getPathForFile(file),
   },
   view3d: {
     open: (doc, name) => {

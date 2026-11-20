@@ -12,6 +12,7 @@ import { view3dEn } from './view3d.en';
 import { githubEn } from './github.en';
 import { partsEn } from './parts.en';
 import { libeditEn } from './libedit.en';
+import { partgenEn } from './partgen.en';
 import { schematicEn } from './schematic.en';
 
 export const en = {
@@ -145,6 +146,7 @@ export const en = {
     placeFootprint: 'Board: place a footprint',
     generateOutputs: 'Outputs: generate manufacturing files (output job)',
     gerberViewer: 'Gerber viewer: open Gerber and drill files…',
+    partGenerator: 'Generate a part from a datasheet',
     onlineParts: 'Find parts online (SnapEDA, Ultra Librarian)',
     sourceControl: 'Source control: commit, push, pull (GitHub)',
     openFromGithub: 'Open from GitHub',
@@ -242,6 +244,7 @@ export const en = {
     stitchVias: 'Add stitching vias',
     removeStitching: 'Remove stitching vias',
     copyChannel: 'Copy channel layout',
+    generatePart: 'Generate part',
   },
   kinds: {
     schematic: 'Schematic',
@@ -605,6 +608,8 @@ export const en = {
     exportPng: 'PNG images',
     downloadTitle: 'Import a part download',
     downloadFilter: 'Part downloads (ZIP, KiCad, STEP)',
+    datasheetTitle: 'Open a datasheet',
+    datasheetFilter: 'PDF datasheets',
     importKicadTitle: 'Import a KiCad project',
     kicadProjectFilter: 'KiCad projects',
     importEagleTitle: 'Import an Eagle project',
@@ -1164,6 +1169,7 @@ export const en = {
   },
   schematic: schematicEn,
   libedit: libeditEn,
+  partgen: partgenEn,
   board: boardEn,
   outputs: outputsEn,
   view3d: view3dEn,

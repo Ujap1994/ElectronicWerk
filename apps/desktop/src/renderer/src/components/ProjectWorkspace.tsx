@@ -21,6 +21,7 @@ import { DocumentDetails } from './DocumentDetails';
 import { DocumentViewer, forgetViewMemories } from './DocumentViewer';
 import { Icon, type IconName } from './Icon';
 import { ProjectTree } from './ProjectTree';
+import { PartGeneratorHost } from '../partgen/PartGenerator';
 
 function ToolButton({
   icon,
@@ -536,6 +537,7 @@ export function ProjectWorkspace({
                   )}
                 </div>
               </div>
+              <PartGeneratorHost />
             </OpenGerberContext>
           </OpenAssemblyContext>
         </Open3dContext>

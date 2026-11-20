@@ -6,7 +6,9 @@
 use std::collections::{BTreeMap, BTreeSet};
 
 use crate::Datasheet;
-use crate::draft::{Dimension, Draft, Family, PackageDraft, PinDraft, PinType, Source, pad_order};
+use crate::draft::{
+    Dimension, Draft, Family, Note, PackageDraft, PinDraft, PinType, Source, pad_order,
+};
 use crate::package::{self, Recognised, normalize};
 use crate::table::{self, Table};
 use crate::text::{Page, Rect, Word};
@@ -71,9 +73,11 @@ pub fn recognize_named(sheet: &Datasheet, file_name: &str) -> Draft {
                 source: Some(source),
             });
         }
-        draft.notes.push(
-            "Pins were read from a pinout drawing; check the names against the datasheet.".into(),
-        );
+        draft.notes.push(Note::new(
+            "pinout",
+            "Pins were read from a pinout drawing; check the names against the datasheet.",
+            &[],
+        ));
     }
     // Pins of a table without package columns belong to every package
     // with the same pin count.
@@ -138,13 +142,21 @@ pub fn recognize_named(sheet: &Datasheet, file_name: &str) -> Draft {
         }
     }
     if pins.iter().any(|p| p.numbers.is_empty()) {
-        draft.notes.push("Some pins have no pad number yet.".into());
+        draft.notes.push(Note::new(
+            "no-numbers",
+            "Some pins have no pad number yet.",
+            &[],
+        ));
     }
     for page in &sheet.pages {
         if page.scanned {
-            draft.notes.push(format!(
-                "Page {} is a scanned image without text; its values must be entered by hand.",
-                page.number
+            draft.notes.push(Note::new(
+                "scanned",
+                format!(
+                    "Page {} is a scanned image without text; its values must be entered by hand.",
+                    page.number
+                ),
+                &[("page", page.number.to_string())],
             ));
         }
     }

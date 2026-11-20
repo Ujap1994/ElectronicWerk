@@ -6,6 +6,7 @@ import { view3dDe } from './view3d.de';
 import { githubDe } from './github.de';
 import { partsDe } from './parts.de';
 import { libeditDe } from './libedit.de';
+import { partgenDe } from './partgen.de';
 import { schematicDe } from './schematic.de';
 import type { Messages } from './types';
 
@@ -142,6 +143,7 @@ export const de: Messages = {
     placeFootprint: 'Platine: Footprint platzieren',
     generateOutputs: 'Ausgaben: Fertigungsdaten erzeugen (Ausgabejob)',
     gerberViewer: 'Gerber-Viewer: Gerber- und Bohrdateien öffnen …',
+    partGenerator: 'Bauteil aus einem Datenblatt erzeugen',
     onlineParts: 'Bauteile online finden (SnapEDA, Ultra Librarian)',
     sourceControl: 'Versionsverwaltung: committen, hochladen, abholen (GitHub)',
     openFromGithub: 'Von GitHub öffnen',
@@ -239,6 +241,7 @@ export const de: Messages = {
     stitchVias: 'Stitching-Vias hinzufügen',
     removeStitching: 'Stitching-Vias entfernen',
     copyChannel: 'Kanal-Layout übertragen',
+    generatePart: 'Bauteil erzeugen',
   },
   kinds: {
     schematic: 'Schaltplan',
@@ -610,6 +613,8 @@ export const de: Messages = {
     exportPng: 'PNG-Bilder',
     downloadTitle: 'Bauteil-Download importieren',
     downloadFilter: 'Bauteil-Downloads (ZIP, KiCad, STEP)',
+    datasheetTitle: 'Datenblatt öffnen',
+    datasheetFilter: 'PDF-Datenblätter',
     importKicadTitle: 'KiCad-Projekt importieren',
     kicadProjectFilter: 'KiCad-Projekte',
     importEagleTitle: 'Eagle-Projekt importieren',
@@ -1172,6 +1177,7 @@ export const de: Messages = {
   },
   schematic: schematicDe,
   libedit: libeditDe,
+  partgen: partgenDe,
   board: boardDe,
   outputs: outputsDe,
   view3d: view3dDe,

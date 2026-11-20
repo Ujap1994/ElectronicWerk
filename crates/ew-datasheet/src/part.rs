@@ -12,7 +12,7 @@ use ew_model::library::{ComponentDef, FootprintDef, PinKind, PinText, SymbolDef}
 use ew_model::units::{Nm, Size};
 use serde::{Deserialize, Serialize};
 
-use crate::draft::{Dimension, Draft, Family, PackageDraft, PinType, pad_order};
+use crate::draft::{Dimension, Draft, Family, Note, PackageDraft, PinType, pad_order};
 
 /// Choices of the user for the generated part.
 #[derive(Debug, Clone, PartialEq, Eq, Default, Serialize, Deserialize)]
@@ -49,7 +49,7 @@ pub struct Generated {
     /// The package with its dimensions (for the 3D model).
     pub package: PackageDraft,
     /// What the user should know (missing pins, pads without pins …).
-    pub warnings: Vec<String>,
+    pub warnings: Vec<Note>,
 }
 
 /// Why a part cannot be made.
@@ -406,20 +406,30 @@ pub fn generate(
         .collect();
     let used: BTreeSet<String> = numbers.iter().cloned().collect();
     for n in used.difference(&pads) {
-        warnings.push(format!(
-            "Pin {n} has no pad in the {package} footprint; it is left out."
+        warnings.push(Note::new(
+            "pin-no-pad",
+            format!("Pin {n} has no pad in the {package} footprint; it is left out."),
+            &[("number", n.clone()), ("package", package.to_owned())],
         ));
     }
     let mut extra: Vec<(String, String, PinKind)> = Vec::new();
     for n in pads.difference(&used) {
         if n.parse::<u32>().ok() == Some(p.pins + 1) {
-            warnings.push(format!(
-                "Pad {n} (exposed pad or tab) has no pin in the datasheet tables; it was added as pin EP. Connect it as the datasheet says, often to GND."
+            warnings.push(Note::new(
+                "pad-exposed",
+                format!(
+                    "Pad {n} (exposed pad or tab) has no pin in the datasheet tables; it was added as pin EP. Connect it as the datasheet says, often to GND."
+                ),
+                &[("number", n.clone())],
             ));
             extra.push((n.clone(), "EP".to_owned(), PinKind::Passive));
         } else {
-            warnings.push(format!(
-                "Pad {n} has no pin in the datasheet tables; it was added as a not connected pin (NC)."
+            warnings.push(Note::new(
+                "pad-no-pin",
+                format!(
+                    "Pad {n} has no pin in the datasheet tables; it was added as a not connected pin (NC)."
+                ),
+                &[("number", n.clone())],
             ));
             extra.push((n.clone(), "NC".to_owned(), PinKind::NoConnect));
         }

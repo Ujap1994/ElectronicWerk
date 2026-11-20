@@ -1203,7 +1203,33 @@ fn parse_size(size: &str) -> Result<DesignSize, Failure> {
     size.parse().map_err(Failure)
 }
 
+/// `ewerk synth datasheets <dir>`: the synthetic datasheets of the part
+/// generator (`ew7021.pdf`, `ew4410.pdf`).
+fn synth_datasheets(dir: &Path, json: bool, out: &mut impl Write) -> Outcome {
+    std::fs::create_dir_all(dir).map_err(|err| Failure(format!("{}: {err}", dir.display())))?;
+    let mut files = Vec::new();
+    for (name, data) in [
+        ("ew7021.pdf", ew_synth::datasheet::ew7021()),
+        ("ew4410.pdf", ew_synth::datasheet::ew4410()),
+    ] {
+        let path = dir.join(name);
+        std::fs::write(&path, data).map_err(|err| Failure(format!("{}: {err}", path.display())))?;
+        files.push(path.to_string_lossy().into_owned());
+    }
+    if json {
+        print_json(out, &json!({ "files": files }))?;
+    } else {
+        for file in &files {
+            writeln!(out, "Wrote synthetic datasheet: {file}")?;
+        }
+    }
+    Ok(ExitCode::SUCCESS)
+}
+
 fn synth(size: &str, dir: &Path, seed: u64, json: bool, out: &mut impl Write) -> Outcome {
+    if size.eq_ignore_ascii_case("datasheet") || size.eq_ignore_ascii_case("datasheets") {
+        return synth_datasheets(dir, json, out);
+    }
     let started = Instant::now();
     // `channels`: a small design with a repeated sheet (channel layouts).
     let (project, size_name) = if size.eq_ignore_ascii_case("channels") {

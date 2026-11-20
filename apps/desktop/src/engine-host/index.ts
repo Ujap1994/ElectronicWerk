@@ -14,6 +14,7 @@ import {
 
 import { findAddon } from './addon';
 import { handleRequest, takeEvents, type NativeEngine } from './dispatch';
+import { handleDatasheetRequest, isDatasheetMethod } from './datasheets';
 import { handleMeshRequest, isMeshMethod } from './meshes';
 
 const parentPort = process.parentPort;
@@ -73,6 +74,10 @@ function start(): void {
       });
       port.on('message', (message) => {
         const data = message.data as { id?: unknown; method?: unknown; params?: unknown } | null;
+        if (data !== null && typeof data.id === 'number' && isDatasheetMethod(data.method)) {
+          port.postMessage(handleDatasheetRequest(data.id, String(data.method), data.params));
+          return;
+        }
         if (data !== null && typeof data.id === 'number' && isMeshMethod(data.method)) {
           void handleMeshRequest(data.id, String(data.method), data.params).then((reply) => {
             port.postMessage(reply);

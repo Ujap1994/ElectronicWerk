@@ -12,6 +12,8 @@ const PATHS = {
   close: 'M6 6l12 12M18 6 6 18',
   more: 'M5 12h.01M12 12h.01M19 12h.01',
   chevron: 'M9 6l6 6-6 6',
+  previous: 'M15 6l-6 6 6 6',
+  datasheet: 'M6 3h8l4 4v14H6zM14 3v4h4M9 12h6M9 15h6M9 18h4',
   schematic: 'M3 12h4l2-5 4 10 2-5h6',
   board: 'M4 4h16v16H4zM8 8h3v3H8zM14 13h2v3h-2zM11 9.5h5V13',
   library: 'M4 4h4v16H4zM10 4h4v16h-4zM16 5l3.5-1 2.5 15.5-3.5 1z',

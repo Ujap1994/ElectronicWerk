@@ -32,6 +32,7 @@ import type { Settings } from '@shared/settings';
 import {
   chooseArchiveFile,
   chooseExportFile,
+  chooseDatasheet,
   chooseDownload,
   chooseImageFile,
   chooseModelFile,
@@ -628,6 +629,12 @@ function main(): void {
 
     ipcMain.handle(IPC.providersStatus, (event) =>
       isTrustedSender(event.senderFrame) ? providers.status() : [],
+    );
+
+    ipcMain.handle(IPC.dialogChooseDatasheet, (event) =>
+      isTrustedSender(event.senderFrame)
+        ? chooseDatasheet(BrowserWindow.fromWebContents(event.sender), t)
+        : null,
     );
 
     ipcMain.handle(IPC.dialogChooseDownload, (event) =>

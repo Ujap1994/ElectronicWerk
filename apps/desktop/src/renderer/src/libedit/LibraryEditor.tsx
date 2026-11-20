@@ -36,6 +36,7 @@ import {
   type SymbolDef,
 } from './types';
 import { WizardDialog } from './WizardDialog';
+import { openPartGenerator } from '../partgen/PartGenerator';
 
 const KINDS: readonly LibraryKind[] = ['symbol', 'footprint', 'component'];
 
@@ -727,6 +728,18 @@ export function LibraryEditor({
           >
             <Icon name="plus" size={14} />
             {t('libedit.list.new')}
+          </button>
+          <button
+            type="button"
+            className="button button--small"
+            title={t('libedit.list.fromDatasheetHint')}
+            data-testid="libedit-datasheet"
+            onClick={() => {
+              openPartGenerator(null, doc);
+            }}
+          >
+            <Icon name="datasheet" size={14} />
+            {t('libedit.list.fromDatasheet')}
           </button>
           {kind === 'footprint' && (
             <button

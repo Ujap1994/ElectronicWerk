@@ -213,6 +213,35 @@ pub struct PackageDraft {
     pub drawing: Option<Source>,
 }
 
+/// A note for the user: a code the app translates, the English text and
+/// the values of the text.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Note {
+    /// Code (`pinout`, `scanned`, `pad-no-pin` …).
+    pub code: String,
+    /// English text.
+    pub message: String,
+    /// Values for the translated text.
+    #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
+    pub args: BTreeMap<String, String>,
+}
+
+impl Note {
+    /// A note with values.
+    #[must_use]
+    pub fn new(code: &str, message: impl Into<String>, args: &[(&str, String)]) -> Self {
+        Self {
+            code: code.to_owned(),
+            message: message.into(),
+            args: args
+                .iter()
+                .map(|(k, v)| ((*k).to_owned(), v.clone()))
+                .collect(),
+        }
+    }
+}
+
 /// Everything known about a part.
 #[derive(Debug, Clone, PartialEq, Default, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -243,7 +272,7 @@ pub struct Draft {
     /// Notes of the recognition for the user (pages without text, tables
     /// that could not be read).
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
-    pub notes: Vec<String>,
+    pub notes: Vec<Note>,
 }
 
 impl Draft {

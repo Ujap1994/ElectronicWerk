@@ -24,6 +24,7 @@ import { outputCommands } from './outputs/stores';
 import { open3dCommand, openAssemblyCommand } from './view3d/stores';
 import { GithubHost } from './github/GithubHost';
 import { cloneOpen, signInOpen, sourceControlCommand } from './github/stores';
+import { openPartGenerator } from './partgen/PartGenerator';
 import { PartsHost } from './parts/PartsHost';
 import { openOnlineParts } from './parts/stores';
 import { activeSheet } from './schematic/stores';
@@ -163,6 +164,40 @@ export function App(): ReactNode {
     return unsubscribe;
   }, []);
 
+  // A PDF dropped onto the window opens the part generator.
+  const projectOpen = project !== null;
+  useEffect(() => {
+    if (!projectOpen) {
+      return undefined;
+    }
+    const pdf = (event: DragEvent): File | null => {
+      const file = event.dataTransfer?.files[0];
+      return file?.name.toLowerCase().endsWith('.pdf') === true ? file : null;
+    };
+    const onDragOver = (event: DragEvent): void => {
+      if (event.dataTransfer?.types.includes('Files') === true) {
+        event.preventDefault();
+      }
+    };
+    const onDrop = (event: DragEvent): void => {
+      const file = pdf(event);
+      if (file === null) {
+        return;
+      }
+      event.preventDefault();
+      const path = window.ew.dialogs.pathOfFile(file);
+      if (path !== '') {
+        openPartGenerator(path);
+      }
+    };
+    window.addEventListener('dragover', onDragOver);
+    window.addEventListener('drop', onDrop);
+    return () => {
+      window.removeEventListener('dragover', onDragOver);
+      window.removeEventListener('drop', onDrop);
+    };
+  }, [projectOpen]);
+
   // Alternative palette shortcut (Cmd/Ctrl+Shift+P); Cmd/Ctrl+K is a menu accelerator.
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent): void => {
@@ -241,6 +276,13 @@ export function App(): ReactNode {
       ...(project === null
         ? []
         : ([
+            {
+              id: 'part-generator',
+              label: 'commands.partGenerator',
+              run: () => {
+                openPartGenerator();
+              },
+            },
             {
               id: 'online-parts',
               label: 'commands.onlineParts',

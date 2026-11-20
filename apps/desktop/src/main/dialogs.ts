@@ -213,6 +213,27 @@ export async function chooseDownload(
   return result.canceled || result.filePaths.length === 0 ? null : (result.filePaths[0] ?? null);
 }
 
+/** Lets the user pick a PDF datasheet for the part generator. */
+export async function chooseDatasheet(
+  window: BrowserWindow | null,
+  t: Translate,
+): Promise<string | null> {
+  const stub = takeQueued();
+  if (stub !== null) {
+    return stub.answer;
+  }
+  const options: Electron.OpenDialogOptions = {
+    title: t('dialogs.datasheetTitle'),
+    properties: ['openFile'],
+    filters: [{ name: t('dialogs.datasheetFilter'), extensions: ['pdf'] }],
+  };
+  const result =
+    window === null
+      ? await dialog.showOpenDialog(options)
+      : await dialog.showOpenDialog(window, options);
+  return result.canceled || result.filePaths.length === 0 ? null : (result.filePaths[0] ?? null);
+}
+
 export async function chooseArchiveFile(
   window: BrowserWindow | null,
   t: Translate,

@@ -72,7 +72,7 @@ fn main() {
                     );
                 }
                 for n in &draft.notes {
-                    println!("  note: {n}");
+                    println!("  note: {}", n.message);
                 }
                 for p in &draft.packages {
                     match ew_datasheet::part::generate(
@@ -86,7 +86,7 @@ fn main() {
                             part.symbol.name,
                             part.footprint.name,
                             part.symbol.units.len(),
-                            part.warnings
+                            part.warnings.iter().map(|w| &w.message).collect::<Vec<_>>()
                         ),
                         Err(e) => println!("  part {} → error: {e}", p.name),
                     }
