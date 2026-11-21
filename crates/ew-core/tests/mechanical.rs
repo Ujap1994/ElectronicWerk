@@ -92,6 +92,25 @@ fn checks_the_board_in_its_enclosure() {
     assert_eq!(checked["unchecked"], json!([]));
     assert_eq!(checked["tessellate"], json!([]));
 
+    // The STEP export can take the enclosure along.
+    let step = dir.path().join("boxed.step");
+    let report = call(
+        &mut engine,
+        "board3d.export",
+        json!({"doc": board, "path": step, "mechanical": true}),
+    );
+    let text = std::fs::read_to_string(&step).unwrap();
+    assert!(text.contains("'Enclosure bottom'") && text.contains("'Enclosure lid'"));
+    let without = call(
+        &mut engine,
+        "board3d.export",
+        json!({"doc": board, "path": dir.path().join("bare.step")}),
+    );
+    assert_eq!(
+        report["placed"].as_u64().unwrap(),
+        without["placed"].as_u64().unwrap() + 2
+    );
+
     // The lid 6 mm lower cuts into the tallest parts (and the board).
     let lid = &bodies[1];
     let z = lid["position"][2].as_i64().unwrap();

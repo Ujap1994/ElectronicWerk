@@ -157,6 +157,9 @@ struct Export3dArgs {
     /// Units of VRML files: `mm`, `m` or `inch`.
     #[arg(long, default_value = "mm")]
     units: String,
+    /// Also export the shown mechanical bodies (the enclosure).
+    #[arg(long)]
+    mechanical: bool,
     /// Print the report as JSON.
     #[arg(long)]
     json: bool,

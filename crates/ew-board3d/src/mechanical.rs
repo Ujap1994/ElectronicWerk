@@ -39,6 +39,33 @@ pub fn body_matrix(body: &MechanicalBody) -> Matrix {
         .mul(&Matrix::rotation(0, rx))
 }
 
+/// The shown mechanical bodies as parts of an export: each with its STEP
+/// file (the body's `path`) as its one model.
+#[must_use]
+pub fn body_parts(pcb: &Pcb) -> Vec<place::Part> {
+    pcb.mechanical
+        .iter()
+        .filter(|b| !b.hidden && !b.path.trim().is_empty())
+        .map(|b| {
+            let matrix = body_matrix(b);
+            place::Part {
+                id: b.id,
+                designator: b.name.clone(),
+                value: String::new(),
+                footprint: String::new(),
+                side: ew_model::layer::Side::Top,
+                dnp: false,
+                matrix,
+                pads: [0.0; 4],
+                models: vec![place::PlacedModel {
+                    path: b.path.clone(),
+                    matrix,
+                }],
+            }
+        })
+        .collect()
+}
+
 /// The height of a part without a model: the footprint property `Height`
 /// (`1.2`, `1.2 mm`, `1,2mm`), if any.
 #[must_use]

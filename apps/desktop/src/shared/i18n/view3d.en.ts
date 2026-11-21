@@ -55,6 +55,7 @@ export const view3dEn = {
   exportStep: 'STEP model…',
   exportGlb: 'GLB model…',
   exportVrml: 'VRML model…',
+  exportMechanical: 'With the enclosure (shown bodies)',
   exporting: 'Exporting…',
   exported: 'Exported {path}: {parts} parts',
   exportMissing: '{count} models were not found',

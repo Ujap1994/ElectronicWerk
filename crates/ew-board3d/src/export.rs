@@ -56,6 +56,9 @@ pub struct ExportOptions {
     pub created: String,
     /// Application version.
     pub version: String,
+    /// Also export the shown mechanical bodies (the enclosure); their
+    /// models are asked for by their `path`.
+    pub mechanical: bool,
 }
 
 /// Exports a board. `models` returns the data of a model path; for GLB and
@@ -68,7 +71,10 @@ pub fn export(
     options: &ExportOptions,
 ) -> (Vec<u8>, ExportReport) {
     let built = board::build(pcb, resolve, &BoardOptions::default());
-    let parts = place::parts(pcb, &built.levels);
+    let mut parts = place::parts(pcb, &built.levels);
+    if options.mechanical {
+        parts.extend(crate::mechanical::body_parts(pcb));
+    }
     match options.format {
         Format::Step => {
             let (text, report) = step::export(

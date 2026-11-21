@@ -776,6 +776,7 @@ fn export_3d(args: &Export3dArgs, out: &mut impl Write) -> Outcome {
             "origin": args.origin,
             "includeDnp": args.include_dnp,
             "units": args.units,
+            "mechanical": args.mechanical,
         }),
     )?;
     if args.json {

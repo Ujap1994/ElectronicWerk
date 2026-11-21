@@ -161,6 +161,7 @@ export function Board3dView({
   const [check, setCheck] = useState<EnclosureCheck | null>(null);
   const [checking, setChecking] = useState(false);
   const [live, setLive] = useState(true);
+  const [exportBodies, setExportBodies] = useState(true);
   const [bodyState, setBodyState] = useState({ loaded: 0, failed: 0 });
   const liveRef = useRef(live);
   const runCheckRef = useRef<() => void>(() => undefined);
@@ -542,7 +543,7 @@ export function Board3dView({
     try {
       const reply = await engine.call<ExportReply>(
         'board3d.export',
-        { doc, path, format, origin: 'drill' },
+        { doc, path, format, origin: 'drill', mechanical: bodies.length > 0 && exportBodies },
         300_000,
       );
       const missing =
@@ -834,6 +835,19 @@ export function Board3dView({
                 )}
               </button>
             ))}
+            {bodies.length > 0 && (
+              <label className="view3d__check">
+                <input
+                  type="checkbox"
+                  checked={exportBodies}
+                  data-testid="view3d-export-mechanical"
+                  onChange={(event) => {
+                    setExportBodies(event.target.checked);
+                  }}
+                />
+                <span>{t('view3d.exportMechanical')}</span>
+              </label>
+            )}
           </div>
         )}
         {popover === 'missing' && (

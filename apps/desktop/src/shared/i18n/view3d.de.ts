@@ -56,6 +56,7 @@ export const view3dDe: Messages['view3d'] = {
   exportTip: 'Die Leiterplatte als 3D-Modell exportieren',
   exportStep: 'STEP-Modell…',
   exportGlb: 'GLB-Modell…',
+  exportMechanical: 'Mit dem Gehäuse (sichtbare Teile)',
   exportVrml: 'VRML-Modell…',
   exporting: 'Wird exportiert…',
   exported: '{path} exportiert: {parts} Bauteile',

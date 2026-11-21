@@ -282,6 +282,9 @@ pub struct ExportParams {
     /// Units of VRML files.
     #[serde(default)]
     pub units: Units,
+    /// Also export the shown mechanical bodies (the enclosure).
+    #[serde(default)]
+    pub mechanical: bool,
 }
 
 /// Exports the 3D model of a board.
@@ -296,7 +299,17 @@ pub fn export_board(
     let found = sources(pcb, session.root(), library);
     let mesh_dir = library.mesh_dir();
     let step = params.format == Format::Step;
+    let root = session.root();
     let mut models = |path: &str| -> Option<ModelData> {
+        if params.mechanical
+            && let Some(body) = pcb.mechanical.iter().find(|b| b.path == path)
+        {
+            return body_data(
+                &crate::mechanical::file_of(root, body),
+                mesh_dir.as_deref(),
+                step,
+            );
+        }
         let source = found.iter().find(|s| s.path == path)?;
         model_data(source, mesh_dir.as_deref(), step)
     };
@@ -309,8 +322,28 @@ pub fn export_board(
         name: format!("{}.{}", pcb.name, params.format.extension()),
         created: created.to_owned(),
         version: version.to_owned(),
+        mechanical: params.mechanical,
     };
     export3d::export(pcb, &resolve, &mut models, &options)
+}
+
+/// The data of a mechanical body's STEP file: its text for STEP exports,
+/// else a mesh (from the cache, or read here when its faces are planar).
+fn body_data(file: &Path, mesh_dir: Option<&Path>, step: bool) -> Option<ModelData> {
+    if step {
+        return std::fs::read_to_string(file).ok().map(ModelData::Step);
+    }
+    if let Some(path) = mesh_dir.and_then(|dir| step_mesh(dir, file)) {
+        return read_mesh(&path);
+    }
+    let text = std::fs::read_to_string(file).ok()?;
+    let mesh = ew_board3d::step::tessellate::planar_mesh(&text).ok()?;
+    Some(ModelData::Mesh(vec![glb::Part {
+        material: glb::Material::plain([0.6, 0.62, 0.65, 1.0]),
+        positions: mesh.positions,
+        normals: mesh.normals,
+        indices: mesh.indices,
+    }]))
 }
 
 /// A one-line summary of an export report.
