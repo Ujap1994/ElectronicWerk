@@ -75,7 +75,9 @@ test('checks the board in its enclosure', async () => {
   const before = await z.inputValue();
   await z.fill(String(Number(before) - 6));
   await z.press('Enter');
-  await expect(page.getByTestId('mech-summary')).toContainText('collisions', { timeout: 30_000 });
+  await expect(page.getByTestId('mech-summary')).toContainText(/[1-9]\d* errors/u, {
+    timeout: 30_000,
+  });
   await expect(page.getByTestId('mech-finding').first()).toHaveAttribute(
     'data-code',
     'mechanical-collision',

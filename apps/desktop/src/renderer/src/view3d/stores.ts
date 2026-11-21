@@ -8,6 +8,8 @@ import type { Projection, Visibility } from './types';
 export interface View3dSettings {
   readonly visibility: Visibility;
   readonly projection: Projection;
+  /** The enclosure panel is open. */
+  readonly enclosurePanel: boolean;
 }
 
 const KEY = 'ew.view3d';
@@ -25,6 +27,7 @@ export const DEFAULT_SETTINGS: View3dSettings = {
     inner: false,
   },
   projection: 'perspective',
+  enclosurePanel: false,
 };
 
 function stored(): View3dSettings {
@@ -37,6 +40,7 @@ function stored(): View3dSettings {
     return {
       visibility: { ...DEFAULT_SETTINGS.visibility, ...value.visibility },
       projection: value.projection === 'orthographic' ? 'orthographic' : 'perspective',
+      enclosurePanel: value.enclosurePanel === true,
     };
   } catch {
     return DEFAULT_SETTINGS;

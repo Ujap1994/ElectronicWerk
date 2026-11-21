@@ -81,6 +81,11 @@ objects far enough to change the finding, it comes back.
 | `extra-footprint`      | Warning | A footprint linked to the schematic has no part there any more.                                                                                                    |
 | `net-mismatch`         | Error   | A pad is on another net than its pin in the schematic.                                                                                                             |
 | `rule-error`           | Error   | A custom rule has a syntax error and is skipped.                                                                                                                   |
+| `mechanical-collision` | Error   | A part or the board cuts into a body of the [enclosure](./enclosure).                                                                                              |
+| `mechanical-clearance` | Warning | A part or the board is closer to the enclosure than the minimum clearance.                                                                                         |
+| `mechanical-mounting`  | Warning | A boss of the enclosure and a mounting hole do not fit ([details](./enclosure#mounting-holes-and-bosses)).                                                         |
+| `mechanical-opening`   | Warning | A connector over the board edge has no opening in the enclosure.                                                                                                   |
+| `mechanical-height`    | Warning | A part is taller than its [height area](./enclosure#keep-out-and-height-areas) allows.                                                                             |
 
 The severities can be changed in the **Checks** tab of the
 [design rules](./design-rules#checks); a check set to **Ignore** does not

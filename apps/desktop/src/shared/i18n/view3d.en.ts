@@ -111,7 +111,7 @@ export const view3dEn = {
     run: 'Check now',
     checking: 'Checking…',
     clean: 'No collisions; every clearance is at least {clearance} mm.',
-    summary: '{errors} collisions, {warnings} too close (minimum {clearance} mm)',
+    summary: '{errors} errors, {warnings} warnings · minimum clearance {clearance} mm',
     standIns:
       '{count} parts without a 3D model were checked as boxes of their courtyard and height.',
     unchecked: '{count} bodies could not be checked (file missing or not readable).',

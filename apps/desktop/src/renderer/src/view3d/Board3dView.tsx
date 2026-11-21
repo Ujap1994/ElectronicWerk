@@ -154,7 +154,10 @@ export function Board3dView({
   });
   const sourcesRef = useRef<readonly ModelSource[]>([]);
   // The enclosure: mechanical bodies and the check.
-  const [panel, setPanel] = useState(false);
+  const panel = settings.enclosurePanel;
+  const setPanel = (open: boolean): void => {
+    setView3dSettings({ ...view3dSettings.get(), enclosurePanel: open });
+  };
   const [bodies, setBodies] = useState<readonly MechanicalBody[]>([]);
   const [clearance, setClearance] = useState(0.5);
   const [selectedBody, setSelectedBody] = useState<string | null>(null);

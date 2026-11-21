@@ -104,6 +104,19 @@ fn footprint_box(fp: &FootprintInstance, pads: [f64; 4]) -> [f64; 4] {
     })
 }
 
+/// `true` for footprints without a body: mounting holes (only unplated
+/// holes) and fiducials.
+fn no_body(fp: &FootprintInstance) -> bool {
+    let name = fp.footprint.to_ascii_lowercase();
+    name.contains("mountinghole")
+        || name.contains("fiducial")
+        || (!fp.pads.is_empty()
+            && fp
+                .pads
+                .iter()
+                .all(|p| p.kind == ew_model::pcb::PadKind::NpThroughHole))
+}
+
 /// How a part is checked.
 #[derive(Debug, Clone)]
 pub enum Shape {
@@ -171,6 +184,9 @@ pub fn part_shapes(
     footprints.sort_by(|a, b| natural(&a.designator, &b.designator).then(a.id.cmp(&b.id)));
     for fp in footprints {
         let part = place::part(fp, levels);
+        if part.models.is_empty() && no_body(fp) {
+            continue;
+        }
         let mut shapes = Vec::new();
         let mut complete = !part.models.is_empty();
         for model in &part.models {

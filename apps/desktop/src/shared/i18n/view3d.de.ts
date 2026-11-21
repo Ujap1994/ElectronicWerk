@@ -113,7 +113,7 @@ export const view3dDe: Messages['view3d'] = {
     run: 'Jetzt prüfen',
     checking: 'Prüfe…',
     clean: 'Keine Kollisionen; alle Abstände sind mindestens {clearance} mm.',
-    summary: '{errors} Kollisionen, {warnings} zu nah (mindestens {clearance} mm)',
+    summary: '{errors} Fehler, {warnings} Warnungen · Mindestabstand {clearance} mm',
     standIns: '{count} Bauteile ohne 3D-Modell wurden als Quader aus Courtyard und Höhe geprüft.',
     unchecked: '{count} Teile konnten nicht geprüft werden (Datei fehlt oder ist nicht lesbar).',
     rules: 'Mindestabstand in den Designregeln ändern',

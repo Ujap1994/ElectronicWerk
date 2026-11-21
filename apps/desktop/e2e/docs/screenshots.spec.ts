@@ -2375,6 +2375,204 @@ test('3d view', async () => {
   await close();
 });
 
+// --- Enclosure (M17) ---------------------------------------------------------
+
+/** An unplated mounting hole for an M2.5 screw, as a board-only footprint. */
+function mountingHole(designator: string, at: Point): Record<string, unknown> {
+  return {
+    type: 'footprint',
+    id: crypto.randomUUID(),
+    footprint: 'MountingHole_2.7mm_M2.5',
+    designator,
+    value: 'MountingHole',
+    at,
+    rotation: 0,
+    side: 'top',
+    pads: [
+      {
+        id: crypto.randomUUID(),
+        number: '',
+        kind: 'npThroughHole',
+        shape: 'circle',
+        at: [0, 0],
+        size: [2_700_000, 2_700_000],
+        drill: { diameter: 2_700_000 },
+        layers: ['cu.*', 'mask.*'],
+      },
+    ],
+    graphics: [],
+    texts: [],
+    models: [],
+  };
+}
+
+test('enclosure', async () => {
+  test.setTimeout(400_000);
+  freshProjects();
+  const kicad = '/tmp/ElectronicWerk/KiCad/blinky';
+  rmSync(kicad, { recursive: true, force: true });
+  cpSync(KICAD_FIXTURE, kicad, { recursive: true });
+  // The blinky board with three mounting holes (made with the command line).
+  const project = join(PROJECTS, 'Blinky');
+  const ewerk = (...args: string[]): string =>
+    execFileSync(ewerkBinary(), args, {
+      env: { ...process.env, EW_LIBRARY_DIR: join(PROJECTS, '..', 'no-library') },
+      encoding: 'utf8',
+    });
+  ewerk('import', 'kicad', join(kicad, 'blinky.kicad_pro'), project, '--name', 'Blinky');
+  const board = readBoardJson('Blinky') as BoardJson & { id: string };
+  const holes: Point[] = [
+    [136_500_000, 83_500_000],
+    [136_500_000, 106_500_000],
+    [103_500_000, 106_500_000],
+  ];
+  const script = join(PROJECTS, '..', 'holes.json');
+  writeFileSync(
+    script,
+    JSON.stringify([
+      {
+        method: 'edit.apply',
+        params: {
+          label: 'add-footprint',
+          changes: holes.map((at, i) => ({
+            op: 'insert',
+            doc: board.id,
+            object: mountingHole(`H${String(i + 1)}`, at),
+          })),
+        },
+      },
+    ]),
+  );
+  ewerk('script', script, '--project', project);
+
+  const { app, page, close } = await start({ settings: { theme: 'light' } });
+  await page.setViewportSize({ width: 1400, height: 860 });
+  await queueDialogAnswer(app, join(project, 'Blinky.ewproj'));
+  await page.getByTestId('open-project').click();
+  await page.getByTestId('workspace').waitFor();
+  await page
+    .locator('[data-testid^="tree-doc:"]')
+    .filter({ hasText: /^Blinky$/u })
+    .dblclick();
+  await settle(page);
+  await expect(page.getByTestId('viewer')).toHaveAttribute('data-kind', 'pcb');
+  await page.getByTestId('viewer-open-3d').click();
+  const canvas = page.locator('[data-testid="view3d-canvas"][data-ready="true"]');
+  await expect(canvas).toBeVisible({ timeout: 60_000 });
+  await expect(page.getByTestId('view3d-models')).toHaveText(/^(\d+) of \1 models$/u, {
+    timeout: 120_000,
+  });
+  const view = page.locator('.view3d');
+  const panel = page.getByTestId('mech-panel');
+  const summary = page.getByTestId('mech-summary');
+  const still = async (): Promise<void> => {
+    await page.mouse.move(5, 300);
+    await page.waitForTimeout(900);
+  };
+
+  // The panel, then a box made to fit.
+  await page.getByTestId('view3d-mechanical').click();
+  await expect(page.getByTestId('mech-empty')).toBeVisible();
+  await shoot(panel, 'enclosure-panel-empty');
+  await page.getByTestId('mech-box').click();
+  await expect(canvas).toHaveAttribute('data-bodies', '2/2', { timeout: 120_000 });
+  await expect(summary).toContainText('No collisions', { timeout: 60_000 });
+  await page.getByTestId('mech-body').nth(1).click();
+  await still();
+  await shoot(page, 'enclosure-box');
+  await shoot(panel, 'enclosure-panel');
+
+  // Cut open through the front mounting hole: the board on its boss.
+  await page.getByTestId('mech-close').click();
+  await page.getByTestId('view3d-section').click();
+  await page.getByTestId('view3d-section-y').check();
+  await page.getByTestId('view3d-section-flip').check();
+  await page.getByTestId('view3d-section-position').fill('0.171');
+  await page.getByTestId('view3d-section').click();
+  await page.getByTestId('view3d-views').click();
+  await page.getByTestId('view3d-view-front').click();
+  await still();
+  await shoot(view, 'enclosure-section');
+  await page.getByTestId('view3d-section').click();
+  await page.getByTestId('view3d-section-flip').uncheck();
+  await page.getByTestId('view3d-section-off').check();
+  await page.getByTestId('view3d-section').click();
+  await page.getByTestId('view3d-view-iso').click();
+  await page.getByTestId('view3d-mechanical').click();
+  await expect(page.getByTestId('mech-editor')).toBeVisible();
+
+  // The lid 5 mm lower: the pin header and the board meet it.
+  const z = page.getByTestId('mech-z');
+  const lidZ = await z.inputValue();
+  await z.fill(String(Number(lidZ) - 5));
+  await z.press('Enter');
+  await expect(summary).toContainText(/[1-9]\d* errors/u, { timeout: 60_000 });
+  await still();
+  await shoot(page, 'enclosure-collision');
+  await page.getByTestId('mech-finding').first().click();
+  await still();
+  await shoot(view, 'enclosure-finding');
+
+  // The same findings in the layout editor's design rules check.
+  await page.locator('[role="tab"]', { hasText: /^Blinky$/u }).click();
+  await settle(page);
+  await page.getByTestId('board-fill').click();
+  await edited(page, /fill-zones|Fill/u);
+  await page.getByTestId('board-drc').click();
+  await expect(page.getByTestId('drc-summary')).toBeVisible();
+  await expect(page.getByTestId('drc-panel')).toContainText('collides with Enclosure lid', {
+    timeout: 60_000,
+  });
+  await page.mouse.move(10, 10);
+  await shoot(page.getByTestId('drc-panel'), 'enclosure-drc');
+  await page.getByTestId('board-drc').click();
+  await page.locator('[role="tab"]', { hasText: 'Blinky (3D)' }).click();
+  await expect(canvas).toBeVisible({ timeout: 60_000 });
+  await page.getByTestId('mech-body').nth(1).click();
+  await page.getByTestId('mech-z').fill(lidZ);
+  await page.getByTestId('mech-z').press('Enter');
+  await expect(summary).toContainText('No collisions', { timeout: 60_000 });
+
+  // The bottom shell 0.3 mm off: holes beside their bosses, a tight wall.
+  await page.getByTestId('mech-body').nth(0).click();
+  const x = page.getByTestId('mech-x');
+  const bottomX = await x.inputValue();
+  await x.fill(String(Number(bottomX) + 0.3));
+  await x.press('Enter');
+  await expect(
+    page.locator('[data-testid="mech-finding"][data-code="mechanical-mounting"]').first(),
+  ).toBeVisible({ timeout: 60_000 });
+  // Without a body selected, the findings are in view.
+  await page.getByTestId('mech-body').nth(0).click();
+  await expect(page.getByTestId('mech-editor')).toHaveCount(0);
+  await page.mouse.move(5, 300);
+  await shoot(panel, 'enclosure-mounting');
+  await page.getByTestId('mech-body').nth(0).click();
+  await page.getByTestId('mech-x').fill(bottomX);
+  await page.getByTestId('mech-x').press('Enter');
+  await expect(summary).toContainText('No collisions', { timeout: 60_000 });
+
+  // Height areas from the enclosure, shown in the layout editor.
+  await page.getByTestId('mech-areas').click();
+  await expect(page.getByTestId('view3d-message')).toContainText('height levels added', {
+    timeout: 60_000,
+  });
+  await page.getByTestId('view3d-export').click();
+  await shoot(page.locator('.workspace__main'), 'enclosure-export');
+  await page.getByTestId('view3d-export').click();
+  await page.locator('[role="tab"]', { hasText: /^Blinky$/u }).click();
+  await settle(page);
+  await page.mouse.move(10, 10);
+  await shoot(viewerCanvas(page), 'enclosure-areas');
+
+  // The minimum clearance in the design rules.
+  await page.getByTestId('board-rules').click();
+  await page.getByTestId('rules-tab-constraints').click();
+  await shoot(page.getByTestId('rules-dialog'), 'enclosure-rule');
+  await page.keyboard.press('Escape');
+  await close();
+});
+
 test('online parts', async () => {
   test.setTimeout(240_000);
   freshProjects();

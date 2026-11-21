@@ -566,8 +566,12 @@ export class Board3dScene {
           if (material.opacity !== opacity || material.transparent !== transparent) {
             material.opacity = opacity;
             material.transparent = transparent;
-            // Transparent bodies do not hide what lies behind them.
+            // Transparent bodies do not hide what lies behind them, and
+            // win over solid faces in the same plane (no stripes).
             material.depthWrite = !transparent;
+            material.polygonOffset = transparent;
+            material.polygonOffsetFactor = transparent ? -1 : 0;
+            material.polygonOffsetUnits = transparent ? -4 : 0;
             material.side = transparent ? DoubleSide : material.side;
             material.needsUpdate = true;
           }

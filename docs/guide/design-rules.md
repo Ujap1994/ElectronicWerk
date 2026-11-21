@@ -60,19 +60,20 @@ over the patterns.
 
 ![The board minimums](/screenshots/layout-rules-minimums.png)
 
-| Minimum           | Default | Checked by the DRC as |
-| ----------------- | ------- | --------------------- |
-| Clearance         | 0.2 mm  | `clearance`           |
-| Track width       | 0.2 mm  | `track-width`         |
-| Via diameter      | 0.5 mm  | `via-diameter`        |
-| Via drill         | 0.3 mm  | `via-drill`           |
-| Annular ring      | 0.13 mm | `annular-ring`        |
-| Hole              | 0.3 mm  | `hole-size`           |
-| Hole to hole      | 0.25 mm | `hole-to-hole`        |
-| Copper to edge    | 0.3 mm  | `copper-to-edge`      |
-| Silkscreen width  | 0.15 mm | `silk-width`          |
-| Microvia diameter | 0.2 mm  | `via-diameter`        |
-| Microvia drill    | 0.1 mm  | `via-drill`           |
+| Minimum                    | Default | Checked by the DRC as                                   |
+| -------------------------- | ------- | ------------------------------------------------------- |
+| Clearance                  | 0.2 mm  | `clearance`                                             |
+| Track width                | 0.2 mm  | `track-width`                                           |
+| Via diameter               | 0.5 mm  | `via-diameter`                                          |
+| Via drill                  | 0.3 mm  | `via-drill`                                             |
+| Annular ring               | 0.13 mm | `annular-ring`                                          |
+| Hole                       | 0.3 mm  | `hole-size`                                             |
+| Hole to hole               | 0.25 mm | `hole-to-hole`                                          |
+| Copper to edge             | 0.3 mm  | `copper-to-edge`                                        |
+| Silkscreen width           | 0.15 mm | `silk-width`                                            |
+| Microvia diameter          | 0.2 mm  | `via-diameter`                                          |
+| Microvia drill             | 0.1 mm  | `via-drill`                                             |
+| Clearance to the enclosure | 0.5 mm  | `mechanical-clearance` ([enclosure check](./enclosure)) |
 
 Below the minimums, two switches allow vias that do not go through the
 whole board (both off by default, because not every board maker offers
