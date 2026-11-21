@@ -41,6 +41,9 @@ pub struct Constraints {
     pub min_micro_via_diameter: Nm,
     /// Minimum microvia drill.
     pub min_micro_via_drill: Nm,
+    /// Minimum distance between the board or its parts and the mechanical
+    /// bodies of its 3D assembly (enclosure, panels, screws).
+    pub min_mechanical_clearance: Nm,
 }
 
 impl Default for Constraints {
@@ -60,6 +63,7 @@ impl Default for Constraints {
             allow_micro_vias: false,
             min_micro_via_diameter: um(200),
             min_micro_via_drill: um(100),
+            min_mechanical_clearance: um(500),
         }
     }
 }
@@ -440,6 +444,9 @@ pub const DRC_CHECKS: &[(&str, ErcSeverity)] = &[
     ("missing-footprint", ErcSeverity::Warning),
     ("extra-footprint", ErcSeverity::Warning),
     ("net-mismatch", ErcSeverity::Error),
+    ("mechanical-collision", ErcSeverity::Error),
+    ("mechanical-clearance", ErcSeverity::Warning),
+    ("mechanical-height", ErcSeverity::Warning),
     ("rule-error", ErcSeverity::Error),
 ];
 

@@ -11,6 +11,7 @@
 pub mod body;
 pub mod part21;
 pub mod solids;
+pub mod tessellate;
 
 use std::collections::{BTreeMap, HashMap};
 use std::fmt::Write as _;

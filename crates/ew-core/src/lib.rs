@@ -30,6 +30,7 @@ pub mod info;
 pub mod journal;
 pub mod libedit;
 pub mod library;
+pub mod mechanical;
 pub mod outputs;
 pub mod pcb;
 pub mod rpc;

@@ -3,6 +3,10 @@
 //! - [`stack`]: the heights of the body, copper, mask and silkscreen from the
 //!   stack-up, and the colours of mask, silkscreen and surface finish.
 //! - [`mesh`]: triangle meshes and their construction from polygons.
+//! - [`collide`]: overlaps and distances of triangle meshes (enclosure
+//!   check).
+//! - [`enclosure`]: a simple box enclosure as STEP files.
+//! - [`mechanical`]: the board's mechanical bodies and the enclosure check.
 //! - [`board`]: the board body (outline minus holes, extruded), the copper,
 //!   mask, silkscreen and paste of each side and the plated barrels.
 //! - [`place`]: where the 3D models of the footprints go (KiCad's
@@ -29,8 +33,11 @@
 )]
 
 pub mod board;
+pub mod collide;
+pub mod enclosure;
 pub mod export;
 pub mod glb;
+pub mod mechanical;
 pub mod mesh;
 pub mod package;
 pub mod place;

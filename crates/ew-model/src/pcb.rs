@@ -765,6 +765,72 @@ pub struct BoardShape {
     pub filled: bool,
 }
 
+/// What a mechanical body is (for its name, colour and the checks).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub enum MechanicalKind {
+    /// An enclosure shell (bottom part).
+    #[default]
+    Enclosure,
+    /// A lid or top shell.
+    Lid,
+    /// A front or back panel.
+    Panel,
+    /// A screw, standoff or other fastener.
+    Screw,
+    /// A carrier board or another board the board sits on.
+    Carrier,
+    /// Anything else.
+    Other,
+}
+
+/// A mechanical body of the board's 3D assembly (M17): an enclosure
+/// part, panel, screw or carrier board from a STEP file, placed around the
+/// board and checked against it.
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct MechanicalBody {
+    /// Object id.
+    pub id: Id,
+    /// Name.
+    pub name: String,
+    /// The STEP file, relative to the project folder.
+    pub path: String,
+    /// Kind.
+    #[serde(default, skip_serializing_if = "is_default")]
+    pub kind: MechanicalKind,
+    /// Where the model's origin goes: board coordinates, z from the bottom
+    /// of the board.
+    #[serde(default, skip_serializing_if = "is_default")]
+    pub position: Vec3,
+    /// Rotation about the x, y and z axes (applied in that order).
+    #[serde(default, skip_serializing_if = "is_default")]
+    pub rotation: [Angle; 3],
+    /// Not shown in the 3D view (still checked unless `check` is off).
+    #[serde(default, skip_serializing_if = "is_default")]
+    pub hidden: bool,
+    /// Opacity in percent (100: solid).
+    #[serde(default = "full_opacity", skip_serializing_if = "is_full_opacity")]
+    pub opacity: u8,
+    /// Checked against the board and its parts.
+    #[serde(default = "crate::default_true", skip_serializing_if = "is_true")]
+    pub check: bool,
+}
+
+const fn full_opacity() -> u8 {
+    100
+}
+
+#[allow(clippy::trivially_copy_pass_by_ref, reason = "serde skip predicate")]
+const fn is_full_opacity(value: &u8) -> bool {
+    *value == 100
+}
+
+#[allow(clippy::trivially_copy_pass_by_ref, reason = "serde skip predicate")]
+const fn is_true(value: &bool) -> bool {
+    *value
+}
+
 impl_keyed!(
     Net,
     FootprintInstance,
@@ -772,7 +838,8 @@ impl_keyed!(
     Via,
     Zone,
     BoardText,
-    BoardShape
+    BoardShape,
+    MechanicalBody
 );
 
 /// A board (`.ewpcb`).
@@ -809,6 +876,9 @@ pub struct Pcb {
     /// Graphics, including the board outline.
     #[serde(default, skip_serializing_if = "Collection::is_empty")]
     pub shapes: Collection<BoardShape>,
+    /// Mechanical bodies of the 3D assembly (enclosure, panels, screws).
+    #[serde(default, skip_serializing_if = "Collection::is_empty")]
+    pub mechanical: Collection<MechanicalBody>,
     /// Design rules check findings marked as accepted (their keys).
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub drc_exclusions: Vec<String>,
@@ -846,6 +916,7 @@ impl Pcb {
             zones: Collection::new(),
             texts: Collection::new(),
             shapes: Collection::new(),
+            mechanical: Collection::new(),
             drc_exclusions: Vec::new(),
         }
     }

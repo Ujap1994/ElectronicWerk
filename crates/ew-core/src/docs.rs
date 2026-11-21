@@ -78,6 +78,30 @@ pub const SUMMARIES: &[(&str, &str)] = &[
         "`board3d.resolve {\"path\"}` → `{\"path\", \"file\"?, \"format\"?, \"entry\"?, \"mesh\"?}`: where a model path was found — a `file` on this computer (`format` `step` or `vrml`), the base library's model `entry` with the hash of its `mesh` in the mesh cache, both, or neither. See Parts and their 3D models for the search order.",
     ),
     (
+        "mechanical.list",
+        "`mechanical.list {\"doc\"}` → `{\"bodies\": [{id, name, path, file, exists, kind, position (nm), rotation (degrees), hidden, opacity, check, matrix}], \"clearance\" (mm)}`: the mechanical bodies of a board's 3D assembly (enclosure parts, panels, screws, carrier boards).",
+    ),
+    (
+        "mechanical.add",
+        "`mechanical.add {\"doc\", \"file\", \"name\"?, \"kind\"?, \"position\"? [x, y, z] nm, \"rotation\"? [x, y, z] degrees}` → `{\"id\", \"path\"}`: copies a STEP file into the project's mechanical/ folder and places it (default: at the board's centre). Kinds: enclosure, lid, panel, screw, carrier, other.",
+    ),
+    (
+        "mechanical.update",
+        "`mechanical.update {\"doc\", \"id\", \"name\"?, \"kind\"?, \"position\"?, \"rotation\"?, \"hidden\"?, \"opacity\"? (5–100), \"check\"?}`: changes a body as one undo step.",
+    ),
+    (
+        "mechanical.remove",
+        "`mechanical.remove {\"doc\", \"ids\"}`: removes bodies (their files stay in mechanical/).",
+    ),
+    (
+        "mechanical.check",
+        "`mechanical.check {\"doc\", \"clearance\"? (mm), \"defaultHeight\"? (mm)}` → `{findings, hits, errors, warnings, tessellate, unchecked, standIns, milliseconds}`: the enclosure check — overlaps (mechanical-collision) and clearances below the minimum (mechanical-clearance) of the board and every populated part against the checked bodies, as design rules findings with a 3D `point`. Parts without a model are boxes of their courtyard and height.",
+    ),
+    (
+        "mechanical.enclosure",
+        "`mechanical.enclosure {\"doc\", \"spec\"?, \"margin\"? (mm)}` → `{\"ids\", \"spec\"}`: makes a simple box enclosure (bottom shell with bosses under the mounting holes, flat lid) that fits the board and adds both as bodies.",
+    ),
+    (
         "board3d.scene",
         "`board3d.scene {\"doc\", \"inner\"?}` builds the 3D board of a board document: the laminate (outline minus holes), the copper, solder mask, silkscreen and paste of each side, the plated walls of holes and, with `inner: true`, the inner copper layers. The reply:",
     ),

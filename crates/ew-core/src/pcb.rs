@@ -101,12 +101,16 @@ pub enum Outcome {
 #[derive(Debug, Default)]
 pub struct DrcCache {
     reports: HashMap<Id, Report>,
+    /// Findings of the enclosure check for the next `pcb.drc` (computed by
+    /// the engine, which holds the meshes).
+    pub mechanical: Vec<drc::Finding>,
 }
 
 impl DrcCache {
     /// Forgets every report (a project was opened or closed).
     pub fn clear(&mut self) {
         self.reports.clear();
+        self.mechanical.clear();
     }
 }
 
@@ -676,7 +680,8 @@ pub fn call(
             let region = params.region.map(|[x0, y0, x1, y1]| {
                 BBox::of(V::new(x0 as f64, y0 as f64)).with(V::new(x1 as f64, y1 as f64))
             });
-            let extra = parity(project, pcb, rules);
+            let mut extra = parity(project, pcb, rules);
+            extra.append(&mut cache.mechanical);
             let report = match (region, cache.reports.get(&params.doc)) {
                 (Some(region), Some(previous)) => {
                     let fresh = drc::check(
@@ -2065,6 +2070,7 @@ fn parity(project: &Project, pcb: &Pcb, rules: Option<&Rules>) -> Vec<drc::Findi
             args: args.into_iter().map(|(k, v)| (k.to_owned(), v)).collect(),
             at,
             layer: None,
+            point: None,
             targets,
             key,
             excluded: false,

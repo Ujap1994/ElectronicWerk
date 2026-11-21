@@ -35,6 +35,9 @@ pub struct BoardOptions {
     pub inner: bool,
     /// What the layers show (as for the Gerber files).
     pub art: ArtOptions,
+    /// Only the body (for the enclosure check): no copper, mask,
+    /// silkscreen or paste.
+    pub body_only: bool,
 }
 
 impl Default for BoardOptions {
@@ -43,6 +46,7 @@ impl Default for BoardOptions {
             tolerance: 5_000.0,
             inner: false,
             art: ArtOptions::default(),
+            body_only: false,
         }
     }
 }
@@ -557,6 +561,9 @@ fn plan(
     }
     let mut jobs = vec![Job::Body];
     let mut layers = Vec::new();
+    if options.body_only {
+        return (jobs, layers);
+    }
     for &side in &sides {
         let mask = match side {
             Side::Top => levels.top_mask > 0.0,
@@ -647,7 +654,11 @@ pub fn build(pcb: &Pcb, resolve: Resolver<'_>, options: &BoardOptions) -> Board3
     let levels = Levels::of(&pcb.stackup);
     let mut warnings = Vec::new();
     let area = board_area(pcb, &art, &mut warnings);
-    let holes = drill::holes(pcb);
+    let mut holes = drill::holes(pcb);
+    if options.body_only {
+        // Vias and small holes do not matter for the enclosure check.
+        holes.retain(|hole| hole.diameter >= 0.9e6);
+    }
     let hole_polygons: Polygons = holes
         .iter()
         .map(|hole| vec![hole_polygon(hole, tolerance)])

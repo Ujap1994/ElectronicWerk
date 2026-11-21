@@ -56,6 +56,7 @@ const fn constraints(
         allow_micro_vias: false,
         min_micro_via_diameter: um(200),
         min_micro_via_drill: um(100),
+        min_mechanical_clearance: um(500),
     }
 }
 

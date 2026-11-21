@@ -45,7 +45,9 @@ impl Target {
         }
     }
 
-    const fn object(id: Id) -> Self {
+    /// A whole object.
+    #[must_use]
+    pub const fn object(id: Id) -> Self {
         Self { id, pad: None }
     }
 
@@ -74,6 +76,10 @@ pub struct Finding {
     /// The copper layer, if the finding is on one.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub layer: Option<String>,
+    /// Where to look in the 3D view (mm, board coordinates, z from the
+    /// bottom of the board), for findings of the enclosure check.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub point: Option<[f64; 3]>,
     /// The objects concerned.
     pub targets: Vec<Target>,
     /// A stable key (for accepting a finding).
@@ -347,6 +353,7 @@ impl Context<'_> {
                 .collect(),
             at: at.point(),
             layer: detail.layer.map(|l| l.to_string()),
+            point: None,
             targets,
             key: key.clone(),
             excluded,

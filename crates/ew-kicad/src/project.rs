@@ -144,6 +144,7 @@ pub fn settings(json: &Value) -> ProjectSettings {
                 .unwrap_or(false),
             min_micro_via_diameter: get("min_microvia_diameter", defaults.min_micro_via_diameter),
             min_micro_via_drill: get("min_microvia_drill", defaults.min_micro_via_drill),
+            min_mechanical_clearance: defaults.min_mechanical_clearance,
         });
     }
     if let Some(classes) = json

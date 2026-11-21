@@ -10,6 +10,8 @@ use super::{Writer, ascii, common, direction, point, product, real, styled, text
 pub struct Prism {
     /// Corners of the polygon (millimetres), in order, at least three.
     pub outline: Vec<[f64; 3]>,
+    /// Holes through the prism, in the plane of the outline.
+    pub holes: Vec<Vec<[f64; 3]>>,
     /// Extrusion.
     pub extrude: [f64; 3],
     /// Colour (linear RGB 0…1).
@@ -84,14 +86,15 @@ fn plane(w: &mut Writer, origin: [f64; 3], normal: [f64; 3], x_axis: [f64; 3]) -
     w.add(format!("PLANE('',#{placement})"))
 }
 
-/// Writes one prism; returns its `MANIFOLD_SOLID_BREP`.
-pub fn write_prism(w: &mut Writer, prism: &Prism) -> u64 {
-    let v = prism.extrude;
-    let mut bottom = prism.outline.clone();
-    // Counter-clockwise around the extrusion.
-    if dot(normal(&bottom), v) < 0.0 {
-        bottom.reverse();
-    }
+/// The edges of one loop of a prism.
+struct LoopEdges {
+    bottom: Vec<[f64; 3]>,
+    bottom_e: Vec<u64>,
+    top_e: Vec<u64>,
+    vertical: Vec<u64>,
+}
+
+fn loop_edges(w: &mut Writer, bottom: Vec<[f64; 3]>, v: [f64; 3]) -> LoopEdges {
     let n = bottom.len();
     let top: Vec<[f64; 3]> = bottom.iter().map(|p| add(*p, v)).collect();
     let vertex = |w: &mut Writer, p: [f64; 3]| {
@@ -121,42 +124,98 @@ pub fn write_prism(w: &mut Writer, prism: &Prism) -> u64 {
             bottom_v[i], top_v[i]
         )));
     }
+    LoopEdges {
+        bottom,
+        bottom_e,
+        top_e,
+        vertical,
+    }
+}
+
+/// Writes one prism; returns its `MANIFOLD_SOLID_BREP`.
+pub fn write_prism(w: &mut Writer, prism: &Prism) -> u64 {
+    let v = prism.extrude;
+    // The outline counter-clockwise around the extrusion, holes clockwise.
+    let mut outline = prism.outline.clone();
+    if dot(normal(&outline), v) < 0.0 {
+        outline.reverse();
+    }
+    let mut loops = vec![loop_edges(w, outline, v)];
+    for hole in &prism.holes {
+        let mut h = hole.clone();
+        if dot(normal(&h), v) > 0.0 {
+            h.reverse();
+        }
+        loops.push(loop_edges(w, h, v));
+    }
     let mut faces = Vec::new();
-    let x_axis = sub(bottom[1 % n], bottom[0]);
-    // Top: counter-clockwise seen from outside.
-    let oriented: Vec<u64> = top_e
-        .iter()
-        .map(|e| w.add(format!("ORIENTED_EDGE('',*,*,#{e},.T.)")))
-        .collect();
-    let edge_loop = w.add(format!("EDGE_LOOP('',({}))", refs(&oriented)));
-    let bound = w.add(format!("FACE_OUTER_BOUND('',#{edge_loop},.T.)"));
-    let surface = plane(w, top[0], v, x_axis);
-    faces.push(w.add(format!("ADVANCED_FACE('',(#{bound}),#{surface},.T.)")));
-    // Bottom: the loop runs the other way.
-    let oriented: Vec<u64> = bottom_e
-        .iter()
-        .rev()
-        .map(|e| w.add(format!("ORIENTED_EDGE('',*,*,#{e},.F.)")))
-        .collect();
-    let edge_loop = w.add(format!("EDGE_LOOP('',({}))", refs(&oriented)));
-    let bound = w.add(format!("FACE_OUTER_BOUND('',#{edge_loop},.T.)"));
-    let surface = plane(w, bottom[0], neg(v), x_axis);
-    faces.push(w.add(format!("ADVANCED_FACE('',(#{bound}),#{surface},.T.)")));
-    // Sides: outward is right of the walking direction.
-    for i in 0..n {
-        let j = (i + 1) % n;
-        let edges = [
-            w.add(format!("ORIENTED_EDGE('',*,*,#{},.T.)", bottom_e[i])),
-            w.add(format!("ORIENTED_EDGE('',*,*,#{},.T.)", vertical[j])),
-            w.add(format!("ORIENTED_EDGE('',*,*,#{},.F.)", top_e[i])),
-            w.add(format!("ORIENTED_EDGE('',*,*,#{},.F.)", vertical[i])),
-        ];
-        let edge_loop = w.add(format!("EDGE_LOOP('',({}))", refs(&edges)));
-        let bound = w.add(format!("FACE_OUTER_BOUND('',#{edge_loop},.T.)"));
-        let d = sub(bottom[j], bottom[i]);
-        let outward = cross(d, v);
-        let surface = plane(w, bottom[i], outward, d);
-        faces.push(w.add(format!("ADVANCED_FACE('',(#{bound}),#{surface},.T.)")));
+    let x_axis = sub(
+        loops[0].bottom[1 % loops[0].bottom.len()],
+        loops[0].bottom[0],
+    );
+    // Top: loops in their own direction (outline counter-clockwise seen
+    // from outside, holes clockwise).
+    let mut bounds = Vec::new();
+    for (index, l) in loops.iter().enumerate() {
+        let oriented: Vec<u64> = l
+            .top_e
+            .iter()
+            .map(|e| w.add(format!("ORIENTED_EDGE('',*,*,#{e},.T.)")))
+            .collect();
+        let edge_loop = w.add(format!("EDGE_LOOP('',({}))", refs(&oriented)));
+        let kind = if index == 0 {
+            "FACE_OUTER_BOUND"
+        } else {
+            "FACE_BOUND"
+        };
+        bounds.push(w.add(format!("{kind}('',#{edge_loop},.T.)")));
+    }
+    let surface = plane(w, add(loops[0].bottom[0], v), v, x_axis);
+    faces.push(w.add(format!(
+        "ADVANCED_FACE('',({}),#{surface},.T.)",
+        refs(&bounds)
+    )));
+    // Bottom: every loop runs the other way.
+    let mut bounds = Vec::new();
+    for (index, l) in loops.iter().enumerate() {
+        let oriented: Vec<u64> = l
+            .bottom_e
+            .iter()
+            .rev()
+            .map(|e| w.add(format!("ORIENTED_EDGE('',*,*,#{e},.F.)")))
+            .collect();
+        let edge_loop = w.add(format!("EDGE_LOOP('',({}))", refs(&oriented)));
+        let kind = if index == 0 {
+            "FACE_OUTER_BOUND"
+        } else {
+            "FACE_BOUND"
+        };
+        bounds.push(w.add(format!("{kind}('',#{edge_loop},.T.)")));
+    }
+    let surface = plane(w, loops[0].bottom[0], neg(v), x_axis);
+    faces.push(w.add(format!(
+        "ADVANCED_FACE('',({}),#{surface},.T.)",
+        refs(&bounds)
+    )));
+    // Sides: outward is right of the walking direction (also for holes,
+    // which run the other way).
+    for l in &loops {
+        let n = l.bottom.len();
+        for i in 0..n {
+            let j = (i + 1) % n;
+            let edges = [
+                w.add(format!("ORIENTED_EDGE('',*,*,#{},.T.)", l.bottom_e[i])),
+                w.add(format!("ORIENTED_EDGE('',*,*,#{},.T.)", l.vertical[j])),
+                w.add(format!("ORIENTED_EDGE('',*,*,#{},.F.)", l.top_e[i])),
+                w.add(format!("ORIENTED_EDGE('',*,*,#{},.F.)", l.vertical[i])),
+            ];
+            let edge_loop = w.add(format!("EDGE_LOOP('',({}))", refs(&edges)));
+            let bound = w.add(format!("FACE_OUTER_BOUND('',#{edge_loop},.T.)"));
+            let d = sub(l.bottom[j], l.bottom[i]);
+            let outward = cross(d, v);
+            let surface = plane(w, l.bottom[i], outward, d);
+            faces.push(w.add(format!("ADVANCED_FACE('',(#{bound}),#{surface},.T.)")));
+        }
     }
     let shell = w.add(format!("CLOSED_SHELL('',({}))", refs(&faces)));
     w.add(format!("MANIFOLD_SOLID_BREP('',#{shell})"))
@@ -166,6 +225,11 @@ pub fn write_prism(w: &mut Writer, prism: &Prism) -> u64 {
 #[must_use]
 pub fn file(name: &str, prisms: &[Prism], version: &str) -> String {
     let mut w = Writer::new();
+    let description = if name.starts_with("Enclosure") {
+        "ElectronicWerk enclosure model"
+    } else {
+        "ElectronicWerk package model"
+    };
     let c = common(&mut w);
     let solids: Vec<u64> = prisms.iter().map(|p| write_prism(&mut w, p)).collect();
     let mut items = vec![c.origin];
@@ -188,7 +252,7 @@ pub fn file(name: &str, prisms: &[Prism], version: &str) -> String {
     ));
     product(&mut w, &c, name, representation);
     let header = format!(
-        "ISO-10303-21;\nHEADER;\nFILE_DESCRIPTION(('ElectronicWerk package model'),'2;1');\nFILE_NAME('{}.step','',('ElectronicWerk'),('ElectronicWerk'),'ElectronicWerk {}','ElectronicWerk','');\nFILE_SCHEMA(('AUTOMOTIVE_DESIGN {{ 1 0 10303 214 1 1 1 1 }}'));\nENDSEC;\n",
+        "ISO-10303-21;\nHEADER;\nFILE_DESCRIPTION(('{description}'),'2;1');\nFILE_NAME('{}.step','',('ElectronicWerk'),('ElectronicWerk'),'ElectronicWerk {}','ElectronicWerk','');\nFILE_SCHEMA(('AUTOMOTIVE_DESIGN {{ 1 0 10303 214 1 1 1 1 }}'));\nENDSEC;\n",
         text(&ascii(name)),
         text(version)
     );

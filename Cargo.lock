@@ -420,6 +420,7 @@ dependencies = [
  "rstar",
  "serde",
  "serde_json",
+ "thiserror",
 ]
 
 [[package]]

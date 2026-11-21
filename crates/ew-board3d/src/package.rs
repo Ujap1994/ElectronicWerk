@@ -82,6 +82,7 @@ fn cuboid(min: [f64; 3], max: [f64; 3], color: [f32; 3]) -> Prism {
             [max[0], max[1], min[2]],
             [min[0], max[1], min[2]],
         ],
+        holes: Vec::new(),
         extrude: [0.0, 0.0, max[2] - min[2]],
         color,
     }
@@ -98,6 +99,7 @@ fn column(center: [f64; 2], diameter: f64, z0: f64, z1: f64, color: [f32; 3]) ->
         .collect();
     Prism {
         outline,
+        holes: Vec::new(),
         extrude: [0.0, 0.0, z1 - z0],
         color,
     }
@@ -145,6 +147,7 @@ fn gull_wing(
         .collect();
     Prism {
         outline,
+        holes: Vec::new(),
         extrude: [across[0] * width, across[1] * width, 0.0],
         color: METAL,
     }

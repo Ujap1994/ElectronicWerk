@@ -144,6 +144,12 @@ pub const METHODS: &[&str] = &[
     "library.report",
     "library.search",
     "library.status",
+    "mechanical.add",
+    "mechanical.check",
+    "mechanical.enclosure",
+    "mechanical.list",
+    "mechanical.remove",
+    "mechanical.update",
     "outputs.applyPreset",
     "outputs.bom",
     "outputs.create",
@@ -277,6 +283,7 @@ pub struct Engine {
     library: LibraryState,
     drc: crate::pcb::DrcCache,
     datasheets: crate::datasheet::Datasheets,
+    mechanical: crate::mechanical::Cache,
 }
 
 impl Default for Engine {
@@ -496,6 +503,7 @@ impl Engine {
             library: LibraryState::default(),
             drc: crate::pcb::DrcCache::default(),
             datasheets: crate::datasheet::Datasheets::default(),
+            mechanical: crate::mechanical::Cache::default(),
         }
     }
 
@@ -509,6 +517,7 @@ impl Engine {
             library: LibraryState::default(),
             drc: crate::pcb::DrcCache::default(),
             datasheets: crate::datasheet::Datasheets::default(),
+            mechanical: crate::mechanical::Cache::default(),
         }
     }
 
@@ -699,6 +708,7 @@ impl Engine {
                 crate::datasheet::call_datasheet(&mut self.datasheets, method, params)
             }
             _ if method.starts_with("part.") => self.call_part(method, params),
+            _ if method.starts_with("mechanical.") => self.call_mechanical(method, params),
             "board3d.scene" => {
                 let session = self.session.as_ref().ok_or_else(EngineError::no_project)?;
                 let (mut meta, data) = crate::board3d::scene(session, &mut self.library, params)?;
@@ -803,6 +813,7 @@ impl Engine {
                 })?;
                 self.session = Some(Session::create(&params.path, &project, self.journaling)?);
                 self.drc.clear();
+                self.mechanical.clear();
                 self.project_event("opened");
                 self.snapshot()
             }
@@ -811,6 +822,7 @@ impl Engine {
                 let params: PathParams = parse(params)?;
                 self.session = Some(Session::open(&params.path, self.journaling)?);
                 self.drc.clear();
+                self.mechanical.clear();
                 self.project_event("opened");
                 self.snapshot()
             }
@@ -836,6 +848,7 @@ impl Engine {
                 self.project_event("closed");
                 self.session = None;
                 self.drc.clear();
+                self.mechanical.clear();
                 Ok(json!({"closed": true}))
             }
             other => Err(EngineError::new(
@@ -1326,6 +1339,7 @@ impl Engine {
                 let _ = std::fs::write(session.root().join(report_file), markdown);
                 self.session = Some(session);
                 self.drc.clear();
+                self.mechanical.clear();
                 self.project_event("opened");
                 Ok(json!({
                     "project": self.snapshot()?,
@@ -1413,7 +1427,53 @@ impl Engine {
         }
     }
 
+    fn call_mechanical(&mut self, method: &str, params: &Value) -> Result<Value, EngineError> {
+        match crate::mechanical::call(
+            self.session.as_ref(),
+            &mut self.library,
+            &mut self.mechanical,
+            method,
+            params,
+        )? {
+            crate::mechanical::Outcome::Read(value) => Ok(value),
+            crate::mechanical::Outcome::Commit {
+                label,
+                files,
+                requests,
+                reply,
+            } => {
+                for (path, data) in files {
+                    if let Some(dir) = path.parent() {
+                        std::fs::create_dir_all(dir).map_err(EngineError::internal)?;
+                    }
+                    ew_format::fsio::write_atomic(&path, &data)
+                        .map_err(|e| EngineError::internal(format!("{}: {e}", path.display())))?;
+                }
+                let change_set = self.commit(label, requests)?;
+                let mut out = json!({"seq": change_set.seq, "history": change_set.history});
+                if let (Some(out), Value::Object(extra)) = (out.as_object_mut(), reply) {
+                    out.extend(extra);
+                }
+                Ok(out)
+            }
+        }
+    }
+
     fn call_pcb(&mut self, method: &str, params: &Value) -> Result<Value, EngineError> {
+        if method == "pcb.drc"
+            && let Some(session) = self.session.as_ref()
+            && let Some(doc) = params
+                .get("doc")
+                .and_then(|d| serde_json::from_value::<Id>(d.clone()).ok())
+        {
+            let findings = crate::mechanical::drc_findings(
+                session,
+                &mut self.library,
+                &mut self.mechanical,
+                doc,
+            );
+            self.drc.mechanical = findings;
+        }
         let session = self.session.as_ref().ok_or_else(EngineError::no_project)?;
         match crate::pcb::call(session.project(), method, params, &mut self.drc)? {
             crate::pcb::Outcome::Read(value) => Ok(value),
