@@ -6,11 +6,14 @@ project uses [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
-## [0.17.0] - 2026-11-20
+## [0.17.1] - 2026-11-21
 
 Parts from datasheets: open a part's PDF datasheet and get its symbol, an
 IPC-7351 footprint, a 3D STEP model and the component, after checking every
 value next to the datasheet. Your own AI agent can help through MCP.
+
+Version 0.17.0 was tagged but never published: its macOS build failed (see
+**Fixed**). 0.17.1 is the same release.
 
 ### Added
 
@@ -74,6 +77,13 @@ value next to the datasheet. Your own AI agent can help through MCP.
 
 - Pad numbers in footprint previews are at most 1.2 mm high, so large
   exposed pads keep a readable number.
+
+### Fixed
+
+- The macOS build of 0.17.0 failed: the PDF viewer's library was packed into
+  the app with a native module it does not need there (the viewer draws in
+  the window), which the universal macOS build refused. The library is now
+  bundled with the rest of the interface only.
 
 ### Notes
 
@@ -1290,8 +1300,8 @@ quality gates and the delivery pipeline that every later feature builds on.
   process ([ujap1994.github.io/ElectronicWerk](https://ujap1994.github.io/ElectronicWerk/)).
   **Help → Documentation** opens it.
 
-[Unreleased]: https://github.com/Ujap1994/ElectronicWerk/compare/v0.17.0...HEAD
-[0.17.0]: https://github.com/Ujap1994/ElectronicWerk/compare/v0.16.0...v0.17.0
+[Unreleased]: https://github.com/Ujap1994/ElectronicWerk/compare/v0.17.1...HEAD
+[0.17.1]: https://github.com/Ujap1994/ElectronicWerk/compare/v0.16.0...v0.17.1
 [0.16.0]: https://github.com/Ujap1994/ElectronicWerk/compare/v0.15.1...v0.16.0
 [0.15.1]: https://github.com/Ujap1994/ElectronicWerk/compare/v0.15.0...v0.15.1
 [0.15.0]: https://github.com/Ujap1994/ElectronicWerk/compare/v0.14.1...v0.15.0

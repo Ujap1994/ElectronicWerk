@@ -1,7 +1,7 @@
 # ElectronicWerk Roadmap
 
 > **Status:** v0.28 (2026-11-20). M0 to M16 are complete (releases v0.1.0 to
-> v0.17.0; M0, M1 and M3 accepted by the maintainer); M17 is next.
+> v0.17.1; M0, M1 and M3 accepted by the maintainer); M17 is next.
 > The GitHub integration (M11) is switched off since v0.14.1 until the
 > maintainer decides to offer it (ADR-0014).
 > This roadmap is a living document. It **must** be updated with every feature
@@ -926,7 +926,7 @@ app. Added at the maintainer's request: users load their own datasheets, and
 a part already in a library is named only when its name or part number and
 its package (nearly the same pads) match.
 
-**Done (v0.17.0):** own PDF reader (encrypted, compressed and broken files,
+**Done (v0.17.1):** own PDF reader (encrypted, compressed and broken files,
 composite fonts) with positions; recognition of pin tables (ruled or not,
 one column per package), two-row pinout drawings, package names and
 dimension tables (millimetres or inches, manufacturer letters matched by
@@ -1110,5 +1110,5 @@ joined by cables.
 | 2026-11-15 | v0.24      | v0.15.1: the external autorouter tested with a real Freerouting 2.5.0 run (replayed in CI); unlocked routing is no longer passed as fixed, protected wires of a session are kept.                                                                                                                                                                                                                                                                          |
 | 2026-11-15 | v0.25      | Real-time collaboration taken off the post-1.0 candidates: it is planned again only once v1.0.0 runs cleanly in the maintainer's daily work.                                                                                                                                                                                                                                                                                                               |
 | 2026-11-15 | v0.26      | M15 started. Added the impedance calculator to M15 (requested by the maintainer) with two working modes in the settings: Beginner computes and applies the widths, Advanced lets the user set impedance and geometry.                                                                                                                                                                                                                                      |
-| 2026-11-20 | v0.28      | M16 complete: v0.17.0 with the part generator: own PDF reader, recognition of pins, packages and dimensions, review next to the datasheet, symbol, IPC-7351 footprint, STEP model and component, duplicate check (name and nearly the same pads, requested by the maintainer), AI help through the user's agent and MCP (no API key in the app, the maintainer's choice). OCR deferred (ADR-0017).                                                         |
+| 2026-11-20 | v0.28      | M16 complete: v0.17.1 (0.17.0 tagged, not published: its macOS build failed) with the part generator: own PDF reader, recognition of pins, packages and dimensions, review next to the datasheet, symbol, IPC-7351 footprint, STEP model and component, duplicate check (name and nearly the same pads, requested by the maintainer), AI help through the user's agent and MCP (no API key in the app, the maintainer's choice). OCR deferred (ADR-0017).  |
 | 2026-11-16 | v0.27      | M15 complete: v0.16.0 with blind, buried and microvias, push and shove, the impedance calculator with the working modes, differential pairs, length matching, teardrops, stitching vias, channels and assembly variants. Back drilling deferred (ADR-0016).                                                                                                                                                                                                |
