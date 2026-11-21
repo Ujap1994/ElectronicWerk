@@ -7,10 +7,13 @@
 //!   check).
 //! - [`enclosure`]: a simple box enclosure as STEP files.
 //! - [`mechanical`]: the board's mechanical bodies and the enclosure check.
+//! - [`assembly`]: helpers from the enclosure (outline, bosses, openings,
+//!   height areas).
 //! - [`board`]: the board body (outline minus holes, extruded), the copper,
 //!   mask, silkscreen and paste of each side and the plated barrels.
 //! - [`place`]: where the 3D models of the footprints go (KiCad's
 //!   convention), as 4×4 matrices.
+//! - [`section`]: cross-sections of meshes with a horizontal plane.
 //! - [`scene`]: the board as one binary buffer plus metadata for the 3D view.
 //! - [`glb`]: reads the GLB files of the mesh cache and writes GLB files.
 //! - [`step`]: STEP AP214 export of the assembly: the board body as an exact
@@ -32,6 +35,7 @@
     reason = "board coordinates are limited to ±10 m, well inside f64 precision; geometry code uses short names"
 )]
 
+pub mod assembly;
 pub mod board;
 pub mod collide;
 pub mod enclosure;
@@ -42,6 +46,7 @@ pub mod mesh;
 pub mod package;
 pub mod place;
 pub mod scene;
+pub mod section;
 pub mod stack;
 pub mod step;
 pub mod vrml;

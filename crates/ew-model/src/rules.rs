@@ -447,6 +447,8 @@ pub const DRC_CHECKS: &[(&str, ErcSeverity)] = &[
     ("mechanical-collision", ErcSeverity::Error),
     ("mechanical-clearance", ErcSeverity::Warning),
     ("mechanical-height", ErcSeverity::Warning),
+    ("mechanical-mounting", ErcSeverity::Warning),
+    ("mechanical-opening", ErcSeverity::Warning),
     ("rule-error", ErcSeverity::Error),
 ];
 

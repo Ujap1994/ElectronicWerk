@@ -166,6 +166,52 @@ export function MechanicalPanel({
     }
   };
 
+  const outline = async (): Promise<void> => {
+    setBusy(true);
+    try {
+      const reply = await engine.call<{ outline?: [number, number][] }>(
+        'mechanical.outline',
+        { doc },
+        120_000,
+      );
+      const points = reply.outline ?? [];
+      const xs = points.map((p) => p[0]);
+      const ys = points.map((p) => p[1]);
+      const round = (v: number): string => String(Math.round(v * 100) / 100);
+      flash(
+        t('view3d.mechanical.outlineDone', {
+          width: round(Math.max(...xs) - Math.min(...xs)),
+          depth: round(Math.max(...ys) - Math.min(...ys)),
+        }),
+      );
+    } catch (error) {
+      flash(errorMessage(t, error));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const areas = async (): Promise<void> => {
+    setBusy(true);
+    try {
+      const reply = await engine.call<{ keepouts: number; heights: unknown[] }>(
+        'mechanical.areas',
+        { doc },
+        300_000,
+      );
+      flash(
+        t('view3d.mechanical.areasDone', {
+          keepouts: reply.keepouts,
+          heights: reply.heights.length,
+        }),
+      );
+    } catch (error) {
+      flash(errorMessage(t, error));
+    } finally {
+      setBusy(false);
+    }
+  };
+
   const setPosition = (axis: number, mm: number): void => {
     if (body === null) {
       return;
@@ -437,6 +483,39 @@ export function MechanicalPanel({
             </button>
           </div>
         </div>
+      )}
+      {bodies.length > 0 && (
+        <section className="mech__helpers" aria-label={t('view3d.mechanical.helpers')}>
+          <h3 className="mech__subtitle">{t('view3d.mechanical.helpers')}</h3>
+          <div className="mech__actions">
+            <button
+              type="button"
+              className="button"
+              title={t('view3d.mechanical.outlineTip')}
+              disabled={busy}
+              data-testid="mech-outline"
+              onClick={() => {
+                void outline();
+              }}
+            >
+              <Icon name="outline" size={16} />
+              {t('view3d.mechanical.outline')}
+            </button>
+            <button
+              type="button"
+              className="button"
+              title={t('view3d.mechanical.areasTip')}
+              disabled={busy}
+              data-testid="mech-areas"
+              onClick={() => {
+                void areas();
+              }}
+            >
+              <Icon name="keepout" size={16} />
+              {t('view3d.mechanical.areas')}
+            </button>
+          </div>
+        </section>
       )}
       <section className="mech__results" aria-label={t('view3d.mechanical.results')}>
         <header className="mech__results-header">

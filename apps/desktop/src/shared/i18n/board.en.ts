@@ -189,6 +189,8 @@ export const boardEn = {
       'mechanical-collision': 'Collision with the enclosure',
       'mechanical-clearance': 'Too close to the enclosure',
       'mechanical-height': 'Part too tall for a height area',
+      'mechanical-mounting': 'Mounting hole and boss do not fit',
+      'mechanical-opening': 'Connector without an opening in the enclosure',
     },
     problems: {
       sameLayer: 'connects a layer with itself',
@@ -219,6 +221,14 @@ export const boardEn = {
         'Pad {pad} is on net {board} on the board but on {schematic} in the schematic',
       'mechanical-collision': '{part} collides with {body}',
       'mechanical-clearance': '{part} is {distance} from {body} (minimum {minimum})',
+      'mechanical-height': '{part} is {height} tall, more than the {max} of {area}',
+      'mechanical-mounting-boss': 'A boss of {body} at {at} has no mounting hole',
+      'mechanical-mounting-hole': 'The mounting hole at {at} has no boss',
+      'mechanical-mounting-offset':
+        'The mounting hole at {at} is {distance} off the boss of {body}',
+      'mechanical-mounting-small':
+        'The mounting hole at {at} ({diameter}) is smaller than the screw hole of {body} ({screw})',
+      'mechanical-opening': '{part} reaches over the board edge but {body} has no opening for it',
     },
     board: 'The board',
   },
@@ -257,6 +267,8 @@ export const boardEn = {
       pours: 'Copper zones',
       footprints: 'Footprints',
     },
+    heightLimit: 'Limit the part height (height area)',
+    maxHeight: 'Tallest part (from the board surface)',
     create: 'Create',
     save: 'Save',
   },

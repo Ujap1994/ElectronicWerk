@@ -102,6 +102,18 @@ pub const SUMMARIES: &[(&str, &str)] = &[
         "`mechanical.enclosure {\"doc\", \"spec\"?, \"margin\"? (mm)}` → `{\"ids\", \"spec\"}`: makes a simple box enclosure (bottom shell with bosses under the mounting holes, flat lid) that fits the board and adds both as bodies.",
     ),
     (
+        "mechanical.section",
+        "`mechanical.section {\"doc\", \"z\"?}` → `{\"z\", \"polygons\": [[outline, holes…]] (mm)}`: the cross-section of the checked bodies with the plane z (mm above the board's bottom face, default the middle of the board).",
+    ),
+    (
+        "mechanical.outline",
+        "`mechanical.outline {\"doc\", \"clearance\"? (mm), \"apply\"?}` → `{\"outline\" (mm), \"replaced\"}`: the room inside the enclosure at the board plane, shrunk by the clearance (default the rules' minimum), as the new board outline (cut-outs stay). With `apply: false` it only reports the outline.",
+    ),
+    (
+        "mechanical.areas",
+        "`mechanical.areas {\"doc\", \"step\"? (mm), \"quantum\"? (mm)}` → `{\"keepouts\", \"heights\": [{side, height}], \"removed\"}`: keep-out areas where enclosure material crosses the board, and height areas (keep-outs with a maximum part height) from rays to the enclosure over each side; replaces the areas it made before.",
+    ),
+    (
         "board3d.scene",
         "`board3d.scene {\"doc\", \"inner\"?}` builds the 3D board of a board document: the laminate (outline minus holes), the copper, solder mask, silkscreen and paste of each side, the plated walls of holes and, with `inner: true`, the inner copper layers. The reply:",
     ),

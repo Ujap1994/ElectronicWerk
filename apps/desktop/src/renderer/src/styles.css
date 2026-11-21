@@ -4855,6 +4855,7 @@ textarea.field__control {
   min-width: 0;
 }
 
+.mech__helpers,
 .mech__results {
   display: flex;
   flex-direction: column;

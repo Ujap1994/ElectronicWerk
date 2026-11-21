@@ -195,6 +195,8 @@ export const boardDe: Messages['board'] = {
       'mechanical-collision': 'Kollision mit dem Gehäuse',
       'mechanical-clearance': 'Zu nah am Gehäuse',
       'mechanical-height': 'Bauteil zu hoch für einen Höhenbereich',
+      'mechanical-mounting': 'Befestigungsloch und Dom passen nicht',
+      'mechanical-opening': 'Steckverbinder ohne Öffnung im Gehäuse',
     },
     problems: {
       sameLayer: 'verbindet eine Lage mit sich selbst',
@@ -227,6 +229,14 @@ export const boardDe: Messages['board'] = {
         'Pad {pad} liegt auf der Platine im Netz {board}, im Schaltplan aber im Netz {schematic}',
       'mechanical-collision': '{part} stößt an {body}',
       'mechanical-clearance': '{part} ist {distance} von {body} entfernt (mindestens {minimum})',
+      'mechanical-height': '{part} ist {height} hoch, mehr als die {max} von {area}',
+      'mechanical-mounting-boss': 'Ein Dom von {body} bei {at} hat kein Befestigungsloch',
+      'mechanical-mounting-hole': 'Das Befestigungsloch bei {at} hat keinen Dom',
+      'mechanical-mounting-offset':
+        'Das Befestigungsloch bei {at} liegt {distance} neben dem Dom von {body}',
+      'mechanical-mounting-small':
+        'Das Befestigungsloch bei {at} ({diameter}) ist kleiner als das Schraubenloch von {body} ({screw})',
+      'mechanical-opening': '{part} ragt über den Platinenrand, aber {body} hat dort keine Öffnung',
     },
     board: 'Die Platine',
   },
@@ -265,6 +275,8 @@ export const boardDe: Messages['board'] = {
       pours: 'Kupferzonen',
       footprints: 'Footprints',
     },
+    heightLimit: 'Bauteilhöhe begrenzen (Höhenbereich)',
+    maxHeight: 'Höchstes Bauteil (ab Platinenoberfläche)',
     create: 'Anlegen',
     save: 'Speichern',
   },

@@ -249,6 +249,8 @@ export const en = {
     editMechanical: 'Change enclosure part',
     removeMechanical: 'Remove enclosure part',
     makeEnclosure: 'Make box enclosure',
+    outlineFromEnclosure: 'Board outline from the enclosure',
+    areasFromEnclosure: 'Areas from the enclosure',
   },
   kinds: {
     schematic: 'Schematic',

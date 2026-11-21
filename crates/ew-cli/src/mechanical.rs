@@ -96,6 +96,54 @@ pub enum MechanicalCommand {
         #[arg(long)]
         json: bool,
     },
+    /// The cross-section of the bodies at a height (mm above the board's
+    /// bottom face; default the middle of the board).
+    Section {
+        /// Project folder or `.ewproj` file.
+        project: PathBuf,
+        /// Board name (default: the first board).
+        #[arg(long)]
+        board: Option<String>,
+        /// Height of the plane in mm.
+        #[arg(long)]
+        z: Option<f64>,
+        /// Print machine-readable JSON.
+        #[arg(long)]
+        json: bool,
+    },
+    /// Take the board outline from the room inside the enclosure at the
+    /// board plane, less the clearance (cut-outs stay).
+    Outline {
+        /// Project folder or `.ewproj` file.
+        project: PathBuf,
+        /// Board name (default: the first board).
+        #[arg(long)]
+        board: Option<String>,
+        /// Gap to the enclosure in mm (default: the design rules' minimum).
+        #[arg(long)]
+        clearance: Option<f64>,
+        /// Only print the outline; do not change the board.
+        #[arg(long)]
+        dry_run: bool,
+        /// Print machine-readable JSON.
+        #[arg(long)]
+        json: bool,
+    },
+    /// Add keep-out areas where the enclosure crosses the board and height
+    /// areas from the room under the lid and above the floor.
+    Areas {
+        /// Project folder or `.ewproj` file.
+        project: PathBuf,
+        /// Board name (default: the first board).
+        #[arg(long)]
+        board: Option<String>,
+        /// Grid of the height areas in mm (default 1).
+        #[arg(long)]
+        step: Option<f64>,
+        /// Print machine-readable JSON.
+        #[arg(long)]
+        json: bool,
+    },
     /// Make a simple box enclosure that fits the board (bottom shell with
     /// bosses under the mounting holes, flat lid) and add it.
     Enclosure {
@@ -389,6 +437,112 @@ pub fn run(command: MechanicalCommand, out: &mut impl Write) -> Outcome {
             } else {
                 ExitCode::FAILURE
             })
+        }
+        MechanicalCommand::Section {
+            project,
+            board,
+            z,
+            json,
+        } => {
+            let mut engine = open(&project)?;
+            let doc = board_id(&mut engine, board.as_deref())?;
+            let mut params = json!({ "doc": doc });
+            if let Some(z) = z {
+                params["z"] = json!(z);
+            }
+            let section = call(&mut engine, "mechanical.section", params)?;
+            if json {
+                print_json(out, &section)?;
+            } else {
+                let polygons = section["polygons"].as_array().cloned().unwrap_or_default();
+                writeln!(
+                    out,
+                    "Section at z = {} mm: {} areas",
+                    section["z"].as_f64().unwrap_or(0.0),
+                    polygons.len()
+                )?;
+                for polygon in &polygons {
+                    let rings = polygon.as_array().cloned().unwrap_or_default();
+                    let outline = rings.first().and_then(Value::as_array).map_or(0, Vec::len);
+                    writeln!(
+                        out,
+                        "  outline of {outline} points, {} holes",
+                        rings.len().saturating_sub(1)
+                    )?;
+                }
+            }
+            Ok(ExitCode::SUCCESS)
+        }
+        MechanicalCommand::Outline {
+            project,
+            board,
+            clearance,
+            dry_run,
+            json,
+        } => {
+            let mut engine = open(&project)?;
+            let doc = board_id(&mut engine, board.as_deref())?;
+            let mut params = json!({ "doc": doc, "apply": !dry_run });
+            if let Some(clearance) = clearance {
+                params["clearance"] = json!(clearance);
+            }
+            let reply = call(&mut engine, "mechanical.outline", params)?;
+            if !dry_run {
+                save(&mut engine)?;
+            }
+            if json {
+                print_json(out, &reply)?;
+            } else {
+                let points = reply["outline"].as_array().cloned().unwrap_or_default();
+                writeln!(
+                    out,
+                    "{} the board outline with {} corners from the enclosure:",
+                    if dry_run { "Would set" } else { "Set" },
+                    points.len()
+                )?;
+                for p in &points {
+                    writeln!(
+                        out,
+                        "  {:.3}, {:.3} mm",
+                        p[0].as_f64().unwrap_or(0.0),
+                        p[1].as_f64().unwrap_or(0.0)
+                    )?;
+                }
+            }
+            Ok(ExitCode::SUCCESS)
+        }
+        MechanicalCommand::Areas {
+            project,
+            board,
+            step,
+            json,
+        } => {
+            let mut engine = open(&project)?;
+            let doc = board_id(&mut engine, board.as_deref())?;
+            let mut params = json!({ "doc": doc });
+            if let Some(step) = step {
+                params["step"] = json!(step);
+            }
+            let reply = call(&mut engine, "mechanical.areas", params)?;
+            save(&mut engine)?;
+            if json {
+                print_json(out, &reply)?;
+            } else {
+                writeln!(
+                    out,
+                    "Added {} keep-out areas and height areas:",
+                    reply["keepouts"].as_u64().unwrap_or(0)
+                )?;
+                for h in reply["heights"].as_array().into_iter().flatten() {
+                    writeln!(
+                        out,
+                        "  {}: parts up to {} mm",
+                        h["side"].as_str().unwrap_or(""),
+                        h["height"].as_f64().unwrap_or(0.0)
+                    )?;
+                }
+            }
+            Ok(ExitCode::SUCCESS)
         }
         MechanicalCommand::Enclosure {
             project,

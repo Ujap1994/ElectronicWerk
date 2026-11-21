@@ -67,6 +67,8 @@ const HISTORY_LABELS: Readonly<Record<string, MessageKey>> = {
   'edit-mechanical': 'history.editMechanical',
   'remove-mechanical': 'history.removeMechanical',
   'make-enclosure': 'history.makeEnclosure',
+  'outline-from-enclosure': 'history.outlineFromEnclosure',
+  'areas-from-enclosure': 'history.areasFromEnclosure',
 };
 
 /** A readable name for an undo/redo step (scripts may use their own labels). */

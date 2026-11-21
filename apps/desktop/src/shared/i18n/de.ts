@@ -246,6 +246,8 @@ export const de: Messages = {
     editMechanical: 'Gehäuseteil ändern',
     removeMechanical: 'Gehäuseteil entfernen',
     makeEnclosure: 'Kastengehäuse erzeugen',
+    outlineFromEnclosure: 'Platinenumriss aus dem Gehäuse',
+    areasFromEnclosure: 'Bereiche aus dem Gehäuse',
   },
   kinds: {
     schematic: 'Schaltplan',

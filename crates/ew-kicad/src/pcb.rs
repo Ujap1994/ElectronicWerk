@@ -234,6 +234,7 @@ fn zone(
             pads: not("pads"),
             pours: not("copperpour"),
             footprints: not("footprints"),
+            max_height: None,
         }
     });
     let fill_settings = node.get("fill");

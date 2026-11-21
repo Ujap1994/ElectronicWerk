@@ -460,6 +460,20 @@ fn tools() -> Vec<Tool> {
             read_only: true,
         },
         Tool {
+            name: "board_from_enclosure",
+            title: "Board outline and areas from the enclosure",
+            description: "outline: replaces the board outline with the room inside the enclosure at the board plane, less the clearance (cut-outs stay). areas: adds keep-out areas where the enclosure crosses the board and height areas that limit the part height under the lid and above the floor.",
+            schema: object(
+                json!({
+                    "what": {"type": "string", "enum": ["outline", "areas"]},
+                    "clearance": {"type": "number", "description": "Gap to the enclosure in mm (outline; default the design rules' minimum)"},
+                    "board": board_property(),
+                }),
+                &["what"],
+            ),
+            read_only: false,
+        },
+        Tool {
             name: "make_enclosure",
             title: "Make a box enclosure",
             description: "Makes a simple box enclosure that fits the board (bottom shell with bosses under the mounting holes, flat lid above the tallest part) and adds both parts as mechanical bodies.",
@@ -761,6 +775,18 @@ impl Server {
                     "partsAsBoxes": report["standIns"],
                     "needTessellation": report["tessellate"],
                 }))
+            }
+            "board_from_enclosure" => {
+                let doc = self.board_doc(args)?;
+                match args.get("what").and_then(Value::as_str) {
+                    Some("outline") => {
+                        let mut params = pick(args, &["clearance"]);
+                        params["doc"] = doc;
+                        self.engine_call("mechanical.outline", params)
+                    }
+                    Some("areas") => self.engine_call("mechanical.areas", json!({ "doc": doc })),
+                    _ => Err("what must be outline or areas".to_owned()),
+                }
             }
             "make_enclosure" => {
                 let doc = self.board_doc(args)?;

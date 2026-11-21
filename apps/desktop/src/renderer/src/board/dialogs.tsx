@@ -50,6 +50,8 @@ interface Keepout {
   pads: boolean;
   pours: boolean;
   footprints: boolean;
+  /** A height area: the tallest part allowed (nm). */
+  maxHeight?: number | null;
 }
 
 /** A zone as the engine stores it. */
@@ -306,6 +308,26 @@ export function ZoneDialog({
                 }}
               />
             ))}
+            <CheckInput
+              label={t('board.zone.heightLimit')}
+              checked={keepout.maxHeight !== undefined && keepout.maxHeight !== null}
+              testId="keepout-height"
+              onSave={(on) => {
+                setDraft({ ...draft, keepout: { ...keepout, maxHeight: on ? 5_000_000 : null } });
+              }}
+            />
+            {keepout.maxHeight !== undefined && keepout.maxHeight !== null && (
+              <LengthInput
+                label={t('board.zone.maxHeight')}
+                value={keepout.maxHeight}
+                units={units}
+                min={0}
+                testId="keepout-max-height"
+                onSave={(maxHeight) => {
+                  setDraft({ ...draft, keepout: { ...keepout, maxHeight } });
+                }}
+              />
+            )}
           </fieldset>
         )}
       </div>

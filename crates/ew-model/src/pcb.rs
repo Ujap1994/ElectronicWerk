@@ -673,6 +673,10 @@ pub struct Keepout {
     pub pours: bool,
     /// No footprints.
     pub footprints: bool,
+    /// A height area: parts on the area's side may be at most this tall
+    /// (measured from the board surface). Made from the enclosure (M17).
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub max_height: Option<Nm>,
 }
 
 /// A copper pour or keep-out area.

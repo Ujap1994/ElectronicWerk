@@ -117,5 +117,14 @@ export const view3dEn = {
     rules: 'Change the minimum in the design rules',
     added: 'Added {path}',
     made: 'Added a box enclosure, inside {width} × {depth} × {height} mm',
+    helpers: 'From the enclosure',
+    outline: 'Board outline',
+    outlineTip:
+      'Replaces the board outline with the room inside the enclosure at the board plane, less the minimum clearance (cut-outs stay)',
+    outlineDone: 'Board outline set from the enclosure: {width} × {depth} mm',
+    areas: 'Keep-out and height areas',
+    areasTip:
+      'Adds keep-out areas where the enclosure crosses the board, and height areas that limit how tall parts may be under the lid and above the floor (replaces the areas made before)',
+    areasDone: '{keepouts} keep-out areas and {heights} height levels added',
   },
 } as const;

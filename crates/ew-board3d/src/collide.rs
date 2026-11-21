@@ -238,6 +238,18 @@ impl Solid {
             .fold(limit, f64::min)
     }
 
+    /// The distance along a ray (`dir` of unit length) to the first face,
+    /// up to `max`.
+    #[must_use]
+    pub fn ray(&self, p: P, dir: P, max: f64) -> Option<f64> {
+        let end = add(p, scale(dir, max));
+        let span = Bounds::of(&[p, end]);
+        self.near(&span)
+            .filter_map(|t| ray_distance(p, dir, t))
+            .filter(|d| *d <= max)
+            .reduce(f64::min)
+    }
+
     /// `true` if a point lies inside the closed surface (the number of
     /// faces a ray from it crosses is odd).
     #[must_use]
@@ -522,6 +534,31 @@ pub fn triangle_distance(t: &Tri, q: &Tri) -> (f64, P, P) {
         }
     }
     best
+}
+
+/// Where a ray from `p` along `dir` meets a triangle (the distance in
+/// units of `dir`).
+fn ray_distance(p: P, dir: P, t: &Tri) -> Option<f64> {
+    let e1 = sub(t[1], t[0]);
+    let e2 = sub(t[2], t[0]);
+    let h = cross(dir, e2);
+    let a = dot(e1, h);
+    if a.abs() < 1e-14 {
+        return None;
+    }
+    let f = 1.0 / a;
+    let s = sub(p, t[0]);
+    let u = f * dot(s, h);
+    if !(0.0..=1.0).contains(&u) {
+        return None;
+    }
+    let q = cross(s, e1);
+    let v = f * dot(dir, q);
+    if v < 0.0 || u + v > 1.0 {
+        return None;
+    }
+    let d = f * dot(e2, q);
+    (d > 1e-9).then_some(d)
 }
 
 /// `true` if a ray from `p` along `dir` passes through a triangle.

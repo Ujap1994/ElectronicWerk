@@ -118,5 +118,14 @@ export const view3dDe: Messages['view3d'] = {
     rules: 'Mindestabstand in den Designregeln ändern',
     added: '{path} hinzugefügt',
     made: 'Kastengehäuse hinzugefügt, innen {width} × {depth} × {height} mm',
+    helpers: 'Aus dem Gehäuse',
+    outline: 'Platinenumriss',
+    outlineTip:
+      'Ersetzt den Platinenumriss durch den Innenraum des Gehäuses in der Platinenebene, abzüglich des Mindestabstands (Ausschnitte bleiben)',
+    outlineDone: 'Platinenumriss aus dem Gehäuse übernommen: {width} × {depth} mm',
+    areas: 'Sperr- und Höhenbereiche',
+    areasTip:
+      'Legt Sperrflächen an, wo das Gehäuse die Platine durchdringt, und Höhenbereiche, die die Bauteilhöhe unter dem Deckel und über dem Boden begrenzen (ersetzt früher erzeugte Bereiche)',
+    areasDone: '{keepouts} Sperrflächen und {heights} Höhenstufen angelegt',
   },
 };

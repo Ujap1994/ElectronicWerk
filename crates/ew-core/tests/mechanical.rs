@@ -251,3 +251,203 @@ fn checks_the_board_in_its_enclosure() {
     assert_eq!(list["bodies"][0]["check"], false);
     assert_eq!(list["bodies"][0]["opacity"], 30);
 }
+
+/// A mounting hole footprint (an unplated 3.2 mm hole) at `x`, `y` mm.
+fn mounting_hole(designator: &str, x: i64, y: i64) -> Value {
+    use ew_model::id::Id;
+    use ew_model::layer::{Layer, LayerSpec, Side};
+    use ew_model::pcb::{Drill, FootprintAttributes, FootprintInstance, Pad, PadKind, PadShape};
+    use ew_model::units::{Angle, Point, Size};
+    let pad = Pad {
+        id: Id::random(),
+        number: String::new(),
+        net: None,
+        kind: PadKind::NpThroughHole,
+        shape: PadShape::Circle,
+        at: Point::ORIGIN,
+        rotation: Angle::ZERO,
+        size: Size {
+            w: 3_200_000,
+            h: 3_200_000,
+        },
+        drill: Some(Drill {
+            diameter: 3_200_000,
+            slot_length: None,
+            offset: Point::ORIGIN,
+        }),
+        layers: vec![
+            LayerSpec::AllCopper,
+            LayerSpec::Layer(Layer::SolderMask(Side::Top)),
+        ],
+        clearance: None,
+        mask_margin: None,
+        paste_margin: None,
+    };
+    let fp = FootprintInstance {
+        id: Id::random(),
+        component: None,
+        footprint: "MountingHole_3.2mm_M3".to_owned(),
+        designator: designator.to_owned(),
+        value: "MountingHole".to_owned(),
+        at: Point::mm(x, y),
+        rotation: Angle::ZERO,
+        side: Side::Top,
+        locked: false,
+        pads: vec![pad],
+        graphics: Vec::new(),
+        texts: Vec::new(),
+        models: Vec::new(),
+        properties: std::collections::BTreeMap::new(),
+        attributes: FootprintAttributes::default(),
+    };
+    let mut value = serde_json::to_value(&fp).unwrap();
+    value["type"] = json!("footprint");
+    value
+}
+
+#[test]
+fn helpers_from_the_enclosure() {
+    let dir = tempfile::tempdir().unwrap();
+    let root = dir.path().join("Holes");
+    let mut engine = Engine::without_journal();
+    let snapshot = call(
+        &mut engine,
+        "project.create",
+        json!({"path": root, "name": "Holes", "template": "board-2l",
+               "board": {"width": 60_000_000, "height": 40_000_000, "layers": 2, "thickness": 1_600_000}}),
+    );
+    let board = doc_of(&snapshot, "pcb");
+    let outline = call(&mut engine, "design.board", Value::Null)["outline"].clone();
+    // Four mounting holes 4 mm inside the corners.
+    let [x0, y0, x1, y1] = [
+        outline["min"][0].as_f64().unwrap(),
+        outline["min"][1].as_f64().unwrap(),
+        outline["max"][0].as_f64().unwrap(),
+        outline["max"][1].as_f64().unwrap(),
+    ];
+    #[allow(clippy::cast_possible_truncation, reason = "test positions")]
+    let corners = [
+        ((x0 + 4.0) as i64, (y0 + 4.0) as i64),
+        ((x1 - 4.0) as i64, (y0 + 4.0) as i64),
+        ((x1 - 4.0) as i64, (y1 - 4.0) as i64),
+        ((x0 + 4.0) as i64, (y1 - 4.0) as i64),
+    ];
+    let changes: Vec<Value> = corners
+        .iter()
+        .enumerate()
+        .map(|(i, (x, y))| {
+            json!({"op": "insert", "doc": board, "object": mounting_hole(&format!("H{}", i + 1), *x, *y)})
+        })
+        .collect();
+    call(&mut engine, "edit.apply", json!({"changes": changes}));
+
+    // The box gets a boss under every hole: nothing to report.
+    let made = call(&mut engine, "mechanical.enclosure", json!({"doc": board}));
+    assert_eq!(made["spec"]["bosses"].as_array().unwrap().len(), 4);
+    let checked = call(&mut engine, "mechanical.check", json!({"doc": board}));
+    assert_eq!(checked["findings"], json!([]), "{checked}");
+
+    // Moved 0.4 mm: the holes are off their bosses.
+    let ids: Vec<Value> = made["ids"].as_array().unwrap().clone();
+    let list = call(&mut engine, "mechanical.list", json!({"doc": board}));
+    let bottom = list["bodies"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|b| b["id"] == ids[0])
+        .unwrap()
+        .clone();
+    let mut position = bottom["position"].clone();
+    position[1] = json!(position[1].as_i64().unwrap() + 400_000);
+    call(
+        &mut engine,
+        "mechanical.update",
+        json!({"doc": board, "id": ids[0], "position": position}),
+    );
+    let checked = call(&mut engine, "mechanical.check", json!({"doc": board}));
+    let offsets: Vec<&Value> = checked["findings"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .filter(|f| f["code"] == "mechanical-mounting" && f["args"]["variant"] == "offset")
+        .collect();
+    assert_eq!(offsets.len(), 4, "{checked}");
+    assert_eq!(offsets[0]["args"]["distance"], "0.4 mm");
+    call(&mut engine, "edit.undo", Value::Null);
+
+    // A hole the enclosure has no boss for.
+    #[allow(clippy::cast_possible_truncation, reason = "test positions")]
+    let (mx, my) = (f64::midpoint(x0, x1) as i64, f64::midpoint(y0, y1) as i64);
+    call(
+        &mut engine,
+        "edit.apply",
+        json!({"changes": [{"op": "insert", "doc": board, "object": mounting_hole("H5", mx, my)}]}),
+    );
+    let checked = call(&mut engine, "mechanical.check", json!({"doc": board}));
+    assert!(
+        checked["findings"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|f| f["args"]["variant"] == "hole"),
+        "{checked}"
+    );
+
+    // The cross-section at the board plane: the walls around a room.
+    let section = call(&mut engine, "mechanical.section", json!({"doc": board}));
+    let polygons = section["polygons"].as_array().unwrap();
+    assert_eq!(polygons.len(), 1, "{section}");
+    assert_eq!(
+        polygons[0].as_array().unwrap().len(),
+        2,
+        "outline and the room"
+    );
+
+    // The board outline from the room: the same 60 × 40 mm (0.5 mm walls
+    // gap minus 0.5 mm clearance).
+    let preview = call(
+        &mut engine,
+        "mechanical.outline",
+        json!({"doc": board, "apply": false}),
+    );
+    let points = preview["outline"].as_array().unwrap();
+    assert_eq!(points.len(), 4, "{preview}");
+    let xs: Vec<f64> = points.iter().map(|p| p[0].as_f64().unwrap()).collect();
+    let ys: Vec<f64> = points.iter().map(|p| p[1].as_f64().unwrap()).collect();
+    let span = |v: &[f64]| {
+        v.iter().copied().fold(f64::MIN, f64::max) - v.iter().copied().fold(f64::MAX, f64::min)
+    };
+    assert!((span(&xs) - (x1 - x0)).abs() < 0.01, "{preview}");
+    assert!((span(&ys) - (y1 - y0)).abs() < 0.01, "{preview}");
+    let applied = call(
+        &mut engine,
+        "mechanical.outline",
+        json!({"doc": board, "clearance": 1.0}),
+    );
+    assert_eq!(applied["replaced"], 1);
+    let after = call(&mut engine, "design.board", Value::Null)["outline"].clone();
+    assert!(
+        ((after["max"][0].as_f64().unwrap() - after["min"][0].as_f64().unwrap()) - (x1 - x0 - 1.0))
+            .abs()
+            < 0.01,
+        "{after}"
+    );
+    call(&mut engine, "edit.undo", Value::Null);
+
+    // Height areas under the lid and above the floor.
+    let areas = call(
+        &mut engine,
+        "mechanical.areas",
+        json!({"doc": board, "step": 2.0}),
+    );
+    let heights = areas["heights"].as_array().unwrap();
+    assert!(heights.iter().any(|h| h["side"] == "top"), "{areas}");
+    assert!(heights.iter().any(|h| h["side"] == "bottom"), "{areas}");
+    // Again: the old areas are replaced.
+    let again = call(
+        &mut engine,
+        "mechanical.areas",
+        json!({"doc": board, "step": 2.0}),
+    );
+    assert!(again["removed"].as_u64().unwrap() > 0);
+}

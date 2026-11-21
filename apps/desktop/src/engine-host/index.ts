@@ -18,7 +18,13 @@ import { handleDatasheetRequest, isDatasheetMethod } from './datasheets';
 import { cacheStepMesh, handleMeshRequest, isMeshMethod } from './meshes';
 
 /** Checks whose reply may name STEP files to tessellate first. */
-const CHECKS = new Set(['mechanical.check', 'pcb.drc']);
+const CHECKS = new Set([
+  'mechanical.check',
+  'mechanical.section',
+  'mechanical.outline',
+  'mechanical.areas',
+  'pcb.drc',
+]);
 
 /** The STEP files a check reply asks for (`tessellate`). */
 function filesToTessellate(reply: EngineReply | null): string[] {

@@ -20,6 +20,7 @@ use std::path::{Path, PathBuf};
 use std::sync::Arc;
 use std::time::{Instant, SystemTime};
 
+use ew_board3d::assembly;
 use ew_board3d::board::{self, BoardOptions};
 use ew_board3d::collide::{Bounds, Solid};
 use ew_board3d::enclosure::{self, BoxSpec};
@@ -30,11 +31,14 @@ use ew_board3d::stack::Levels;
 use ew_board3d::step::ModelData;
 use ew_board3d::step::tessellate::{TessellateError, planar_mesh};
 use ew_model::id::Id;
+use ew_model::layer::Side;
 use ew_model::object::Object;
 use ew_model::pcb::{MechanicalBody, MechanicalKind, Pcb};
 use ew_model::rules::{ErcSeverity, Rules};
 use ew_model::units::{Angle, Point, Vec3};
 use ew_pcb::drc::{self, Finding, Target};
+use ew_pcb::geom::V;
+use ew_pcb::poly::{self, Polygons};
 use serde::Deserialize;
 use serde_json::{Map, Value, json};
 
@@ -52,6 +56,14 @@ pub const EDIT: &str = "edit-mechanical";
 pub const REMOVE: &str = "remove-mechanical";
 /// History label of `mechanical.enclosure`.
 pub const ENCLOSURE: &str = "make-enclosure";
+/// History label of `mechanical.outline`.
+pub const OUTLINE: &str = "outline-from-enclosure";
+/// History label of `mechanical.areas`.
+pub const AREAS: &str = "areas-from-enclosure";
+
+/// Names of the zones `mechanical.areas` makes (and replaces).
+const KEEPOUT_NAME: &str = "Enclosure keep-out";
+const HEIGHT_NAME: &str = "Height area";
 
 /// The folder of the bodies' files in a project.
 pub const FOLDER: &str = "mechanical";
@@ -309,6 +321,45 @@ struct CheckParams {
 
 #[derive(Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
+struct SectionParams {
+    doc: Id,
+    /// Height of the plane (mm above the board's bottom face; default the
+    /// middle of the board).
+    #[serde(default)]
+    z: Option<f64>,
+}
+
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+struct OutlineParams {
+    doc: Id,
+    /// Gap between the board edge and the enclosure (mm; default the
+    /// rules' minimum clearance).
+    #[serde(default)]
+    clearance: Option<f64>,
+    /// Replace the board outline (default true); else only report it.
+    #[serde(default = "yes")]
+    apply: bool,
+}
+
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+struct AreasParams {
+    doc: Id,
+    /// Grid of the height areas (mm, default 1).
+    #[serde(default)]
+    step: Option<f64>,
+    /// Heights are rounded down to this (mm, default 0.5).
+    #[serde(default)]
+    quantum: Option<f64>,
+}
+
+const fn yes() -> bool {
+    true
+}
+
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
 struct EnclosureParams {
     doc: Id,
     /// The enclosure; made to fit the board if left out.
@@ -447,6 +498,219 @@ fn tallest(parts: &[PartShape], levels: &Levels) -> f64 {
         .fold(levels.body_top, f64::max)
 }
 
+/// Collects findings in the form of the design rules check.
+struct Findings<'a> {
+    pcb: &'a Pcb,
+    settings: &'a ew_model::rules::DrcSettings,
+    out: Vec<Finding>,
+}
+
+impl Findings<'_> {
+    #[allow(clippy::too_many_arguments, reason = "the parts of a finding")]
+    fn push(
+        &mut self,
+        code: &str,
+        message: String,
+        args: &[(&str, String)],
+        point: [f64; 3],
+        targets: Vec<Target>,
+        key_part: &str,
+    ) {
+        let severity = self.settings.severity(code);
+        if severity == ErcSeverity::Ignore {
+            return;
+        }
+        let key = format!("{code}:{key_part}");
+        self.out.push(Finding {
+            code: code.to_owned(),
+            severity,
+            message,
+            args: args
+                .iter()
+                .map(|(k, v)| ((*k).to_owned(), v.clone()))
+                .collect(),
+            at: point_nm(point),
+            layer: None,
+            point: Some(point.map(|v| (v * 1e4).round() / 1e4)),
+            targets,
+            excluded: self.pcb.drc_exclusions.contains(&key),
+            key,
+        });
+    }
+}
+
+fn xy_text(p: [f64; 2]) -> String {
+    format!("{:.2}, {:.2} mm", p[0], p[1])
+}
+
+/// The box of a part's shapes (mm).
+fn part_bounds(part: &PartShape) -> Bounds {
+    part.shapes.iter().fold(Bounds::EMPTY, |b, s| {
+        let sb = match s {
+            mech::Shape::Mesh(mesh, matrix) => Bounds::of_mesh(mesh, matrix),
+            mech::Shape::Box(tris) => {
+                let mut b = Bounds::EMPTY;
+                for t in tris {
+                    for p in t {
+                        b.add(*p);
+                    }
+                }
+                b
+            }
+        };
+        b.union(&sb)
+    })
+}
+
+/// The board's mounting holes: round holes of at least 1.9 mm that are
+/// not vias.
+fn mounting_holes(pcb: &Pcb) -> Vec<assembly::MountingHole> {
+    ew_output::drill::holes(pcb)
+        .into_iter()
+        .filter(|h| {
+            h.end.is_none() && h.diameter >= 1.9e6 && h.kind != ew_output::drill::HoleKind::Via
+        })
+        .map(|h| assembly::MountingHole {
+            center: [h.start.x / 1e6, h.start.y / 1e6],
+            diameter: h.diameter / 1e6,
+            footprint: None,
+        })
+        .collect()
+}
+
+/// Polygons of a zone (nm).
+fn zone_polygons(zone: &ew_model::pcb::Zone) -> Polygons {
+    #[allow(clippy::cast_precision_loss, reason = "board coordinates fit f64")]
+    let ring = |points: &[Point]| -> Vec<V> {
+        points
+            .iter()
+            .map(|p| V::new(p.x as f64, p.y as f64))
+            .collect()
+    };
+    let mut polygon = vec![ring(&zone.outline)];
+    polygon.extend(zone.holes.iter().map(|h| ring(h)));
+    vec![polygon]
+}
+
+/// The solids of a board's checked bodies; bodies without a mesh are
+/// named in `unchecked`, curved STEP files without a mesh in `tessellate`.
+fn body_solids(
+    root: &Path,
+    mesh_dir: Option<&Path>,
+    cache: &mut Cache,
+    pcb: &Pcb,
+    unchecked: &mut Vec<Id>,
+    tessellate: &mut BTreeSet<String>,
+) -> Vec<(Id, Arc<Solid>)> {
+    let mut solids = Vec::new();
+    for body in pcb.mechanical.iter().filter(|b| b.check) {
+        let file = file_of(root, body);
+        match cache.body_mesh(&file, mesh_dir) {
+            Ok(mesh) => {
+                let now = stamp(&file).unwrap_or((0, None));
+                let solid = match cache.solids.get(&body.id) {
+                    Some((seen, seen_stamp, solid)) if seen == body && *seen_stamp == now => {
+                        Arc::clone(solid)
+                    }
+                    _ => {
+                        let solid = Arc::new(Solid::of_mesh(&mesh, &mech::body_matrix(body)));
+                        cache
+                            .solids
+                            .insert(body.id, (body.clone(), now, Arc::clone(&solid)));
+                        solid
+                    }
+                };
+                solids.push((body.id, solid));
+            }
+            Err(reason) => {
+                if reason == NoMesh::Curved {
+                    tessellate.insert(file.to_string_lossy().into_owned());
+                }
+                unchecked.push(body.id);
+            }
+        }
+    }
+    solids
+}
+
+/// The board body and its area (nm), for the helpers.
+fn board_body(session: &Session, pcb: &Pcb, doc: Id, tolerance: f64) -> board::Board3d {
+    let resolve = |text: &str| session.resolve_text(text, Some(doc));
+    let options = BoardOptions {
+        body_only: true,
+        tolerance,
+        ..BoardOptions::default()
+    };
+    board::build(pcb, &resolve, &options)
+}
+
+/// Points along a shape, for telling the board's outer outline from
+/// cut-outs.
+fn sample_points(geometry: &ew_model::shape::Geometry) -> Vec<Point> {
+    use ew_model::shape::Geometry;
+    match geometry {
+        Geometry::Line { start, end } | Geometry::Bezier { start, end, .. } => vec![*start, *end],
+        Geometry::Rect { start, end } => vec![
+            *start,
+            *end,
+            Point::new(start.x, end.y),
+            Point::new(end.x, start.y),
+        ],
+        Geometry::Circle { center, radius } => vec![Point::new(center.x + radius, center.y)],
+        Geometry::Arc { start, mid, end } => vec![*start, *mid, *end],
+        Geometry::Polyline { points } | Geometry::Polygon { points } => points.clone(),
+    }
+}
+
+/// `true` if every point lies on one of the rings (within `tolerance` nm).
+fn on_rings(points: &[Point], rings: &[&Vec<V>], tolerance: f64) -> bool {
+    #[allow(clippy::cast_precision_loss, reason = "board coordinates fit f64")]
+    points.iter().all(|p| {
+        let v = V::new(p.x as f64, p.y as f64);
+        rings.iter().any(|ring| {
+            (0..ring.len()).any(|i| {
+                ew_pcb::geom::point_segment(v, ring[i], ring[(i + 1) % ring.len()]) <= tolerance
+            })
+        })
+    })
+}
+
+/// A ring without points on a straight line between their neighbours.
+fn without_collinear(ring: Vec<Point>) -> Vec<Point> {
+    let n = ring.len();
+    if n < 4 {
+        return ring;
+    }
+    let mut out = Vec::with_capacity(n);
+    for i in 0..n {
+        let a = ring[(i + n - 1) % n];
+        let b = ring[i];
+        let c = ring[(i + 1) % n];
+        #[allow(clippy::cast_precision_loss, reason = "board coordinates fit f64")]
+        let cross = ((b.x - a.x) as f64).mul_add(
+            (c.y - b.y) as f64,
+            -((b.y - a.y) as f64 * (c.x - b.x) as f64),
+        );
+        #[allow(clippy::cast_precision_loss, reason = "board coordinates fit f64")]
+        let len = ((c.x - a.x) as f64).hypot((c.y - a.y) as f64).max(1.0);
+        if (cross / len).abs() > 500.0 {
+            out.push(b);
+        }
+    }
+    out
+}
+
+#[allow(
+    clippy::cast_possible_truncation,
+    reason = "nanometres, rounded to micrometres"
+)]
+fn nm_point(v: V) -> Point {
+    Point::new(
+        (v.x / 1000.0).round() as i64 * 1000,
+        (v.y / 1000.0).round() as i64 * 1000,
+    )
+}
+
 /// Runs the enclosure check of a board.
 ///
 /// # Errors
@@ -465,41 +729,25 @@ pub fn check(
     let rules = rules_of(session);
     let mut out = Checked::default();
     let bodies: Vec<&MechanicalBody> = pcb.mechanical.iter().filter(|b| b.check).collect();
-    if bodies.is_empty() {
+    let height_zones: Vec<&ew_model::pcb::Zone> = pcb
+        .zones
+        .iter()
+        .filter(|z| z.keepout.is_some_and(|k| k.max_height.is_some()))
+        .collect();
+    if bodies.is_empty() && height_zones.is_empty() {
         return Ok(out);
     }
     let root = session.root();
     let mesh_dir = library.mesh_dir();
     let mut tessellate = BTreeSet::new();
-    // The bodies' solids.
-    let mut solids = Vec::new();
-    for body in &bodies {
-        let file = file_of(root, body);
-        match cache.body_mesh(&file, mesh_dir.as_deref()) {
-            Ok(mesh) => {
-                let now = stamp(&file).unwrap_or((0, None));
-                let solid = match cache.solids.get(&body.id) {
-                    Some((seen, seen_stamp, solid)) if seen == *body && *seen_stamp == now => {
-                        Arc::clone(solid)
-                    }
-                    _ => {
-                        let solid = Arc::new(Solid::of_mesh(&mesh, &mech::body_matrix(body)));
-                        cache
-                            .solids
-                            .insert(body.id, ((*body).clone(), now, Arc::clone(&solid)));
-                        solid
-                    }
-                };
-                solids.push((body.id, solid));
-            }
-            Err(reason) => {
-                if reason == NoMesh::Curved {
-                    tessellate.insert(file.to_string_lossy().into_owned());
-                }
-                out.unchecked.push(body.id);
-            }
-        }
-    }
+    let solids = body_solids(
+        root,
+        mesh_dir.as_deref(),
+        cache,
+        pcb,
+        &mut out.unchecked,
+        &mut tessellate,
+    );
     // The parts' meshes.
     let found = sources(pcb, root, library);
     let mut meshes: HashMap<String, Arc<Mesh>> = HashMap::new();
@@ -518,95 +766,280 @@ pub fn check(
         .map(|p| p.designator.clone())
         .collect();
     out.top = tallest(&parts, &levels);
-    // The board body.
-    let resolve = |text: &str| session.resolve_text(text, Some(doc));
-    let options = BoardOptions {
-        body_only: true,
-        tolerance: 20_000.0,
-        ..BoardOptions::default()
-    };
-    let built = board::build(pcb, &resolve, &options);
+    let built = board_body(session, pcb, doc, 20_000.0);
     let clearance = clearance.unwrap_or_else(|| clearance_of(rules));
     out.hits = mech::check(&mech::Input {
         board: (!built.body.is_empty()).then_some(&built.body),
-        bodies: solids,
+        bodies: solids.clone(),
         parts: &parts,
         clearance,
     });
-    // As findings.
     let defaults = ew_model::rules::DrcSettings::default();
-    let settings = rules.map_or(&defaults, |r| &r.drc);
+    let mut findings = Findings {
+        pcb,
+        settings: rules.map_or(&defaults, |r| &r.drc),
+        out: Vec::new(),
+    };
+    let body_name = |id: Id| {
+        pcb.mechanical
+            .get(id)
+            .map_or_else(String::new, |b| b.name.clone())
+    };
+    let designator = |id: Id| {
+        pcb.footprints
+            .get(id)
+            .map_or_else(String::new, |fp| fp.designator.clone())
+    };
+    // Collisions and clearances.
+    let mut overlapping = std::collections::HashSet::new();
     for hit in &out.hits {
         let code = if hit.overlap {
             "mechanical-collision"
         } else {
             "mechanical-clearance"
         };
-        let severity = settings.severity(code);
-        if severity == ErcSeverity::Ignore {
-            continue;
-        }
-        let body = pcb.mechanical.get(hit.body);
-        let body_name = body.map_or_else(String::new, |b| b.name.clone());
-        let (what, target, key_part) = match hit.other {
-            Other::Board => ("the board".to_owned(), None, "board".to_owned()),
+        let body = body_name(hit.body);
+        let (part, target, key_part) = match hit.other {
+            Other::Board => (String::new(), None, "board".to_owned()),
             Other::Part { id } => {
-                let designator = pcb
-                    .footprints
-                    .get(id)
-                    .map_or_else(String::new, |fp| fp.designator.clone());
-                (designator, Some(id), id.to_string())
+                if hit.overlap {
+                    overlapping.insert(id);
+                }
+                (designator(id), Some(id), id.to_string())
             }
         };
+        let what = if target.is_some() {
+            part.clone()
+        } else {
+            "The board".to_owned()
+        };
         let message = if hit.overlap {
-            format!("{} collides with {body_name}", capitalized(&what))
+            format!("{what} collides with {body}")
         } else {
             format!(
-                "{} is {} from {body_name} (minimum {})",
-                capitalized(&what),
+                "{what} is {} from {body} (minimum {})",
                 mm_text(hit.distance),
                 mm_text(clearance)
             )
         };
-        let mut args = std::collections::BTreeMap::new();
-        args.insert(
-            "part".to_owned(),
-            if target.is_some() {
-                what.clone()
-            } else {
-                String::new()
-            },
-        );
-        args.insert("body".to_owned(), body_name.clone());
-        args.insert("distance".to_owned(), mm_text(hit.distance));
-        args.insert("minimum".to_owned(), mm_text(clearance));
         let mut targets = vec![Target::object(hit.body)];
         if let Some(id) = target {
             targets.push(Target::object(id));
         }
-        let key = format!("{code}:{}/{key_part}", hit.body);
-        out.findings.push(Finding {
-            code: code.to_owned(),
-            severity,
+        findings.push(
+            code,
             message,
-            args,
-            at: point_nm(hit.point),
-            layer: None,
-            point: Some(hit.point.map(|v| (v * 1e4).round() / 1e4)),
+            &[
+                ("part", part),
+                ("body", body),
+                ("distance", mm_text(hit.distance)),
+                ("minimum", mm_text(clearance)),
+            ],
+            hit.point,
             targets,
-            excluded: pcb.drc_exclusions.contains(&key),
-            key,
-        });
+            &format!("{}/{key_part}", hit.body),
+        );
     }
+    // Bosses against the mounting holes.
+    let board_top = levels.body_top;
+    if !solids.is_empty() && !built.area.is_empty() {
+        let mut bosses = Vec::new();
+        for (id, solid) in &solids {
+            bosses.extend(assembly::bosses(*id, solid, -0.1, Side::Bottom, 15.0));
+            bosses.extend(assembly::bosses(
+                *id,
+                solid,
+                board_top + 0.1,
+                Side::Top,
+                15.0,
+            ));
+        }
+        let holes = mounting_holes(pcb);
+        for issue in assembly::mounting(&bosses, &holes, &built.area, 0.2) {
+            let z = |side: Side| if side == Side::Top { board_top } else { 0.0 };
+            match issue {
+                assembly::MountIssue::BossWithoutHole { boss } => findings.push(
+                    "mechanical-mounting",
+                    format!(
+                        "A boss of {} at {} has no mounting hole",
+                        body_name(boss.body),
+                        xy_text(boss.center)
+                    ),
+                    &[
+                        ("variant", "boss".to_owned()),
+                        ("body", body_name(boss.body)),
+                        ("at", xy_text(boss.center)),
+                    ],
+                    [boss.center[0], boss.center[1], z(boss.side)],
+                    vec![Target::object(boss.body)],
+                    &format!(
+                        "boss/{}/{:.1},{:.1}",
+                        boss.body, boss.center[0], boss.center[1]
+                    ),
+                ),
+                assembly::MountIssue::HoleWithoutBoss { hole } => findings.push(
+                    "mechanical-mounting",
+                    format!("The mounting hole at {} has no boss", xy_text(hole.center)),
+                    &[("variant", "hole".to_owned()), ("at", xy_text(hole.center))],
+                    [hole.center[0], hole.center[1], 0.0],
+                    Vec::new(),
+                    &format!("hole/{:.1},{:.1}", hole.center[0], hole.center[1]),
+                ),
+                assembly::MountIssue::Offset {
+                    boss,
+                    hole,
+                    distance,
+                } => findings.push(
+                    "mechanical-mounting",
+                    format!(
+                        "The mounting hole at {} is {} off the boss of {}",
+                        xy_text(hole.center),
+                        mm_text(distance),
+                        body_name(boss.body)
+                    ),
+                    &[
+                        ("variant", "offset".to_owned()),
+                        ("at", xy_text(hole.center)),
+                        ("distance", mm_text(distance)),
+                        ("body", body_name(boss.body)),
+                    ],
+                    [hole.center[0], hole.center[1], z(boss.side)],
+                    vec![Target::object(boss.body)],
+                    &format!(
+                        "offset/{}/{:.1},{:.1}",
+                        boss.body, hole.center[0], hole.center[1]
+                    ),
+                ),
+                assembly::MountIssue::TooSmall { boss, hole } => {
+                    let screw = boss.hole.unwrap_or(0.0);
+                    findings.push(
+                        "mechanical-mounting",
+                        format!(
+                            "The mounting hole at {} ({}) is smaller than the screw hole of {} ({})",
+                            xy_text(hole.center),
+                            mm_text(hole.diameter),
+                            body_name(boss.body),
+                            mm_text(screw)
+                        ),
+                        &[
+                            ("variant", "small".to_owned()),
+                            ("at", xy_text(hole.center)),
+                            ("diameter", mm_text(hole.diameter)),
+                            ("body", body_name(boss.body)),
+                            ("screw", mm_text(screw)),
+                        ],
+                        [hole.center[0], hole.center[1], z(boss.side)],
+                        vec![Target::object(boss.body)],
+                        &format!("small/{}/{:.1},{:.1}", boss.body, hole.center[0], hole.center[1]),
+                    );
+                }
+            }
+        }
+        // Connectors over the board edge need an opening.
+        let b = board::area_bbox(&built.area);
+        if !b.is_empty() {
+            let edge = [b.min.x / 1e6, b.min.y / 1e6, b.max.x / 1e6, b.max.y / 1e6];
+            let refs: Vec<(Id, &Solid)> = solids.iter().map(|(id, s)| (*id, s.as_ref())).collect();
+            let candidates: Vec<PartShape> = parts
+                .iter()
+                .filter(|p| !overlapping.contains(&p.id))
+                .cloned()
+                .collect();
+            for blocked in assembly::openings(&candidates, edge, &refs, 0.3, 10.0) {
+                let part = designator(blocked.part);
+                let body = body_name(blocked.body);
+                findings.push(
+                    "mechanical-opening",
+                    format!("{part} reaches over the board edge but {body} has no opening for it"),
+                    &[("part", part.clone()), ("body", body.clone())],
+                    blocked.point,
+                    vec![Target::object(blocked.body), Target::object(blocked.part)],
+                    &format!("{}/{}", blocked.body, blocked.part),
+                );
+            }
+        }
+    }
+    // Parts too tall for their height areas.
+    for zone in &height_zones {
+        let Some(max) = zone.keepout.and_then(|k| k.max_height) else {
+            continue;
+        };
+        #[allow(clippy::cast_precision_loss, reason = "heights")]
+        let max_mm = max as f64 / 1e6;
+        let polygons = zone_polygons(zone);
+        let sides: Vec<Side> = [Side::Top, Side::Bottom]
+            .into_iter()
+            .filter(|side| {
+                zone.layers.contains(&match side {
+                    Side::Top => ew_model::layer::CopperLayer::Top,
+                    Side::Bottom => ew_model::layer::CopperLayer::Bottom,
+                })
+            })
+            .collect();
+        for part in &parts {
+            let Some(fp) = pcb.footprints.get(part.id) else {
+                continue;
+            };
+            if !sides.contains(&fp.side) {
+                continue;
+            }
+            let pb = part_bounds(part);
+            if pb.is_empty() {
+                continue;
+            }
+            let tall = match fp.side {
+                Side::Top => pb.max[2] - levels.mount(Side::Top),
+                Side::Bottom => levels.mount(Side::Bottom) - pb.min[2],
+            };
+            if tall <= max_mm + 1e-3 {
+                continue;
+            }
+            let rect = vec![vec![
+                V::new(pb.min[0] * 1e6, pb.min[1] * 1e6),
+                V::new(pb.max[0] * 1e6, pb.min[1] * 1e6),
+                V::new(pb.max[0] * 1e6, pb.max[1] * 1e6),
+                V::new(pb.min[0] * 1e6, pb.max[1] * 1e6),
+            ]];
+            if poly::area(&poly::intersection(&[rect], &polygons)) < 1e6 {
+                continue;
+            }
+            let name = if zone.name.is_empty() {
+                "a height area".to_owned()
+            } else {
+                zone.name.clone()
+            };
+            let point = [
+                f64::midpoint(pb.min[0], pb.max[0]),
+                f64::midpoint(pb.min[1], pb.max[1]),
+                if fp.side == Side::Top {
+                    pb.max[2]
+                } else {
+                    pb.min[2]
+                },
+            ];
+            findings.push(
+                "mechanical-height",
+                format!(
+                    "{} is {} tall, more than the {} of {name}",
+                    fp.designator,
+                    mm_text(tall),
+                    mm_text(max_mm)
+                ),
+                &[
+                    ("part", fp.designator.clone()),
+                    ("height", mm_text(tall)),
+                    ("max", mm_text(max_mm)),
+                    ("area", name),
+                ],
+                point,
+                vec![Target::object(part.id), Target::object(zone.id)],
+                &format!("{}/{}", zone.id, part.id),
+            );
+        }
+    }
+    out.findings = findings.out;
     out.tessellate = tessellate.into_iter().collect();
     Ok(out)
-}
-
-fn capitalized(text: &str) -> String {
-    let mut chars = text.chars();
-    chars.next().map_or_else(String::new, |c| {
-        c.to_uppercase().collect::<String>() + chars.as_str()
-    })
 }
 
 fn checked_json(checked: &Checked, milliseconds: u128) -> Value {
@@ -862,6 +1295,252 @@ pub fn call(
                 started.elapsed().as_millis(),
             )))
         }
+        "mechanical.section" => {
+            let params: SectionParams = parse(params)?;
+            let pcb = board_of(session, params.doc)?;
+            let levels = Levels::of(&pcb.stackup);
+            let z = params.z.unwrap_or(levels.body_top / 2.0);
+            let mesh_dir = library.mesh_dir();
+            let (mut unchecked, mut tessellate) = (Vec::new(), BTreeSet::new());
+            let solids = body_solids(
+                root,
+                mesh_dir.as_deref(),
+                cache,
+                pcb,
+                &mut unchecked,
+                &mut tessellate,
+            );
+            let refs: Vec<&Solid> = solids.iter().map(|(_, s)| s.as_ref()).collect();
+            let polygons: Vec<Vec<Vec<[f64; 2]>>> = assembly::section_polygons(&refs, z)
+                .iter()
+                .map(|polygon| {
+                    polygon
+                        .iter()
+                        .map(|ring| {
+                            ring.iter()
+                                .map(|p| [(p.x / 1e3).round() / 1e3, (p.y / 1e3).round() / 1e3])
+                                .collect()
+                        })
+                        .collect()
+                })
+                .collect();
+            Ok(Outcome::Read(json!({
+                "z": z,
+                "polygons": polygons,
+                "unchecked": unchecked,
+                "tessellate": tessellate,
+            })))
+        }
+        "mechanical.outline" => {
+            let params: OutlineParams = parse(params)?;
+            let pcb = board_of(session, params.doc)?;
+            let levels = Levels::of(&pcb.stackup);
+            let mesh_dir = library.mesh_dir();
+            let (mut unchecked, mut tessellate) = (Vec::new(), BTreeSet::new());
+            let solids = body_solids(
+                root,
+                mesh_dir.as_deref(),
+                cache,
+                pcb,
+                &mut unchecked,
+                &mut tessellate,
+            );
+            if !tessellate.is_empty() {
+                return Ok(Outcome::Read(json!({"tessellate": tessellate})));
+            }
+            let refs: Vec<&Solid> = solids.iter().map(|(_, s)| s.as_ref()).collect();
+            let center = board_center(pcb);
+            #[allow(clippy::cast_precision_loss, reason = "board coordinates fit f64")]
+            let near = [center.x as f64 / 1e6, center.y as f64 / 1e6];
+            let cavity = assembly::cavity(&refs, levels.body_top / 2.0, near).ok_or_else(|| {
+                EngineError::invalid_params("the enclosure has no closed room at the board plane")
+            })?;
+            let clearance = params
+                .clearance
+                .unwrap_or_else(|| clearance_of(rules_of(session)))
+                .clamp(0.0, 50.0);
+            let ring: Vec<V> = cavity
+                .iter()
+                .map(|p| V::new(p[0] * 1e6, p[1] * 1e6))
+                .collect();
+            let shrunk = poly::offset(&[vec![ring]], -clearance * 1e6, 5_000.0);
+            let outline = shrunk
+                .iter()
+                .filter_map(|p| p.first())
+                .max_by(|a, b| {
+                    ew_pcb::geom::signed_area2(a)
+                        .abs()
+                        .total_cmp(&ew_pcb::geom::signed_area2(b).abs())
+                })
+                .ok_or_else(|| EngineError::invalid_params("no room left for the board"))?;
+            let points = without_collinear(outline.iter().map(|v| nm_point(*v)).collect());
+            #[allow(clippy::cast_precision_loss, reason = "millimetres")]
+            let shown: Vec<[f64; 2]> = points
+                .iter()
+                .map(|p| [p.x as f64 / 1e6, p.y as f64 / 1e6])
+                .collect();
+            if !params.apply {
+                return Ok(Outcome::Read(json!({"outline": shown})));
+            }
+            // The board's outer outline goes; cut-outs stay.
+            let built = board_body(session, pcb, params.doc, 5_000.0);
+            let outer: Vec<&Vec<V>> = built.area.iter().filter_map(|p| p.first()).collect();
+            let old: Vec<&ew_model::pcb::BoardShape> = pcb
+                .shapes
+                .iter()
+                .filter(|shape| shape.layer == ew_model::layer::Layer::Outline)
+                .filter(|shape| {
+                    outer.is_empty() || on_rings(&sample_points(&shape.geometry), &outer, 60_000.0)
+                })
+                .collect();
+            let width = old.first().map_or(100_000, |shape| shape.width);
+            let mut requests: Vec<Request> = old
+                .iter()
+                .map(|shape| Request::Delete {
+                    doc: params.doc,
+                    id: shape.id,
+                })
+                .collect();
+            requests.push(Request::Insert {
+                doc: params.doc,
+                object: Object::BoardShape(ew_model::pcb::BoardShape {
+                    id: Id::random(),
+                    layer: ew_model::layer::Layer::Outline,
+                    geometry: ew_model::shape::Geometry::Polygon { points },
+                    width,
+                    filled: false,
+                }),
+            });
+            Ok(Outcome::Commit {
+                label: OUTLINE,
+                files: Vec::new(),
+                requests,
+                reply: json!({"outline": shown, "replaced": old.len()}),
+            })
+        }
+        "mechanical.areas" => {
+            let params: AreasParams = parse(params)?;
+            let pcb = board_of(session, params.doc)?;
+            let levels = Levels::of(&pcb.stackup);
+            let mesh_dir = library.mesh_dir();
+            let (mut unchecked, mut tessellate) = (Vec::new(), BTreeSet::new());
+            let solids = body_solids(
+                root,
+                mesh_dir.as_deref(),
+                cache,
+                pcb,
+                &mut unchecked,
+                &mut tessellate,
+            );
+            if !tessellate.is_empty() {
+                return Ok(Outcome::Read(json!({"tessellate": tessellate})));
+            }
+            if solids.is_empty() {
+                return Err(EngineError::invalid_params(
+                    "the board has no checked bodies",
+                ));
+            }
+            let refs: Vec<&Solid> = solids.iter().map(|(_, s)| s.as_ref()).collect();
+            let built = board_body(session, pcb, params.doc, 20_000.0);
+            if built.area.is_empty() {
+                return Err(EngineError::invalid_params("the board has no outline"));
+            }
+            let clearance = clearance_of(rules_of(session));
+            let copper: Vec<ew_model::layer::CopperLayer> = pcb.stackup.copper_layers().collect();
+            let zone = |name: String,
+                        layers: Vec<ew_model::layer::CopperLayer>,
+                        polygon: &Vec<Vec<V>>,
+                        keepout: ew_model::pcb::Keepout| {
+                let ring = |r: &Vec<V>| without_collinear(r.iter().map(|v| nm_point(*v)).collect());
+                ew_model::pcb::Zone {
+                    id: Id::random(),
+                    name,
+                    net: None,
+                    layers,
+                    outline: polygon.first().map(ring).unwrap_or_default(),
+                    holes: polygon.iter().skip(1).map(ring).collect(),
+                    priority: 0,
+                    keepout: Some(keepout),
+                    fill: ew_model::pcb::ZoneFill::default(),
+                    filled: Vec::new(),
+                    teardrop: false,
+                }
+            };
+            let mut requests: Vec<Request> = pcb
+                .zones
+                .iter()
+                .filter(|z| {
+                    z.keepout.is_some()
+                        && (z.name.starts_with(KEEPOUT_NAME) || z.name.starts_with(HEIGHT_NAME))
+                })
+                .map(|z| Request::Delete {
+                    doc: params.doc,
+                    id: z.id,
+                })
+                .collect();
+            let removed = requests.len();
+            let mut keepouts = 0;
+            for polygon in assembly::material(&refs, levels.body_top / 2.0, &built.area) {
+                keepouts += 1;
+                requests.push(Request::Insert {
+                    doc: params.doc,
+                    object: Object::Zone(zone(
+                        KEEPOUT_NAME.to_owned(),
+                        copper.clone(),
+                        &polygon,
+                        ew_model::pcb::Keepout {
+                            tracks: true,
+                            vias: true,
+                            pads: true,
+                            pours: true,
+                            footprints: true,
+                            max_height: None,
+                        },
+                    )),
+                });
+            }
+            let step = params.step.unwrap_or(1.0).clamp(0.25, 10.0);
+            let quantum = params.quantum.unwrap_or(0.5).clamp(0.1, 10.0);
+            let mut heights = Vec::new();
+            for area in assembly::height_areas(
+                &built.area,
+                levels.mount(Side::Top),
+                levels.mount(Side::Bottom),
+                &refs,
+                step,
+                quantum,
+                300.0,
+            ) {
+                let allowed = ((area.height - clearance).max(0.0) * 10.0).floor() / 10.0;
+                let (side, layer) = match area.side {
+                    Side::Top => ("top", ew_model::layer::CopperLayer::Top),
+                    Side::Bottom => ("bottom", ew_model::layer::CopperLayer::Bottom),
+                };
+                heights.push(json!({"side": side, "height": allowed}));
+                #[allow(clippy::cast_possible_truncation, reason = "millimetres")]
+                let max_height = Some((allowed * 1e6).round() as i64);
+                for polygon in &area.polygons {
+                    requests.push(Request::Insert {
+                        doc: params.doc,
+                        object: Object::Zone(zone(
+                            format!("{HEIGHT_NAME} {allowed} mm ({side})"),
+                            vec![layer],
+                            polygon,
+                            ew_model::pcb::Keepout {
+                                max_height,
+                                ..ew_model::pcb::Keepout::default()
+                            },
+                        )),
+                    });
+                }
+            }
+            Ok(Outcome::Commit {
+                label: AREAS,
+                files: Vec::new(),
+                requests,
+                reply: json!({"keepouts": keepouts, "heights": heights, "removed": removed}),
+            })
+        }
         "mechanical.enclosure" => {
             let params: EnclosureParams = parse(params)?;
             let pcb = board_of(session, params.doc)?;
@@ -957,7 +1636,9 @@ pub fn drc_findings(
 ) -> (Vec<Finding>, Vec<String>) {
     let has_bodies = matches!(
         session.project().document(doc),
-        Some(ew_model::document::Document::Pcb(pcb)) if pcb.mechanical.iter().any(|b| b.check)
+        Some(ew_model::document::Document::Pcb(pcb))
+            if pcb.mechanical.iter().any(|b| b.check)
+                || pcb.zones.iter().any(|z| z.keepout.is_some_and(|k| k.max_height.is_some()))
     );
     if !has_bodies {
         return (Vec::new(), Vec::new());

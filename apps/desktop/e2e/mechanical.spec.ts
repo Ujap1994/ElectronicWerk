@@ -93,6 +93,12 @@ test('checks the board in its enclosure', async () => {
   });
   await expect(view3d(page)).toHaveAttribute('data-markers', '0');
 
+  // Helpers: the board outline and the height areas from the enclosure.
+  await page.getByTestId('mech-outline').click();
+  await expect(page.getByTestId('view3d-message')).toContainText('Board outline set');
+  await page.getByTestId('mech-areas').click();
+  await expect(page.getByTestId('view3d-message')).toContainText('height levels added');
+
   // Hidden and see-through.
   await page.getByTestId('mech-visible').nth(1).click();
   await expect(page.getByTestId('mech-visible').nth(1)).toHaveAttribute('aria-pressed', 'false');

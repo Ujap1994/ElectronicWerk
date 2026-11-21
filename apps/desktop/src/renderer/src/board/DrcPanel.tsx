@@ -61,8 +61,14 @@ export function findingMessage(
   t: ReturnType<typeof useAppState>['t'],
   finding: DrcFinding,
 ): string {
-  const key = `board.drc.messages.${finding.code}` as MessageKey;
   const args: Record<string, string> = { ...finding.args };
+  // Some checks have one text per kind of finding (`variant`).
+  const variant = args['variant'];
+  const key = (
+    variant === undefined
+      ? `board.drc.messages.${finding.code}`
+      : `board.drc.messages.${finding.code}-${variant}`
+  ) as MessageKey;
   // A reason given as a code (`problem`) is translated too.
   const problem = args['problem'];
   if (problem !== undefined) {
