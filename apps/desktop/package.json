@@ -1,6 +1,6 @@
 {
   "name": "@electronicwerk/desktop",
-  "version": "0.17.0",
+  "version": "0.17.1",
   "private": true,
   "description": "ElectronicWerk desktop application",
   "license": "MIT",
@@ -31,13 +31,11 @@
     "flatbush": "^4.6.2",
     "isomorphic-git": "1.44.8",
     "occt-import-js": "^0.0.23",
+    "pdfjs-dist": "^6.5.438",
     "react": "^19.3.1",
     "react-dom": "^19.3.1",
     "three": "^0.187.0",
     "vite": "^8.3.6",
     "vitest": "^5.1.0"
-  },
-  "dependencies": {
-    "pdfjs-dist": "^6.5.438"
   }
 }
