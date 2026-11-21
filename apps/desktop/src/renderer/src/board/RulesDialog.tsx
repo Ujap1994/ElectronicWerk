@@ -42,6 +42,7 @@ const CONSTRAINTS: readonly LengthConstraint[] = [
   'minSilkWidth',
   'minMicroViaDiameter',
   'minMicroViaDrill',
+  'minMechanicalClearance',
 ];
 
 const CLASS_FIELDS: readonly (keyof Omit<

@@ -946,22 +946,24 @@ pub fn call(
     }
 }
 
-/// The findings of the enclosure check for the design rules check, or
-/// none if the board has no checked bodies.
+/// The findings of the enclosure check for the design rules check (none
+/// if the board has no checked bodies), with the STEP files that need the
+/// app's tessellation.
 pub fn drc_findings(
     session: &Session,
     library: &mut LibraryState,
     cache: &mut Cache,
     doc: Id,
-) -> Vec<Finding> {
+) -> (Vec<Finding>, Vec<String>) {
     let has_bodies = matches!(
         session.project().document(doc),
         Some(ew_model::document::Document::Pcb(pcb)) if pcb.mechanical.iter().any(|b| b.check)
     );
     if !has_bodies {
-        return Vec::new();
+        return (Vec::new(), Vec::new());
     }
-    check(session, library, cache, doc, None, None).map_or_else(|_| Vec::new(), |c| c.findings)
+    check(session, library, cache, doc, None, None)
+        .map_or_else(|_| (Vec::new(), Vec::new()), |c| (c.findings, c.tessellate))
 }
 
 /// The placement of a body (for the 3D view and the STEP export).

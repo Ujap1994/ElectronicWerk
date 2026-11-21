@@ -33,6 +33,7 @@ import {
   chooseArchiveFile,
   chooseExportFile,
   chooseDatasheet,
+  chooseStepFile,
   chooseDownload,
   chooseImageFile,
   chooseModelFile,
@@ -634,6 +635,12 @@ function main(): void {
     ipcMain.handle(IPC.dialogChooseDatasheet, (event) =>
       isTrustedSender(event.senderFrame)
         ? chooseDatasheet(BrowserWindow.fromWebContents(event.sender), t)
+        : null,
+    );
+
+    ipcMain.handle(IPC.dialogChooseStep, (event) =>
+      isTrustedSender(event.senderFrame)
+        ? chooseStepFile(BrowserWindow.fromWebContents(event.sender), t)
         : null,
     );
 

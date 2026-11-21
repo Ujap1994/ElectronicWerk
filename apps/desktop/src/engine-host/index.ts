@@ -15,7 +15,19 @@ import {
 import { findAddon } from './addon';
 import { handleRequest, takeEvents, type NativeEngine } from './dispatch';
 import { handleDatasheetRequest, isDatasheetMethod } from './datasheets';
-import { handleMeshRequest, isMeshMethod } from './meshes';
+import { cacheStepMesh, handleMeshRequest, isMeshMethod } from './meshes';
+
+/** Checks whose reply may name STEP files to tessellate first. */
+const CHECKS = new Set(['mechanical.check', 'pcb.drc']);
+
+/** The STEP files a check reply asks for (`tessellate`). */
+function filesToTessellate(reply: EngineReply | null): string[] {
+  if (reply === null || !('result' in reply)) {
+    return [];
+  }
+  const files = (reply.result as { tessellate?: unknown } | null)?.tessellate;
+  return Array.isArray(files) ? files.filter((f): f is string => typeof f === 'string') : [];
+}
 
 const parentPort = process.parentPort;
 
@@ -85,6 +97,19 @@ function start(): void {
           return;
         }
         const reply: EngineReply | null = handleRequest(engine, message.data);
+        const files = CHECKS.has(String(data?.method)) ? filesToTessellate(reply) : [];
+        if (files.length > 0) {
+          // The enclosure check needs meshes of curved STEP files: make
+          // them, then check once more.
+          void Promise.all(files.map(cacheStepMesh)).then((made) => {
+            const again = made.some(Boolean) ? handleRequest(engine, message.data) : reply;
+            if (again !== null) {
+              port.postMessage(again);
+            }
+            flush();
+          });
+          return;
+        }
         if (reply !== null) {
           port.postMessage(reply);
         }

@@ -67,6 +67,34 @@ function fail(
   return { id, error: { code, message } };
 }
 
+/**
+ * Makes sure a STEP file has a mesh in the cache (the engine's enclosure
+ * check reads it). Returns `false` if it could not be tessellated.
+ */
+export async function cacheStepMesh(file: string): Promise<boolean> {
+  const dir = meshDir();
+  if (dir === null || !isAbsolute(file) || !/^\.(step|stp)$/iu.test(extname(file))) {
+    return false;
+  }
+  try {
+    const key = createHash('sha256').update(readFileSync(file)).digest('hex').slice(0, 32);
+    const cached = join(dir, `step-${key}.glb`);
+    try {
+      readFileSync(cached);
+      return true;
+    } catch {
+      // Not tessellated yet.
+    }
+    const glb = await tessellate(file);
+    mkdirSync(dir, { recursive: true });
+    writeFileSync(`${cached}.part`, glb);
+    renameSync(`${cached}.part`, cached);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 /** Handles a mesh request; the reply carries the GLB bytes as `data`. */
 export async function handleMeshRequest(
   id: number,

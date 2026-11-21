@@ -43,6 +43,7 @@ function rules(classes: NetClass[], profiles: RulesProps['impedanceProfiles'] = 
       minSilkWidth: 120_000,
       minMicroViaDiameter: 200_000,
       minMicroViaDrill: 100_000,
+      minMechanicalClearance: 500_000,
     },
     netClasses: classes,
     assignments: [],

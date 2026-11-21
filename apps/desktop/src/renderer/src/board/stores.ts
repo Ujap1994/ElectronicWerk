@@ -21,6 +21,8 @@ export interface DrcFinding {
   readonly args: Readonly<Record<string, string>>;
   readonly at: Point;
   readonly layer?: string;
+  /** Where in the 3D view (mm), for findings of the enclosure check. */
+  readonly point?: readonly [number, number, number];
   readonly targets: readonly DrcTarget[];
   readonly key: string;
   readonly excluded: boolean;

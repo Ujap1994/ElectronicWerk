@@ -40,6 +40,8 @@ import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 
 import type {
   BoardInfo,
+  Marker,
+  MechanicalBody,
   MeshInfo,
   Part3d,
   Projection,
@@ -66,6 +68,14 @@ function color(rgb: Rgb): Color {
   return new Color().setRGB(rgb[0], rgb[1], rgb[2], 'srgb');
 }
 
+/** A mechanical body on screen. */
+interface BodyObject {
+  readonly group: Group;
+  body: MechanicalBody;
+  /** The file shown (to see when it changes). */
+  file: string;
+}
+
 /** A part on screen: its group and what it is. */
 interface PartObject {
   readonly group: Group;
@@ -77,6 +87,7 @@ interface PartObject {
 }
 
 export type PickHandler = (id: string | null, additive: boolean) => void;
+export type BodyPickHandler = (id: string) => void;
 export type MeasureHandler = (points: readonly (readonly [number, number, number])[]) => void;
 
 export class Board3dScene {
@@ -89,6 +100,13 @@ export class Board3dScene {
   private readonly board = new Group();
   private readonly parts = new Group();
   private readonly overlay = new Group();
+  private readonly mechanical = new Group();
+  private readonly bodyObjects = new Map<string, BodyObject>();
+  private readonly bodyTemplates = new Map<string, Object3D | null>();
+  private readonly bodyPending = new Set<string>();
+  private markers: readonly Marker[] = [];
+  /** Fit the view once the first bodies are loaded. */
+  private fitBodies = false;
   private readonly boardMeshes = new Map<string, Mesh>();
   private readonly partObjects = new Map<string, PartObject>();
   private readonly templates = new Map<string, Object3D | null>();
@@ -110,6 +128,9 @@ export class Board3dScene {
 
   private onPick: PickHandler = () => undefined;
   private onMeasure: MeasureHandler = () => undefined;
+  private onPickBody: BodyPickHandler = () => undefined;
+  private loadBody: (file: string) => Promise<Uint8Array | null> = () => Promise.resolve(null);
+  private onBodyLoaded: (file: string, ok: boolean) => void = () => undefined;
   private loadModel: (path: string) => Promise<Uint8Array | null> = () => Promise.resolve(null);
   private onModelLoaded: (path: string, ok: boolean) => void = () => undefined;
 
@@ -129,7 +150,7 @@ export class Board3dScene {
     const sun = new DirectionalLight(0xffffff, 1.4);
     sun.position.set(0.4, -0.6, 1);
     this.scene.add(sun);
-    this.scene.add(this.board, this.parts, this.overlay);
+    this.scene.add(this.board, this.parts, this.mechanical, this.overlay);
     this.controls = this.makeControls();
     canvas.addEventListener('pointerdown', this.pointerDown);
     canvas.addEventListener('pointerup', this.pointerUp);
@@ -157,7 +178,14 @@ export class Board3dScene {
     readonly onModelLoaded?: (path: string, ok: boolean) => void;
     readonly onPick?: PickHandler;
     readonly onMeasure?: MeasureHandler;
+    /** Loads the GLB of a mechanical body's STEP file. */
+    readonly loadBody?: (file: string) => Promise<Uint8Array | null>;
+    readonly onBodyLoaded?: (file: string, ok: boolean) => void;
+    readonly onPickBody?: BodyPickHandler;
   }): void {
+    this.loadBody = callbacks.loadBody ?? this.loadBody;
+    this.onBodyLoaded = callbacks.onBodyLoaded ?? this.onBodyLoaded;
+    this.onPickBody = callbacks.onPickBody ?? this.onPickBody;
     this.loadModel = callbacks.loadModel ?? this.loadModel;
     this.onModelLoaded = callbacks.onModelLoaded ?? this.onModelLoaded;
     this.onPick = callbacks.onPick ?? this.onPick;
@@ -449,6 +477,232 @@ export class Board3dScene {
     return { loaded, failed };
   }
 
+  /** Shows the mechanical bodies; loads files it has not seen yet. */
+  setBodies(bodies: readonly MechanicalBody[]): void {
+    if (this.bodyObjects.size === 0 && bodies.length > 0) {
+      this.fitBodies = true;
+    }
+    const seen = new Set<string>();
+    for (const body of bodies) {
+      seen.add(body.id);
+      let object = this.bodyObjects.get(body.id);
+      if (object === undefined) {
+        const group = new Group();
+        group.matrixAutoUpdate = false;
+        group.userData['body'] = body.id;
+        object = { group, body, file: '' };
+        this.bodyObjects.set(body.id, object);
+        this.mechanical.add(group);
+      }
+      object.body = body;
+      object.group.matrix.fromArray(body.matrix);
+      object.group.matrixWorldNeedsUpdate = true;
+      object.group.visible = !body.hidden && body.exists;
+      if (object.file !== body.file) {
+        object.file = body.file;
+        this.fillBody(object);
+      } else {
+        this.paintBody(object);
+      }
+    }
+    for (const [id, object] of this.bodyObjects) {
+      if (!seen.has(id)) {
+        this.mechanical.remove(object.group);
+        this.bodyObjects.delete(id);
+      }
+    }
+    this.fitWhenLoaded();
+    this.applySection();
+    this.render();
+  }
+
+  /** Fits the view to the enclosure when its first bodies are shown. */
+  private fitWhenLoaded(): void {
+    if (
+      this.fitBodies &&
+      this.info !== null &&
+      [...this.bodyObjects.values()].every((o) => this.bodyTemplates.has(o.body.file))
+    ) {
+      this.fitBodies = false;
+      this.fit();
+    }
+  }
+
+  private fillBody(object: BodyObject): void {
+    object.group.clear();
+    const file = object.body.file;
+    const template = this.bodyTemplates.get(file);
+    if (template === undefined) {
+      this.requestBody(file);
+      return;
+    }
+    if (template !== null) {
+      object.group.add(this.bodyInstance(template, object.body.id));
+      this.paintBody(object);
+    }
+  }
+
+  /** A copy with its own materials (each body has its own opacity). */
+  private bodyInstance(template: Object3D, id: string): Object3D {
+    const copy = template.clone();
+    copy.traverse((node) => {
+      node.userData['body'] = id;
+      if (node instanceof Mesh) {
+        const list = Array.isArray(node.material) ? node.material : [node.material];
+        const own = (list as Material[]).map((m) => m.clone());
+        node.material = Array.isArray(node.material) ? own : own[0];
+      }
+    });
+    return copy;
+  }
+
+  private paintBody(object: BodyObject): void {
+    const opacity = Math.min(Math.max(object.body.opacity, 5), 100) / 100;
+    const transparent = opacity < 1;
+    object.group.traverse((node) => {
+      if (node instanceof Mesh) {
+        const list = Array.isArray(node.material) ? node.material : [node.material];
+        for (const material of list as Material[]) {
+          if (material.opacity !== opacity || material.transparent !== transparent) {
+            material.opacity = opacity;
+            material.transparent = transparent;
+            // Transparent bodies do not hide what lies behind them.
+            material.depthWrite = !transparent;
+            material.side = transparent ? DoubleSide : material.side;
+            material.needsUpdate = true;
+          }
+        }
+        node.renderOrder = transparent ? 3 : 0;
+      }
+    });
+  }
+
+  private requestBody(file: string): void {
+    if (this.bodyPending.has(file)) {
+      return;
+    }
+    this.bodyPending.add(file);
+    void this.loadBody(file)
+      .then(async (glb) => {
+        if (glb === null || this.disposed) {
+          return null;
+        }
+        const loader = new GLTFLoader();
+        const bytes = glb.buffer.slice(glb.byteOffset, glb.byteOffset + glb.byteLength);
+        const gltf = await loader.parseAsync(bytes as ArrayBuffer, '');
+        // GLB: metres, y up → board: millimetres, z up.
+        const template = new Group();
+        template.rotation.x = Math.PI / 2;
+        template.scale.setScalar(1000);
+        template.add(gltf.scene);
+        template.updateMatrix();
+        return template;
+      })
+      .catch(() => null)
+      .then((template) => {
+        this.bodyPending.delete(file);
+        if (this.disposed) {
+          return;
+        }
+        this.bodyTemplates.set(file, template);
+        for (const object of this.bodyObjects.values()) {
+          if (object.body.file === file) {
+            this.fillBody(object);
+          }
+        }
+        this.onBodyLoaded(file, template !== null);
+        this.fitWhenLoaded();
+        this.applySection();
+        this.render();
+      });
+  }
+
+  /** The number of body files loaded and failed. */
+  bodyState(): { loaded: number; failed: number } {
+    let loaded = 0;
+    let failed = 0;
+    for (const template of this.bodyTemplates.values()) {
+      if (template === null) {
+        failed += 1;
+      } else {
+        loaded += 1;
+      }
+    }
+    return { loaded, failed };
+  }
+
+  /**
+   * How far a body must move (x, y in mm) for the middle of its box to lie
+   * over the middle of the board.
+   */
+  centerShift(id: string): [number, number] | null {
+    const object = this.bodyObjects.get(id);
+    const b = this.info?.bounds;
+    if (object === undefined || b?.length !== 6) {
+      return null;
+    }
+    object.group.updateMatrixWorld(true);
+    const box = new Box3().setFromObject(object.group, true);
+    if (box.isEmpty()) {
+      return null;
+    }
+    const centre = box.getCenter(new Vector3());
+    const bx = ((b[0] ?? 0) + (b[3] ?? 0)) / 2;
+    const by = ((b[1] ?? 0) + (b[4] ?? 0)) / 2;
+    return [bx - centre.x, by - centre.y];
+  }
+
+  /** Shows the findings of the enclosure check. */
+  setMarkers(markers: readonly Marker[]): void {
+    this.markers = markers;
+    for (const child of [...this.overlay.children]) {
+      if (child.userData['marker'] === true) {
+        this.overlay.remove(child);
+        (child as Points).geometry.dispose();
+      }
+    }
+    for (const severity of ['warning', 'error'] as const) {
+      const points = markers.filter((m) => m.severity === severity);
+      if (points.length === 0) {
+        continue;
+      }
+      const geometry = new BufferGeometry().setFromPoints(
+        points.map((m) => new Vector3(m.point[0], m.point[1], m.point[2])),
+      );
+      const dots = new Points(
+        geometry,
+        new PointsMaterial({
+          color: severity === 'error' ? 0xdc2626 : 0xf59e0b,
+          size: 12,
+          sizeAttenuation: false,
+          depthTest: false,
+          transparent: true,
+        }),
+      );
+      dots.userData['marker'] = true;
+      dots.renderOrder = 12;
+      this.overlay.add(dots);
+    }
+    this.render();
+  }
+
+  /** The markers shown (for tests). */
+  markerCount(): number {
+    return this.markers.length;
+  }
+
+  /** Moves the camera to a point (a finding). */
+  focusPoint(point: readonly [number, number, number], radius = 6): void {
+    const centre = new Vector3(point[0], point[1], point[2]);
+    const direction = this.camera.position.clone().sub(this.controls.target).normalize();
+    const distance = (radius / Math.sin((this.perspective.fov * Math.PI) / 360)) * 1.6;
+    this.camera.position.copy(centre).addScaledVector(direction, distance);
+    this.controls.target.copy(centre);
+    this.updateOrthographic();
+    this.controls.update();
+    this.render();
+  }
+
   setVisibility(visibility: Visibility): void {
     this.visibility = visibility;
     this.applyVisibility();
@@ -558,6 +812,12 @@ export class Board3dScene {
     }
     this.parts.updateMatrixWorld(true);
     box.union(new Box3().setFromObject(this.parts, true));
+    this.mechanical.updateMatrixWorld(true);
+    for (const object of this.bodyObjects.values()) {
+      if (object.group.visible) {
+        box.union(new Box3().setFromObject(object.group, true));
+      }
+    }
     if (box.isEmpty()) {
       box.set(new Vector3(-10, -10, -1), new Vector3(10, 10, 1));
     }
@@ -638,8 +898,14 @@ export class Board3dScene {
     }
     const b = this.info.bounds;
     const index = axis === 'x' ? 0 : axis === 'y' ? 1 : 2;
-    const lo = (b[index] ?? 0) - (axis === 'z' ? 3 : 0);
-    const hi = (b[index + 3] ?? 0) + (axis === 'z' ? 3 : 0);
+    let lo = (b[index] ?? 0) - (axis === 'z' ? 3 : 0);
+    let hi = (b[index + 3] ?? 0) + (axis === 'z' ? 3 : 0);
+    // The enclosure around the board is cut too.
+    if ([...this.bodyObjects.values()].some((o) => o.group.visible)) {
+      const all = this.bounds();
+      lo = Math.min(lo, all.min.getComponent(index));
+      hi = Math.max(hi, all.max.getComponent(index));
+    }
     const at = lo + (hi - lo) * position;
     const normal = new Vector3(axis === 'x' ? -1 : 0, axis === 'y' ? -1 : 0, axis === 'z' ? -1 : 0);
     if (flip) {
@@ -662,14 +928,16 @@ export class Board3dScene {
     for (const material of this.materials.values()) {
       update(material);
     }
-    this.parts.traverse((node) => {
-      if (node instanceof Mesh) {
-        const list = Array.isArray(node.material) ? node.material : [node.material];
-        for (const material of list as Material[]) {
-          update(material);
+    for (const group of [this.parts, this.mechanical]) {
+      group.traverse((node) => {
+        if (node instanceof Mesh) {
+          const list = Array.isArray(node.material) ? node.material : [node.material];
+          for (const material of list as Material[]) {
+            update(material);
+          }
         }
-      }
-    });
+      });
+    }
   }
 
   setMeasuring(on: boolean): void {
@@ -764,6 +1032,11 @@ export class Board3dScene {
       this.onMeasure([...this.measurePoints]);
       return;
     }
+    const body = hit.any?.userData['body'] as string | undefined;
+    if (body !== undefined) {
+      this.onPickBody(body);
+      return;
+    }
     const part = hit.any?.userData['part'] as string | undefined;
     this.onPick(part ?? null, event.shiftKey || event.metaKey || event.ctrlKey);
   };
@@ -783,17 +1056,27 @@ export class Board3dScene {
     );
     this.raycaster.setFromCamera(pointer, this.camera);
     const planes = this.renderer.clippingPlanes;
-    const hits = this.raycaster.intersectObjects([this.parts, this.board], true).filter((h) => {
-      // Shown all the way up, and not cut away by a section.
-      let node: Object3D | null = h.object;
-      while (node !== null) {
-        if (!node.visible) {
-          return false;
+    const hits = this.raycaster
+      .intersectObjects([this.parts, this.board, this.mechanical], true)
+      .filter((h) => {
+        // See-through bodies let the clicks through to the board.
+        if (h.object.userData['body'] !== undefined) {
+          const material = (h.object as Mesh).material;
+          const list = Array.isArray(material) ? material : [material];
+          if (list.some((m) => m.transparent)) {
+            return false;
+          }
         }
-        node = node.parent;
-      }
-      return planes.every((plane) => plane.distanceToPoint(h.point) >= 0);
-    });
+        // Shown all the way up, and not cut away by a section.
+        let node: Object3D | null = h.object;
+        while (node !== null) {
+          if (!node.visible) {
+            return false;
+          }
+          node = node.parent;
+        }
+        return planes.every((plane) => plane.distanceToPoint(h.point) >= 0);
+      });
     const shown = (object: Object3D): boolean => {
       const material = (object as Mesh).material as Material | Material[] | undefined;
       return Array.isArray(material) || material?.visible !== false;

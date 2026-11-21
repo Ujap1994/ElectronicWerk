@@ -22,11 +22,16 @@ import { Icon, type IconName } from '../components/Icon';
 import { errorMessage } from '../project/labels';
 import { useAppState } from '../state';
 import { useDarkScheme } from '../use-dark-scheme';
+import { MechanicalPanel } from './MechanicalPanel';
 import { loadModelGlb } from './models';
 import type { Board3dScene } from './scene3d';
 import { setView3dSettings, view3dSettings } from './stores';
 import type {
+  EnclosureCheck,
+  EnclosureFinding,
   ExportReply,
+  MechanicalBody,
+  MechanicalList,
   ModelSource,
   Part3d,
   PartsReply,
@@ -148,6 +153,21 @@ export function Board3dView({
     failed: [],
   });
   const sourcesRef = useRef<readonly ModelSource[]>([]);
+  // The enclosure: mechanical bodies and the check.
+  const [panel, setPanel] = useState(false);
+  const [bodies, setBodies] = useState<readonly MechanicalBody[]>([]);
+  const [clearance, setClearance] = useState(0.5);
+  const [selectedBody, setSelectedBody] = useState<string | null>(null);
+  const [check, setCheck] = useState<EnclosureCheck | null>(null);
+  const [checking, setChecking] = useState(false);
+  const [live, setLive] = useState(true);
+  const [bodyState, setBodyState] = useState({ loaded: 0, failed: 0 });
+  const liveRef = useRef(live);
+  const runCheckRef = useRef<() => void>(() => undefined);
+
+  useEffect(() => {
+    liveRef.current = live;
+  }, [live]);
   const releaseRef = useRef<string | null>(null);
 
   // three.js is loaded on first use.
@@ -222,8 +242,111 @@ export function Board3dView({
           failed: ok ? state.failed : [...state.failed, path],
         }));
       },
+      loadBody: (file) =>
+        engine
+          .call<{ data: Uint8Array }>('mesh.tessellate', { file }, 300_000)
+          .then((reply) => reply.data)
+          .catch(() => null),
+      onBodyLoaded: () => {
+        setBodyState(scene.bodyState());
+      },
+      onPickBody: (id) => {
+        setSelectedBody(id);
+        setPanel(true);
+      },
     });
   }, [scene, engine]);
+
+  // The enclosure: its bodies, and the check after every change.
+  useEffect(() => {
+    if (scene === null) {
+      return undefined;
+    }
+    let cancelled = false;
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    let running = false;
+    let again = false;
+    const runCheck = async (): Promise<void> => {
+      if (running) {
+        again = true;
+        return;
+      }
+      running = true;
+      setChecking(true);
+      try {
+        const reply = await engine.call<EnclosureCheck>('mechanical.check', { doc }, 300_000);
+        if (!cancelled) {
+          setCheck(reply);
+          scene.setMarkers(
+            reply.findings.flatMap((f) =>
+              f.point !== undefined && !f.excluded
+                ? [{ key: f.key, point: f.point, severity: f.severity }]
+                : [],
+            ),
+          );
+        }
+      } catch {
+        // The next change checks again.
+      } finally {
+        running = false;
+        if (!cancelled) {
+          setChecking(false);
+        }
+        if (again && !cancelled) {
+          again = false;
+          void runCheck();
+        }
+      }
+    };
+    const loadBodies = async (thenCheck: boolean): Promise<void> => {
+      try {
+        const list = await engine.call<MechanicalList>('mechanical.list', { doc });
+        if (cancelled) {
+          return;
+        }
+        setBodies(list.bodies);
+        setClearance(list.clearance);
+        scene.setBodies(list.bodies);
+        if (list.bodies.length === 0) {
+          setCheck(null);
+          scene.setMarkers([]);
+        } else if (thenCheck) {
+          clearTimeout(timer);
+          timer = setTimeout(() => {
+            void runCheck();
+          }, 300);
+        }
+      } catch {
+        // Not a board (any more).
+      }
+    };
+    void loadBodies(true);
+    const off = engine.onEvent((event) => {
+      if (changesOf(event, doc).any) {
+        void loadBodies(liveRef.current);
+      }
+    });
+    runCheckRef.current = () => {
+      void runCheck();
+    };
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+      off();
+      runCheckRef.current = () => undefined;
+    };
+  }, [scene, engine, doc]);
+
+  const focusFinding = (finding: EnclosureFinding): void => {
+    if (finding.point !== undefined) {
+      scene?.focusPoint(finding.point);
+    }
+    const part = finding.targets[1]?.id;
+    if (part !== undefined) {
+      crossSelection.set({ source: '3d', footprints: [part], symbols: [] });
+    }
+    setSelectedBody(finding.targets[0]?.id ?? null);
+  };
 
   // The board, and live updates after every change.
   useEffect(() => {
@@ -583,6 +706,15 @@ export function Board3dView({
             }
           }}
         />
+        <Tool
+          icon="enclosure"
+          label={t('view3d.mechanical.tip')}
+          pressed={panel}
+          testId="view3d-mechanical"
+          onClick={() => {
+            setPanel(!panel);
+          }}
+        />
         <span className="viewer-tool__separator" />
         <Tool
           icon="camera"
@@ -729,6 +861,10 @@ export function Board3dView({
           data-models={`${done}/${total}`}
           data-updates={updates}
           data-board={boardRect}
+          data-bodies={`${String(bodyState.loaded)}/${String(new Set(bodies.map((b) => b.file)).size)}`}
+          data-markers={
+            check?.findings.filter((f) => !f.excluded && f.point !== undefined).length ?? 0
+          }
           onKeyDown={(event) => {
             if (event.key === 'Home') {
               scene?.fit();
@@ -751,6 +887,33 @@ export function Board3dView({
           </div>
         )}
         {measureLabel()}
+        {panel && (
+          <MechanicalPanel
+            doc={doc}
+            bodies={bodies}
+            clearance={clearance}
+            selected={selectedBody}
+            onSelect={setSelectedBody}
+            check={check}
+            checking={checking}
+            live={live}
+            onLive={(on) => {
+              setLive(on);
+              if (on) {
+                runCheckRef.current();
+              }
+            }}
+            onRun={() => {
+              runCheckRef.current();
+            }}
+            onFocus={focusFinding}
+            centerOf={(id) => scene?.centerShift(id) ?? null}
+            flash={flash}
+            onClose={() => {
+              setPanel(false);
+            }}
+          />
+        )}
         <div className="view3d__status" data-testid="view3d-status">
           {selectedPart !== null && (
             <span className="view3d__selected" data-testid="view3d-selected">

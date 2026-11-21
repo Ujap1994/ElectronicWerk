@@ -73,6 +73,10 @@ export function findingMessage(
     }
     args['problem'] = translated;
   }
+  // Enclosure findings about the board itself name no part.
+  if (finding.code.startsWith('mechanical-') && args['part'] === '') {
+    args['part'] = t('board.drc.board');
+  }
   const text = t(key, args);
   return text === key ? finding.message : text;
 }

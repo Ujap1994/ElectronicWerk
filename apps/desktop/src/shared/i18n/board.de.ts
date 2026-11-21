@@ -192,6 +192,9 @@ export const boardDe: Messages['board'] = {
       'extra-footprint': 'Footprint nicht im Schaltplan',
       'net-mismatch': 'Pad-Netz weicht vom Schaltplan ab',
       'rule-error': 'Fehler in einer eigenen Regel',
+      'mechanical-collision': 'Kollision mit dem Gehäuse',
+      'mechanical-clearance': 'Zu nah am Gehäuse',
+      'mechanical-height': 'Bauteil zu hoch für einen Höhenbereich',
     },
     problems: {
       sameLayer: 'verbindet eine Lage mit sich selbst',
@@ -222,7 +225,10 @@ export const boardDe: Messages['board'] = {
       'extra-footprint': '{designator} ist auf der Platine, aber nicht im Schaltplan',
       'net-mismatch':
         'Pad {pad} liegt auf der Platine im Netz {board}, im Schaltplan aber im Netz {schematic}',
+      'mechanical-collision': '{part} stößt an {body}',
+      'mechanical-clearance': '{part} ist {distance} von {body} entfernt (mindestens {minimum})',
     },
+    board: 'Die Platine',
   },
   chooser: {
     title: 'Footprint platzieren',
@@ -404,6 +410,7 @@ export const boardDe: Messages['board'] = {
       minSilkWidth: 'Bestückungsdruck-Breite',
       minMicroViaDiameter: 'Mikrovia-Durchmesser',
       minMicroViaDrill: 'Mikrovia-Bohrung',
+      minMechanicalClearance: 'Abstand zum Gehäuse',
     },
     allowBlindBuriedVias: 'Sackloch- und vergrabene Vias erlauben',
     allowMicroVias: 'Mikrovias erlauben',

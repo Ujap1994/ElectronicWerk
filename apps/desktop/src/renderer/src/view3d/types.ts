@@ -128,3 +128,74 @@ export interface Measurement {
   readonly a: readonly [number, number, number];
   readonly b: readonly [number, number, number];
 }
+
+/** What a mechanical body is. */
+export type MechanicalKind = 'enclosure' | 'lid' | 'panel' | 'screw' | 'carrier' | 'other';
+
+export const MECHANICAL_KINDS: readonly MechanicalKind[] = [
+  'enclosure',
+  'lid',
+  'panel',
+  'screw',
+  'carrier',
+  'other',
+];
+
+/** A mechanical body of the board's 3D assembly (`mechanical.list`). */
+export interface MechanicalBody {
+  readonly id: string;
+  readonly name: string;
+  /** The STEP file, relative to the project. */
+  readonly path: string;
+  /** The STEP file on this computer. */
+  readonly file: string;
+  readonly exists: boolean;
+  readonly kind: MechanicalKind;
+  /** Nanometres, z from the board's bottom face. */
+  readonly position: readonly [number, number, number];
+  /** Degrees about x, y and z. */
+  readonly rotation: readonly [number, number, number];
+  readonly hidden: boolean;
+  /** Percent. */
+  readonly opacity: number;
+  readonly check: boolean;
+  /** Model → board coordinates (mm), column-major. */
+  readonly matrix: readonly number[];
+}
+
+export interface MechanicalList {
+  readonly bodies: readonly MechanicalBody[];
+  /** Minimum clearance of the design rules (mm). */
+  readonly clearance: number;
+}
+
+/** A finding of the enclosure check (as in the design rules check). */
+export interface EnclosureFinding {
+  readonly code: string;
+  readonly severity: 'error' | 'warning';
+  readonly message: string;
+  readonly args: Readonly<Record<string, string>>;
+  readonly at: readonly [number, number];
+  readonly point?: readonly [number, number, number];
+  readonly targets: readonly { readonly id: string }[];
+  readonly key: string;
+  readonly excluded: boolean;
+}
+
+/** Reply of `mechanical.check`. */
+export interface EnclosureCheck {
+  readonly findings: readonly EnclosureFinding[];
+  readonly errors: number;
+  readonly warnings: number;
+  readonly tessellate: readonly string[];
+  readonly unchecked: readonly string[];
+  readonly standIns: readonly string[];
+  readonly milliseconds: number;
+}
+
+/** A finding drawn in the 3D view. */
+export interface Marker {
+  readonly key: string;
+  readonly point: readonly [number, number, number];
+  readonly severity: 'error' | 'warning';
+}

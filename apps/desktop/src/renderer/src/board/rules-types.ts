@@ -44,6 +44,8 @@ export interface Constraints {
   minSilkWidth: number;
   minMicroViaDiameter: number;
   minMicroViaDrill: number;
+  /** Between the board or its parts and the enclosure's bodies. */
+  minMechanicalClearance: number;
   /** Missing when off. */
   allowBlindBuriedVias?: boolean;
   allowMicroVias?: boolean;

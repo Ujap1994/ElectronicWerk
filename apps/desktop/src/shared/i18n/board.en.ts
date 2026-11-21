@@ -186,6 +186,9 @@ export const boardEn = {
       'extra-footprint': 'Footprint not in the schematic',
       'net-mismatch': 'Pad net differs from the schematic',
       'rule-error': 'Error in a custom rule',
+      'mechanical-collision': 'Collision with the enclosure',
+      'mechanical-clearance': 'Too close to the enclosure',
+      'mechanical-height': 'Part too tall for a height area',
     },
     problems: {
       sameLayer: 'connects a layer with itself',
@@ -214,7 +217,10 @@ export const boardEn = {
       'extra-footprint': '{designator} is on the board but not in the schematic',
       'net-mismatch':
         'Pad {pad} is on net {board} on the board but on {schematic} in the schematic',
+      'mechanical-collision': '{part} collides with {body}',
+      'mechanical-clearance': '{part} is {distance} from {body} (minimum {minimum})',
     },
+    board: 'The board',
   },
   chooser: {
     title: 'Place a footprint',
@@ -396,6 +402,7 @@ export const boardEn = {
       minSilkWidth: 'Silkscreen width',
       minMicroViaDiameter: 'Microvia diameter',
       minMicroViaDrill: 'Microvia drill',
+      minMechanicalClearance: 'Clearance to the enclosure',
     },
     allowBlindBuriedVias: 'Allow blind and buried vias',
     allowMicroVias: 'Allow microvias',

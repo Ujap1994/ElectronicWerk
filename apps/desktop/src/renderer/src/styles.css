@@ -4735,6 +4735,153 @@ textarea.field__control {
   font-weight: 600;
 }
 
+.view3d__panel {
+  position: absolute;
+  top: var(--space-2);
+  right: var(--space-2);
+  bottom: 40px;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  width: 320px;
+  max-width: calc(100% - 2 * var(--space-2));
+  padding: var(--space-2) var(--space-3);
+  overflow-y: auto;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-m);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-card);
+  font-size: var(--font-size-s);
+}
+
+.mech__header,
+.mech__results-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.mech__title,
+.mech__subtitle {
+  flex: 1;
+  margin: 0;
+  font-size: var(--font-size-m);
+}
+
+.mech__subtitle {
+  font-size: var(--font-size-s);
+}
+
+.mech__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.mech__empty,
+.mech__note,
+.mech__file,
+.mech__summary {
+  margin: 0;
+  color: var(--color-text-muted);
+  overflow-wrap: anywhere;
+}
+
+.mech__summary:empty {
+  display: none;
+}
+
+.mech__list,
+.mech__findings {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.mech__row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: 2px var(--space-1);
+  border-radius: var(--radius-s);
+  cursor: pointer;
+}
+
+.mech__row:hover {
+  background: var(--color-surface-muted);
+}
+
+.mech__row[aria-selected='true'] {
+  background: var(--color-accent-soft);
+}
+
+.mech__name {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.mech__kind {
+  color: var(--color-text-muted);
+}
+
+.mech__editor {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding-top: var(--space-2);
+  border-top: 1px solid var(--color-border);
+}
+
+.mech__field {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.mech__triple {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--space-1);
+}
+
+.mech__number {
+  width: 100%;
+  min-width: 0;
+}
+
+.mech__results {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding-top: var(--space-2);
+  border-top: 1px solid var(--color-border);
+}
+
+.mech__finding {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-1);
+  width: 100%;
+  padding: 2px var(--space-1);
+  border: none;
+  border-radius: var(--radius-s);
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.mech__finding:hover {
+  background: var(--color-surface-muted);
+}
+
 .view3d-window {
   height: 100vh;
   background: var(--color-bg);

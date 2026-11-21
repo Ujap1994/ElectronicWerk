@@ -1460,23 +1460,34 @@ impl Engine {
     }
 
     fn call_pcb(&mut self, method: &str, params: &Value) -> Result<Value, EngineError> {
+        let mut tessellate = Vec::new();
         if method == "pcb.drc"
             && let Some(session) = self.session.as_ref()
             && let Some(doc) = params
                 .get("doc")
                 .and_then(|d| serde_json::from_value::<Id>(d.clone()).ok())
         {
-            let findings = crate::mechanical::drc_findings(
+            let (findings, files) = crate::mechanical::drc_findings(
                 session,
                 &mut self.library,
                 &mut self.mechanical,
                 doc,
             );
             self.drc.mechanical = findings;
+            tessellate = files;
         }
         let session = self.session.as_ref().ok_or_else(EngineError::no_project)?;
         match crate::pcb::call(session.project(), method, params, &mut self.drc)? {
-            crate::pcb::Outcome::Read(value) => Ok(value),
+            crate::pcb::Outcome::Read(mut value) => {
+                // STEP files of the enclosure check that the app tessellates
+                // before it checks again.
+                if !tessellate.is_empty()
+                    && let Some(object) = value.as_object_mut()
+                {
+                    object.insert("tessellate".into(), json!(tessellate));
+                }
+                Ok(value)
+            }
             crate::pcb::Outcome::Commit {
                 label,
                 requests,

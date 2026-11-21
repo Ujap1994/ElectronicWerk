@@ -234,6 +234,27 @@ export async function chooseDatasheet(
   return result.canceled || result.filePaths.length === 0 ? null : (result.filePaths[0] ?? null);
 }
 
+/** Asks for a STEP file (a mechanical body of the 3D assembly). */
+export async function chooseStepFile(
+  window: BrowserWindow | null,
+  t: Translate,
+): Promise<string | null> {
+  const stub = takeQueued();
+  if (stub !== null) {
+    return stub.answer;
+  }
+  const options: Electron.OpenDialogOptions = {
+    title: t('dialogs.stepTitle'),
+    properties: ['openFile'],
+    filters: [{ name: t('dialogs.stepFilter'), extensions: ['step', 'stp', 'STEP', 'STP'] }],
+  };
+  const result =
+    window === null
+      ? await dialog.showOpenDialog(options)
+      : await dialog.showOpenDialog(window, options);
+  return result.canceled || result.filePaths.length === 0 ? null : (result.filePaths[0] ?? null);
+}
+
 export async function chooseArchiveFile(
   window: BrowserWindow | null,
   t: Translate,

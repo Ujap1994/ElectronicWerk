@@ -60,6 +60,7 @@ const api: EwApi = {
       ipcRenderer.invoke(IPC.dialogChooseModel, format, defaultPath),
     saveImage: (defaultPath, data) => ipcRenderer.invoke(IPC.exportSaveImage, defaultPath, data),
     chooseDatasheet: () => ipcRenderer.invoke(IPC.dialogChooseDatasheet),
+    chooseStep: () => ipcRenderer.invoke(IPC.dialogChooseStep),
     pathOfFile: (file) => webUtils.getPathForFile(file),
   },
   view3d: {

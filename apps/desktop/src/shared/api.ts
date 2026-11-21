@@ -73,6 +73,7 @@ export const IPC = {
   providersDownload: 'providers:download',
   dialogChooseDownload: 'dialog:choose-download',
   dialogChooseDatasheet: 'dialog:choose-datasheet',
+  dialogChooseStep: 'dialog:choose-step',
   githubStatus: 'github:status',
   githubChanged: 'github:changed',
   githubSignInToken: 'github:sign-in-token',
@@ -290,6 +291,8 @@ export interface EwApi {
     saveImage: (defaultPath: string, data: Uint8Array) => Promise<string | null>;
     /** Lets the user pick a PDF datasheet for the part generator. */
     chooseDatasheet: () => Promise<string | null>;
+    /** Asks for a STEP file to open (enclosure parts). */
+    chooseStep: () => Promise<string | null>;
     /** The path of a file dropped onto the window (empty if it has none). */
     pathOfFile: (file: File) => string;
   };
