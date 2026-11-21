@@ -40,7 +40,9 @@ Parts that are in no library come from their PDF datasheet: datasheet_extract gi
 (pins with pad numbers per package, packages with JEDEC dimensions in mm, each value with \
 its page); check it against datasheet_text, correct it, then part_preview and part_generate. \
 When the user works in the app's part generator, read and write their draft file with \
-part_draft_read and part_draft_write.";
+part_draft_read and part_draft_write. For the enclosure: add_mechanical places STEP files of \
+the enclosure, panels and screws around the board (or make_enclosure makes a simple box), \
+check_enclosure finds collisions and too small clearances of the board and its parts.";
 
 /// A tool: name, title, description, input schema, read-only.
 struct Tool {
@@ -401,6 +403,76 @@ fn tools() -> Vec<Tool> {
             read_only: false,
         },
         Tool {
+            name: "list_mechanical",
+            title: "Mechanical bodies",
+            description: "The enclosure parts, panels, screws and carrier boards of a board's 3D assembly: name, kind, STEP file, position (mm, z from the board's bottom face) and rotation (degrees about x, y, z), whether shown and checked.",
+            schema: object(json!({"board": board_property()}), &[]),
+            read_only: true,
+        },
+        Tool {
+            name: "add_mechanical",
+            title: "Add a mechanical body",
+            description: "Adds a STEP file (enclosure part, lid, panel, screw, carrier board) to the board's 3D assembly; it is copied into the project's mechanical/ folder. Default position: the board's centre.",
+            schema: object(
+                json!({
+                    "file": {"type": "string", "description": "Absolute path of the STEP file"},
+                    "name": {"type": "string"},
+                    "kind": {"type": "string", "enum": ["enclosure", "lid", "panel", "screw", "carrier", "other"]},
+                    "at": {"type": "array", "items": {"type": "number"}, "minItems": 3, "maxItems": 3, "description": "Position [x, y, z] in mm"},
+                    "rotate": {"type": "array", "items": {"type": "number"}, "minItems": 3, "maxItems": 3, "description": "Rotation about x, y, z in degrees"},
+                    "board": board_property(),
+                }),
+                &["file"],
+            ),
+            read_only: false,
+        },
+        Tool {
+            name: "edit_mechanical",
+            title: "Move or change a mechanical body",
+            description: "Moves, turns, shows, hides or renames a mechanical body, makes it transparent (opacity 5–100) or leaves it out of the check; remove: true removes it.",
+            schema: object(
+                json!({
+                    "body": {"type": "string", "description": "Name or id"},
+                    "at": {"type": "array", "items": {"type": "number"}, "minItems": 3, "maxItems": 3, "description": "Position [x, y, z] in mm"},
+                    "rotate": {"type": "array", "items": {"type": "number"}, "minItems": 3, "maxItems": 3, "description": "Rotation about x, y, z in degrees"},
+                    "name": {"type": "string"},
+                    "hidden": {"type": "boolean"},
+                    "opacity": {"type": "integer", "minimum": 5, "maximum": 100},
+                    "check": {"type": "boolean"},
+                    "remove": {"type": "boolean"},
+                    "board": board_property(),
+                }),
+                &["body"],
+            ),
+            read_only: false,
+        },
+        Tool {
+            name: "check_enclosure",
+            title: "Enclosure check",
+            description: "Collisions (errors) and clearances below the minimum (warnings, default 0.5 mm from the design rules) of the board and every part against the mechanical bodies, with the place in mm. Parts without a 3D model count as boxes of their courtyard and height.",
+            schema: object(
+                json!({
+                    "clearance": {"type": "number", "description": "Minimum clearance in mm"},
+                    "board": board_property(),
+                }),
+                &[],
+            ),
+            read_only: true,
+        },
+        Tool {
+            name: "make_enclosure",
+            title: "Make a box enclosure",
+            description: "Makes a simple box enclosure that fits the board (bottom shell with bosses under the mounting holes, flat lid above the tallest part) and adds both parts as mechanical bodies.",
+            schema: object(
+                json!({
+                    "margin": {"type": "number", "description": "Gap between the board edge and the walls in mm (default 0.5)"},
+                    "board": board_property(),
+                }),
+                &[],
+            ),
+            read_only: false,
+        },
+        Tool {
             name: "list_engine_methods",
             title: "Engine methods",
             description: "Every method of the ElectronicWerk engine with a summary, for call_engine.",
@@ -607,6 +679,95 @@ impl Server {
                 }
                 self.engine_call("part.generate", params)
             }
+            "list_mechanical" => {
+                let doc = self.board_doc(args)?;
+                let list = self.engine_call("mechanical.list", json!({ "doc": doc }))?;
+                let bodies: Vec<Value> = list["bodies"]
+                    .as_array()
+                    .into_iter()
+                    .flatten()
+                    .map(|b| {
+                        json!({
+                            "id": b["id"], "name": b["name"], "kind": b["kind"], "path": b["path"],
+                            "at": nm_to_mm3(&b["position"]), "rotate": b["rotation"],
+                            "hidden": b["hidden"], "opacity": b["opacity"], "check": b["check"],
+                            "fileExists": b["exists"],
+                        })
+                    })
+                    .collect();
+                Ok(json!({ "bodies": bodies, "clearance": list["clearance"] }))
+            }
+            "add_mechanical" => {
+                let doc = self.board_doc(args)?;
+                let mut params = pick(args, &["file", "name", "kind"]);
+                params["doc"] = doc;
+                if let Some(at) = args.get("at") {
+                    params["position"] = mm_to_nm3(at)?;
+                }
+                if let Some(rotate) = args.get("rotate") {
+                    params["rotation"] = rotate.clone();
+                }
+                self.engine_call("mechanical.add", params)
+            }
+            "edit_mechanical" => {
+                let doc = self.board_doc(args)?;
+                let wanted = args
+                    .get("body")
+                    .and_then(Value::as_str)
+                    .ok_or_else(|| "body is missing".to_owned())?;
+                let list = self.engine_call("mechanical.list", json!({ "doc": doc }))?;
+                let id = list["bodies"]
+                    .as_array()
+                    .into_iter()
+                    .flatten()
+                    .find(|b| b["name"] == wanted || b["id"] == wanted)
+                    .map(|b| b["id"].clone())
+                    .ok_or_else(|| format!("the board has no body {wanted}"))?;
+                if args.get("remove").and_then(Value::as_bool) == Some(true) {
+                    return self
+                        .engine_call("mechanical.remove", json!({ "doc": doc, "ids": [id] }));
+                }
+                let mut params = pick(args, &["name", "hidden", "opacity", "check"]);
+                params["doc"] = doc;
+                params["id"] = id;
+                if let Some(at) = args.get("at") {
+                    params["position"] = mm_to_nm3(at)?;
+                }
+                if let Some(rotate) = args.get("rotate") {
+                    params["rotation"] = rotate.clone();
+                }
+                self.engine_call("mechanical.update", params)
+            }
+            "check_enclosure" => {
+                let doc = self.board_doc(args)?;
+                let mut params = pick(args, &["clearance"]);
+                params["doc"] = doc;
+                let report = self.engine_call("mechanical.check", params)?;
+                let findings: Vec<Value> = report["findings"]
+                    .as_array()
+                    .into_iter()
+                    .flatten()
+                    .map(|f| {
+                        json!({
+                            "severity": f["severity"], "code": f["code"], "message": f["message"],
+                            "at": f["point"], "accepted": f["excluded"],
+                        })
+                    })
+                    .collect();
+                Ok(json!({
+                    "errors": report["errors"],
+                    "warnings": report["warnings"],
+                    "findings": findings,
+                    "partsAsBoxes": report["standIns"],
+                    "needTessellation": report["tessellate"],
+                }))
+            }
+            "make_enclosure" => {
+                let doc = self.board_doc(args)?;
+                let mut params = pick(args, &["margin"]);
+                params["doc"] = doc;
+                self.engine_call("mechanical.enclosure", params)
+            }
             "undo" => self.engine_call("edit.undo", Value::Null),
             "redo" => self.engine_call("edit.redo", Value::Null),
             "list_engine_methods" => Ok(ew_core::docs::methods()),
@@ -731,6 +892,34 @@ impl Server {
 }
 
 /// Picks some arguments.
+/// `[x, y, z]` in nm as mm.
+#[allow(clippy::cast_precision_loss, reason = "board coordinates")]
+fn nm_to_mm3(v: &Value) -> Value {
+    json!([
+        v[0].as_i64().unwrap_or(0) as f64 / 1e6,
+        v[1].as_i64().unwrap_or(0) as f64 / 1e6,
+        v[2].as_i64().unwrap_or(0) as f64 / 1e6
+    ])
+}
+
+/// `[x, y, z]` in mm as nm.
+fn mm_to_nm3(v: &Value) -> Result<Value, String> {
+    let values: Vec<f64> = v
+        .as_array()
+        .map(|a| a.iter().filter_map(Value::as_f64).collect())
+        .unwrap_or_default();
+    if values.len() != 3 {
+        return Err("expected [x, y, z] in mm".to_owned());
+    }
+    #[allow(clippy::cast_possible_truncation, reason = "millimetres to nanometres")]
+    Ok(json!(
+        values
+            .iter()
+            .map(|v| (v * 1e6).round() as i64)
+            .collect::<Vec<_>>()
+    ))
+}
+
 fn pick(args: &Map<String, Value>, keys: &[&str]) -> Value {
     let mut out = Map::new();
     for key in keys {
@@ -924,5 +1113,44 @@ mod tests {
             replies[5]["result"]["structuredContent"]["component"],
             "EW7021_SOIC-8"
         );
+    }
+
+    #[test]
+    fn checks_an_enclosure() {
+        let dir = tempfile::tempdir().unwrap();
+        let project = dir.path().join("Box");
+        let call = |id: u32, name: &str, arguments: Value| json!({"jsonrpc": "2.0", "id": id, "method": "tools/call", "params": {"name": name, "arguments": arguments}});
+        let replies = session(&[
+            json!({"jsonrpc": "2.0", "id": 1, "method": "initialize", "params": {"protocolVersion": "2025-11-25"}}),
+            call(
+                2,
+                "create_project",
+                json!({"path": project, "name": "Box", "template": "demo"}),
+            ),
+            call(3, "make_enclosure", json!({})),
+            call(4, "check_enclosure", json!({})),
+            call(
+                5,
+                "edit_mechanical",
+                json!({"body": "Enclosure lid", "at": [40, 30, -10]}),
+            ),
+            call(6, "check_enclosure", json!({})),
+            call(7, "list_mechanical", json!({})),
+            call(
+                8,
+                "edit_mechanical",
+                json!({"body": "Enclosure lid", "remove": true}),
+            ),
+        ]);
+        for reply in &replies[1..] {
+            assert_eq!(reply["result"]["isError"], false, "{reply}");
+        }
+        assert_eq!(replies[3]["result"]["structuredContent"]["errors"], 0);
+        let after = &replies[5]["result"]["structuredContent"];
+        assert!(after["errors"].as_u64().unwrap() > 0, "{after}");
+        assert_eq!(after["findings"][0]["code"], "mechanical-collision");
+        let bodies = &replies[6]["result"]["structuredContent"]["bodies"];
+        assert_eq!(bodies[1]["at"], json!([40.0, 30.0, -10.0]));
+        assert!(project.join("mechanical/enclosure-lid.step").is_file());
     }
 }

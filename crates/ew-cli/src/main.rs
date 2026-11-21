@@ -7,6 +7,7 @@ mod commands;
 mod design;
 mod library;
 mod mcp;
+mod mechanical;
 mod part;
 mod script;
 
@@ -97,6 +98,10 @@ enum Command {
     /// Parts from PDF datasheets: text, recognised draft, generation.
     #[command(subcommand)]
     Part(part::PartCommand),
+    /// The enclosure and other mechanical bodies of a board: add, move,
+    /// remove, check for collisions, make a simple box.
+    #[command(subcommand)]
+    Mechanical(mechanical::MechanicalCommand),
     /// Generate manufacturing outputs (Gerber, drill, BOM, prints, …).
     #[command(subcommand)]
     Outputs(OutputsCommand),

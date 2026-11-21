@@ -110,6 +110,7 @@ pub fn run(command: Command, out: &mut impl Write) -> Outcome {
         Command::Import(command) => import(command, out),
         Command::Library(command) => crate::library::run(command, out),
         Command::Part(command) => crate::part::run(command, out),
+        Command::Mechanical(command) => crate::mechanical::run(command, out),
         Command::Outputs(command) => outputs(command, out),
         Command::Export3d(args) => export_3d(&args, out),
         Command::Synth {
