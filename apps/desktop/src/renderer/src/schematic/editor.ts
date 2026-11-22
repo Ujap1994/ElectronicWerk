@@ -10,6 +10,7 @@ import type { MessageKey } from '@shared/i18n';
 
 import type { Interaction, ViewerController } from '../viewer/controller';
 import type { NetPlace } from './stores';
+import { commandFor } from '../shortcuts';
 
 export type Point = readonly [number, number];
 
@@ -239,6 +240,21 @@ export function route(a: Point, b: Point, bend: 'hv' | 'vh'): Point[] {
   const corner: Point = bend === 'hv' ? [b[0], a[1]] : [a[0], b[1]];
   return [a, corner, b];
 }
+
+/** Commands that pick a tool. */
+const SHEET_TOOL_COMMANDS: ReadonlyMap<string, Tool> = new Map<string, Tool>([
+  ['schematic.wire', 'wire'],
+  ['schematic.bus', 'bus'],
+  ['schematic.label', 'label'],
+  ['schematic.globalLabel', 'globalLabel'],
+  ['schematic.hierarchicalLabel', 'hierarchicalLabel'],
+  ['schematic.power', 'power'],
+  ['schematic.noConnect', 'noConnect'],
+  ['schematic.junction', 'junction'],
+  ['schematic.text', 'text'],
+  ['schematic.sheet', 'sheet'],
+  ['schematic.highlight', 'highlight'],
+]);
 
 export class SchematicEditor implements Interaction {
   private state: EditorSnapshot = {
@@ -893,6 +909,10 @@ export class SchematicEditor implements Interaction {
     if (this.state.prompt !== null) {
       return false;
     }
+    const command = commandFor('schematic', event);
+    if (command !== null && this.runCommand(command)) {
+      return true;
+    }
     const mod = event.ctrlKey || event.metaKey;
     const key = event.key.length === 1 ? event.key.toLowerCase() : event.key;
     if (mod) {
@@ -920,80 +940,63 @@ export class SchematicEditor implements Interaction {
       case 'Delete':
         this.deleteSelection();
         return true;
-      case '/':
+      default:
+        return false;
+    }
+  }
+
+  /** Runs a command of a key (see `SHORTCUT_COMMANDS`). */
+  private runCommand(command: string): boolean {
+    switch (command) {
+      case 'schematic.bend':
         this.update({ bend: this.state.bend === 'hv' ? 'vh' : 'hv' });
         return true;
-      case 'r':
+      case 'schematic.rotate':
+      case 'schematic.rotateBack': {
+        const back = command === 'schematic.rotateBack';
         if (this.placing()) {
-          this.update({ rotation: (this.state.rotation + (event.shiftKey ? 270 : 90)) % 360 });
+          this.update({ rotation: (this.state.rotation + (back ? 270 : 90)) % 360 });
         } else {
-          this.rotateSelection(event.shiftKey);
+          this.rotateSelection(back);
         }
         return true;
-      case 'x':
-      case 'y':
+      }
+      case 'schematic.mirrorX':
+      case 'schematic.mirrorY': {
         // KiCad keys: X mirrors top to bottom, Y left to right.
+        const x = command === 'schematic.mirrorX';
         if (this.placing()) {
           // Mirrored before turning: left-right gives −θ, top-bottom 180° − θ.
-          const base = key === 'x' ? 180 : 360;
+          const base = x ? 180 : 360;
           this.update({
             mirror: !this.state.mirror,
             rotation: (base - this.state.rotation + 360) % 360,
           });
         } else {
-          this.mirrorSelection(key === 'x' ? 'vertical' : 'horizontal');
+          this.mirrorSelection(x ? 'vertical' : 'horizontal');
         }
         return true;
-      case 'm':
-      case 'g':
-        this.startKeyMove(key === 'g');
+      }
+      case 'schematic.move':
+      case 'schematic.drag':
+        this.startKeyMove(command === 'schematic.drag');
         return true;
-      case '`':
+      case 'schematic.highlightAt':
         if (this.pointer !== null) {
           this.highlightAt(this.pointer);
         }
         return true;
+      case 'schematic.symbol':
+        this.host.chooseSymbol();
+        return true;
       default: {
-        const tool = this.toolKey(key, event.shiftKey);
-        if (tool === null) {
+        const tool = SHEET_TOOL_COMMANDS.get(command);
+        if (tool === undefined) {
           return false;
         }
-        if (tool === 'symbol') {
-          this.host.chooseSymbol();
-        } else {
-          this.setTool(tool);
-        }
+        this.setTool(tool);
         return true;
       }
-    }
-  }
-
-  private toolKey(key: string, shift: boolean): Tool | null {
-    switch (key) {
-      case 'w':
-        return 'wire';
-      case 'b':
-        return 'bus';
-      case 'l':
-        return shift ? 'globalLabel' : 'label';
-      case 'h':
-        return 'hierarchicalLabel';
-      case 'p':
-        return 'power';
-      case 'q':
-        return 'noConnect';
-      case 'j':
-        return 'junction';
-      case 't':
-        return 'text';
-      case 'a':
-        return 'symbol';
-      case 's':
-        return 'sheet';
-      case 'n':
-        return 'highlight';
-      default:
-        return null;
     }
   }
 

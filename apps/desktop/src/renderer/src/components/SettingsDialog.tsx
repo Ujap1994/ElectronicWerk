@@ -8,6 +8,7 @@ import { AutomationSettings } from '../automation/AutomationSettings';
 import { GithubSettings } from '../github/GithubSettings';
 import { ProviderSettings } from '../parts/OnlineParts';
 import { Modal } from './Modal';
+import { ShortcutSettings } from './ShortcutSettings';
 
 interface SettingsDialogProps {
   readonly onClose: () => void;
@@ -113,6 +114,8 @@ export function SettingsDialog({ onClose, onCheckUpdates }: SettingsDialogProps)
         </select>
         <span className="field__hint">{t('settings.wheelZoomHint')}</span>
       </label>
+
+      <ShortcutSettings />
 
       <fieldset className="field field--group">
         <legend className="field__label">{t('settings.updates')}</legend>

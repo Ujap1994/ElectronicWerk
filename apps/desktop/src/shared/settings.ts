@@ -1,4 +1,5 @@
 import { isLanguage, type LanguageSetting } from './i18n';
+import { sanitizeShortcuts } from './shortcuts';
 
 export type ThemeSetting = 'system' | 'light' | 'dark';
 
@@ -19,6 +20,8 @@ export interface Settings {
   readonly theme: ThemeSetting;
   readonly workMode: WorkMode;
   readonly wheelZoom: WheelZoomSetting;
+  /** Keys the user gave to editor commands (command id → key). */
+  readonly shortcuts: Readonly<Record<string, string>>;
   readonly updates: {
     readonly checkOnStartup: boolean;
     /** A release the user chose to skip (for example `0.2.0`), or `null`. */
@@ -32,6 +35,8 @@ export interface SettingsPatch {
   readonly theme?: ThemeSetting;
   readonly workMode?: WorkMode;
   readonly wheelZoom?: WheelZoomSetting;
+  /** Replaces all of the user's keys. */
+  readonly shortcuts?: Readonly<Record<string, string>>;
   readonly updates?: Partial<Settings['updates']>;
 }
 
@@ -41,6 +46,7 @@ export const DEFAULT_SETTINGS: Settings = {
   theme: 'system',
   workMode: 'beginner',
   wheelZoom: 'normal',
+  shortcuts: {},
   updates: { checkOnStartup: true, skippedVersion: null },
 };
 
@@ -83,6 +89,7 @@ export function sanitizeSettings(raw: unknown): Settings {
     theme: isThemeSetting(input['theme']) ? input['theme'] : DEFAULT_SETTINGS.theme,
     workMode: isWorkMode(input['workMode']) ? input['workMode'] : DEFAULT_SETTINGS.workMode,
     wheelZoom: isWheelZoom(input['wheelZoom']) ? input['wheelZoom'] : DEFAULT_SETTINGS.wheelZoom,
+    shortcuts: sanitizeShortcuts(input['shortcuts']),
     updates: {
       checkOnStartup:
         typeof updates['checkOnStartup'] === 'boolean'

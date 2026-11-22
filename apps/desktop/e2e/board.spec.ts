@@ -732,6 +732,56 @@ test('groups parts so that one click selects them all', async () => {
   await expect(page.getByTestId('inspector-title')).toContainText('R1');
 });
 
+test('editor keys can be changed in the settings', async () => {
+  launched = await launchApp();
+  const { page } = launched;
+  await page.setViewportSize({ width: 1280, height: 800 });
+  await importAs(launched, 'Keys');
+  await openBoard(page, 'Keys');
+  const route = page.getByTestId('board-tool-route');
+  await expect(route).toHaveAttribute('title', /\(X\)/u);
+
+  await page.getByTestId('open-settings').click();
+  await page.getByTestId('shortcut-settings').locator('summary').click();
+  const key = page.getByTestId('shortcut-key-board.route');
+  await expect(key).toHaveText('X');
+  // A key of another command is refused.
+  await key.click();
+  await expect(key).toHaveText('Press a key …');
+  await page.keyboard.press('v');
+  await expect(page.getByTestId('shortcut-message')).toContainText('Place a via');
+  await expect(key).toHaveText('X');
+  // A reserved key too.
+  await key.click();
+  await page.keyboard.press('ControlOrMeta+z');
+  await expect(page.getByTestId('shortcut-message')).toContainText('reserved');
+  // W is free in the layout editor.
+  await key.click();
+  await page.keyboard.press('w');
+  await expect(key).toHaveText('W');
+  await expect(page.getByTestId('shortcut-settings').locator('summary')).toContainText('1 changed');
+  await page.keyboard.press('Escape');
+  await expect(page.getByTestId('settings-dialog')).toBeHidden();
+
+  // The palette shows the new key, and the key picks the tool.
+  await expect(route).toHaveAttribute('title', /\(W\)/u);
+  const canvas = viewerCanvas(page);
+  await canvas.focus();
+  await page.keyboard.press('x');
+  await expect(route).toHaveAttribute('aria-pressed', 'false');
+  await page.keyboard.press('w');
+  await expect(route).toHaveAttribute('aria-pressed', 'true');
+  await page.keyboard.press('Escape');
+
+  // Back to the defaults.
+  await page.getByTestId('open-settings').click();
+  await page.getByTestId('shortcut-settings').locator('summary').click();
+  await page.getByTestId('shortcuts-reset-all').click();
+  await expect(page.getByTestId('shortcut-key-board.route')).toHaveText('X');
+  await page.keyboard.press('Escape');
+  await expect(route).toHaveAttribute('title', /\(X\)/u);
+});
+
 test('pushes a track of another net aside in push-and-shove mode', async () => {
   launched = await launchApp();
   const { page, projectsDir } = launched;

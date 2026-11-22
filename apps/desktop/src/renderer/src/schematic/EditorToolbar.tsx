@@ -5,28 +5,28 @@ import type { MessageKey } from '@shared/i18n';
 import { Icon, type IconName } from '../components/Icon';
 import { useAppState } from '../state';
 import type { SchematicEditor, Tool } from './editor';
+import { shortcutLabel } from '../shortcuts';
 
 interface ToolSpec {
   readonly tool: Tool;
   readonly icon: IconName;
-  readonly key: string;
 }
 
 /** The drawing tools in toolbar order, with their keys. */
 const TOOLS: readonly ToolSpec[] = [
-  { tool: 'select', icon: 'pointer', key: 'Esc' },
-  { tool: 'symbol', icon: 'chip', key: 'A' },
-  { tool: 'wire', icon: 'wire', key: 'W' },
-  { tool: 'bus', icon: 'bus', key: 'B' },
-  { tool: 'label', icon: 'label', key: 'L' },
-  { tool: 'globalLabel', icon: 'globalLabel', key: 'Shift+L' },
-  { tool: 'hierarchicalLabel', icon: 'hierLabel', key: 'H' },
-  { tool: 'power', icon: 'ground', key: 'P' },
-  { tool: 'noConnect', icon: 'noConnect', key: 'Q' },
-  { tool: 'junction', icon: 'junction', key: 'J' },
-  { tool: 'text', icon: 'text', key: 'T' },
-  { tool: 'sheet', icon: 'sheet', key: 'S' },
-  { tool: 'highlight', icon: 'highlight', key: 'N' },
+  { tool: 'select', icon: 'pointer' },
+  { tool: 'symbol', icon: 'chip' },
+  { tool: 'wire', icon: 'wire' },
+  { tool: 'bus', icon: 'bus' },
+  { tool: 'label', icon: 'label' },
+  { tool: 'globalLabel', icon: 'globalLabel' },
+  { tool: 'hierarchicalLabel', icon: 'hierLabel' },
+  { tool: 'power', icon: 'ground' },
+  { tool: 'noConnect', icon: 'noConnect' },
+  { tool: 'junction', icon: 'junction' },
+  { tool: 'text', icon: 'text' },
+  { tool: 'sheet', icon: 'sheet' },
+  { tool: 'highlight', icon: 'highlight' },
 ];
 
 function Button({
@@ -82,7 +82,8 @@ export function ToolPalette({
   readonly editor: SchematicEditor;
   readonly commands: EditorCommands;
 }): ReactNode {
-  const { t } = useAppState();
+  const { t, appInfo } = useAppState();
+  const mac = appInfo.platform === 'darwin';
   const state = useSyncExternalStore(editor.subscribe, editor.snapshot);
   return (
     <div
@@ -92,8 +93,9 @@ export function ToolPalette({
       aria-label={t('schematic.toolbar')}
       data-testid="tool-palette"
     >
-      {TOOLS.map(({ tool, icon, key }) => {
+      {TOOLS.map(({ tool, icon }) => {
         const label = t(`schematic.tools.${tool}` as MessageKey);
+        const key = tool === 'select' ? 'Esc' : shortcutLabel(`schematic.${tool}`, mac);
         return (
           <Button
             key={tool}

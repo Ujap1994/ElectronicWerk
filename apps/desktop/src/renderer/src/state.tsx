@@ -8,6 +8,7 @@ import type { SettingsPatch } from '@shared/settings';
 import { setWheelZoom } from './viewer/wheel';
 
 import { EngineClient } from './engine-client';
+import { setShortcuts } from './shortcuts';
 
 export interface AppState {
   readonly appInfo: AppInfo;
@@ -57,6 +58,8 @@ export function AppStateProvider({ initial, children }: ProviderProps): ReactNod
   const [engineStatus, setEngineStatus] = useState(initial.engineStatus);
 
   useEffect(() => window.ew.settings.onChanged(setSnapshot), []);
+  // The editors look up the user's keys synchronously.
+  setShortcuts(snapshot.settings.shortcuts);
   // Every 2D view zooms by the step of the settings.
   const wheelZoom = snapshot.settings.wheelZoom;
   useEffect(() => {

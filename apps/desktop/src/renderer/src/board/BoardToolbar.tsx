@@ -17,6 +17,7 @@ import {
   setRoutingVia,
   type BoardCommands,
 } from './stores';
+import { shortcutLabel } from '../shortcuts';
 
 const VIA_CHOICES: readonly ViaChoice[] = ['through', 'blind', 'micro'];
 const ROUTE_MODES: readonly RouteMode[] = ['walkaround', 'shove'];
@@ -81,21 +82,20 @@ function ViaSelect(): ReactNode {
 interface ToolSpec {
   readonly tool: BoardTool;
   readonly icon: IconName;
-  readonly key: string;
 }
 
-/** The layout tools in toolbar order, with their keys. */
+/** The layout tools in toolbar order. */
 const TOOLS: readonly ToolSpec[] = [
-  { tool: 'select', icon: 'pointer', key: 'Esc' },
-  { tool: 'footprint', icon: 'chip', key: 'A' },
-  { tool: 'route', icon: 'track', key: 'X' },
-  { tool: 'pair', icon: 'pair', key: '6' },
-  { tool: 'via', icon: 'via', key: 'V' },
-  { tool: 'zone', icon: 'zone', key: 'Z' },
-  { tool: 'keepout', icon: 'keepout', key: 'K' },
-  { tool: 'outline', icon: 'outline', key: 'O' },
-  { tool: 'text', icon: 'text', key: 'T' },
-  { tool: 'highlight', icon: 'highlight', key: 'N' },
+  { tool: 'select', icon: 'pointer' },
+  { tool: 'footprint', icon: 'chip' },
+  { tool: 'route', icon: 'track' },
+  { tool: 'pair', icon: 'pair' },
+  { tool: 'via', icon: 'via' },
+  { tool: 'zone', icon: 'zone' },
+  { tool: 'keepout', icon: 'keepout' },
+  { tool: 'outline', icon: 'outline' },
+  { tool: 'text', icon: 'text' },
+  { tool: 'highlight', icon: 'highlight' },
 ];
 
 function Button({
@@ -139,7 +139,8 @@ export function BoardToolPalette({
   readonly editor: BoardEditor;
   readonly commands: BoardCommands;
 }): ReactNode {
-  const { t } = useAppState();
+  const { t, appInfo } = useAppState();
+  const mac = appInfo.platform === 'darwin';
   const state = useSyncExternalStore(editor.subscribe, editor.snapshot);
   return (
     <div
@@ -149,8 +150,9 @@ export function BoardToolPalette({
       aria-label={t('board.toolbar')}
       data-testid="board-tool-palette"
     >
-      {TOOLS.map(({ tool, icon, key }) => {
+      {TOOLS.map(({ tool, icon }) => {
         const label = t(`board.tools.${tool}` as MessageKey);
+        const key = tool === 'select' ? 'Esc' : shortcutLabel(`board.${tool}`, mac);
         return (
           <Button
             key={tool}

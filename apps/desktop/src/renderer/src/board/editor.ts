@@ -11,6 +11,7 @@ import type { MessageKey } from '@shared/i18n';
 
 import type { Interaction, ViewerController } from '../viewer/controller';
 import { routingCorners, routingMode, routingVia } from './stores';
+import { commandFor } from '../shortcuts';
 
 export type Point = readonly [number, number];
 
@@ -297,6 +298,18 @@ export function dedupe(points: readonly Point[]): Point[] {
 function rounded(p: Point): Point {
   return [Math.round(p[0]), Math.round(p[1])];
 }
+
+/** Commands that pick a tool. */
+const TOOL_COMMANDS: ReadonlyMap<string, BoardTool> = new Map<string, BoardTool>([
+  ['board.select', 'select'],
+  ['board.route', 'route'],
+  ['board.pair', 'pair'],
+  ['board.zone', 'zone'],
+  ['board.keepout', 'keepout'],
+  ['board.outline', 'outline'],
+  ['board.text', 'text'],
+  ['board.highlight', 'highlight'],
+]);
 
 export class BoardEditor implements Interaction {
   private state: BoardSnapshot = {
@@ -1374,16 +1387,15 @@ export class BoardEditor implements Interaction {
     if (this.state.prompt !== null) {
       return false;
     }
-    const mod = event.ctrlKey || event.metaKey;
-    if (mod && !event.altKey && event.key.toLowerCase() === 'g') {
-      this.editSelection(event.shiftKey ? 'ungroup' : 'group');
+    const command = commandFor('board', event);
+    if (command !== null && this.runCommand(command)) {
       return true;
     }
+    const mod = event.ctrlKey || event.metaKey;
     if (mod || event.altKey) {
       return mod && (event.key === 'Delete' || event.key === 'Backspace');
     }
-    const key = event.key.length === 1 ? event.key.toLowerCase() : event.key;
-    switch (key) {
+    switch (event.key) {
       case 'Escape':
         return this.escape();
       case 'Enter':
@@ -1411,13 +1423,21 @@ export class BoardEditor implements Interaction {
       case 'Delete':
         this.deleteSelection();
         return true;
-      case 'PageUp':
+      default:
+        return false;
+    }
+  }
+
+  /** Runs a command of a key (see `SHORTCUT_COMMANDS`). */
+  private runCommand(command: string): boolean {
+    switch (command) {
+      case 'board.layerUp':
         this.stepLayer(-1);
         return true;
-      case 'PageDown':
+      case 'board.layerDown':
         this.stepLayer(1);
         return true;
-      case '/':
+      case 'board.bend':
         if (this.state.tool === 'outline') {
           this.setOutlineShape(this.state.outlineShape === 'rect' ? 'polygon' : 'rect');
         } else {
@@ -1428,81 +1448,57 @@ export class BoardEditor implements Interaction {
           }
         }
         return true;
-      case 'v':
+      case 'board.via':
         if (this.state.route !== null) {
           this.switchRouteLayer(otherLayer(this.state.route.layer, this.state.layers));
         } else {
           this.setTool('via');
         }
         return true;
-      case 'r':
+      case 'board.rotate':
+      case 'board.rotateBack': {
+        const back = command === 'board.rotateBack';
         if (this.state.tool === 'footprint') {
-          this.update({ rotation: (this.state.rotation + (event.shiftKey ? 270 : 90)) % 360 });
+          this.update({ rotation: (this.state.rotation + (back ? 270 : 90)) % 360 });
         } else {
-          this.rotateSelection(event.shiftKey);
+          this.rotateSelection(back);
         }
         return true;
-      case 'f':
-        if (event.shiftKey) {
-          this.flipSelection();
-          return true;
-        }
-        return false;
-      case 'b':
-        if (event.shiftKey) {
-          this.fillZones(true);
-          return true;
-        }
-        return false;
-      case 'l':
-        this.lockSelection(!event.shiftKey);
+      }
+      case 'board.flip':
+        this.flipSelection();
         return true;
-      case 'm':
-      case 'd':
-        this.startKeyMove(key === 'd');
+      case 'board.fillZones':
+        this.fillZones(true);
         return true;
-      case '`':
+      case 'board.lock':
+      case 'board.unlock':
+        this.lockSelection(command === 'board.lock');
+        return true;
+      case 'board.move':
+      case 'board.drag':
+        this.startKeyMove(command === 'board.drag');
+        return true;
+      case 'board.group':
+      case 'board.ungroup':
+        this.editSelection(command === 'board.group' ? 'group' : 'ungroup');
+        return true;
+      case 'board.highlightAt':
         if (this.pointer !== null) {
           this.highlightAt(this.pointer);
         }
         return true;
+      case 'board.footprint':
+        this.host.chooseFootprint();
+        return true;
       default: {
-        const tool = this.toolKey(key);
-        if (tool === null) {
+        const tool = TOOL_COMMANDS.get(command);
+        if (tool === undefined) {
           return false;
         }
-        if (tool === 'footprint') {
-          this.host.chooseFootprint();
-        } else {
-          this.setTool(tool);
-        }
+        this.setTool(tool);
         return true;
       }
-    }
-  }
-
-  private toolKey(key: string): BoardTool | null {
-    switch (key) {
-      case 'x':
-        return 'route';
-      case '6':
-        return 'pair';
-      case 'z':
-        return 'zone';
-      case 'k':
-        return 'keepout';
-      case 'o':
-        return 'outline';
-      case 't':
-        return 'text';
-      case 'a':
-        return 'footprint';
-      case 'n':
-        return 'highlight';
-      case 's':
-        return 'select';
-      default:
-        return null;
     }
   }
 

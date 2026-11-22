@@ -24,6 +24,7 @@ describe('sanitizeSettings', () => {
       theme: 'system',
       workMode: 'advanced',
       wheelZoom: 'normal',
+      shortcuts: {},
       updates: { checkOnStartup: false, skippedVersion: '0.2.0' },
     });
   });
