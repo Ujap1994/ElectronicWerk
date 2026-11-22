@@ -1,7 +1,8 @@
 # ElectronicWerk Roadmap
 
-> **Status:** v0.30 (2026-11-22). M0 to M18 are complete (releases v0.1.0 to
-> v0.19.0; M0, M1 and M3 accepted by the maintainer); M19 (v1.0) is next.
+> **Status:** v0.31 (2026-11-22). M0 to M18 are complete (releases v0.1.0 to
+> v0.19.1; M0, M1 and M3 accepted by the maintainer). Next: a part catalog
+> with complete parts and categories (v0.20.0), then M19 (v1.0).
 > The GitHub integration (M11) is switched off since v0.14.1 until the
 > maintainer decides to offer it (ADR-0014).
 > This roadmap is a living document. It **must** be updated with every feature
@@ -1015,7 +1016,15 @@ See ADR-0019.
 ### M19 — Hardening, UX audit, final docs and videos (v1.0.0, 6–10 S)
 
 - Performance and stability campaign on XL designs, fuzzing of every importer,
-  a memory-leak audit.
+  a memory-leak audit. Found in the check of v0.19.1 (fuzzing of every
+  reader and the UI memory test are in place since then):
+  - online DRC of the L board takes 300 ms (goal 100 ms): the connectivity
+    of the whole board (135 ms) and the copper model (50 ms) are built again
+    for every check; make them incremental;
+  - the XL design needs 2.2 GB to open and 5.3 GB for a full DRC with its
+    835,000 findings; findings and copper items need a leaner form;
+  - the pan and zoom frame rate on CI's virtual GPU is 57–60 fps, at the
+    budget; measure on real integrated GPUs.
 - UX audit: a walkthrough of every workflow, consistency of shortcuts and
   menus, accessibility (keyboard navigation, contrast, scaling).
 - Final, complete documentation, plus screen videos showing the main workflows
@@ -1141,4 +1150,5 @@ See ADR-0019.
 | 2026-11-20 | v0.28      | M16 complete: v0.17.1 (0.17.0 tagged, not published: its macOS build failed) with the part generator: own PDF reader, recognition of pins, packages and dimensions, review next to the datasheet, symbol, IPC-7351 footprint, STEP model and component, duplicate check (name and nearly the same pads, requested by the maintainer), AI help through the user's agent and MCP (no API key in the app, the maintainer's choice). OCR deferred (ADR-0017).  |
 | 2026-11-22 | v0.29      | M17 complete: v0.18.0 with the enclosure check — STEP bodies around the board in 3D, collision and clearance check as design rules check findings, helpers for outline, height areas, mounting holes and openings, the assembly as STEP, a box enclosure made to fit (ADR-0018).                                                                                                                                                                           |
 | 2026-11-22 | v0.30      | M18 complete: v0.19.0 with systems of several boards — boards of this and other projects and reference designs, mating connectors and cables, the connection check across the boards with renaming signals, stacking and collisions in 3D, one STEP file, system bill of materials, connection report, wiring lists and harness drawings (ADR-0019).                                                                                                       |
+| 2026-11-22 | v0.31      | The maintainer's remarks after M18 fixed in v0.19.1 (maximized windows, Esc hint, mouse wheel zoom, online parts in the own browser, pad and net names, designators instead of placeholders, cut-off fields), plus robustness, stability and performance checks; findings added to M19. A part catalog with complete parts and categories comes next (v0.20.0), as the maintainer asked.                                                                   |
 | 2026-11-16 | v0.27      | M15 complete: v0.16.0 with blind, buried and microvias, push and shove, the impedance calculator with the working modes, differential pairs, length matching, teardrops, stitching vias, channels and assembly variants. Back drilling deferred (ADR-0016).                                                                                                                                                                                                |

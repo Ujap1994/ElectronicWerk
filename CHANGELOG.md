@@ -6,6 +6,68 @@ project uses [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.19.1] - 2026-11-22
+
+The remarks of the maintainer's first use after M18, and a thorough check
+of stability, robustness, performance and the user interface.
+
+### Added
+
+- **Pad and net names** on the board (new layers _Pad and net names (top)_
+  and _(bottom)_): every pad shows its number and its net, straight tracks
+  their net, once they are large enough to read. Hide the layers to switch
+  them off; they are never printed or plotted. See
+  [Viewing sheets and boards](docs/guide/viewer.md#pad-and-net-names).
+- **Mouse wheel zoom** setting: fine (8 %), normal (15 %) or coarse (30 %)
+  per notch.
+- Online parts: after **Search on SnapEDA / Ultra Librarian** in your own
+  browser, ElectronicWerk watches the downloads folder for 30 minutes and
+  offers downloaded parts for import.
+
+### Changed
+
+- Every window (the main window, 3D views and provider windows) starts
+  **maximized**.
+- Online parts search in **your own browser** by default; the window of the
+  app is the second choice (the bot check of SnapEDA's website does not let
+  embedded browsers through and kept asking whether you are human).
+- After a route or a wire, the status line shows in green that **Esc** once
+  more returns to the select tool.
+- Mouse wheel zoom follows how far the wheel turned: one step per notch
+  however many events it comes in (high-resolution wheels zoomed several
+  steps per notch), a fast turn no longer runs far ahead of the picture, a
+  wheel on macOS zooms instead of panning a little, and Ctrl+wheel no longer
+  jumps.
+- The German texts address the user as "du" throughout.
+
+### Fixed
+
+- Parts showed a placeholder of their library footprint (`Designator`,
+  `REF**`, `>NAME` …) instead of their designator — in the editor, the
+  prints and the **Gerber silkscreen**.
+- Cut-off fields and texts: the pin and pad tables of the library editor
+  and the net class table of the design rules ran out of their space, the
+  remove buttons of the net patterns sat lower than their row, the system
+  editor's cable fields were unstyled and its wire table too wide, and some
+  German texts were cut off.
+- Layer names: the pad properties and the DRC list showed keys such as
+  `cu.top`; DRC messages in German contained English object names
+  ("pad", "track", "net class").
+- Number fields of the enclosure panel and the system editor follow the
+  app's number format (they showed `12,54` in the English UI on a German
+  system).
+- **Robustness:** a damaged Gerber file could fill the memory (step and
+  repeat, outline macros), a damaged PDF datasheet could make the part
+  generator hang; a bug in an engine method no longer ends the engine and
+  the open project but answers with an error.
+
+### Quality
+
+- Robustness test of every reader with mutated files (660,000 damaged
+  inputs in the full campaign, a quick run in every CI build), a memory
+  test of the UI, a performance budget of the online DRC on the L board,
+  and a UI audit for cut-off controls in English and German.
+
 ## [0.19.0] - 2026-11-22
 
 Systems of several boards: a shield on a carrier, a main board with its
@@ -1439,7 +1501,8 @@ quality gates and the delivery pipeline that every later feature builds on.
   process ([ujap1994.github.io/ElectronicWerk](https://ujap1994.github.io/ElectronicWerk/)).
   **Help → Documentation** opens it.
 
-[Unreleased]: https://github.com/Ujap1994/ElectronicWerk/compare/v0.19.0...HEAD
+[Unreleased]: https://github.com/Ujap1994/ElectronicWerk/compare/v0.19.1...HEAD
+[0.19.1]: https://github.com/Ujap1994/ElectronicWerk/compare/v0.19.0...v0.19.1
 [0.19.0]: https://github.com/Ujap1994/ElectronicWerk/compare/v0.18.0...v0.19.0
 [0.18.0]: https://github.com/Ujap1994/ElectronicWerk/compare/v0.17.1...v0.18.0
 [0.17.1]: https://github.com/Ujap1994/ElectronicWerk/compare/v0.16.0...v0.17.1
