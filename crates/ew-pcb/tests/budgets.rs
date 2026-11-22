@@ -64,7 +64,31 @@ fn large_board_drc_meets_its_budget() {
 #[test]
 #[ignore = "performance budget; run in release mode"]
 fn online_drc_meets_its_budget() {
-    let pcb = board(DesignSize::M);
+    let best = online_drc(DesignSize::M);
+    say(&format!(
+        "M board online DRC: {best:?} (budget {ONLINE_BUDGET:?})"
+    ));
+    assert!(best < ONLINE_BUDGET, "online DRC took {best:?}");
+}
+
+#[test]
+#[ignore = "budget test: run in release mode (see CI)"]
+fn online_drc_of_the_large_board_meets_its_budget() {
+    // The goal is 100 ms (ROADMAP); today the connectivity of the whole board
+    // (about 135 ms on an Apple M3) is analysed again for every check. This
+    // guard keeps it from getting slower until the analysis is incremental.
+    const LARGE_ONLINE_BUDGET: Duration = Duration::from_secs(1);
+    let best = online_drc(DesignSize::L);
+    say(&format!(
+        "L board online DRC: {best:?} (guard {LARGE_ONLINE_BUDGET:?}, goal {ONLINE_BUDGET:?})"
+    ));
+    assert!(best < LARGE_ONLINE_BUDGET, "online DRC took {best:?}");
+}
+
+/// The best of three checks of a 5 mm square in the middle of the board,
+/// merged into the full result.
+fn online_drc(size: DesignSize) -> Duration {
+    let pcb = board(size);
     let full = check(&pcb, None, &Options::default());
     // An edit near the middle of the board: a 5 mm square.
     let bounds = pcb.outline_bounds().unwrap();
@@ -88,8 +112,5 @@ fn online_drc_meets_its_budget() {
         best = best.min(start.elapsed());
         assert_eq!(merged.findings.len(), full.findings.len());
     }
-    say(&format!(
-        "M board online DRC: {best:?} (budget {ONLINE_BUDGET:?})"
-    ));
-    assert!(best < ONLINE_BUDGET, "online DRC took {best:?}");
+    best
 }

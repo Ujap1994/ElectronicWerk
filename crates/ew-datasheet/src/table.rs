@@ -262,7 +262,13 @@ pub fn ruled(page: &Page) -> Vec<Table> {
 
 /// Column boundaries from gaps that no word crosses.
 fn text_columns(words: &[&Word], bbox: Rect) -> Vec<f64> {
-    let width = (bbox[2] - bbox[0]).ceil().max(1.0) as usize;
+    // One cell per point of the table's width: a damaged coordinate must not
+    // make that billions of cells (pages are at most 14,400 pt wide).
+    let span = bbox[2] - bbox[0];
+    if !span.is_finite() || span > 14_400.0 {
+        return Vec::new();
+    }
+    let width = span.ceil().max(1.0) as usize;
     let mut cover = vec![0u32; width + 1];
     for w in words {
         let a = ((w.bbox[0] - bbox[0]).max(0.0)) as usize;

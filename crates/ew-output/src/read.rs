@@ -339,7 +339,10 @@ fn macro_shapes(statements: &[MacroStatement], params: &[f64], scale: f64) -> Ve
                         out.push((on, Shape::polygon(ring, Vec::new(), 0.0)));
                     }
                     4 => {
-                        let n = get(1).max(0.0) as usize;
+                        // No more points than the statement gives (a damaged
+                        // count must not allocate without end).
+                        let given = a.len().saturating_sub(3) / 2;
+                        let n = (get(1).max(0.0) as usize).min(given);
                         let rot = get(2 + 2 * (n + 1));
                         let ring: Vec<V> = (0..n)
                             .map(|i| pt(get(2 + 2 * i), get(3 + 2 * i), rot))
@@ -349,7 +352,8 @@ fn macro_shapes(statements: &[MacroStatement], params: &[f64], scale: f64) -> Ve
                         }
                     }
                     5 => {
-                        let n = get(1).max(3.0) as usize;
+                        // The format allows 3 to 12 vertices.
+                        let n = get(1).clamp(3.0, 12.0) as usize;
                         let (cx, cy, d, rot) = (get(2), get(3), get(4), get(5));
                         let ring = (0..n)
                             .map(|i| {
@@ -853,14 +857,31 @@ fn extended(state: &mut GerberState, block: &str) {
     }
 }
 
+/// At most this many objects in one image: a damaged step and repeat
+/// (`%SRX4294967295…%`) must not fill the memory.
+const MAX_OBJECTS: usize = 4_000_000;
+
 fn finish_step_repeat(state: &mut GerberState) {
     if let Some((nx, ny, dx, dy, start)) = state.step_repeat.take() {
-        let block: Vec<Object> = state.image.objects[start..].to_vec();
+        let block: Vec<Object> = state
+            .image
+            .objects
+            .get(start..)
+            .unwrap_or_default()
+            .to_vec();
+        if block.is_empty() {
+            return;
+        }
+        let mut room = MAX_OBJECTS.saturating_sub(state.image.objects.len()) / block.len();
         for ix in 0..nx {
             for iy in 0..ny {
                 if ix == 0 && iy == 0 {
                     continue;
                 }
+                if room == 0 {
+                    return;
+                }
+                room -= 1;
                 let by = V::new(f64::from(ix) * dx, f64::from(iy) * dy);
                 for object in &block {
                     state.image.objects.push(Object {
@@ -1160,6 +1181,18 @@ mod tests {
         assert!((b[2] - 10_250_000.0).abs() < 1.0, "{b:?}");
         // The macro circle has a diameter of 2 × 0.25 mm at (1, 0).
         assert!(image.objects[2].shape.contains(V::new(1_200_000.0, 0.0)));
+    }
+
+    #[test]
+    fn damaged_counts_do_not_fill_the_memory() {
+        // A step and repeat of 4 billion by 4 billion copies.
+        let repeat = "%FSLAX46Y46*%\n%MOMM*%\n%ADD10C,0.5*%\n%SRX4294967295Y4294967295I1J1*%\nD10*\nX0Y0D03*\n%SR*%\nM02*\n";
+        let image = gerber(repeat);
+        assert!(image.objects.len() <= MAX_OBJECTS);
+        // An outline macro that claims a huge number of points.
+        let outline = "%FSLAX46Y46*%\n%MOMM*%\n%AMBAD*4,1,1000000000000,0,0,1,0,1,1,0*%\n%ADD11BAD*%\nD11*\nX0Y0D03*\nM02*\n";
+        let image = gerber(outline);
+        assert!(image.objects.len() <= 1);
     }
 
     #[test]

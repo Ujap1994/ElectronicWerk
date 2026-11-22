@@ -1,0 +1,814 @@
+%PDF-1.7
+%‚„œ”
+1 0 obj
+<</Count 6/Kids [6 0 R 8 0 R 10 0 R 12 0 R 14 0 R 16 0 R]/MediaBox [0 0 612 792]/Type /Pages>>
+endobj
+2 0 obj
+<</BaseFont /Helvetica/Encoding /WinAnsiEncoding/Subtype /Type1/Type /Font>>
+endobj
+3 0 obj
+<</BaseFont /Helvetica-Bold/Encoding /WinAnsiEncoding/Subtype /Type1/Type /Font>>
+endobj
+4 0 obj
+<</BaseFont /Symbol/Subtype /Type1/Type /Font>>
+endobj
+5 0 obj
+<</Length 4763>>
+stream
+0.16 g 0.00 758.00 612.00 34.00 re f 0 g
+BT 1 g /F2 13 Tf 54.00 770.00 Td (EW7021) Tj ET 0 g
+BT 1 g /F1 9 Tf 441.97 771.00 Td (Dual Low-Power Comparator) Tj ET 0 g
+0.5 w 54.00 40.00 m 558.00 40.00 l S
+BT 0 g /F1 7.5 Tf 54.00 28.00 Td (Example Semiconductors \227 synthetic datasheet for ElectronicWerk tests and documentation. Not a real part.) Tj ET 0 g
+BT 0 g /F1 8 Tf 553.55 28.00 Td (1) Tj ET 0 g
+BT 0 g /F2 24 Tf 54.00 722.00 Td (EW7021) Tj ET 0 g
+BT 0 g /F1 14 Tf 54.00 700.00 Td (Dual Low-Power Comparator, 1.8 V to 5.5 V) Tj ET 0 g
+BT 0 g /F2 13 Tf 54.00 666.00 Td (1 Features) Tj ET 0 g
+BT 0 g /F1 9.5 Tf 60.00 646.00 Td (\225 Supply voltage 1.8 V to 5.5 V) Tj ET 0 g
+BT 0 g /F1 9.5 Tf 60.00 632.00 Td (\225 Supply current 6 \265A per comparator) Tj ET 0 g
+BT 0 g /F1 9.5 Tf 60.00 618.00 Td (\225 Propagation delay 450 ns) Tj ET 0 g
+BT 0 g /F1 9.5 Tf 60.00 604.00 Td (\225 Push-pull outputs, rail-to-rail inputs) Tj ET 0 g
+BT 0 g /F1 9.5 Tf 60.00 590.00 Td (\225 Operating temperature \22640 \260C to 125 \260C) Tj ET 0 g
+BT 0 g /F1 9.5 Tf 60.00 576.00 Td (\225 SOIC-8, MSOP-8 and DFN-8 \(3 mm \327 3 mm\) packages) Tj ET 0 g
+BT 0 g /F2 13 Tf 54.00 550.00 Td (2 Description) Tj ET 0 g
+BT 0 g /F1 9.5 Tf 54.00 530.00 Td (The EW7021 is a dual comparator with very low supply current) Tj ET 0 g
+BT 0 g /F1 9.5 Tf 54.00 517.17 Td (for battery powered systems. Both comparators have push-pull) Tj ET 0 g
+BT 0 g /F1 9.5 Tf 54.00 504.35 Td (outputs and inputs that reach both supply rails. The device is) Tj ET 0 g
+BT 0 g /F1 9.5 Tf 54.00 491.53 Td (offered in an 8-pin SOIC, an 8-pin MSOP and an 8-pin DFN) Tj ET 0 g
+BT 0 g /F1 9.5 Tf 54.00 478.70 Td (package with an exposed thermal pad.) Tj ET 0 g
+BT 0 g /F2 11 Tf 360.00 662.00 Td (Pinout) Tj ET 0 g
+1 w 415.00 562.00 70.00 80.00 re S
+426.20 633.00 m 426.20 634.22 425.22 635.20 424.00 635.20 c 422.78 635.20 421.80 634.22 421.80 633.00 c 421.80 631.78 422.78 630.80 424.00 630.80 c 425.22 630.80 426.20 631.78 426.20 633.00 c f
+1.5 w 401.00 629.00 m 415.00 629.00 l S
+1.5 w 485.00 629.00 m 499.00 629.00 l S
+BT 0 g /F1 8 Tf 420.00 626.00 Td (1) Tj ET 0 g
+BT 0 g /F1 8 Tf 475.55 626.00 Td (8) Tj ET 0 g
+BT 0 g /F1 8 Tf 375.66 626.00 Td (OUT1) Tj ET 0 g
+BT 0 g /F1 8 Tf 503.00 626.00 Td (VCC) Tj ET 0 g
+1.5 w 401.00 611.00 m 415.00 611.00 l S
+1.5 w 485.00 611.00 m 499.00 611.00 l S
+BT 0 g /F1 999999999999999999998 Tf 420.00 608.00 Td (2) Tj ET 0 g
+BT 0 g /F1 8 Tf 475.55 608.00 Td (7) Tj ET 0 g
+BT 0 g /F1 8 Tf 381.89 608.00 Td (IN1-) Tj ET 0 g
+BT 0 g /F1 8 Tf 503.00 608.00 Td (OUT2) Tj ET 0 g
+1.5 w 401.00 593.00 m 4142949672965.00 593.00 l S
+1.5 w 485.00 593.00 m 499.00 593.00 l S
+BT 0 g /F1 8 Tf 420.00 590.00 Td (3) Tj ET 0 g
+BT 0 g /F1 8 Tf 475.55 590.00 Td (6) Tj ET 0 g
+BT 0 g /F1 8 Tf 379.88 590.00 Td (IN1+) Tj ET 0 g
+BT 0 g /F1 8 Tf 503.00 590.00 Td (IN2-) Tj ET 0 g
+1.5 w 401.00 575.00 m 415.00 575.00 l S
+1.5 w 485.00 575.00 m 499.00 575.00 l S
+BT 0 g /F1 8 Tf 420.00 572.00 Td (4) Tj ET 0 g
+BT 0 g /F1 8 Tf 475.55 572.00 Td (5) Tj ET 0 g
+BT 0 g /F1 8 Tf 379.22 572.00 Td (GND) Tj ET 0 g
+BT 0 g /F1 8 Tf 503.00 572.00 Td (IN2+) Tj ET 0 g
+BT 0 g /F1 8 Tf 398.66 544.00 Td (SOIC-8, MSOP-8 \(Top View\)) Tj ET 0 g
+BT 0 g /F2 11 Tf 360.00 502.00 Td (Device Information) Tj ET 0 g
+0.88 g 360.00 477.00 200.00 15.00 re f 0 g
+BT 0 g /F2 8 Tf 365.45 481.50 Td (PART NUMBER) Tj ET 0 g
+0.5 w 360.00 492.00 m 360.00 477.00 l S
+BT 0 g /F2 8 Tf 440.00 481.50 Td (PACKAGE) Tj ET 0 g
+0.5 w 430.00 492.00 m 430.00 477.00 l S
+BT 0 g /F2 8 Tf 503.44 481.50 Td (BODY SIZE) Tj ET 0 g
+0.5 w 490.00 492.00 m 490.00 477.00 l S
+0.5 w 560.00 492.00 m 560.00 477.00 l S
+0.5 w 360.00 492.00 m 560.00 492.00 l S
+0.5 w 360.00 477.00 m 560.00 477.00 l S
+BT 0 g /F1 8 Tf 364.00 466.50 Td (EW7021D) Tj ET 0 g
+0.5 w 360.00 477.00 m 360.00 462.00 l S
+BT 0 g /F1 8 Tf 434.00 466.50 Td (SOIC-8) Tj ET 0 g
+0.5 w 430.00 477.00 m 430.00 462.00 l S
+BT 0 g /F1 8 Tf 494.00 466.50 Td (4.90 \327 3.90) Tj ET 0 g
+0.5 w 490.00 477.00 m 490.00 462.00 l S
+0.5 w 560.00 477.00 m 560.00 462.00 l S
+0.5 w 360.00 462.00 m 560.00 462.00 l S
+BT 0 g /F1 8 Tf 364.00 451.50 Td (EW7021DGK) Tj ET 0 g
+0.5 w 360.00 462.00 m 360.00 447.00 l S
+BT 0 g /F1 8 Tf 434.00 451.50 Td (MSOP-8) Tj ET 0 g
+0.5 w 430.00 462.00 m 430.00 447.00 l S
+BT 0 g /F1 8 Tf 494.00 451.50 Td (3.00 \327 3.00) Tj ET 0 g
+0.5 w 490.00 462.00 m 490.00 447.00 l S
+0.5 w 560.00 462.00 m 560.00 447.00 l S
+0.5 w 360.00 447.00 m 560.00 447.00 l S
+BT 0 g /F1 8 Tf 364.00 436.50 Td (EW7021DRB) Tj ET 0 g
+0.5 w 360.00 447.00 m 360.00 432.00 l S
+BT 0 g /F1 8 Tf 434.00 436.50 Td (DFN-8) Tj ET 0 g
+0.5 w 430.00 447.00 m 430.00 432.00 l S
+BT 0 g /F1 8 Tf 494.00 436.50 Td (3.00 \327 3.00) Tj ET 0 g
+0.5 w 490.00 447.00 m 490.00 432.00 l S
+0.5 w 560.00 447.00 m 560.00 432.00 l S
+0.5 w 360.00 432.00 m 560.00 432.00 l S
+
+endstream
+endobj
+6 0 obj
+<</Contents 5 0 R/Parent 1 0 R/Resources <</Font <</F1 2 0 R/F2 3 0 R/F3 4 0 R>>>>/Type /Page>>
+endobj
+7 0 obj
+<</Length 6599>>
+stream
+0.16 g 0.00 758.00 612.00 34.00 re f 0 g
+BT 1 g /F2 13 Tf 54.00 770.00 Td (EW7021) Tj ET 0 g
+BT 1 g /F1 9 Tf 429.94 771.00 Td (Pin Configuration and Functions) Tj ET 0 g
+0.5 w 54.00 40.00 m 558.00 40.00 l S
+BT 0 g /F1 7.5 Tf 54.00 28.00 Td (Example Semiconductors \227 synthetic datasheet for ElectronicWerk tests and documentation. Not a real part.) Tj ET 0 g
+BT 0 g /F1 8 Tf 553.55 28.00 Td (2) Tj ET 0 g
+BT 0 g /F2 13 Tf 54.00 722.00 Td (3 Pin Configuration and Functions) Tj ET 0 g
+BT 0 g /F2 9 Tf 54.00 702.00 Td (Table 3-1. Pin Functions) Tj ET 0 g
+0.88 g 54.00 679.00 504.00 15.00 re f 0 g
+BT 0 g /F2 8 Tf 152.33 683.50 Td (PIN) Tj ET 0 g
+0.5 w 54.00 694.00 m 54.00 679.00 l S
+BT 0 g /F2 8 Tf 273.55 683.50 Td (TYPE) Tj ET 0 g
+0.5 w 264.00 694.00 m 264.00 679.00 l S
+BT 0 g /F2 8 Tf 403.66 683.50 Td (DESCRIPTION) Tj ET 0 g
+0.5 w 304.00 694.00 m 304.00 679.00 l S
+0.5 w 558.00 694.00 m 558.00 679.00 l S
+0.5 w 54.00 694.00 m 558.00 694.00 l S
+0.88 g 54.00 664.00 504.00 15.00 re f 0 g
+BT 0 g /F2 8 Tf 72.22 668.50 Td (NAME) Tj ET 0 g
+0.5 w 54.00 679.00 m 54.00 664.00 l S
+BT 0 g /F2 8 Tf 128.10 668.50 Td (SOIC-8, MSOP-8) Tj ET 0 g
+0.5 w 114.00 679.00 m 114.00 664.00 l S
+BT 0 g /F2 8 Tf 222.22 668.50 Td (DFN-8) Tj ET 0 g
+0.5 w 204.00 679.00 m 204.00 664.00 l S
+0.5 w 264.00 679.00 m 264.00 664.00 l S
+0.5 w 304.00 679.00 m 304.00 664.00 l S
+0.5 w 558.00 679.00 m 558.00 664.00 l S
+0.5 w 54.00 679.00 m 558.00 679.00 l S
+0.5 w 54.00 664.00 m 558.00 664.00 l S
+BT 0 g /F1 8 Tf 58.00 653.50 Td (OUT1) Tj ET 0 g
+0.5 w 54.00 664.00 m 54.00 649.00 l S
+BT 0 g /F1 8 Tf 118.00 653.50 Td (1) Tj ET 0 g
+0.5 w 114.00 664.00 m 114.00 649.00 l S
+BT 0 g /F1 8 Tf 208.00 653.50 Td (1) Tj ET 0 g
+0.5 w 204.00 664.00 m 204.00 649.00 l S
+BT 0 g /F1 8 Tf 268.00 653.50 Td (O) Tj ET 0 g
+0.5 w 264.00 664.00 m 264.00 649.00 l S
+BT 0 g /F1 8 Tf 308.00 653.50 Td (Output of comparator 1) Tj ET 0 g
+0.5 w 304.00 664.00 m 304.00 649.00 l S
+0.5 w 558.00 664.00 m 558.00 649.00 l S
+0.5 w 54.00 649.00 m 558.00 649.00 l S
+BT 0 g /F1 8 Tf 58.00 638.50 Td (IN1-) Tj ET 0 g
+0.5 w 54.00 649.00 m 54.00 634.00 l S
+BT 0 g /F1 8 Tf 118.00 638.50 Td (2) Tj ET 0 g
+0.5 w 114.00 649.00 m 114.00 634.00 l S
+BT 0 g /F1 8 Tf 208.00 638.50 Td (2) Tj ET 0 g
+0.5 w 204.00 649.00 m 204.00 634.00 l S
+BT 0 g /F1 8 Tf 268.00 638.50 Td (I) Tj ET 0 g
+0.5 w 264.00 649.00 m 264.00 634.00 l S
+BT 0 g /F1 8 Tf 308.00 638.50 Td (Inverting input of comparator 1) Tj ET 0 g
+0.5 w 304.00 649.00 m 304.00 634.00 l S
+0.5 w 558.00 649.00 m 558.00 634.00 l S
+0.5 w 54.00 634.00 m 558.00 634.00 l S
+BT 0 g /F1 8 Tf 58.00 623.50 Td (IN1+) Tj ET 0 g
+0.5 w 54.00 634.00 m 54.00 619.00 l S
+BT 0 g /F1 8 Tf 118.00 623.50 Td (3) Tj ET 0 g
+0.5 w 114.00 634.00 m 114.00 619.00 l S
+BT 0 g /F1 8 Tf 208.00 623.50 Td (3) Tj ET 0 g
+0.5 w 204.00 634.00 m 204.00 619.00 l S
+BT 0 g /F1 8 Tf 268.00 623.50 Td (I) Tj ET 0 g
+0.5 w 264.00 634.00 m 264.00 619.00 l S
+BT 0 g /F1 8 Tf 308.00 623.50 Td (Non-inverting input of comparator 1) Tj ET 0 g
+0.5 w 304.00 634.00 m 304.00 619.00 l S
+0.5 w 558.00 634.00 m 558.00 619.00 l S
+0.5 w 54.00 619.00 m 558.00 619.00 l S
+BT 0 g /F1 8 Tf 58.00 608.50 Td (GND) Tj ET 0 g
+0.5 w 54.00 619.00 m 54.00 604.00 l S
+BT 0 g /F1 8 Tf 118.00 608.50 Td (4) Tj ET 0 g
+0.5 w 114.00 619.00 m 114.00 604.00 l S
+BT 0 g /F1 8 Tf 208.00 608.50 Td (4) Tj ET 0 g
+0.5 w 204.00 619.00 m 204.00 604.00 l S
+BT 0 g /F1 8 Tf 268.00 608.50 Td (G) Tj ET 0 g
+0.5 w 264.00 619.00 m 264.00 604.00 l S
+BT 0 g /F1 8 Tf 308.00 608.50 Td (Ground) Tj ET 0 g
+0.5 w 304.00 619.00 m 304.00 604.00 l S
+0.5 w 558.00 619.00 m 558.00 604.00 l S
+0.5 w 54.00 604.00 m 558.00 604.00 l S
+BT 0 g /F1 8 Tf 58.00 593.50 Td (IN2+) Tj ET 0 g
+0.5 w 54.00 604.00 m 54.00 589.00 l S
+BT 0 g /F1 8 Tf 118.00 593.50 Td (5) Tj ET 0 g
+0.5 w 114.00 604.00 m 114.00 589.00 l S
+BT 0 g /F1 8 Tf 208.00 593.50 Td (5) Tj ET 0 g
+0.5 w 204.00 604.00 m 204.00 589.00 l S
+BT 0 g /F1 8 Tf 268.00 593.50 Td (I) Tj ET 0 g
+0.5 w 264.00 604.00 m 264.00 589.00 l S
+BT 0 g /F1 8 Tf 308.00 593.50 Td (Non-inverting input of comparator 2) Tj ET 0 g
+0.5 w 304.00 604.00 m 304.00 589.00 l S
+0.5 w 558.00 604.00 m 558.00 589.00 l S
+0.5 w 54.00 589.00 m 558.00 589.00 l S
+BT 0 g /F1 8 Tf 58.00 578.50 Td (IN2-) Tj ET 0 g
+0.5 w 54.00 589.00 m 54.00 574.00 l S
+BT 0 g /F1 8 Tf 118.00 578.50 Td (6) Tj ET 0 g
+0.5 w 114.00 589.00 m 114.00 574.00 l S
+BT 0 g /F1 8 Tf 208.00 578.50 Td (6) Tj ET 0 g
+0.5 w 204.00 589.00 m 204.00 574.00 l S
+BT 0 g /F1 8 Tf 268.00 578.50 Td (I) Tj ET 0 g
+0.5 w 264.00 589.00 m 264.00 574.00 l S
+BT 0 g /F1 8 Tf 308.00 578.50 Td (Inverting input of comparator 2) Tj ET 0 g
+0.5 w 304.00 589.00 m 304.00 574.00 l S
+0.5 w 558.00 589.00 m 558.00 574.00 l S
+0.5 w 54.00 574.00 m 558.00 574.00 l S
+BT 0 g /F1 8 Tf 58.00 563.50 Td (OUT2) Tj ET 0 g
+0.5 w 54.00 574.00 m 54.00 559.00 l S
+BT 0 g /F1 8 Tf 118.00 563.50 Td (7) Tj ET 0 g
+0.5 w 114.00 574.00 m 114.00 559.00 l S
+BT 0 g /F1 8 Tf 208.00 563.50 Td (7) Tj ET 0 g
+0.5 w 204.00 .00 15.00 re f 0 g
+BT 0 g /F2 8 Tf 58.89 681.50 Td (SYMBOL) Tj ET 0 g
+0.5 w 54.00 692.00 m 54.00 677.00 l S
+BT 0 g /F2 8 Tf 132.67 681.50 Td (PARAMETER) Tj ET 0 g
+0.5 w 98.00 692.00 m 98.00 677574.00 m 204.00 559.00 l S
+BT 0 g /F1 8 Tf 268.00 563.50 Td (O) Tj ET 0 g
+0.5 w 264.00 574.00 m 264.00 559.00 l S
+BT 0 g /F1 8 Tf 308.00 563.50 Td (Output of comparator 2) Tj ET 0 g
+0.5 w 304.00 574.00 m 304.00 559.00 l S
+0.5 w 558.00 574.00 m 558.00 559.00 l S
+0.5 w 54.00 559.00 m 558.00 559.00 l S
+BT 0 g /F1 8 Tf 58.00 548.50 Td (VCC) Tj ET 0 g
+0.5 w 54.00 559.00 m 54.00 534.00 l S
+BT 0 g /F1 8 Tf 118.00 548.50 Td (8) Tj ET 0 g
+0.5 w 114.00 559.00 m 114.00 534.00 l S
+BT 0 g /F1 8 Tf 208.00 548.50 Td (8) Tj ET 0 g
+0.5 w 204.00 559.00 m 204.00 534.00 l S
+BT 0 g /F1 8 Tf 268.00 548.50 Td (P) Tj ET 0 g
+0.5 w 264.00 559.00 m 264.00 534.00 l S
+BT 0 g /F1 8 Tf 308.00 548.50 Td (Supply voltage, 1.8 V to 5.5 V. Decouple with 100 nF to GND close to) Tj ET 0 g
+BT 0 g /F1 8 Tf 308.00 538.50 Td (the pin.) Tj ET 0 g
+0.5 w 304.00 559.00 m 304.00 534.00 l S
+0.5 w 558.00 559.00 m 558.00 534.00 l S
+0.5 w 54.00 534.00 m 558.00 534.00 l S
+BT 0 g /F1 8 Tf 58.00 523.50 Td (EP) Tj ET 0 g
+0.5 w 54.00 534.00 m 54.00 509.00 l S
+BT 0 g /F1 8 Tf 118.00 523.50 Td (\227) Tj ET 0 g
+0.5 w 114.00 534.00 m 114.00 509.00 l S
+BT 0 g /F1 8 Tf 208.00 523.50 Td (9) Tj ET 0 g
+0.5 w 204.00 534.00 m 204.00 509.00 l S
+BT 0 g /F1 8 Tf 268.00 523.50 Td (\227) Tj ET 0 g
+0.5 w 264.00 534.00 m 264.00 509.00 l S
+BT 0 g /F1 8 Tf 308.00 523.50 Td (Exposed thermal pad of the DFN package. Connect to GND or leave) Tj ET 0 g
+BT 0 g /F1 8 Tf 308.00 513.50 Td (floating.) Tj ET 0 g
+0.5 w 304.00 534.00 m 304.00 509.00 l S
+0.5 w 558.00 534.00 m 558.00 509.00 l S
+0.5 w 54.00 509.00 m 558.00 509.00 l S
+BT 0 g /F1 8 Tf 54.00 462.00 Td (I = input, O = output, P = power, G = ground.) Tj ET 0 g
+
+endstream
+endobj
+8 0 obj
+<</Contents 7 0 R/Parent 1 0 R/Resources <</Font <</F1 2 0 R/F2 3 0 R/F3 4 0 R>>>>/Type /Page>>
+endobj
+9 0 obj
+<</Length 4912>>
+stream
+0.16 g 0.00 758.00 612.00 34.00 re f 0 g
+BT 1 g /F2 13 Tf 54.00 770.00 Td (EW7021) Tj ET 0 g
+BT 1 g /F1 9 Tf 502.48 771.00 Td (Specifications) Tj ET 0 g
+0.5 w 54.00 40.00 m 558.00 40.00 l S
+BT 0 g /F1 7.5 Tf 54.00 28.00 Td (Example Semiconductors \227 synthetic datasheet for ElectronicWerk tests and documentation. Not a real part.) Tj ET 0 g
+BT 0 g /F1 8 Tf 553.55 28.00 Td (3) Tj ET 0 g
+BT 0 g /F2 13 Tf 54.00 722.00 Td (4 Electrical Characteristics) Tj ET 0 g
+BT 0 g /F1 9 Tf 54.00 702.00 Td (VCC = 3.3 V, TA = 25 \260C \(unless otherwise noted\)) Tj ET 0 g
+0.88 g 54.00 677.00 460.00 15.00 re f 0 g
+BT 0 g /F2 8 Tf 58.89 681.50 Td (SYMBOL) Tj ET 0 g
+0.5 w 54.00 692.00 m 54.00 677.00 l S
+BT 0 g /F2 8 Tf 132.67 681.50 Td (PARAMETER) Tj ET 0 g
+0.5 w 98.00 692.00 m 98.00 677.00 l S
+BT 0 g /F2 8 Tf 252.89 681.50 Td (CONDITIONS) Tj ET 0 g
+0.5 w 218.00 692.00 m 218.00 677.00 l S
+BT 0 g /F2 8 Tf 352.67 681.50 Td (MIN) Tj ET 0 g
+0.5 w 338.00 692.00 m 338.00 677.00 l S
+BT 0 g /F2 8 Tf 396.22 681.50 Td (TYP) Tj ET 0 g
+0.5 w 382.00 692.00 m 382.00 677.00 l S
+BT 0 g /F2 8 Tf 439.11 681.50 Td (MAX) Tj ET 0 g
+0.5 w 426.00 692.00 m 426.00 677.00 l S
+BT 0 g /F2 8 Tf 482.67 681.50 Td (UNIT) Tj ET 0 g
+0.5 w 470.00 692.00 m 470.00 677.00 l S
+0.5 w 514.00 692.00 m 514.00 677.00 l S
+0.5 w 54.00 692.00 m 514.00 692.00 l S
+0.5 w 54.00 677.00 m 514.00 677.00 l S
+BT 0 g /F1 8 Tf 58.00 666.50 Td (VCC) Tj ET 0 g
+0.5 w 54.00 677.00 m 54.00 662.00 l S
+BT 0 g /F1 8 Tf 102.00 666.50 Td (Supply voltage) Tj ET 0 g
+0.5 w 98.00 677.00 m 98.00 662.00 l S
+BT 0 g /F1 8 Tf 222.00 666.50 Td () Tj ET 0 g
+0.5 w 218.00 677.00 m 218.00 662.00 l S
+BT 0 g /F1 8 Tf 342.00 666.50 Td (1.8) Tj ET 0 g
+0.5 w 338.00 677.00 m 338.00 662.00 l S
+BT 0 g /F1 8 Tf 386.00 666.50 Td () Tj ET 0 g
+0.5 w 382.00 677.00 m 382.00 662.00 l S
+BT 0 g /F1 8 Tf 430.00 666.50 Td (5.5) Tj ET 0 g
+0.5 w 426.00 677.00 m 426.00 662.00 l S
+BT 0 g /F1 8 Tf 474.00 666.50 Td (V) Tj ET 0 g
+0.5 w 470.00 677.00 m 470.00 662.00 l S
+0.5 w 514.00 677.00 m 514.00 662.00 l S
+0.5 w 54.00 662.00 m 514.00 662.00 l S
+BT 0 g /F1 8 Tf 58.00 651.50 Td (ICC) Tj ET 0 g
+0.5 w 54.00 662.00 m 54.00 647.00 l S
+BT 0 g /F1 8 Tf 102.00 651.50 Td (Supply current) Tj ET 0 g
+0.5 w 98.00 662.00 m 98.00 647.00 l S
+BT 0 g /F1 8 Tf 222.00 651.50 Td (per comparator) Tj ET 0 g
+0.5 w 218.00 662.00 m 218.00 647.00 l S
+BT 0 g /F1 8 Tf 342.00 651.50 Td () Tj ET 0 g
+0.5 w 338.00 662.00 m 338.00 647.00 l S
+BT 0 g /F1 8 Tf 386.00 651.50 Td (6) Tj ET 0 g
+0.5 w 382.00 662.00 m 382.00 647.00 l S
+BT 0 g /F1 8 Tf 430.00 651.50 Td (10) Tj ET 0 g
+0.5 w 426.00 662.00 m 426.00 647.00 l S
+BT 0 g /F1 8 Tf 474.00 651.50 Td (\265A) Tj ET 0 g
+0.5 w 470.00 662.00 m 470.00 647.00 l S
+0.5 w 514.00 662.00 m 514.00 647.00 l S
+0.5 w 54.00 647.00 m 514.00 647.00 l S
+BT 0 g /F1 8 Tf 58.00 636.50 Td (VOS) Tj ET 0 g
+0.5 w 54.00 647.00 m 54.00 632.00 l S
+BT 0 g /F1 8 Tf 102.00 636.50 Td (Input offset voltage) Tj ET 0 g
+0.5 w 98.00 647.00 m 98.00 632.00 l S
+BT 0 g /F1 8 Tf 222.00 636.50 Td () Tj ET 0 g
+0.5 w 218.00 647.00 m 218.00 632.00 l S
+BT 0 g /F1 8 Tf 342.00 636.50 Td () Tj ET 0 g
+0.5 w 338.00 647.00 m 338.00 632.00 l S
+BT 0 g /F1 8 Tf 386.00 636.50 Td (1) Tj ET 0 g
+0.5 w 382.00 647.00 m 382.00 632.00 l S
+BT 0 g /F1 8 Tf 430.00 636.50 Td (5) Tj ET 0 g
+0.5 w 426.00 647.00 m 426.00 632.00 l S
+BT 0 g /F1 8 Tf 474.00 636.50 Td (mV) Tj ET 0 g
+0.5 w 470.00 647.00 m 470.00 632.00 l S
+0.5 w 514.00 647.00 m 514.00 632.00 l S
+0.5 w 54.00 632.00 m 514.00 632.00 l S
+BT 0 g /F1 8 Tf 58.00 621.50 Td (tPD) Tj ET 0 g
+0.5 w 54.00 632.00 m 54.00 617.00 l S
+BT 0 g /F1 8 Tf 102.00 621.50 Td (Propagation delay) Tj ET 0 g
+0.5 w 98.00 632.00 m 98.00 617.00 l S
+BT 0 g /F1 8 Tf 222.00 621.50 Td (100 mV overdrive) Tj ET 0 g
+0.5 w 218.00 632.00 m 218.00 617.00 l S
+BT 0 g /F1 8 Tf 342.00 621.50 Td () Tj ET 0 g
+0.5 w 338.00 632.00 m 338.00 617.00 l S
+BT 0 g /F1 8 Tf 386.00 621.50 Td (450) Tj ET 0 g
+0.5 w 382.00 632.00 m 382.00 617.00 l S
+BT 0 g /F1 8 Tf 430.00 621.50 Td () Tj ET 0 g
+0.5 w 426.00 632.00 m 426.00 617.00 l S
+BT 0 g /F1 8 Tf 474.00 621.50 Td (ns) Tj ET 0 g
+0.5 w 470.00 632.00 m 470.00 617.00 l S
+0.5 w 514.00 632.00 m 514.00 617.00 l S
+0.5 w 54.00 617.00 m 514.00 617.00 l S
+BT 0 g /F1 8 Tf 58.00 606.50 Td (VOH) Tj ET 0 g
+0.5 w 54.00 617.00 m 54.00 602.00 l S
+BT 0 g /F1 8 Tf 102.00 606.50 Td (Output high voltage) Tj ET 0 g
+0.5 w 98.00 617.00 m 98.00 602.00 l S
+BT 0 g /F1 8 Tf 222.00 606.50 Td (IOUT = \2262 mA) Tj ET 0 g
+0.5 w 218.00 617.00 m 218.00 602.00 l S
+BT 0 g /F1 8 Tf 342.00 606.50 Td (3.1) Tj ET 0 g
+0.5 w 338.00 617.00 m 338.00 602.00 l S
+BT 0 g /F1 8 Tf 386.00 606.50 Td (3.2) Tj ET 0 g
+0.5 w 382.00 617.00 m 382.00 602.00 l S
+BT 0 g /F1 8 Tf 430.00 606.50 Td () Tj ET 0 g
+0.5 w 426.00 617.00 m 426.00 602.00 l S
+BT 0 g /F1 8 Tf 474.00 606.50 Td (V) Tj ET 0 g
+0.5 w 470.00 617.00 m 470.00 602.00 l S
+0.5 w 514.00 617.00 m 514.00 602.00 l S
+0.5 w 54.00 602.00 m 514.00 602.00 l S
+
+endstream
+endobj
+10 0 obj
+<</Contents 9 0 R/Parent 1 0 R/Resources <</Font <</F1 2 0 R/F2 3 0 R/F3 4 0 R>>>>/Type /Page>>
+endobj
+11 0 obj
+<</Length 10900>>
+stream
+0.16 g 0.00 758.00 612.00 34.00 re f 0 g
+BT 1 g /F2 13 Tf 54.00 770.00 Td (EW7021) Tj ET 0 g
+BT 1 g /F1 9 Tf 475.46 771.00 Td (Package Information) Tj ET 0 g
+0.5 w 54.00 40.00 m 558.00 40.00 l S
+BT 0 g /F1 7.5 Tf 54.00 28.00 Td (Example Semiconductors \227 synthetic datasheet for ElectronicWerk tests and documentation. Not a real part.) Tj ET 0 g
+BT 0 g /F1 8 Tf 553.55 28.00 Td (4) Tj ET 0 g
+BT 0 g /F2 13 Tf 54.00 722.00 Td (5 Mechanical Data) Tj ET 0 g
+BT 0 g /F2 10 Tf 54.00 702.00 Td (5.1 SOIC-8 Package Outline \(D\)) Tj ET 0 g
+1 w 117.10 554.20 85.80 107.80 re S
+130.10 652.00 m 130.10 653.66 128.76 655.00 127.10 655.00 c 125.44 655.00 124.10 653.66 124.10 652.00 c 124.10 650.34 125.44 649.00 127.10 649.00 c 128.76 649.00 130.10 650.34 130.10 652.00 c f
+0.6 w 94.00 645.50 23.10 9.02 re S
+0.6 w 202.90 645.50 23.10 9.02 re S
+0.6 w 94.00 617.56 23.10 9.02 re S
+0.6 w 202.90 617.56 23.10 9.02 re S
+0.6 w 94.00 589.62 23.10 9.02 re S
+0.6 w 202.90 589.62 23.10 9.02 re S
+0.6 w 94.00 561.68 23.10 9.02 re S
+0.6 w 202.90 561.68 23.10 9.02 re S
+0.4 w 94.00 672.00 m 226.00 672.00 l S
+0.4 w 94.00 672.00 m 98.00 670.40 l S
+0.4 w 94.00 672.00 m 98.00 673.60 l S
+0.4 w 226.00 672.00 m 222.00 670.40 l S
+0.4 w 226.00 672.00 m 222.00 673.60 l S
+BT 0 g /F1 8 Tf 157.33 675.00 Td (E) Tj ET 0 g
+0.4 w 117.10 542.20 m 202.90 542.20 l S
+0.4 w 117.10 542.20 m 121.10 540.60 l S
+0.4 w 117.10 542.20 m 121.10 543.80 l S
+0.4 w 202.90 542.20 m 198.90 540.60 l S
+0.4 w 202.90 542.20 m 198.90 543.80 l S
+BT 0 g /F1 8 Tf 155.11 545.20 Td (E1) Tj ET 0 g
+0.4 w 238.00 662.00 m 238.00 554.20 l S
+0.4 w 238.00 662.00 m 236.40 658.00 l S
+0.4 w 238.00 662.00 m 239.60 658.00 l S
+0.4 w 238.00 554.20 m 236.40 558.20 l S
+0.4 w 238.00 554.20 m 239.60 558.20 l S
+BT 0 g /F1 8 Tf 242.00 605.10 Td (D) Tj ET 0 g
+0.4 w 82.00 650.01 m 82.00 622.07 l S
+0.4 w 82.00 650.01 m 80.40 646.01 l S
+0.4 w 82.00 650.01 m 83.60 646.01 l S
+0.4 w 82.00 622.07 m 80.40 626.07 l S
+0.4 w 82.00 622.07 m 83.60 626.07 l S
+BT 0 g /F1 8 Tf 86.00 633.04 Td (e) Tj ET 0 g
+BT 0 g /F2 8 Tf 66.00 524.20 Td (TOP VIEW) Tj ET 0 g
+1 w 296.00 595.74 85.80 30.36 re S
+0.8 w 277.52 592.00 m 296.00 609.05 l S
+0.8 w 381.80 609.05 m 400.28 592.00 l S
+0.3 w 266.00 592.00 m 411.80 592.00 l S
+0.4 w 405.80 626.10 m 405.80 592.00 l S
+0.4 w 405.80 626.10 m 404.20 622.10 l S
+0.4 w 405.80 626.10 m 407.40 622.10 l S
+0.4 w 405.80 592.00 m 404.20 596.00 l S
+0.4 w 405.80 592.00 m 407.40 596.00 l S
+BT 0 g /F1 8 Tf 409.80 606.05 Td (A) Tj ET 0 g
+0.4 w 277.52 582.00 m 296.00 582.00 l S
+0.4 w 277.52 582.00 m 281.52 580.40 l S
+0.4 w 277.52 582.00 m 281.52 583.60 l S
+0.4 w 296.00 582.00 m 292.00 580.40 l S
+0.4 w 296.00 582.00 m 292.00 583.60 l S
+BT 0 g /F1 8 Tf 284.54 585.00 Td (L) Tj ET 0 g
+BT 0 g /F2 8 Tf 296.00 562.00 Td (SIDE VIEW) Tj ET 0 g
+0.88 g 94.00 457.00 350.00 15.00 re f 0 g
+BT 0 g /F2 8 Tf 101.89 461.50 Td (SYMBOL) Tj ET 0 g
+0.5 w 94.00 472.00 m 94.00 457.00 l S
+BT 0 g /F2 8 Tf 191.89 461.50 Td (MILLIMETERS) Tj ET 0 g
+0.5 w 144.00 472.00 m 144.00 457.00 l S
+BT 0 g /F2 8 Tf 353.89 461.50 Td (INCHES) Tj ET 0 g
+0.5 w 294.00 472.00 m 294.00 457.00 l S
+0.5 w 444.00 472.00 m 444.00 457.00 l S
+0.5 w 94.00 472.00 m 444.00 472.00 l S
+0.88 g 94.00 442.00 350.00 15.00 re f 0 g
+0.5 w 94.00 457.00 m 94.00 442.00 l S
+BT 0 g /F2 8 Tf 161.67 446.50 Td (MIN) Tj ET 0 g
+0.5 w 144.00 457.00 m 144.00 442.00 l S
+BT 0 g /F2 8 Tf 209.67 446.50 Td (NOM) Tj ET 0 g
+0.5 w 194.00 457.00 m 194.00 442.00 l S
+BT 0 g /F2 8 Tf 260.11 446.50 Td (MAX) Tj ET 0 g
+0.5 w 244.00 457.00 m 244.00 442.00 l S
+BT 0 g /F2 8 Tf 311.67 446.50 Td (MIN) Tj ET 0 g
+0.5 w 294.00 457.00 m 294.00 442.00 l S
+BT 0 g /F2 8 Tf 359.67 446.50 Td (NOM) Tj ET 0 g
+0.5 w 344.00 457.00 m 344.00 442.00 l S
+BT 0 g /F2 8 Tf 410.11 446.50 Td (MAX) Tj ET 0 g
+0.5 w 394.00 457.00 m 394.00 442.00 l S
+0.5 w 444.00 457.00 m 444.00 442.00 l S
+0.5 w 94.00 457.00 m 444.00 457.00 l S
+0.5 w 94.00 442.00 m 444.00 442.00 l S
+BT 0 g /F1 8 Tf 98.00 431.50 Td (A) Tj ET 0 g
+0.5 w 94.00 442.00 m 94.00 427.00 l S
+BT 0 g /F1 8 Tf 148.00 431.50 Td (1.35) Tj ET 0 g
+0.5 w 144.00 442.00 m 144.00 427.00 l S
+BT 0 g /F1 8 Tf 198.00 431.50 Td () Tj ET 0 g
+0.5 w 194.00 442.00 m 194.00 427.00 l S
+BT 0 g /F1 8 Tf 248.00 431.50 Td (1.75) Tj ET 0 g
+0.5 w 244.00 442.00 m 244.00 427.00 l S
+BT 0 g /F1 8 Tf 298.00 431.50 Td (.053) Tj ET 0 g
+0.5 w 294.00 442.00 m 294.00 427.00 l S
+BT 0 g /F1 8 Tf 348.00 431.50 Td () Tj ET 0 g
+0.5 w 344.00 442.00 m 344.00 427.00 l S
+BT 0 g /F1 8 Tf 398.00 431.50 Td (.069) Tj ET 0 g
+0.5 w 394.00 442.00 m 394.00 427.00 l S
+0.5 w 444.00 442.00 m 444.00 427.00 l S
+0.5 w 94.00 427.00 m 444.00 427.00 l S
+BT 0 g /F1 8 Tf 98.00 416.50 Td (A1) Tj ET 0 g
+0.5 w 94.00 427.00 m 94.00 412.00 l S
+BT 0 g /F1 8 Tf 148.00 416.50 Td (0.10) Tj ET 0 g
+0.5 w 144.00 427.00 m 144.00 412.00 l S
+BT 0 g /F1 8 Tf 198.00 416.50 Td () Tj ET 0 g
+0.5 w 194.00 427.00 m 194.00 412.00 l S
+BT 0 g /F1 8 Tf 248.00 416.50 Td (0.25) Tj ET 0 g
+0.5 w 244.00 427.00 m 244.00 412.00 l S
+BT 0 g /F1 8 Tf 298.00 416.50 Td (.004) Tj ET 0 g
+0.5 w 294.00 427.00 m 294.00 412.00 l S
+BT 0 g /F1 8 Tf 348.00 416.50 Td () Tj ET 0 g
+0.5 w 344.00 427.00 m 344.00 412.00 l S
+BT 0 g /F1 8 Tf 398.00 416.50 Td (.010) Tj ET 0 g
+0.5 w 394.00 427.00 m 394.00 412.00 l S
+0.5 w 444.00 427.00 m 444.00 412.00 l S
+0.5 w 94.00 412.00 m 444.00 412.00 l S
+BT 0 g /F1 8 Tf 98.00 401.50 Td (b) Tj ET 0 g
+0.5 w 94.00 412.00 m 94.00 397.00 l S
+BT 0 g /F1 8 Tf 148.00 401.50 Td (0.31) Tj ET 0 g
+0.5 w 144.00 412.00 m 144.00 397.00 l S
+BT 0 g /F1 8 Tf 198.00 401.50 Td (0.41) Tj ET 0 g
+0.5 w 194.00 412.00 m 194.00 397.00 l S
+BT 0 g /F1 8 Tf 248.00 401.50 Td (0.51) Tj ET 0 g
+0.5 w 244.00 412.00 m 244.00 397.00 l S
+BT 0 g /F1 8 Tf 298.00 401.50 Td (.012) Tj ET 0 g
+0.5 w 294.00 412.00 m 294.00 397.00 l S
+BT 0 g /F1 8 Tf 348.00 401.50 Td (.016) Tj ET 0 g
+0.5 w 344.00 412.00 m 344.00 397.00 l S
+BT 0 g /F1 8 Tf 398.00 401.50 Td (.020) Tj ET 0 g
+0.5 w 394.00 412.00 m 394.00 397.00 l S
+0.5 w 444.00 412.00 m 444.00 397.00 l S
+0.5 w 94.00 397.00 m 444.00 397.00 l S
+BT 0 g /F1 8 Tf 98.00 386.50 Td (c) Tj ET 0 g
+0.5 w 94.00 397.00 m 94.00 382.00 l S
+BT 0 g /F1 8 Tf 148.00 386.50 Td (0.17) Tj ET 0 g
+0.5 w 144.00 397.00 m 144.00 382.00 l S
+BT 0 g /F1 8 Tf 198.00 386.50 Td () Tj ET 0 g
+0.5 w 194.00 397.00 m 194.00 382.00 l S
+BT 0 g /F1 8 Tf 248.00 386.50 Td (0.25) Tj ET 0 g
+0.5 w 244.00 397.00 m 244.00 382.00 l S
+BT 0 g /F1 8 Tf 298.00 386.50 Td (.007) Tj ET 0 g
+0.5 w 294.00 397.00 m 294.00 382.00 l S
+BT 0 g /F1 8 Tf 348.00 386.50 Td () Tj ET 0 g
+0.5 w 344.00 397.00 m 344.00 382.00 l S
+BT 0 g /F1 8 Tf 398.00 386.50 Td (.010) Tj ET 0 g
+0.5 w 394.00 397.00 m 394.00 382.00 l S
+0.5 w 444.00 397.00 m 444.00 382.00 l S
+0.5 w 94.00 382.00 m 444.00 382.00 l S
+BT 0 g /F1 8 Tf 98.00 371.50 Td (D) Tj ET 0 g
+0.5 w 94.00 382.00 m 94.00 367.00 l S
+BT 0 g /F1 8 Tf 148.00 371.50 Td (4.80) Tj ET 0 g
+0.5 w 144.00 382.00 m 144.00 367.00 l S
+BT 0 g /F1 8 Tf 198.00 371.50 Td (4.90) Tj ET 0 g
+0.5 w 194.00 382.00 m 194.00 367.00 l S
+BT 0 g /F1 8 Tf 248.00 371.50 Td (5.00) Tj ET 0 g
+0.5 w 244.00 382.00 m 244.00 367.00 l S
+BT 0 g /F1 8 Tf 298.00 371.50 Td (.189) Tj ET 0 g
+0.5 w 294.00 382.00 m 294.00 367.00 l S
+BT 0 g /F1 8 Tf 348.00 371.50 Td (.193) Tj ET 0 g
+0.5 w 344.00 382.00 m 344.00 367.00 l S
+BT 0 g /F1 8 Tf 398.00 371.50 Td (.197) Tj ET 0 g
+0.5 w 394.00 382.00 m 394.00 367.00 l S
+0.5 w 444.00 382.00 m 444.00 367.00 l S
+0.5 w 94.00 367.00 m 444.00 367.00 l S
+BT 0 g /F1 8 Tf 98.00 356.50 Td (E) Tj ET 0 g
+0.5 w 94.00 367.00 m 94.00 352.00 l S
+BT 0 g /F1 8 Tf 148.00 356.50 Td (5.80) Tj ET 0 g
+0.5 w 144.00 367.00 m 144.00 352.00 l S
+BT 0 g /F1 8 Tf 198.00 356.50 Td (6.00) Tj ET 0 g
+0.5 w 194.00 367.00 m 194.00 352.00 l S
+BT 0 g /F1 8 Tf 248.00 356.50 Td (6.20) Tj ET 0 g
+0.5 w 244.00 367.00 m 244.00 352.00 l S
+BT 0 g /F1 8 Tf 298.00 356.50 Td (.228) Tj ET 0 g
+0.5 w 294.00 367.00 m 294.00 352.00 l S
+BT 0 g /F1 8 Tf 348.00 356.50 Td (.236) Tj ET 0 g
+0.5 w 344.00 367.00 m 344.00 352.00 l S
+BT 0 g /F1 8 Tf 398.00 356.50 Td (.244) Tj ET 0 g
+0.5 w 394.00 367.00 m 394.00 352.00 l S
+0.5 w 444.00 367.00 m 444.00 352.00 l S
+0.5 w 94.00 352.00 m 444.00 352.00 l S
+BT 0 g /F1 8 Tf 98.00 341.50 Td (E1) Tj ET 0 g
+0.5 w 94.00 352.00 m 94.00 337.00 l S
+BT 0 g /F1 8 Tf 148.00 341.50 Td (3.80) Tj ET 0 g
+0.5 w 144.00 352.00 m 144.00 337.00 l S
+BT 0 g /F1 8 Tf 198.00 341.50 Td (3.90) Tj ET 0 g
+0.5 w 194.00 352.00 m 194.00 337.00 l S
+BT 0 g /F1 8 Tf 248.00 341.50 Td (4.00) Tj ET 0 g
+0.5 w 244.00 352.00 m 244.00 337.00 l S
+BT 0 g /F1 8 Tf 298.00 341.50 Td (.150) Tj ET 0 g
+0.5 w 294.00 352.00 m 294.00 337.00 l S
+BT 0 g /F1 8 Tf 348.00 341.50 Td (.154) Tj ET 0 g
+0.5 w 344.00 352.00 m 344.00 337.00 l S
+BT 0 g /F1 8 Tf 398.00 341.50 Td (.157) Tj ET 0 g
+0.5 w 394.00 352.00 m 394.00 337.00 l S
+0.5 w 444.00 352.00 m 444.00 337.00 l S
+0.5 w 94.00 337.00 m 444.00 337.00 l S
+BT 0 g /F1 8 Tf 98.00 326.50 Td (e) Tj ET 0 g
+0.5 w 94.00 337.00 m 94.00 322.00 l S
+BT 0 g /F1 8 Tf 148.00 326.50 Td () Tj ET 0 g
+0.5 w 144.00 337.00 m 144.00 322.00 l S
+BT 0 g /F1 8 Tf 198.00 326.50 Td (1.27 BSC) Tj ET 0 g
+0.5 w 194.00 337.00 m 194.00 322.00 l S
+BT 0 g /F1 8 Tf 248.00 326.50 Td () Tj ET 0 g
+0.5 w 244.00 337.00 m 244.00 322.00 l S
+BT 0 g /F1 8 Tf 298.00 326.50 Td () Tj ET 0 g
+0.5 w 294.00 337.00 m 294.00 322.00 l S
+BT 0 g /F1 8 Tf 348.00 326.50 Td (.050 BSC) Tj ET 0 g
+0.5 w 344.00 337.00 m 344.00 322.00 l S
+BT 0 g /F1 8 Tf 398.00 326.50 Td () Tj ET 0 g
+0.5 w 394.00 337.00 m 394.00 322.00 l S
+0.5 w 444.00 337.00 m 444.00 322.00 l S
+0.5 w 94.00 322.00 m 444.00 322.00 l S
+BT 0 g /F1 8 Tf 98.00 311.50 Td (L) Tj ET 0 g
+0.5 w 94.00 322.00 m 94.00 307.00 l S
+BT 0 g /F1 8 Tf 148.00 311.50 Td (0.40) Tj ET 0 g
+0.5 w 144.00 322.00 m 144.00 307.00 l S
+BT 0 g /F1 8 Tf 198.00 311.50 Td () Tj ET 0 g
+0.5 w 194.00 322.00 m 194.00 307.00 l S
+BT 0 g /F1 8 Tf 248.00 311.50 Td (1.27) Tj ET 0 g
+0.5 w 244.00 322.00 m 244.00 307.00 l S
+BT 0 g /F1 8 Tf 298.00 311.50 Td (.016) Tj ET 0 g
+0.5 w 294.00 322.00 m 294.00 307.00 l S
+BT 0 g /F1 8 Tf 348.00 311.50 Td () Tj ET 0 g
+0.5 w 344.00 322.00 m 344.00 307.00 l S
+BT 0 g /F1 8 Tf 398.00 311.50 Td (.050) Tj ET 0 g
+0.5 w 394.00 322.00 m 394.00 307.00 l S
+0.5 w 444.00 322.00 m 444.00 307.00 l S
+0.5 w 94.00 307.00 m 444.00 307.00 l S
+BT 0 g /F3 8 Tf 98.00 296.50 Td (q) Tj ET 0 g
+0.5 w 94.00 307.00 m 94.00 292.00 l S
+BT 0 g /F1 8 Tf 148.00 296.50 Td (0\260) Tj ET 0 g
+0.5 w 144.00 307.00 m 144.00 292.00 l S
+BT 0 g /F1 8 Tf 198.00 296.50 Td () Tj ET 0 g
+0.5 w 194.00 307.00 m 194.00 292.00 l S
+BT 0 g /F1 8 Tf 248.00 296.50 Td (8\260) Tj ET 0 g
+0.5 w 244.00 307.00 m 244.00 292.00 l S
+BT 0 g /F1 8 Tf 298.00 296.50 Td (0\260) Tj ET 0 g
+0.5 w 294.00 307.00 m 294.00 292.00 l S
+BT 0 g /F1 8 Tf 348.00 296.50 Td () Tj ET 0 g
+0.5 w 344.00 307.00 m 344.00 292.00 l S
+BT 0 g /F1 8 Tf 398.00 296.50 Td (8\260) Tj ET 0 g
+0.5 w 394.00 307.00 m 394.00 292.00 l S
+0.5 w 444.00 307.00 m 444.00 292.00 l S
+0.5 w 94.00 292.00 m 444.00 292.00 l S
+
+endstream
+endobj
+12 0 obj
+<</Contents 11 0 R/Parent 1 0 R/Resources <</Font <</F1 2 0 R/F2 3 0 R/F3 4 0 R>>>>/Type /Page>>
+endobj
+13 0 obj
+<</Length 2885>>
+stream
+0.16 g 0.00 758.00 612.00 34.00 re f 0 g
+BT 1 g /F2 13 Tf 54.00 770.00 Td (EW7021) Tj ET 0 g
+BT 1 g /F1 9 Tf 475.46 771.00 Td (Package Information) Tj ET 0 g
+0.5 w 54.00 40.00 m 558.00 40.00 l S
+BT 0 g /F1 7.5 Tf 54.00 28.00 Td (Example Semiconductors \227 synthetic datasheet for ElectronicWerk tests and documentation. Not a real part.) Tj ET 0 g
+BT 0 g /F1 8 Tf 553.55 28.00 Td (5) Tj ET 0 g
+BT 0 g /F2 13 Tf 54.00 722.00 Td (5.2 DFN-8 \(3 mm \327 3 mm\) Package Outline \(DRB\)) Tj ET 0 g
+1 w 84.00 562.00 120.00 120.00 re S
+0.6 w 111.00 574.40 66.00 95.20 re S
+BT 0 g /F2 8 Tf 84.00 542.00 Td (BOTTOM VIEW) Tj ET 0 g
+BT 0 g /F2 8 Tf 320.00 672.00 Td (Symbol) Tj ET 0 g
+BT 0 g /F2 8 Tf 380.00 672.00 Td (Min) Tj ET 0 g
+BT 0 g /F2 8 Tf 430.00 672.00 Td (Nom) Tj ET 0 g
+BT 0 g /F2 8 Tf 490.00 672.00 Td (Max) Tj ET 0 g
+BT 0 g /F1 8 Tf 320.00 660.00 Td (A) Tj ET 0 g
+BT 0 g /F1 8 Tf 380.00 660.00 Td (0.70) Tj ET 0 g
+BT 0 g /F1 8 Tf 430.00 660.00 Td (0.75) Tj ET 0 g
+BT 0 g /F1 8 Tf 490.00 660.00 Td (0.80) Tj ET 0 g
+BT 0 g /F1 8 Tf 320.00 648.00 Td (A1) Tj ET 0 g
+BT 0 g /F1 8 Tf 380.00 648.00 Td (0.00) Tj ET 0 g
+BT 0 g /F1 8 Tf 430.00 648.00 Td (0.02) Tj ET 0 g
+BT 0 g /F1 8 Tf 490.00 648.00 Td (0.05) Tj ET 0 g
+BT 0 g /F1 8 Tf 320.00 636.00 Td (b) Tj ET 0 g
+BT 0 g /F1 8 Tf 380.00 636.00 Td (0.25) Tj ET 0 g
+BT 0 g /F1 8 Tf 430.00 636.00 Td (0.30) Tj ET 0 g
+BT 0 g /F1 8 Tf 490.00 636.00 Td (0.35) Tj ET 0 g
+BT 0 g /F1 8 Tf 320.00 624.00 Td (D) Tj ET 0 g
+BT 0 g /F1 8 Tf 380.00 624.00 Td (2.90) Tj ET 0 g
+BT 0 g /F1 8 Tf 430.00 624.00 Td (3.00) Tj ET 0 g
+BT 0 g /F1 8 Tf 490.00 624.00 Td (3.10) Tj ET 0 g
+BT 0 g /F1 8 Tf 320.00 612.00 Td (D2) Tj ET 0 g
+BT 0 g /F1 8 Tf 380.00 612.00 Td (2.23) Tj ET 0 g
+BT 0 g /F1 8 Tf 430.00 612.00 Td (2.38) Tj ET 0 g
+BT 0 g /F1 8 Tf 490.00 612.00 Td (2.48) Tj ET 0 g
+BT 0 g /F1 8 Tf 320.00 600.00 Td (E) Tj ET 0 g
+BT 0 g /F1 8 Tf 380.00 600.00 Td (2.90) Tj ET 0 g
+BT 0 g /F1 8 Tf 430.00 600.00 Td (3.00) Tj ET 0 g
+BT 0 g /F1 8 Tf 490.00 600.00 Td (3.10) Tj ET 0 g
+BT 0 g /F1 8 Tf 320.00 588.00 Td (E2) Tj ET 0 g
+BT 0 g /F1 8 Tf 380.00 588.00 Td (1.55) Tj ET 0 g
+BT 0 g /F1 8 Tf 430.00 588.00 Td (1.65) Tj ET 0 g
+BT 0 g /F1 8 Tf 490.00 588.00 Td (1.75) Tj ET 0 g
+BT 0 g /F1 8 Tf 320.00 576.00 Td (e) Tj ET 0 g
+BT 0 g /F1 8 Tf 380.00 576.00 Td () Tj ET 0 g
+BT 0 g /F1 8 Tf 430.00 576.00 Td (0.65 BSC) Tj ET 0 g
+BT 0 g /F1 8 Tf 490.00 576.00 Td () Tj ET 0 g
+BT 0 g /F1 8 Tf 320.00 564.00 Td (L) Tj ET 0 g
+BT 0 g /F1e-4001 8 Tf 380.00 564.00 Td (0.30) Tj ET 0 g
+BT 0 g /F1 8 Tf 430.00 564.00 Td (0.40) Tj ET 0 g
+BT 0 g /F1 8 Tf 490.00 564.00 Td (0.50) Tj ET 0 g
+BT 0 g /F1 8 Tf 320.00 544.00 Td (All dimensions in millimeters.) Tj ET 0 g
+BT 0 g /F2 13 Tf 54.00 482.00 Td (5.3 MSOP-8 Package \(DGK\)) Tj ET 0 g
+BT 0 g /F1 9.5 Tf 54.00 462.00 Td (The MSOP-8 package follows the JEDEC MO-187 outline \(3.00 mm \327 3.00 mm body, 0.65 mm pitch\).) Tj ET 0 g
+
+endstream
+endobj
+14 0 obj
+<</Contents 13 0 R/Parent 1 0 R/Resources <</Font <</F1 2 0 R/F2 3 0 R/F3 4 0 R>>>>/Type /Page>>
+endobj
+15 0 obj
+<</Length 2670>>
+stream
+0.16 g 0.00 758.00 612.00 34.00 re f 0 g
+BT 1 g /F2 13 Tf 54.00 770.00 Td (EW7021) Tj ET 0 g
+BT 1 g /F1 9 Tf 475.47 771.00 Td (Ordering Information) Tj ET 0 g
+0.5 w 54.00 40.00 m 558.00 40.00 l S
+BT 0 g /F1 7.5 Tf 54.00 28.00 Td (Example Semiconductors \227 synthetic datasheet for ElectronicWerk tests and documentation. Not a real part.) Tj ET 0 g
+BT 0 g /F1 8 Tf 553.55 28.00 Td (6) Tj ET 0 g
+BT 0 g /F2 13 Tf 54.00 722.00 Td (6 Ordering Information) Tj ET 0 g
+0.88 g 54.00 681.00 360.00 15.00 re f 0 g
+BT 0 g /F2 8 Tf 66.67 685.50 Td (ORDERABLE PART) Tj ET 0 g
+0.5 w 54.00 696.00 m 54.00 681.00 l S
+BT 0 g /F2 8 Tf 169.00 685.50 Td (PACKAGE) Tj ET 0 g
+0.5 w 154.00 696.00 m 154.00 681.00 l S
+BT 0 g /F2 8 Tf 244.66 685.50 Td (PINS) Tj ET 0 g
+0.5 w 224.00 696.00 m 224.00 681.00 l S
+BT 0 g /F2 8 Tf 300.78 685.50 Td (QTY) Tj ET 0 g
+0.5 w 284.00 696.00 m 284.00 681.00 l S
+BT 0 g /F2 8 Tf 354.89 685.50 Td (MARKING) Tj ET 0 g
+0.5 w 334.00 696.00 m 334.00 681.00 l S
+0.5 w 414.00 696.00 m 414.00 681.00 l S
+0.5 w 54.00 696.00 m 414.00 696.00 l S
+0.5 w 54.00 681.00 m 414.00 681.00 l S
+BT 0 g /F1 8 Tf 58.00 670.50 Td (EW7021DR) Tj ET 0 g
+0.5 w 54.00 681.00 m 54.00 666.00 l S
+BT 0 g /F1 8 Tf 158.00 670.50 Td (SOIC) Tj ET 0 g
+0.5 w 154.00 681.00 m 154.00 666.00 l S
+BT 0 g /F1 8 Tf 228.00 670.50 Td (8) Tj ET 0 g
+0.5 w 224.00 681.00 m 224.00 666.00 l S
+BT 0 g /F1 8 Tf 288.00 670.50 Td (2500) Tj ET 0 g
+0.5 w 284.00 681.00 m 284.00 666.00 l S
+BT 0 g /F1 8 Tf 338.00 670.50 Td (7021) Tj ET 0 g
+0.5 w 334.00 681.00 m 334.00 666.00 l S
+0.5 w 414.00 681.00 m 414.00 666.00 l S
+0.5 w 54.00 666.00 m 414.00 666.00 l S
+BT 0 g /F1 8 Tf 58.00 655.50 Td (EW7021DGKR) Tj ET 0 g
+0.5 w 54.00 666.00 m 54.00 651.00 l S
+BT 0 g /F1 8 Tf 158.00 655.50 Td (MSOP) Tj ET 0 g
+0.5 w 154.00 666.00 m 154.00 651.00 l S
+BT 0 g /F1 8 Tf 228.00 655.50 Td (8) Tj ET 0 g
+0.5 w 224.00 666.00 m 224.00 651.00 l S
+BT 0 g /F1 8 Tf 288.00 655.50 Td (2500) Tj ET 0 g
+0.5 w 284.00 666.00 m 284.00 651.00 l S
+BT 0 g /F1 8 Tf 338.00 655.50 Td (7021) Tj ET 0 g
+0.5 w 334.00 666.00 m 334.00 651.00 l S
+0.5 w 414.00 666.00 m 414.00 651.00 l S
+0.5 w 54.00 651.00 m 414.00 651.00 l S
+BT 0 g /F1 8 Tf 58.00 640.50 Td (EW7021DRBR) Tj ET 0 g
+0.5 w 54.00 651.00 m 54.00 636.00 l S
+BT 0 g /F1 8 Tf 158.00 640.50 Td (DFN) Tj ET 0 g
+0.5 w 154.00 651.00 m 154.00 636.00 l S
+BT 0 g /F1 8 Tf 228.00 640.50 Td (8) Tj ET 0 g
+0.5 w 224.00 651.00 m 224.00 636.00 l S
+BT 0 g /F1 8 Tf 288.00 640.50 Td (3000) Tj ET 0 g
+0.5 w 284.00 651.00 m 284.00 636.00 l S
+BT 0 g /F1 8 Tf 338.00 640.50 Td (7021) Tj ET 0 g
+0.5 w 334.00 651.00 m 334.00 636.00 l S
+0.5 w 414.00 651.00 m 414.00 636.00 l S
+0.5 w 54.00 636.00 m 414.00 636.00 l S
+
+endstream
+endobj
+16 0 obj
+<</Contents 15 0 R/Parent 1 0 R/Resources <</Font <</F1 2 0 R/F2 3 0 R/F3 4 0 R>>>>/Type /Page>>
+endobj
+17 0 obj
+<</Count 5/First 18 0 R/Last 22 0 R/Type /Outlines>>
+endobj
+18 0 obj
+<</Dest [6 0 R /Fit]/Next 19 0 R/Parent 17 0 R/Title (1 Features)>>
+endobj
+19 0 obj
+<</Dest [8 0 R /Fit]/Next 20 0 R/Parent 17 0 R/Prev 18 0 R/Title (3 Pin Configuration and Functions)>>
+endobj
+20 0 obj
+<</Dest [10 0 R /Fit]/Next 21 0 R/Parent 17 0 R/Prev 19 0 R/Title (4 Electrical Characteristics)>>
+endobj
+21 0 obj
+<</Dest [12 0 R /Fit]/Next 22 0 R/Parent 17 0 R/Prev 20 0 R/Title (5 Mechanical Data)>>
+endobj
+22 0 obj
+<</Dest [16 0 R /Fit]/Parent 17 0 R/Prev 21 0 R/Title (6 Ordering Information)>>
+endobj
+23 0 obj
+<</Outlines 17 0 R/PageMode /UseOutlines/Pages 1 0 R/Type /Catalog>>
+endobj
+24 0 obj
+<</Author (Example Semiconductors)/Creator (ElectronicWerk synthetic datasheet)/Subject (Data Sheet)/Title (EW7021 Dual Low-Power Comparator)>>
+endobj
+xref
+0 25
+0000000000 65535 f 
+0000000015 00000 n 
+0000000125 00000 n 
+0000000217 00000 n 
+0000000314 00000 n 
+0000000377 00000 n 
+0000005190 00000 n 
+0000005301 00000 n 
+0000011950 00000 n 
+0000012061 00000 n 
+0000017023 00000 n 
+0000017135 00000 n 
+0000028087 00000 n 
+0000028200 00000 n 
+0000031136 00000 n 
+0000031249 00000 n 
+0000033970 00000 n 
+0000034083 00000 n 
+0000034152 00000 n 
+0000034236 00000 n 
+0000034355 00000 n 
+0000034470 00000 n 
+0000034574 00000 n 
+0000034671 00000 n 
+0000034756 00000 n 
+trailer
+<</ID [(ElectronicWerkDS) (ElectronicWerkDS)]/Info 24 0 R/Root 23 0 R/Size 25>>
+startxref
+34916
+%%EOF

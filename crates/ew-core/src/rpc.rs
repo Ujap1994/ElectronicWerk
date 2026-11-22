@@ -572,6 +572,11 @@ impl Engine {
     /// Parses a JSON request, executes it and returns the JSON reply. Never
     /// panics on bad input.
     pub fn dispatch(&mut self, request_json: &str) -> String {
+        guarded(request_json, || self.dispatch_unguarded(request_json))
+            .unwrap_or_else(|error| encode(&Response::Error(error)))
+    }
+
+    fn dispatch_unguarded(&mut self, request_json: &str) -> String {
         let response = match serde_json::from_str::<RpcRequest>(request_json) {
             Ok(request) => self.handle(&request),
             Err(err) => Response::Error(RpcError {
@@ -586,8 +591,15 @@ impl Engine {
     /// separately instead of base64 inside the JSON (used by the desktop
     /// app, which hands the buffer to the GPU as it is).
     pub fn dispatch_binary(&mut self, request_json: &str) -> (String, Option<Vec<u8>>) {
+        guarded(request_json, || {
+            self.dispatch_binary_unguarded(request_json)
+        })
+        .unwrap_or_else(|error| (encode(&Response::Error(error)), None))
+    }
+
+    fn dispatch_binary_unguarded(&mut self, request_json: &str) -> (String, Option<Vec<u8>>) {
         let Ok(request) = serde_json::from_str::<RpcRequest>(request_json) else {
-            return (self.dispatch(request_json), None);
+            return (self.dispatch_unguarded(request_json), None);
         };
         let result = match request.method.as_str() {
             "view.scene" => {
@@ -1789,6 +1801,28 @@ pub fn dispatch(request_json: &str) -> String {
     Engine::without_journal().dispatch(request_json)
 }
 
+/// Runs a request so that a bug in a method (a panic) answers that request
+/// with an `internal` error instead of ending the engine and everything
+/// unsaved in it.
+fn guarded<T>(request_json: &str, run: impl FnOnce() -> T) -> Result<T, RpcError> {
+    std::panic::catch_unwind(std::panic::AssertUnwindSafe(run)).map_err(|panic| {
+        let what = panic
+            .downcast_ref::<&str>()
+            .map(|s| (*s).to_owned())
+            .or_else(|| panic.downcast_ref::<String>().cloned())
+            .unwrap_or_else(|| "unknown".to_owned());
+        let method = serde_json::from_str::<RpcRequest>(request_json)
+            .map(|r| r.method)
+            .unwrap_or_default();
+        RpcError {
+            code: ErrorCode::Internal,
+            message: format!(
+                "internal error in {method}: {what}. Please save your work and report this."
+            ),
+        }
+    })
+}
+
 fn encode(response: &Response) -> String {
     // Serializing these plain types cannot fail; fall back to a static error
     // instead of panicking so the host process always gets valid JSON.
@@ -1878,6 +1912,10 @@ mod tests {
                 .contains("does.not.exist")
         );
         assert_eq!(call("{not json")["error"]["code"], "invalidRequest");
+        // A bug in a method answers with an error instead of ending the engine.
+        let error = guarded(r#"{"method": "x.y"}"#, || -> u32 { panic!("boom") }).unwrap_err();
+        assert_eq!(error.code, ErrorCode::Internal);
+        assert!(error.message.contains("x.y") && error.message.contains("boom"));
         assert_eq!(
             call(r#"{"method":"engine.info","extra":1}"#)["error"]["code"],
             "invalidRequest"
