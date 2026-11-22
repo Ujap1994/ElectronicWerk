@@ -671,6 +671,70 @@ pub fn export(
     (w.finish(&header), report)
 }
 
+/// One STEP file of an assembly of several (a board of a system).
+#[derive(Debug, Clone)]
+pub struct Child {
+    /// Name of the instance in the assembly.
+    pub name: String,
+    /// Where it goes (mm).
+    pub matrix: Matrix,
+    /// The STEP text.
+    pub text: String,
+}
+
+/// An assembly of whole STEP files, each placed by its matrix (the boards
+/// of a system). Returns the file and the names of children that could
+/// not be read.
+#[must_use]
+pub fn assembly(
+    name: &str,
+    children: &[Child],
+    created: &str,
+    version: &str,
+) -> (String, Vec<String>) {
+    let mut w = Writer::new();
+    let c = common(&mut w);
+    let top_representation = w.reserve();
+    let top = product(&mut w, &c, name, top_representation);
+    let mut axes = vec![c.origin];
+    let mut failed = Vec::new();
+    for (number, child) in children.iter().enumerate() {
+        let made = part21::parse(&child.text)
+            .ok()
+            .and_then(|file| merge(&mut w, &c, &file, &child.name));
+        let Some(made) = made else {
+            failed.push(child.name.clone());
+            continue;
+        };
+        link(
+            &mut w,
+            &c,
+            (top, top_representation),
+            made,
+            &child.matrix,
+            number + 1,
+            &child.name,
+            &mut axes,
+        );
+    }
+    let items = axes
+        .iter()
+        .map(|a| format!("#{a}"))
+        .collect::<Vec<_>>()
+        .join(",");
+    w.set(
+        top_representation,
+        format!("SHAPE_REPRESENTATION('',({items}),#{})", c.context),
+    );
+    let header = format!(
+        "ISO-10303-21;\nHEADER;\nFILE_DESCRIPTION(('ElectronicWerk system assembly'),'2;1');\nFILE_NAME('{}.step','{}',('ElectronicWerk'),('ElectronicWerk'),'ElectronicWerk {}','ElectronicWerk','');\nFILE_SCHEMA(('AUTOMOTIVE_DESIGN {{ 1 0 10303 214 1 1 1 1 }}'));\nENDSEC;\n",
+        text(&ascii(name)),
+        text(created),
+        text(version)
+    );
+    (w.finish(&header), failed)
+}
+
 /// The board area minus the holes through it (the fallback body).
 fn drilled_polygons(board: &Board3d, through: &[ew_output::drill::Hole]) -> Polygons {
     let holes: Polygons = through

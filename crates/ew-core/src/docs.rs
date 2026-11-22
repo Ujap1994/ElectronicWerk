@@ -122,6 +122,18 @@ pub const SUMMARIES: &[(&str, &str)] = &[
         "`system.importReference {\"doc\", \"source\", \"name\"?}` → `{\"id\", \"path\", \"report\"}`: imports an open design (KiCad project or Eagle board, for example a reference board) as its own project in systems/references/<name>/ and adds its board to the system.",
     ),
     (
+        "system.scene",
+        "`system.scene {\"doc\"}` builds the system's 3D assembly like board3d.scene: the meshes of every shown board at its place in one buffer, the parts with their models (paths of other projects as their files) and the boards' enclosure bodies as parts, plus `boards` with their bounds.",
+    ),
+    (
+        "system.stack",
+        "`system.stack {\"doc\", \"link\", \"gap\"?}` → `{board, position, rotation, gap}`: places the connection's second board so its connector mates the first one's: turned (and over, when both connectors face the same way) to put the pins on each other, `gap` mm away (default: the height of the first connector's model, else 8.5 mm).",
+    ),
+    (
+        "system.export",
+        "`system.export {\"doc\", \"path\"}` → `{path, bytes, notes}`: writes the system's 3D assembly as one STEP file: every shown board's assembly with its enclosure at its place.",
+    ),
+    (
         "system.addBoard",
         "`system.addBoard {\"doc\", \"source\": {\"kind\": \"local\", \"doc\"} | {\"kind\": \"project\", \"path\", \"board\"?}, \"name\"?, \"quantity\"?, \"position\"?}` → `{\"id\"}`: adds a board of this project or of another project (path to its folder or .ewproj, stored relative) to the system.",
     ),

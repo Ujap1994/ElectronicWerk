@@ -35,9 +35,11 @@ const CARRIER_HEADER: [&str; 16] = [
     "GND", "GND",
 ];
 
-/// The same header on the shield: SDA and SCL swapped, A0 not connected.
+/// The header on the shield's bottom side, by pin number. Seen from
+/// above it is mirrored, so its pin 2 sits on the carrier's pin 1, its pin
+/// 1 on pin 2 and so on. SDA and SCL are swapped, A0 is not connected.
 const SHIELD_HEADER: [&str; 16] = [
-    "+5V", "+5V", "GND", "GND", "SCL", "SDA", "D2", "D3", "D4", "D5", "", "A1", "RESET", "3V3",
+    "+5V", "+5V", "GND", "GND", "SDA", "SCL", "D3", "D2", "D5", "D4", "A1", "", "3V3", "RESET",
     "GND", "GND",
 ];
 
@@ -285,7 +287,6 @@ pub fn generate(seed: u64) -> Project {
 
     // The system.
     let ids = [id(), id(), id()];
-    let thickness = STANDARD_THICKNESS;
     let mut system = System::new(id(), "Station");
     system.boards = vec![
         SystemBoard {
@@ -302,12 +303,14 @@ pub fn generate(seed: u64) -> Project {
             name: "Shield".to_owned(),
             source: BoardSource::Local { doc: shield.id },
             quantity: 1,
-            // P1 (at 30, 20 on the shield) over J1 (at 40, 30 on the
-            // carrier), on the 8.5 mm socket.
+            // P1 (at 30, 20 on the shield, mirrored on the bottom) over
+            // J1 (at 40, 30 on the carrier), on the 8.5 mm socket.
             position: Vec3 {
-                x: mm(10),
+                x: 12_540_000,
                 y: mm(10),
-                z: thickness + 8_500_000,
+                // The shield's bottom copper 8.5 mm above the carrier's top
+                // copper (1.545 mm above its bottom face).
+                z: 10_080_000,
             },
             rotation: [Angle::ZERO; 3],
             hidden: false,
@@ -336,7 +339,7 @@ pub fn generate(seed: u64) -> Project {
             board: ids[1],
             designator: "P1".to_owned(),
         },
-        pairing: Pairing::Number,
+        pairing: Pairing::Position,
     }];
     let (x1, x2) = (id(), id());
     system.cables = vec![Cable {

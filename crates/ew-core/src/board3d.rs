@@ -329,7 +329,7 @@ pub fn export_board(
 
 /// The data of a mechanical body's STEP file: its text for STEP exports,
 /// else a mesh (from the cache, or read here when its faces are planar).
-fn body_data(file: &Path, mesh_dir: Option<&Path>, step: bool) -> Option<ModelData> {
+pub(crate) fn body_data(file: &Path, mesh_dir: Option<&Path>, step: bool) -> Option<ModelData> {
     if step {
         return std::fs::read_to_string(file).ok().map(ModelData::Step);
     }

@@ -149,7 +149,7 @@ fn checks_the_connections_of_a_system() {
         .unwrap();
     assert_eq!(
         swap["message"],
-        "SDA and SCL are swapped: Carrier J1 pins 5 and 6 meet Shield P1 pins 5 and 6"
+        "SDA and SCL are swapped: Carrier J1 pins 5 and 6 meet Shield P1 pins 6 and 5"
     );
 
     // An alias makes BUTTON and BTN the same signal.
@@ -218,12 +218,12 @@ fn checks_the_connections_of_a_system() {
         .contains("valid")
     );
 
-    // Links: the shield turned over pairs the rows the other way.
+    // Pairing by number instead of by position meets the wrong rows.
     let link_id = checked["connections"][0]["id"].clone();
     call(
         &mut engine,
         "system.updateLink",
-        json!({"doc": doc, "id": link_id, "pairing": "mirrored"}),
+        json!({"doc": doc, "id": link_id, "pairing": "number"}),
     );
     let checked = call(&mut engine, "system.check", json!({"doc": doc}));
     assert!(checked["errors"].as_u64().unwrap() > 1, "{checked}");
@@ -384,4 +384,112 @@ fn checks_the_connections_of_a_system() {
     assert_eq!(shield_entry["quantity"], 2);
     assert_eq!(shield_entry["position"], json!([0, 0, 12_000_000]));
     assert_eq!(info["aliases"], json!([["BUTTON", "BTN"]]));
+}
+
+#[test]
+fn the_system_in_3d() {
+    let dir = tempfile::tempdir().unwrap();
+    let root = dir.path().join("Station");
+    ew_format::store::create_project(&root, &ew_synth::system::generate(1)).unwrap();
+    let mut engine = Engine::without_journal();
+    let snapshot = call(&mut engine, "project.open", json!({"path": root}));
+    let doc = snapshot["documents"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|d| d["kind"] == "system")
+        .unwrap()["id"]
+        .as_str()
+        .unwrap()
+        .to_owned();
+    let info = call(&mut engine, "system.info", json!({"doc": doc}));
+    let shield = board_id(&info, "Shield");
+
+    // One scene: three boards' meshes and their six parts.
+    let scene = call(&mut engine, "system.scene", json!({"doc": doc}));
+    assert_eq!(scene["boards"].as_array().unwrap().len(), 3);
+    assert_eq!(scene["parts"].as_array().unwrap().len(), 6);
+    assert!(scene["data"].as_str().unwrap().len() > 1000);
+    let bounds = scene["board"]["bounds"].as_array().unwrap();
+    // From the front panel (y −40) to the shield's top (z above 10 mm).
+    assert!(bounds[1].as_f64().unwrap() < -39.0);
+    assert!(bounds[5].as_f64().unwrap() > 11.0);
+
+    // No collisions as placed.
+    let checked = call(&mut engine, "system.check", json!({"doc": doc}));
+    assert!(
+        !codes(&checked)
+            .iter()
+            .any(|c| c == "system-collision" || c == "system-clearance"),
+        "{checked}"
+    );
+
+    // The shield 7 mm lower meets the carrier's controller.
+    call(
+        &mut engine,
+        "system.updateBoard",
+        json!({"doc": doc, "id": shield, "position": [12_540_000, 10_000_000, 3_100_000]}),
+    );
+    let checked = call(&mut engine, "system.check", json!({"doc": doc}));
+    let found = codes(&checked);
+    assert!(found.contains(&"system-collision".to_owned()), "{found:?}");
+    let collision = checked["findings"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|f| f["code"] == "system-collision")
+        .unwrap()
+        .clone();
+    assert!(
+        collision["message"]
+            .as_str()
+            .unwrap()
+            .contains("Shield (board)"),
+        "{collision}"
+    );
+
+    // Stacked onto the socket again: back where it was.
+    let link = info["links"][0]["id"].clone();
+    let stacked = call(
+        &mut engine,
+        "system.stack",
+        json!({"doc": doc, "link": link}),
+    );
+    assert_eq!(stacked["gap"], 8.5);
+    assert_eq!(
+        stacked["position"],
+        json!([12_540_000, 10_000_000, 10_080_000])
+    );
+    assert_eq!(stacked["rotation"], json!([0, 0, 0]));
+    let checked = call(&mut engine, "system.check", json!({"doc": doc}));
+    assert!(!codes(&checked).contains(&"system-collision".to_owned()));
+    // A given gap.
+    let stacked = call(
+        &mut engine,
+        "system.stack",
+        json!({"doc": doc, "link": link, "gap": 11.0}),
+    );
+    assert_eq!(stacked["position"][2], 12_580_000);
+    assert!(
+        error(
+            &mut engine,
+            "system.stack",
+            json!({"doc": doc, "link": link, "gap": -1.0})
+        )
+        .contains("gap")
+    );
+
+    // The assembly as one STEP file.
+    let path = dir.path().join("station.step");
+    let exported = call(
+        &mut engine,
+        "system.export",
+        json!({"doc": doc, "path": path}),
+    );
+    assert!(exported["bytes"].as_u64().unwrap() > 1000);
+    let text = std::fs::read_to_string(&path).unwrap();
+    assert!(text.contains("ElectronicWerk system assembly"));
+    for name in ["'Carrier'", "'Shield'", "'Front panel'"] {
+        assert!(text.contains(name), "{name}");
+    }
 }

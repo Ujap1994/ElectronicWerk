@@ -594,7 +594,7 @@ fn zone_polygons(zone: &ew_model::pcb::Zone) -> Polygons {
 
 /// The solids of a board's checked bodies; bodies without a mesh are
 /// named in `unchecked`, curved STEP files without a mesh in `tessellate`.
-fn body_solids(
+pub(crate) fn body_solids(
     root: &Path,
     mesh_dir: Option<&Path>,
     cache: &mut Cache,
@@ -631,6 +631,29 @@ fn body_solids(
         }
     }
     solids
+}
+
+/// The shapes of a board's populated parts (models from the mesh cache or
+/// planar STEP files, else boxes), for a board whose project lies in
+/// `root`.
+pub(crate) fn part_shapes_in(
+    root: &Path,
+    library: &mut LibraryState,
+    cache: &mut Cache,
+    pcb: &Pcb,
+    height: f64,
+    tessellate: &mut BTreeSet<String>,
+) -> Vec<PartShape> {
+    let found = sources(pcb, root, library);
+    let mesh_dir = library.mesh_dir();
+    let mut meshes: HashMap<String, Arc<Mesh>> = HashMap::new();
+    for source in &found {
+        if let Some(mesh) = cache.model_mesh(source, mesh_dir.as_deref(), tessellate) {
+            meshes.insert(source.path.clone(), mesh);
+        }
+    }
+    let levels = Levels::of(&pcb.stackup);
+    mech::part_shapes(pcb, &levels, &|path| meshes.get(path).cloned(), height)
 }
 
 /// The board body and its area (nm), for the helpers.

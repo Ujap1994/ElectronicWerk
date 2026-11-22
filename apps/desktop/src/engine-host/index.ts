@@ -24,6 +24,7 @@ const CHECKS = new Set([
   'mechanical.outline',
   'mechanical.areas',
   'pcb.drc',
+  'system.check',
 ]);
 
 /** The STEP files a check reply asks for (`tessellate`). */

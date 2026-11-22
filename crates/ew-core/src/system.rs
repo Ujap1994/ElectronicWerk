@@ -1304,6 +1304,31 @@ fn to_value<T: Serialize>(value: &T) -> Result<Value, EngineError> {
     serde_json::to_value(value).map_err(EngineError::internal)
 }
 
+fn rules_of(project: &Project) -> Option<&ew_model::rules::Rules> {
+    let entry = project.documents_of(DocumentKind::Rules).next()?;
+    match project.document(entry.id) {
+        Some(Document::Rules(rules)) => Some(rules),
+        _ => None,
+    }
+}
+
+/// The scene of a system's 3D assembly (`system.scene`).
+///
+/// # Errors
+///
+/// Unknown document, no board to show.
+pub fn scene(
+    session: &Session,
+    cache: &mut Cache,
+    library: &mut crate::library::LibraryState,
+    params: &Value,
+) -> Result<(Value, Vec<u8>), EngineError> {
+    let p: DocParams = parse(params)?;
+    let system = system_of(session.project(), p.doc)?;
+    let loaded = load(session, cache, system);
+    crate::system3d::scene(session, library, system, &loaded)
+}
+
 fn system_of(project: &Project, doc: Id) -> Result<&System, EngineError> {
     match project.document(doc) {
         Some(Document::System(system)) => Ok(system),
@@ -1508,6 +1533,13 @@ struct RenameParams {
 
 #[derive(Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
+struct ExportParams {
+    doc: Id,
+    path: PathBuf,
+}
+
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
 struct ImportParams {
     doc: Id,
     /// The KiCad project (or board) or Eagle board (absolute).
@@ -1630,6 +1662,8 @@ fn board_json(l: &Loaded) -> Result<Value, EngineError> {
 pub fn call(
     session: Option<&Session>,
     cache: &mut Cache,
+    library: &mut crate::library::LibraryState,
+    mechanical: &mut crate::mechanical::Cache,
     method: &str,
     params: &Value,
 ) -> Result<Outcome, EngineError> {
@@ -2014,7 +2048,68 @@ pub fn call(
             let p: DocParams = parse(params)?;
             let system = system_of(project, p.doc)?;
             let loaded = load(session, cache, system);
-            Ok(Outcome::Read(to_value(&check(system, &loaded))?))
+            let mut checked = check(system, &loaded);
+            let clearance = crate::mechanical::clearance_of(rules_of(project));
+            let (found, tessellate) = crate::system3d::collisions(
+                session, library, mechanical, system, &loaded, clearance,
+            );
+            for f in &found {
+                if !f.excluded {
+                    if f.severity == "error" {
+                        checked.errors += 1;
+                    } else {
+                        checked.warnings += 1;
+                    }
+                }
+            }
+            checked.findings.extend(found);
+            checked.findings.sort_by(|a, b| {
+                (a.severity != "error")
+                    .cmp(&(b.severity != "error"))
+                    .then_with(|| a.code.cmp(&b.code))
+                    .then_with(|| a.key.cmp(&b.key))
+            });
+            let mut value = to_value(&checked)?;
+            if let Some(object) = value.as_object_mut() {
+                object.insert("tessellate".into(), json!(tessellate));
+            }
+            Ok(Outcome::Read(value))
+        }
+        "system.stack" => {
+            let p: DocParams = serde_json::from_value(json!({"doc": params.get("doc")}))
+                .map_err(|e| EngineError::invalid_params(e.to_string()))?;
+            let system = system_of(project, p.doc)?;
+            let loaded = load(session, cache, system);
+            let (boards, reply) =
+                crate::system3d::stack(library, mechanical, system, &loaded, params)?;
+            Ok(Outcome::Commit {
+                label: BOARDS,
+                requests: vec![set(p.doc, &[("boards", to_value(&boards)?)])],
+                reply,
+            })
+        }
+        "system.export" => {
+            let p: ExportParams = parse(params)?;
+            if !p.path.is_absolute() {
+                return Err(EngineError::invalid_params("the path must be absolute"));
+            }
+            let system = system_of(project, p.doc)?;
+            let loaded = load(session, cache, system);
+            let (text, notes) = crate::system3d::step(
+                session,
+                library,
+                system,
+                &loaded,
+                crate::VERSION,
+                &ew_format::time::DateTime::now().iso_string(),
+            );
+            ew_format::fsio::write_atomic(&p.path, text.as_bytes())
+                .map_err(|e| EngineError::invalid_params(e.to_string()))?;
+            Ok(Outcome::Read(json!({
+                "path": p.path,
+                "bytes": text.len(),
+                "notes": notes,
+            })))
         }
         "system.exclude" => {
             let p: ExcludeParams = parse(params)?;

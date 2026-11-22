@@ -252,12 +252,15 @@ pub const METHODS: &[&str] = &[
     "system.connectors",
     "system.counterparts",
     "system.exclude",
+    "system.export",
     "system.importReference",
     "system.info",
     "system.pins",
     "system.removeBoard",
     "system.removeCable",
     "system.removeLink",
+    "system.scene",
+    "system.stack",
     "system.renameSignal",
     "system.setAliases",
     "system.updateBoard",
@@ -597,6 +600,15 @@ impl Engine {
                 Some(session) => crate::board3d::scene(session, &mut self.library, &request.params),
                 None => Err(EngineError::no_project()),
             },
+            "system.scene" => match self.session.as_ref() {
+                Some(session) => crate::system::scene(
+                    session,
+                    &mut self.systems,
+                    &mut self.library,
+                    &request.params,
+                ),
+                None => Err(EngineError::no_project()),
+            },
             _ => return (encode(&self.handle(&request)), None),
         };
         match result {
@@ -713,6 +725,7 @@ impl Engine {
         Ok(change_set)
     }
 
+    #[allow(clippy::too_many_lines, reason = "one arm per method family")]
     fn call(&mut self, method: &str, params: &Value) -> Result<Value, EngineError> {
         match method {
             "engine.info" => to_value(&EngineInfo::current()),
@@ -734,6 +747,15 @@ impl Engine {
             }
             _ if method.starts_with("part.") => self.call_part(method, params),
             _ if method.starts_with("mechanical.") => self.call_mechanical(method, params),
+            "system.scene" => {
+                let session = self.session.as_ref().ok_or_else(EngineError::no_project)?;
+                let (mut meta, data) =
+                    crate::system::scene(session, &mut self.systems, &mut self.library, params)?;
+                if let Some(object) = meta.as_object_mut() {
+                    object.insert("data".to_owned(), Value::String(ew_scene::base64(&data)));
+                }
+                Ok(meta)
+            }
             _ if method.starts_with("system.") => self.call_system(method, params),
             "board3d.scene" => {
                 let session = self.session.as_ref().ok_or_else(EngineError::no_project)?;
@@ -1459,7 +1481,14 @@ impl Engine {
     }
 
     fn call_system(&mut self, method: &str, params: &Value) -> Result<Value, EngineError> {
-        match crate::system::call(self.session.as_ref(), &mut self.systems, method, params)? {
+        match crate::system::call(
+            self.session.as_ref(),
+            &mut self.systems,
+            &mut self.library,
+            &mut self.mechanical,
+            method,
+            params,
+        )? {
             crate::system::Outcome::Read(value) => Ok(value),
             crate::system::Outcome::Commit {
                 label,
