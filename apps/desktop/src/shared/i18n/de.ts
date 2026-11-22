@@ -3,6 +3,7 @@ import { assemblyDe } from './assembly.de';
 import { boardDe } from './board.de';
 import { outputsDe } from './outputs.de';
 import { view3dDe } from './view3d.de';
+import { systemDe } from './system.de';
 import { githubDe } from './github.de';
 import { partsDe } from './parts.de';
 import { libeditDe } from './libedit.de';
@@ -248,10 +249,16 @@ export const de: Messages = {
     makeEnclosure: 'Kastengehäuse erzeugen',
     outlineFromEnclosure: 'Platinenumriss aus dem Gehäuse',
     areasFromEnclosure: 'Bereiche aus dem Gehäuse',
+    systemBoards: 'Leiterplatten des Systems ändern',
+    systemLinks: 'Verbindungen ändern',
+    systemCables: 'Kabel ändern',
+    editSystem: 'System ändern',
+    renameSignal: 'Signal umbenennen',
   },
   kinds: {
     schematic: 'Schaltplan',
     pcb: 'Leiterplatte',
+    system: 'System',
     library: 'Bibliothek',
     rules: 'Designregeln',
     outputJob: 'Ausgabejob',
@@ -260,6 +267,7 @@ export const de: Messages = {
     label: 'Projektbaum',
     schematics: 'Schaltpläne',
     boards: 'Leiterplatten',
+    systems: 'Systeme',
     libraries: 'Bibliotheken',
     rules: 'Designregeln',
     outputJobs: 'Ausgabejobs',
@@ -271,6 +279,7 @@ export const de: Messages = {
     addSubSheet: 'Unterblatt hinzufügen',
     importNetlist: 'Netzliste importieren …',
     addBoard: 'Leiterplatte hinzufügen',
+    addSystem: 'System hinzufügen',
     addLibrary: 'Bibliothek hinzufügen',
     addOutputJob: 'Ausgabejob hinzufügen',
     addRules: 'Designregeln hinzufügen',
@@ -283,6 +292,7 @@ export const de: Messages = {
     modified: 'Geändert',
     newSheet: 'Neues Blatt',
     newBoard: 'Leiterplatte',
+    newSystem: 'System',
     newLibrary: 'Bibliothek',
     newOutputJob: 'Ausgabejob',
     newRules: 'Designregeln',
@@ -315,6 +325,11 @@ export const de: Messages = {
     value: 'Wert in dieser Variante',
   },
   details: {
+    systemBoards: 'Leiterplatten',
+    systemCables: 'Kabel',
+    systemHint:
+      'Ein System verbindet Leiterplatten: aufgesteckt über ihre Steckverbinder oder über Kabel. Seine Prüfung vergleicht die Signale jeder Verbindung und die Leiterplatten in 3D.',
+    openSystem: 'System öffnen',
     projectTitle: 'Projekt',
     general: 'Allgemein',
     name: 'Name',
@@ -575,6 +590,11 @@ export const de: Messages = {
       'invalid-net-class': 'Die Netzklasse „{name}“ hat eine Größe von null oder kleiner.',
       'missing-default-net-class': 'Es gibt keine Netzklasse „{name}“.',
       'output-source-missing': 'Die Ausgabe „{name}“ verweist auf ein fehlendes Dokument.',
+      'duplicate-system-board': 'Die Systemplatine „{name}“ ist doppelt aufgeführt.',
+      'system-board-missing': 'Die Systemplatine „{name}“ verweist auf eine fehlende Leiterplatte.',
+      'system-link-board':
+        'Eine Verbindung von {designator} verweist auf eine Leiterplatte, die nicht im System ist.',
+      'system-wire-end': 'Eine Ader des Kabels „{name}“ hat ein unbekanntes Ende.',
     },
   },
   errors: {
@@ -1189,6 +1209,7 @@ export const de: Messages = {
   board: boardDe,
   outputs: outputsDe,
   view3d: view3dDe,
+  system: systemDe,
   parts: partsDe,
   github: githubDe,
   assembly: assemblyDe,

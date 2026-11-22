@@ -69,6 +69,11 @@ const HISTORY_LABELS: Readonly<Record<string, MessageKey>> = {
   'make-enclosure': 'history.makeEnclosure',
   'outline-from-enclosure': 'history.outlineFromEnclosure',
   'areas-from-enclosure': 'history.areasFromEnclosure',
+  'system-boards': 'history.systemBoards',
+  'system-links': 'history.systemLinks',
+  'system-cables': 'history.systemCables',
+  'edit-system': 'history.editSystem',
+  'rename-signal': 'history.renameSignal',
 };
 
 /** A readable name for an undo/redo step (scripts may use their own labels). */

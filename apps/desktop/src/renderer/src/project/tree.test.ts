@@ -73,7 +73,7 @@ describe('buildTree', () => {
       ),
       files,
     );
-    const [schematics, boards, libraries, rules, , other, generated] = tree.children;
+    const [schematics, boards, systems, libraries, rules, , other, generated] = tree.children;
     expect(labels(schematics!)).toEqual({
       key: 'group:schematics',
       badges: [],
@@ -94,6 +94,7 @@ describe('buildTree', () => {
       ],
     });
     expect(boards!.children.map((n) => selectionKey(n.target))).toEqual(['doc:board']);
+    expect(systems!.children).toEqual([]);
     expect(libraries!.children).toEqual([]);
     expect(rules!.children).toHaveLength(1);
     expect(other!.children.map((n) => selectionKey(n.target))).toEqual(['file:README.md']);
@@ -116,8 +117,8 @@ describe('buildTree', () => {
     expect(keys).toContain('project');
     expect(keys).toContain('group:schematics');
     expect(keys).toContain('group:schematics/r');
-    // Seven groups and source control.
-    expect(visibleNodes(tree, new Set(['project'])).length).toBe(9);
+    // Eight groups and source control.
+    expect(visibleNodes(tree, new Set(['project'])).length).toBe(10);
     const all = visibleNodes(tree, new Set(keys));
     expect(all.find((entry) => entry.node.key === 'group:schematics/r/s')?.depth).toBe(3);
   });
@@ -130,6 +131,6 @@ describe('buildTree', () => {
     // Without the GitHub integration there is no source control.
     const off = buildTree(project([], null), [], null);
     expect(off.children.map((child) => child.key)).not.toContain('git');
-    expect(off.children).toHaveLength(7);
+    expect(off.children).toHaveLength(8);
   });
 });

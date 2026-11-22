@@ -5,6 +5,7 @@ import type { DocumentSummary } from '@shared/project';
 import { LibraryEditor } from '../libedit/LibraryEditor';
 import { GerberViewer } from '../outputs/GerberViewer';
 import { forgetOutputRuns, OpenGerberContext, OutputJobEditor } from '../outputs/OutputJobEditor';
+import { SystemEditor } from '../system/SystemEditor';
 import { outputCommands } from '../outputs/stores';
 import { refreshProjectGit, sourceControlCommand, useProjectGit } from '../github/stores';
 import { historyLabel } from '../project/labels';
@@ -70,6 +71,7 @@ const TAB_ICONS: Readonly<Record<string, IconName>> = {
   library: 'library',
   schematic: 'schematic',
   outputJob: 'output',
+  system: 'system',
   gerber: 'layers',
   view3d: 'cube',
   assembly: 'tweezers',
@@ -526,6 +528,8 @@ export function ProjectWorkspace({
                         />
                       ) : active.document.kind === 'outputJob' ? (
                         <OutputJobEditor key={active.id} document={active.document} />
+                      ) : active.document.kind === 'system' ? (
+                        <SystemEditor key={active.id} document={active.document} />
                       ) : (
                         <DocumentViewer
                           key={active.id}

@@ -24,7 +24,7 @@ function fromNm(nm: number): number {
 }
 
 /** A number field that applies its value on Enter or when it loses focus. */
-function NumberField({
+export function NumberField({
   value,
   label,
   step,

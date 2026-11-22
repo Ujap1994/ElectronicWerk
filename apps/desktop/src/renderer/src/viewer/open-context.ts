@@ -17,6 +17,7 @@ export function isViewable(document: DocumentSummary): boolean {
     document.kind === 'schematic' ||
     document.kind === 'pcb' ||
     document.kind === 'library' ||
+    document.kind === 'system' ||
     document.kind === 'outputJob'
   );
 }

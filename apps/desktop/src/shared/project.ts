@@ -6,12 +6,13 @@
 /** A length in nanometres. */
 export type Nm = number;
 
-export type DocumentKind = 'schematic' | 'pcb' | 'library' | 'rules' | 'outputJob';
+export type DocumentKind = 'schematic' | 'pcb' | 'system' | 'library' | 'rules' | 'outputJob';
 
 /** Document kinds in project tree order. */
 export const DOCUMENT_KINDS: readonly DocumentKind[] = [
   'schematic',
   'pcb',
+  'system',
   'library',
   'rules',
   'outputJob',
@@ -48,6 +49,9 @@ export interface DocumentStats {
   readonly boardSize?: readonly [Nm, Nm];
   readonly netClasses?: number;
   readonly outputs?: number;
+  /** System: boards and cables. */
+  readonly boards?: number;
+  readonly cables?: number;
 }
 
 export interface DocumentSummary {
@@ -447,4 +451,8 @@ export const VALIDATION_CODES: ReadonlySet<string> = new Set([
   'invalid-net-class',
   'missing-default-net-class',
   'output-source-missing',
+  'duplicate-system-board',
+  'system-board-missing',
+  'system-link-board',
+  'system-wire-end',
 ]);

@@ -29,6 +29,7 @@ import { Icon, type IconName } from './Icon';
 const GROUP_LABEL: Readonly<Record<GroupId, MessageKey>> = {
   schematics: 'tree.schematics',
   boards: 'tree.boards',
+  systems: 'tree.systems',
   libraries: 'tree.libraries',
   rules: 'tree.rules',
   outputJobs: 'tree.outputJobs',
@@ -39,6 +40,7 @@ const GROUP_LABEL: Readonly<Record<GroupId, MessageKey>> = {
 const KIND_ICON: Readonly<Record<DocumentKind, IconName>> = {
   schematic: 'schematic',
   pcb: 'board',
+  system: 'system',
   library: 'library',
   rules: 'rules',
   outputJob: 'output',
@@ -47,6 +49,7 @@ const KIND_ICON: Readonly<Record<DocumentKind, IconName>> = {
 const GROUP_ICON: Readonly<Record<GroupId, IconName>> = {
   schematics: 'schematic',
   boards: 'board',
+  systems: 'system',
   libraries: 'library',
   rules: 'rules',
   outputJobs: 'output',
@@ -66,6 +69,7 @@ const GROUP_ADD: Partial<
 > = {
   schematics: { kind: 'schematic', label: 'tree.addSheet', name: 'tree.newSheet' },
   boards: { kind: 'pcb', label: 'tree.addBoard', name: 'tree.newBoard' },
+  systems: { kind: 'system', label: 'tree.addSystem', name: 'tree.newSystem' },
   libraries: { kind: 'library', label: 'tree.addLibrary', name: 'tree.newLibrary' },
   rules: { kind: 'rules', label: 'tree.addRules', name: 'tree.newRules' },
   outputJobs: { kind: 'outputJob', label: 'tree.addOutputJob', name: 'tree.newOutputJob' },

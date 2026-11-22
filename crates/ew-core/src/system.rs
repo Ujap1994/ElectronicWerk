@@ -592,8 +592,10 @@ impl Checker<'_> {
         b: &ConnectorRef,
         pb: &Pin,
         swapped: bool,
-        via: &str,
+        cable: Option<&str>,
     ) -> &'static str {
+        let via = cable.map_or_else(String::new, |c| format!(" (cable {c})"));
+        let cable_arg = ("cable", cable.unwrap_or_default().to_owned());
         let pins = vec![
             PinRef {
                 board: a.board,
@@ -631,6 +633,7 @@ impl Checker<'_> {
                         ("signal", short_name(net).to_owned()),
                         ("with", with.clone()),
                         ("without", without.clone()),
+                        cable_arg,
                     ],
                     Some(connection),
                     pins,
@@ -650,6 +653,7 @@ impl Checker<'_> {
                             ("b", where_b.clone()),
                             ("signalA", sa),
                             ("signalB", sb),
+                            cable_arg,
                         ],
                         Some(connection),
                         pins,
@@ -673,6 +677,7 @@ impl Checker<'_> {
                         ("b", where_b.clone()),
                         ("signalA", sa),
                         ("signalB", sb),
+                        cable_arg,
                     ],
                     Some(connection),
                     pins,
@@ -876,8 +881,15 @@ pub fn check(system: &System, loaded: &[Loaded]) -> Checked {
         for (i, (pa, pb)) in pairs.iter().enumerate() {
             let status = match (pa, pb) {
                 (Some(pa), Some(pb)) => {
-                    let status =
-                        c.compare(link.id, &link.a, pa, &link.b, pb, swapped[i].is_some(), "");
+                    let status = c.compare(
+                        link.id,
+                        &link.a,
+                        pa,
+                        &link.b,
+                        pb,
+                        swapped[i].is_some(),
+                        None,
+                    );
                     if status == "swapped"
                         && let Some(j) = swapped[i]
                         && reported_swaps.insert((i.min(j), i.max(j)))
@@ -1052,9 +1064,8 @@ pub fn check(system: &System, loaded: &[Loaded]) -> Checked {
                     );
                 }
             }
-            let via = format!(" (cable {})", cable.name);
             if let (Some(ra), Some(rb), Some(pa), Some(pb)) = (ra, rb, &pa, &pb) {
-                status = c.compare(cable.id, ra, pa, rb, pb, false, &via);
+                status = c.compare(cable.id, ra, pa, rb, pb, false, Some(&cable.name));
                 if status == "unused" {
                     status = "open";
                     c.push(
@@ -2407,7 +2418,11 @@ fn rename_signal(
     let olds: BTreeSet<String> = nets.iter().map(|(_, n)| short_name(n).to_owned()).collect();
     for (doc, old) in &nets {
         if let Some(Document::Pcb(pcb)) = project.document(*doc) {
-            for net in pcb.nets.iter().filter(|n| &n.name == old) {
+            for net in pcb
+                .nets
+                .iter()
+                .filter(|n| short_name(&n.name) == short_name(old))
+            {
                 let prefix = net.name.rsplit_once('/').map_or("", |(a, _)| a);
                 let name = if prefix.is_empty() && !net.name.starts_with('/') {
                     to.to_owned()

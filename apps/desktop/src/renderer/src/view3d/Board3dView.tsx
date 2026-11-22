@@ -122,11 +122,14 @@ export function Board3dView({
   name,
   detached = false,
   onDetach,
+  system = false,
 }: {
   readonly doc: string;
   readonly name: string;
   readonly detached?: boolean;
   readonly onDetach?: () => void;
+  /** Show a system of several boards (`doc` is the system document). */
+  readonly system?: boolean;
 }): ReactNode {
   const { engine, t } = useAppState();
   const dark = useDarkScheme();
@@ -324,6 +327,9 @@ export function Board3dView({
         // Not a board (any more).
       }
     };
+    if (system) {
+      return undefined;
+    }
     void loadBodies(true);
     const off = engine.onEvent((event) => {
       if (changesOf(event, doc).any) {
@@ -339,7 +345,7 @@ export function Board3dView({
       off();
       runCheckRef.current = () => undefined;
     };
-  }, [scene, engine, doc]);
+  }, [scene, engine, doc, system]);
 
   const focusFinding = (finding: EnclosureFinding): void => {
     if (finding.point !== undefined) {
@@ -369,7 +375,9 @@ export function Board3dView({
       busy = true;
       try {
         const inner = view3dSettings.get().visibility.inner;
-        const reply = await engine.call<SceneReply>('board3d.scene', { doc, inner }, 120_000);
+        const reply = system
+          ? await engine.call<SceneReply>('system.scene', { doc }, 300_000)
+          : await engine.call<SceneReply>('board3d.scene', { doc, inner }, 120_000);
         if (cancelled) {
           return;
         }
@@ -412,7 +420,10 @@ export function Board3dView({
     };
     void loadScene();
     const off = engine.onEvent((event) => {
-      const change = changesOf(event, doc);
+      // A system shows the boards of other documents: every change counts.
+      const change = system
+        ? { any: (event as { type?: string } | null)?.type === 'changed', parts: false }
+        : changesOf(event, doc);
       if (!change.any) {
         return;
       }
@@ -430,7 +441,7 @@ export function Board3dView({
       clearTimeout(reloadTimer);
       off();
     };
-  }, [scene, engine, doc, t, settings.visibility.inner]);
+  }, [scene, engine, doc, t, settings.visibility.inner, system]);
 
   // Selection: shared with the layout editor (and its window).
   const shared = useSyncExternalStore(crossSelection.subscribe, crossSelection.get);
@@ -455,7 +466,7 @@ export function Board3dView({
               : [...current, id]
             : [id];
       crossSelection.set({ source: '3d', footprints, symbols: [] });
-      if (footprints.length > 0) {
+      if (footprints.length > 0 && !system) {
         void engine
           .call<{ symbols: { doc: string; id: string }[] }>('pcb.crossProbe', {
             doc,
@@ -476,7 +487,7 @@ export function Board3dView({
         setMeasure(points);
       },
     });
-  }, [scene, engine, doc]);
+  }, [scene, engine, doc, system]);
 
   // Overlays follow the camera.
   useEffect(() => {
@@ -543,6 +554,15 @@ export function Board3dView({
       return;
     }
     setMessage(t('view3d.exporting'));
+    if (system) {
+      try {
+        const reply = await engine.call<{ path: string }>('system.export', { doc, path }, 300_000);
+        flash(t('view3d.screenshotSaved', { path: reply.path }));
+      } catch (reason) {
+        flash(errorMessage(t, reason));
+      }
+      return;
+    }
     try {
       const reply = await engine.call<ExportReply>(
         'board3d.export',
@@ -710,15 +730,17 @@ export function Board3dView({
             }
           }}
         />
-        <Tool
-          icon="enclosure"
-          label={t('view3d.mechanical.tip')}
-          pressed={panel}
-          testId="view3d-mechanical"
-          onClick={() => {
-            setPanel(!panel);
-          }}
-        />
+        {!system && (
+          <Tool
+            icon="enclosure"
+            label={t('view3d.mechanical.tip')}
+            pressed={panel}
+            testId="view3d-mechanical"
+            onClick={() => {
+              setPanel(!panel);
+            }}
+          />
+        )}
         <span className="viewer-tool__separator" />
         <Tool
           icon="camera"
@@ -737,7 +759,7 @@ export function Board3dView({
             setPopover(popover === 'export' ? null : 'export');
           }}
         />
-        {!detached && onDetach !== undefined && (
+        {!detached && !system && onDetach !== undefined && (
           <Tool
             icon="window"
             label={t('view3d.detachTip')}
@@ -818,7 +840,7 @@ export function Board3dView({
         )}
         {popover === 'export' && (
           <div className="popover view3d__popover" role="menu" data-testid="view3d-export-menu">
-            {(['step', 'glb', 'vrml'] as const).map((format) => (
+            {(system ? (['step'] as const) : (['step', 'glb', 'vrml'] as const)).map((format) => (
               <button
                 key={format}
                 type="button"
@@ -904,7 +926,7 @@ export function Board3dView({
           </div>
         )}
         {measureLabel()}
-        {panel && (
+        {panel && !system && (
           <MechanicalPanel
             doc={doc}
             bodies={bodies}

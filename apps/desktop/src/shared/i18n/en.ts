@@ -9,6 +9,7 @@ import { assemblyEn } from './assembly.en';
 import { boardEn } from './board.en';
 import { outputsEn } from './outputs.en';
 import { view3dEn } from './view3d.en';
+import { systemEn } from './system.en';
 import { githubEn } from './github.en';
 import { partsEn } from './parts.en';
 import { libeditEn } from './libedit.en';
@@ -251,10 +252,16 @@ export const en = {
     makeEnclosure: 'Make box enclosure',
     outlineFromEnclosure: 'Board outline from the enclosure',
     areasFromEnclosure: 'Areas from the enclosure',
+    systemBoards: 'Change system boards',
+    systemLinks: 'Change connections',
+    systemCables: 'Change cables',
+    editSystem: 'Change system',
+    renameSignal: 'Rename signal',
   },
   kinds: {
     schematic: 'Schematic',
     pcb: 'Board',
+    system: 'System',
     library: 'Library',
     rules: 'Design rules',
     outputJob: 'Output job',
@@ -263,6 +270,7 @@ export const en = {
     label: 'Project tree',
     schematics: 'Schematics',
     boards: 'Boards',
+    systems: 'Systems',
     libraries: 'Libraries',
     rules: 'Design rules',
     outputJobs: 'Output jobs',
@@ -274,6 +282,7 @@ export const en = {
     addSubSheet: 'Add sub-sheet',
     importNetlist: 'Import netlist…',
     addBoard: 'Add board',
+    addSystem: 'Add system',
     addLibrary: 'Add library',
     addOutputJob: 'Add output job',
     addRules: 'Add design rules',
@@ -286,6 +295,7 @@ export const en = {
     modified: 'Modified',
     newSheet: 'New sheet',
     newBoard: 'Board',
+    newSystem: 'System',
     newLibrary: 'Library',
     newOutputJob: 'Output job',
     newRules: 'Design rules',
@@ -318,6 +328,11 @@ export const en = {
     value: 'Value in this variant',
   },
   details: {
+    systemBoards: 'Boards',
+    systemCables: 'Cables',
+    systemHint:
+      'A system joins boards: stacked through their connectors or through cables. Its check compares the signals on every connection and the boards in 3D.',
+    openSystem: 'Open the system',
     projectTitle: 'Project',
     general: 'General',
     name: 'Name',
@@ -573,6 +588,11 @@ export const en = {
       'invalid-net-class': 'The net class “{name}” has a zero or negative size.',
       'missing-default-net-class': 'There is no “{name}” net class.',
       'output-source-missing': 'The output “{name}” refers to a missing document.',
+      'duplicate-system-board': 'The system board “{name}” is listed twice.',
+      'system-board-missing': 'The system board “{name}” refers to a missing board.',
+      'system-link-board':
+        'A connection of {designator} refers to a board that is not in the system.',
+      'system-wire-end': 'A wire of cable “{name}” has an unknown end.',
     },
   },
   errors: {
@@ -1181,6 +1201,7 @@ export const en = {
   board: boardEn,
   outputs: outputsEn,
   view3d: view3dEn,
+  system: systemEn,
   parts: partsEn,
   github: githubEn,
   assembly: assemblyEn,

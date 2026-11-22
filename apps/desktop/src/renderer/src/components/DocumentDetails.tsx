@@ -864,6 +864,40 @@ const OUTPUT_KINDS: Readonly<Record<string, MessageKey>> = {
   documentation: 'outputKinds.documentation',
 };
 
+function SystemDetails({ document }: { readonly document: DocumentSummary }): ReactNode {
+  const { t } = useAppState();
+  const open = useOpenDocument();
+  return (
+    <div className="details__body" data-testid="details-system">
+      <Section title={t('kinds.system')}>
+        <DocumentHeader document={document} />
+        <div className="field">
+          <span className="field__label">{t('details.systemBoards')}</span>
+          <span>{document.stats.boards ?? 0}</span>
+        </div>
+        <div className="field">
+          <span className="field__label">{t('details.systemCables')}</span>
+          <span>{document.stats.cables ?? 0}</span>
+        </div>
+        <p className="details__hint">{t('details.systemHint')}</p>
+        {open !== null && (
+          <button
+            type="button"
+            className="button"
+            data-testid="details-open-system"
+            onClick={() => {
+              open(document);
+            }}
+          >
+            <Icon name="system" size={16} />
+            {t('details.openSystem')}
+          </button>
+        )}
+      </Section>
+    </div>
+  );
+}
+
 function OutputJobDetails({ document }: { readonly document: DocumentSummary }): ReactNode {
   const { t } = useAppState();
   const props = useDocumentProps(document);
@@ -947,6 +981,7 @@ function FileDetails({ file }: { readonly file: FileEntry }): ReactNode {
 const GROUP_TITLE: Readonly<Record<GroupId, MessageKey>> = {
   schematics: 'tree.schematics',
   boards: 'tree.boards',
+  systems: 'tree.systems',
   libraries: 'tree.libraries',
   rules: 'tree.rules',
   outputJobs: 'tree.outputJobs',
@@ -960,6 +995,7 @@ function GroupDetails({ group }: { readonly group: GroupId }): ReactNode {
   const kinds: Partial<Record<GroupId, DocumentSummary['kind']>> = {
     schematics: 'schematic',
     boards: 'pcb',
+    systems: 'system',
     libraries: 'library',
     rules: 'rules',
     outputJobs: 'outputJob',
@@ -1020,6 +1056,8 @@ export function DocumentDetails({ target }: { readonly target: TreeTarget }): Re
           return <RulesDetails key={document.id} document={document} />;
         case 'outputJob':
           return <OutputJobDetails key={document.id} document={document} />;
+        case 'system':
+          return <SystemDetails key={document.id} document={document} />;
       }
     }
   }

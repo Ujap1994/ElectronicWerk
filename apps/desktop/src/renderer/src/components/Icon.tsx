@@ -47,6 +47,7 @@ const PATHS = {
   download: 'M12 4v11m0 0-4-4m4 4 4-4M4 19h16',
   cube: 'M12 3 4 7.5v9L12 21l8-4.5v-9zM4 7.5l8 4.5 8-4.5M12 12v9',
   enclosure: 'M3 6l9-3 9 3-9 3zM3 10v8l9 3 9-3v-8M3 10l9 3 9-3M12 13v8',
+  system: 'M3 4h12v6H3zM9 14h12v6H9zM6 10v4M18 10v4M12 10v4',
   duplicate: 'M8 8h12v12H8zM4 16V4h12',
   merge: 'M6 3v5l6 6v7M18 3v5l-6 6',
   split: 'M12 3v7l-6 6v5M12 10l6 6v5',

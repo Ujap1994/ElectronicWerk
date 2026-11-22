@@ -1,11 +1,19 @@
 import type { DocumentKind, DocumentSummary, FileEntry, ProjectSnapshot } from '@shared/project';
 
 export type GroupId =
-  'schematics' | 'boards' | 'libraries' | 'rules' | 'outputJobs' | 'otherFiles' | 'generatedFiles';
+  | 'schematics'
+  | 'boards'
+  | 'systems'
+  | 'libraries'
+  | 'rules'
+  | 'outputJobs'
+  | 'otherFiles'
+  | 'generatedFiles';
 
 export const GROUP_OF_KIND: Readonly<Record<DocumentKind, GroupId>> = {
   schematic: 'schematics',
   pcb: 'boards',
+  system: 'systems',
   library: 'libraries',
   rules: 'rules',
   outputJob: 'outputJobs',
@@ -121,6 +129,7 @@ export function buildTree(
     children: [
       group('schematics', schematicNodes),
       group('boards', ofKind('pcb')),
+      group('systems', ofKind('system')),
       group('libraries', ofKind('library')),
       group('rules', ofKind('rules')),
       group('outputJobs', ofKind('outputJob')),
