@@ -13,8 +13,9 @@ import { formatLength, isEngineEvent, type DocumentSummary, type Units } from '@
 import { BoardOverlay } from '../board/BoardOverlay';
 import { BoardActions, BoardToolPalette } from '../board/BoardToolbar';
 import { DrcPanel } from '../board/DrcPanel';
+import { NetInspector } from '../board/NetInspector';
 import type { BoardEditor } from '../board/editor';
-import { routingCorners } from '../board/stores';
+import { netInspector, routingCorners } from '../board/stores';
 import { useBoardEditor, useSchematicCrossProbe } from '../board/useBoardEditor';
 import { useProject } from '../project/ProjectProvider';
 import { errorMessage } from '../project/labels';
@@ -277,6 +278,8 @@ export function DocumentViewer({
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const snapshot = useSyncExternalStore(controller.subscribe, controller.snapshot);
+  const viewVersion = snapshot.version;
+  const netsOpen = useSyncExternalStore(netInspector.subscribe, netInspector.get);
   const dark = useDarkScheme();
   const doc = document.id;
   const sheet = document.kind === 'schematic';
@@ -726,6 +729,16 @@ export function DocumentViewer({
         )}
         {boardEditor !== null && (
           <DrcPanel doc={doc} onShow={boardUi.showFinding} onSettings={boardUi.openRules} />
+        )}
+        {boardEditor !== null && netsOpen && (
+          <NetInspector
+            doc={doc}
+            version={viewVersion}
+            units={units}
+            onShow={(net) => {
+              boardEditor.showNet(net);
+            }}
+          />
         )}
         <Footer controller={controller} editor={editor} board={boardEditor} units={units} />
       </div>

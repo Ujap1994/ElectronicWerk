@@ -60,6 +60,9 @@ export interface DrcState {
   readonly ratsnest: boolean;
 }
 
+/** The net inspector below the board is open. */
+export const netInspector = new Store<boolean>(false);
+
 export const drcState = new Store<DrcState>({
   doc: null,
   report: null,

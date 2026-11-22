@@ -191,6 +191,7 @@ pub const METHODS: &[&str] = &[
     "pcb.importSession",
     "pcb.lengths",
     "pcb.matchLengths",
+    "pcb.nets",
     "pcb.pairs",
     "pcb.place",
     "pcb.presets",

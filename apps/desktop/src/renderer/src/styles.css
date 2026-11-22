@@ -6585,3 +6585,73 @@ textarea.field__control {
   justify-self: start;
   margin-top: var(--space-1);
 }
+
+/* --- Net inspector ---------------------------------------------------------- */
+
+.erc.net-inspector {
+  height: 260px;
+}
+
+.net-inspector__filter {
+  width: 220px;
+  padding: 2px var(--space-2);
+}
+
+.net-inspector__class {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--font-size-s);
+}
+
+.net-inspector__scroll {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+}
+
+.net-inspector__table {
+  width: 100%;
+  font-size: var(--font-size-s);
+}
+
+.net-inspector .net-inspector__table > thead > tr > th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: var(--color-surface);
+  text-align: start;
+}
+
+.net-inspector__table > tbody > tr {
+  cursor: pointer;
+}
+
+.net-inspector__table > tbody > tr:hover,
+.net-inspector__table > tbody > tr[data-selected='true'] {
+  background: var(--color-accent-soft);
+}
+
+.net-inspector__sort {
+  padding: 2px 0;
+  border: none;
+  background: none;
+  color: var(--color-text-muted);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.net-inspector__name {
+  font-family: var(--font-mono, monospace);
+}
+
+.net-inspector__number {
+  font-variant-numeric: tabular-nums;
+  text-align: end;
+}
+
+.net-inspector__open {
+  color: var(--color-warn);
+  font-weight: 600;
+}

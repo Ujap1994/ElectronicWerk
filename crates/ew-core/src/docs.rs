@@ -575,6 +575,10 @@ pub const SUMMARIES: &[(&str, &str)] = &[
         "`{\"doc\", \"path\"}` (`import-session`) → `{\"tracks\", \"vias\", \"removedTracks\", \"removedVias\", \"unknownNets\", \"unknownLayers\"}`: reads an autorouter's Specctra session (SES); the routing of each net in it replaces the unlocked tracks and vias of that net, in one undo step.",
     ),
     (
+        "pcb.nets",
+        "`{\"doc\"}` → `{\"nets\"}`: every net of the board for the net inspector: `id`, `name`, `class` (its own or from the rules' patterns), `length` (routed, nm), `tracks`, `vias`, `pads` and `unrouted` (connections still missing).",
+    ),
+    (
         "pcb.lengths",
         "`{\"doc\"}` → `{\"nets\", \"pairs\", \"groups\"}`: the routed length of every net (its tracks; vias are not counted), the differential pairs with their skew and the class's `maxSkew`, and the length groups of the rules with their longest net and tolerance; `ok` tells whether a pair or group keeps its rule.",
     ),

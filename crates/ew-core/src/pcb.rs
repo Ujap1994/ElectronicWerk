@@ -708,6 +708,64 @@ pub fn call(
             cache.reports.insert(params.doc, report);
             Ok(Outcome::Read(value))
         }
+        "pcb.nets" => {
+            // The net inspector: every net with its class, routed length,
+            // tracks, vias, pads and unrouted connections.
+            let params: DocParams = parse(params)?;
+            let doc = params
+                .doc
+                .ok_or_else(|| EngineError::invalid_params("missing doc"))?;
+            let pcb = board(project, doc)?;
+            let mut set = ew_pcb::rules::RuleSet::new(rules(project).map(|(_, r)| r));
+            set.cache_classes(pcb.nets.iter().map(|n| (n.name.clone(), n.class.clone())));
+            let lengths: HashMap<Id, f64> = ew_pcb::length::report(pcb, &set)
+                .nets
+                .into_iter()
+                .map(|n| (n.net, n.length))
+                .collect();
+            let mut tracks: HashMap<Id, usize> = HashMap::new();
+            for track in pcb.tracks.iter() {
+                if let Some(net) = track.net {
+                    *tracks.entry(net).or_default() += 1;
+                }
+            }
+            let mut vias: HashMap<Id, usize> = HashMap::new();
+            for via in pcb.vias.iter() {
+                if let Some(net) = via.net {
+                    *vias.entry(net).or_default() += 1;
+                }
+            }
+            let mut pads: HashMap<Id, usize> = HashMap::new();
+            for fp in pcb.footprints.iter() {
+                for pad in &fp.pads {
+                    if let Some(net) = pad.net {
+                        *pads.entry(net).or_default() += 1;
+                    }
+                }
+            }
+            let items = ew_pcb::items::Board::new(pcb);
+            let mut unrouted: HashMap<Id, usize> = HashMap::new();
+            for airwire in ew_pcb::connectivity::analyze(&items).airwires {
+                *unrouted.entry(airwire.net).or_default() += 1;
+            }
+            let nets: Vec<Value> = pcb
+                .nets
+                .iter()
+                .map(|net| {
+                    json!({
+                        "id": net.id,
+                        "name": net.name,
+                        "class": set.class_name(&net.name, &net.class),
+                        "length": lengths.get(&net.id).copied().unwrap_or(0.0),
+                        "tracks": tracks.get(&net.id).copied().unwrap_or(0),
+                        "vias": vias.get(&net.id).copied().unwrap_or(0),
+                        "pads": pads.get(&net.id).copied().unwrap_or(0),
+                        "unrouted": unrouted.get(&net.id).copied().unwrap_or(0),
+                    })
+                })
+                .collect();
+            Ok(Outcome::Read(json!({ "nets": nets })))
+        }
         "pcb.ratsnest" => {
             let params: DocParams = parse(params)?;
             let doc = params

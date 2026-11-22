@@ -522,6 +522,28 @@ test('selects similar tracks and changes their width together', async () => {
     tracks: { layer: string; width: number }[];
   };
   expect(after.tracks.filter((t) => t.width === 400_000).length).toBe(alike);
+
+  // The net inspector: every named net, filtered, sorted, a class for some.
+  const named = (
+    readBoard(join(projectsDir, 'Similar')) as unknown as {
+      nets: { name: string }[];
+    }
+  ).nets.filter((n) => n.name !== '');
+  await page.getByTestId('board-nets').click();
+  const rows = page.getByTestId('net-row');
+  await expect(rows).toHaveCount(named.length);
+  await page.getByTestId('net-filter').fill('GND');
+  await expect(rows.first()).toHaveAttribute('data-name', /GND/u);
+  await page.getByTestId('net-filter').fill('');
+  await page.getByTestId('net-sort-length').click();
+  await expect(page.getByTestId('net-sort-length')).toContainText('↓');
+  await rows.first().click();
+  await expect(page.getByTestId('net-chip')).toBeVisible();
+  await rows.first().locator('input[type="checkbox"]').check();
+  await page.getByTestId('net-set-class').selectOption({ index: 1 });
+  await expect(page.getByTestId('toolbar-undo')).toHaveAttribute('title', /Change properties/u);
+  await page.getByTestId('net-inspector-close').click();
+  await expect(page.getByTestId('net-inspector')).toHaveCount(0);
 });
 
 test('drags a track while its 45° neighbours keep their direction', async () => {

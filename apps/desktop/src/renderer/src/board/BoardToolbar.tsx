@@ -8,6 +8,7 @@ import type { BoardEditor, BoardTool, RouteMode, ViaChoice } from './editor';
 import {
   crossProbing,
   drcState,
+  netInspector,
   routingCorners,
   routingMode,
   routingVia,
@@ -302,6 +303,7 @@ export function BoardActions({
 }): ReactNode {
   const { t } = useAppState();
   const drc = useSyncExternalStore(drcState.subscribe, drcState.get);
+  const netsOpen = useSyncExternalStore(netInspector.subscribe, netInspector.get);
   const probing = useSyncExternalStore(crossProbing.subscribe, crossProbing.get);
   const corners = useSyncExternalStore(routingCorners.subscribe, routingCorners.get);
   const [arrange, setArrange] = useState(false);
@@ -405,6 +407,16 @@ export function BoardActions({
         pressed={drc.open}
         testId="board-drc"
         onClick={commands.drc}
+      />
+      <Button
+        icon="table"
+        label={t('board.nets.open')}
+        tip={t('board.nets.openTip')}
+        pressed={netsOpen}
+        testId="board-nets"
+        onClick={() => {
+          netInspector.set(!netInspector.get());
+        }}
       />
       <Button
         icon="ratsnest"

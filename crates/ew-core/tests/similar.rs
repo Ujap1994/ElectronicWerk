@@ -78,3 +78,39 @@ fn finds_objects_with_the_same_properties() {
     assert_eq!(found["ids"].as_array().unwrap().len(), expected);
     assert!(expected > 1);
 }
+
+#[test]
+fn the_net_inspector_lists_every_net() {
+    let dir = tempfile::tempdir().unwrap();
+    let path = dir.path().join("Nets");
+    ew_format::store::create_project(&path, &ew_synth::generate(ew_synth::DesignSize::S, 4))
+        .unwrap();
+    let mut engine = Engine::without_journal();
+    call(&mut engine, "project.open", json!({"path": path}));
+    let info = call(&mut engine, "project.info", Value::Null);
+    let doc = info["documents"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|d| d["kind"] == "pcb")
+        .unwrap()["id"]
+        .clone();
+    let board = call(&mut engine, "document.get", json!({"doc": doc}));
+    let nets = call(&mut engine, "pcb.nets", json!({"doc": doc}));
+    let listed = nets["nets"].as_array().unwrap();
+    assert_eq!(listed.len(), board["nets"].as_array().unwrap().len());
+    // The counts add up to the board's tracks and vias with a net.
+    let sum = |key: &str| -> u64 { listed.iter().map(|n| n[key].as_u64().unwrap()).sum() };
+    let with_net = |key: &str| {
+        board[key]
+            .as_array()
+            .unwrap()
+            .iter()
+            .filter(|o| o.get("net").is_some())
+            .count() as u64
+    };
+    assert_eq!(sum("tracks"), with_net("tracks"));
+    assert_eq!(sum("vias"), with_net("vias"));
+    assert!(listed.iter().any(|n| n["length"].as_f64().unwrap() > 0.0));
+    assert!(listed.iter().all(|n| n["class"].is_string()));
+}
