@@ -10,6 +10,7 @@ mod mcp;
 mod mechanical;
 mod part;
 mod script;
+mod system;
 
 use std::io::Write as _;
 use std::path::PathBuf;
@@ -102,6 +103,10 @@ enum Command {
     /// remove, check for collisions, make a simple box.
     #[command(subcommand)]
     Mechanical(mechanical::MechanicalCommand),
+    /// Systems of several boards: boards, connections, the connection
+    /// check across the boards, stacking, outputs, the 3D assembly.
+    #[command(subcommand)]
+    System(system::SystemCommand),
     /// Generate manufacturing outputs (Gerber, drill, BOM, prints, …).
     #[command(subcommand)]
     Outputs(OutputsCommand),

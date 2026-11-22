@@ -42,7 +42,8 @@ its page); check it against datasheet_text, correct it, then part_preview and pa
 When the user works in the app's part generator, read and write their draft file with \
 part_draft_read and part_draft_write. For the enclosure: add_mechanical places STEP files of \
 the enclosure, panels and screws around the board (or make_enclosure makes a simple box), \
-check_enclosure finds collisions and too small clearances of the board and its parts.";
+check_enclosure finds collisions and too small clearances of the board and its parts. Systems \
+of several boards (stacked or joined by cables): system_info and system_check.";
 
 /// A tool: name, title, description, input schema, read-only.
 struct Tool {
@@ -487,6 +488,26 @@ fn tools() -> Vec<Tool> {
             read_only: false,
         },
         Tool {
+            name: "system_info",
+            title: "Systems of boards",
+            description: "The systems of the project (several boards that belong together): their boards (of this or other projects) with their place in 3D, the connectors that mate directly and the cables with their wires.",
+            schema: object(
+                json!({"system": {"type": "string", "description": "System name (default: all)"}}),
+                &[],
+            ),
+            read_only: true,
+        },
+        Tool {
+            name: "system_check",
+            title: "Connection check across boards",
+            description: "Checks a system: mating pins with different signals (also swapped pairs), supplies meeting signals, signals meeting unconnected pins, pin counts, cable wires, and collisions between the boards in 3D. To fix a signal name use call_engine system.renameSignal; aliases with system.setAliases.",
+            schema: object(
+                json!({"system": {"type": "string", "description": "System name (default: the first)"}}),
+                &[],
+            ),
+            read_only: true,
+        },
+        Tool {
             name: "list_engine_methods",
             title: "Engine methods",
             description: "Every method of the ElectronicWerk engine with a summary, for call_engine.",
@@ -787,6 +808,37 @@ impl Server {
                     Some("areas") => self.engine_call("mechanical.areas", json!({ "doc": doc })),
                     _ => Err("what must be outline or areas".to_owned()),
                 }
+            }
+            "system_info" | "system_check" => {
+                let info = self.engine_call("project.info", Value::Null)?;
+                let wanted = args.get("system").and_then(Value::as_str);
+                let systems: Vec<Value> = info["documents"]
+                    .as_array()
+                    .into_iter()
+                    .flatten()
+                    .filter(|d| d["kind"] == "system" && wanted.is_none_or(|w| d["name"] == w))
+                    .map(|d| d["id"].clone())
+                    .collect();
+                if name == "system_check" {
+                    let doc = systems
+                        .first()
+                        .ok_or_else(|| "the project has no such system".to_owned())?;
+                    let checked = self.engine_call("system.check", json!({ "doc": doc }))?;
+                    let findings: Vec<Value> = checked["findings"]
+                        .as_array()
+                        .into_iter()
+                        .flatten()
+                        .map(|f| json!({"severity": f["severity"], "code": f["code"], "message": f["message"], "accepted": f["excluded"]}))
+                        .collect();
+                    return Ok(
+                        json!({"errors": checked["errors"], "warnings": checked["warnings"], "findings": findings}),
+                    );
+                }
+                let mut out = Vec::new();
+                for doc in systems {
+                    out.push(self.engine_call("system.info", json!({ "doc": doc }))?);
+                }
+                Ok(json!({ "systems": out }))
             }
             "make_enclosure" => {
                 let doc = self.board_doc(args)?;
@@ -1178,5 +1230,33 @@ mod tests {
         let bodies = &replies[6]["result"]["structuredContent"]["bodies"];
         assert_eq!(bodies[1]["at"], json!([40.0, 30.0, -10.0]));
         assert!(project.join("mechanical/enclosure-lid.step").is_file());
+    }
+
+    #[test]
+    fn checks_a_system() {
+        let dir = tempfile::tempdir().unwrap();
+        let project = dir.path().join("Station");
+        ew_format::store::create_project(&project, &ew_synth::system::generate(1)).unwrap();
+        let call = |id: u32, name: &str, arguments: Value| json!({"jsonrpc": "2.0", "id": id, "method": "tools/call", "params": {"name": name, "arguments": arguments}});
+        let replies = session(&[
+            json!({"jsonrpc": "2.0", "id": 1, "method": "initialize", "params": {"protocolVersion": "2025-11-25"}}),
+            call(2, "open_project", json!({"path": project})),
+            call(3, "system_info", json!({})),
+            call(4, "system_check", json!({"system": "Station"})),
+        ]);
+        for reply in &replies[1..] {
+            assert_eq!(reply["result"]["isError"], false, "{reply}");
+        }
+        let systems = &replies[2]["result"]["structuredContent"]["systems"];
+        assert_eq!(systems[0]["boards"].as_array().unwrap().len(), 3);
+        let checked = &replies[3]["result"]["structuredContent"];
+        assert_eq!(checked["errors"], 2, "{checked}");
+        assert!(
+            checked["findings"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .any(|f| f["message"].as_str().unwrap().contains("swapped"))
+        );
     }
 }
