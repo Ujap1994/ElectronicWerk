@@ -813,6 +813,11 @@ export const en = {
     title: 'Properties',
     empty: 'Click an object to see its properties. Drag to select several objects.',
     multiple: '{count} objects selected',
+    similar: {
+      open: 'Select similar…',
+      hint: 'Selects every object of this type that shares the ticked properties.',
+      select: 'Select',
+    },
     loading: 'Loading…',
     missing: 'The object no longer exists.',
     noNet: 'No net',

@@ -820,6 +820,11 @@ export const de: Messages = {
     empty:
       'Klicke auf ein Objekt, um seine Eigenschaften zu sehen. Ziehe, um mehrere Objekte auszuwählen.',
     multiple: '{count} Objekte ausgewählt',
+    similar: {
+      open: 'Ähnliche auswählen …',
+      hint: 'Wählt alle Objekte dieses Typs aus, die die angekreuzten Eigenschaften teilen.',
+      select: 'Auswählen',
+    },
     loading: 'Wird geladen …',
     missing: 'Das Objekt existiert nicht mehr.',
     noNet: 'Kein Netz',

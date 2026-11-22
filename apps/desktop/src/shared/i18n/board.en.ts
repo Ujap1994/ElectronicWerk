@@ -113,6 +113,7 @@ export const boardEn = {
     top: 'On the top side',
     bottom: 'On the bottom side',
     locked: 'Locked',
+    mixed: 'differs',
     width: 'Width',
     layer: 'Layer',
     diameter: 'Diameter',

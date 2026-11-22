@@ -2,7 +2,8 @@ import { useEffect, useState, useSyncExternalStore, type ReactNode } from 'react
 
 import type { Units } from '@shared/project';
 
-import { BOARD_EDITABLE, BoardProperties } from '../board/BoardProperties';
+import { BOARD_EDITABLE, BoardProperties, MAX_EDITED } from '../board/BoardProperties';
+import { SelectSimilar } from './SelectSimilar';
 import { EDITABLE_TYPES, PropertyEditor } from '../schematic/PropertyEditor';
 import { useAppState } from '../state';
 import type { SelectedObject, ViewerController } from '../viewer/controller';
@@ -72,6 +73,13 @@ export function Inspector({
   if (selection.length === 0) {
     body = <p className="viewer-panel__hint">{t('inspector.empty')}</p>;
   } else if (single === undefined) {
+    // Several objects of one type (whole objects, not pads) are edited together.
+    const first = selection[0];
+    const sameType =
+      first !== undefined &&
+      selection.every((entry) => entry.type === first.type && entry.child === null)
+        ? first.type
+        : null;
     const counts = new Map<string, number>();
     for (const entry of selection) {
       counts.set(entry.type, (counts.get(entry.type) ?? 0) + 1);
@@ -89,6 +97,19 @@ export function Inspector({
             </div>
           ))}
         </dl>
+        {boardLayers !== null &&
+          sameType !== null &&
+          BOARD_EDITABLE.has(sameType) &&
+          selection.length <= MAX_EDITED && (
+            <BoardProperties
+              doc={doc}
+              ids={selection.map((entry) => entry.id)}
+              type={sameType}
+              version={version}
+              units={units}
+              layers={boardLayers}
+            />
+          )}
       </>
     );
   } else if (loaded?.key !== single.key) {
@@ -110,12 +131,15 @@ export function Inspector({
           <BoardProperties
             key={single.id}
             doc={doc}
-            id={single.id}
+            ids={[single.id]}
             type={single.type}
             version={version}
             units={units}
             layers={boardLayers}
           />
+        )}
+        {single.child === null && (
+          <SelectSimilar doc={doc} id={single.id} units={units} controller={controller} />
         )}
         <dl className="inspector__rows" data-testid="inspector-rows">
           {info.rows.map((row) => (

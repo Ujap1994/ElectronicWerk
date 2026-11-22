@@ -36,6 +36,7 @@ pub mod pcb;
 pub mod rpc;
 pub mod schematic;
 pub mod session;
+mod similar;
 pub mod summary;
 pub mod system;
 pub mod system3d;

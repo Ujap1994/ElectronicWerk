@@ -124,6 +124,7 @@ export const boardDe: Messages['board'] = {
     top: 'Auf der Oberseite',
     bottom: 'Auf der Unterseite',
     locked: 'Gesperrt',
+    mixed: 'unterschiedlich',
     width: 'Breite',
     layer: 'Lage',
     diameter: 'Durchmesser',

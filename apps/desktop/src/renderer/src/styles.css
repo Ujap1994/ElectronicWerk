@@ -6551,3 +6551,37 @@ textarea.field__control {
   padding: 0 var(--space-3) var(--space-3);
   font-size: var(--font-size-s);
 }
+
+/* --- Select similar --------------------------------------------------------- */
+
+.select-similar {
+  display: grid;
+  gap: var(--space-2);
+  margin-block: var(--space-2);
+}
+
+.select-similar > .button {
+  justify-self: start;
+}
+
+.select-similar__body {
+  display: grid;
+  gap: var(--space-1);
+  padding: var(--space-2);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-s);
+  font-size: var(--font-size-s);
+}
+
+.select-similar__value {
+  margin-inline-start: auto;
+  overflow: hidden;
+  color: var(--color-text-muted);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.select-similar__body > .button {
+  justify-self: start;
+  margin-top: var(--space-1);
+}

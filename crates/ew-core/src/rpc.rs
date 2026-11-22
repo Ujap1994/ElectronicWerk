@@ -104,6 +104,7 @@ pub const METHODS: &[&str] = &[
     "document.remove",
     "document.rename",
     "document.setProperties",
+    "document.similar",
     "edit.apply",
     "edit.history",
     "edit.redo",
@@ -1109,6 +1110,14 @@ impl Engine {
                     }],
                 )?;
                 to_value(&change_set.history)
+            }
+            "document.similar" => {
+                let params: crate::similar::SimilarParams = parse(params)?;
+                let session = self.open()?;
+                let document = session.project().document(params.doc).ok_or_else(|| {
+                    EngineError::not_found(format!("no document with id {}", params.doc))
+                })?;
+                crate::similar::similar(document, &params)
             }
             "document.object" => {
                 let params: ObjectParams = parse(params)?;

@@ -278,6 +278,10 @@ pub const SUMMARIES: &[(&str, &str)] = &[
         "`{\"doc\": \"…\"}`. Returns the complete document, as in its file, plus `path`.",
     ),
     (
+        "document.similar",
+        "`{\"doc\", \"id\"}` → `{\"type\", \"fields\"}`: the properties the object can be compared by (`key`, `value`, `length` for lengths in nm, `text` for the name of a net). `{\"doc\", \"id\", \"keys\": [\"layer\", \"width\"]}` → `{\"type\", \"ids\"}`: every object of the same type whose fields are equal to the object's (the object itself included).",
+    ),
+    (
         "document.object",
         "`{\"doc\": \"…\", \"id\": \"…\"}`. One object of a document, with its `type`, in the same form as `edit.apply` takes it. Unknown objects fail with `notFound`.",
     ),

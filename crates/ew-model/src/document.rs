@@ -301,6 +301,24 @@ impl Document {
         }
     }
 
+    /// The ids of every object of a type.
+    #[must_use]
+    pub fn ids_of(&self, wanted: ObjectType) -> Vec<Id> {
+        let mut ids = Vec::new();
+        let mut visit = |id: Id, kind: ObjectType| {
+            if kind == wanted {
+                ids.push(id);
+            }
+        };
+        match self {
+            Self::Schematic(doc) => doc.visit_ids(&mut visit),
+            Self::Pcb(doc) => doc.visit_ids(&mut visit),
+            Self::Library(doc) => doc.visit_ids(&mut visit),
+            Self::Rules(_) | Self::OutputJob(_) | Self::System(_) => {}
+        }
+        ids
+    }
+
     /// Type of the object with this id.
     #[must_use]
     pub fn object_type(&self, id: Id) -> Option<ObjectType> {

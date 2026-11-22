@@ -476,6 +476,54 @@ test('fences a selected track with ground vias', async () => {
   expect((after.vias ?? []).length).toBeGreaterThan(board.vias.length);
 });
 
+test('selects similar tracks and changes their width together', async () => {
+  launched = await launchApp();
+  const { page, projectsDir } = launched;
+  await page.setViewportSize({ width: 1280, height: 800 });
+  await importAs(launched, 'Similar');
+  await openBoard(page, 'Similar');
+  const board = readBoard(join(projectsDir, 'Similar')) as unknown as {
+    tracks: { id: string; layer: string; width: number; start: Point; end: Point }[];
+  };
+  // The longest track on top: its middle is free of pads.
+  const length = (t: { start: Point; end: Point }): number =>
+    Math.hypot(t.end[0] - t.start[0], t.end[1] - t.start[1]);
+  const track = board.tracks
+    .filter((t) => t.layer === 'cu.top')
+    .sort((a, b) => length(b) - length(a))[0];
+  expect(track).toBeDefined();
+  const alike = board.tracks.filter(
+    (t) => t.layer === track?.layer && t.width === track.width,
+  ).length;
+  expect(alike).toBeGreaterThan(1);
+  const canvas = viewerCanvas(page);
+  const middle: Point = [
+    ((track?.start[0] ?? 0) + (track?.end[0] ?? 0)) / 2,
+    ((track?.start[1] ?? 0) + (track?.end[1] ?? 0)) / 2,
+  ];
+  const [x, y] = await toScreen(canvas, middle);
+  await page.mouse.click(x, y);
+  await expect(page.getByTestId('inspector-title')).toContainText('Track');
+
+  // Same layer and width: the defaults.
+  await page.getByTestId('select-similar').click();
+  await expect(page.getByTestId('similar-layer')).toBeChecked();
+  await expect(page.getByTestId('similar-width')).toBeChecked();
+  await page.getByTestId('similar-select').click();
+  await expect(page.getByTestId('inspector-title')).toHaveText(`${String(alike)} objects selected`);
+
+  // One width for all of them, in one step.
+  const width = page.getByTestId('board-prop-width');
+  await width.fill('0.4');
+  await width.press('Enter');
+  await expect(page.getByTestId('toolbar-undo')).toHaveAttribute('title', /Change properties/u);
+  await save(page);
+  const after = readBoard(join(projectsDir, 'Similar')) as unknown as {
+    tracks: { layer: string; width: number }[];
+  };
+  expect(after.tracks.filter((t) => t.width === 400_000).length).toBe(alike);
+});
+
 test('drags a track while its 45° neighbours keep their direction', async () => {
   launched = await launchApp();
   const { page, projectsDir } = launched;
