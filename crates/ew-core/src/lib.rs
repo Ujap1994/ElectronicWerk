@@ -39,6 +39,7 @@ pub mod session;
 pub mod summary;
 pub mod system;
 pub mod system3d;
+pub mod system_outputs;
 pub mod templates;
 
 pub use error::{EngineError, ErrorCode};

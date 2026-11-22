@@ -493,3 +493,89 @@ fn the_system_in_3d() {
         assert!(text.contains(name), "{name}");
     }
 }
+
+#[test]
+fn writes_the_system_outputs() {
+    let dir = tempfile::tempdir().unwrap();
+    let root = dir.path().join("Station");
+    ew_format::store::create_project(&root, &ew_synth::system::generate(1)).unwrap();
+    let mut engine = Engine::without_journal();
+    let snapshot = call(&mut engine, "project.open", json!({"path": root}));
+    let doc = snapshot["documents"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|d| d["kind"] == "system")
+        .unwrap()["id"]
+        .as_str()
+        .unwrap()
+        .to_owned();
+    let info = call(&mut engine, "system.info", json!({"doc": doc}));
+
+    // The bill of materials: three boards, the parts, the cable, two
+    // housings and 600 mm of AWG 24 wire in four colours.
+    let bom = call(&mut engine, "system.bom", json!({"doc": doc}));
+    let lines = bom["lines"].as_array().unwrap();
+    let of = |kind: &str| lines.iter().filter(|l| l["kind"] == kind).count();
+    assert_eq!(of("board"), 3);
+    assert_eq!(of("cable"), 1);
+    assert_eq!(of("wire"), 4);
+    let housing = lines.iter().find(|l| l["kind"] == "housing").unwrap();
+    assert_eq!(housing["quantity"], 2);
+    let mcu = lines.iter().find(|l| l["value"] == "MCU").unwrap();
+    assert_eq!(mcu["designators"], "Carrier: U1");
+
+    // The wiring list: signals from the boards.
+    let cable = info["cables"][0]["id"].clone();
+    let wiring = call(
+        &mut engine,
+        "system.wiring",
+        json!({"doc": doc, "cable": cable}),
+    );
+    let rows = wiring["rows"].as_array().unwrap();
+    assert_eq!(rows.len(), 4);
+    assert_eq!(rows[0]["signal"], "+5V");
+    assert_eq!(rows[0]["from"], "X1");
+    assert_eq!(rows[0]["color"], "red");
+    assert_eq!(rows[0]["length"], 150.0);
+
+    // Every output in one folder.
+    let written = call(&mut engine, "system.outputs", json!({"doc": doc}));
+    let files: Vec<String> = written["files"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|f| {
+            std::path::Path::new(f.as_str().unwrap())
+                .file_name()
+                .unwrap()
+                .to_string_lossy()
+                .into_owned()
+        })
+        .collect();
+    assert_eq!(
+        files,
+        [
+            "station-bom.csv",
+            "station-connections.csv",
+            "station-connections.html",
+            "station-w1-wiring.csv",
+            "station-w1-harness.pdf",
+            "station.step"
+        ]
+    );
+    let out = root.join("outputs/station");
+    let pdf = std::fs::read(out.join("station-w1-harness.pdf")).unwrap();
+    assert!(pdf.starts_with(b"%PDF-"));
+    let report = std::fs::read_to_string(out.join("station-connections.html")).unwrap();
+    assert!(report.contains("SDA and SCL are swapped"));
+    let csv = std::fs::read_to_string(out.join("station-w1-wiring.csv")).unwrap();
+    assert!(csv.starts_with("Wire,From,From pin,To,To pin,Signal"));
+    // Only some.
+    let some = call(
+        &mut engine,
+        "system.outputs",
+        json!({"doc": doc, "dir": dir.path().join("only"), "kinds": ["bom"]}),
+    );
+    assert_eq!(some["files"].as_array().unwrap().len(), 1);
+}

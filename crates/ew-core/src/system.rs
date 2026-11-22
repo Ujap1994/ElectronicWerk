@@ -1533,6 +1533,125 @@ struct RenameParams {
 
 #[derive(Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
+struct CableParams {
+    doc: Id,
+    cable: Id,
+}
+
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+struct OutputsParams {
+    doc: Id,
+    /// Folder (absolute); default `outputs/<system>/` in the project.
+    #[serde(default)]
+    dir: Option<PathBuf>,
+    /// `bom`, `connections`, `wiring`, `harness`, `step` (default: all).
+    #[serde(default)]
+    kinds: Option<Vec<String>>,
+}
+
+/// The connection check with the collisions between the boards, and the
+/// STEP files that still need a mesh.
+fn full_check(
+    session: &Session,
+    library: &mut crate::library::LibraryState,
+    mechanical: &mut crate::mechanical::Cache,
+    system: &System,
+    loaded: &[Loaded],
+) -> (Checked, Vec<String>) {
+    let mut checked = check(system, loaded);
+    let clearance = crate::mechanical::clearance_of(rules_of(session.project()));
+    let (found, tessellate) =
+        crate::system3d::collisions(session, library, mechanical, system, loaded, clearance);
+    for f in &found {
+        if !f.excluded {
+            if f.severity == "error" {
+                checked.errors += 1;
+            } else {
+                checked.warnings += 1;
+            }
+        }
+    }
+    checked.findings.extend(found);
+    checked.findings.sort_by(|a, b| {
+        (a.severity != "error")
+            .cmp(&(b.severity != "error"))
+            .then_with(|| a.code.cmp(&b.code))
+            .then_with(|| a.key.cmp(&b.key))
+    });
+    (checked, tessellate)
+}
+
+/// Writes the system's outputs; returns the files (absolute).
+fn write_outputs(
+    session: &Session,
+    library: &mut crate::library::LibraryState,
+    mechanical: &mut crate::mechanical::Cache,
+    system: &System,
+    loaded: &[Loaded],
+    p: &OutputsParams,
+) -> Result<Vec<String>, EngineError> {
+    use crate::system_outputs as out;
+    let dir = match &p.dir {
+        Some(dir) if dir.is_absolute() => dir.clone(),
+        Some(_) => return Err(EngineError::invalid_params("dir must be an absolute path")),
+        None => session.root().join("outputs").join(out::slug(&system.name)),
+    };
+    let wanted = |kind: &str| {
+        p.kinds
+            .as_ref()
+            .is_none_or(|kinds| kinds.iter().any(|k| k == kind))
+    };
+    std::fs::create_dir_all(&dir).map_err(|e| EngineError::internal(e.to_string()))?;
+    let base = out::slug(&system.name);
+    let created = ew_format::time::DateTime::now().iso_string();
+    let mut files = Vec::new();
+    let mut write = |name: String, data: &[u8]| -> Result<(), EngineError> {
+        let path = dir.join(name);
+        ew_format::fsio::write_atomic(&path, data)
+            .map_err(|e| EngineError::internal(format!("{}: {e}", path.display())))?;
+        files.push(path.to_string_lossy().into_owned());
+        Ok(())
+    };
+    if wanted("bom") {
+        let lines = out::bom(system, loaded);
+        write(format!("{base}-bom.csv"), out::bom_csv(&lines).as_bytes())?;
+    }
+    if wanted("connections") {
+        let (checked, _) = full_check(session, library, mechanical, system, loaded);
+        write(
+            format!("{base}-connections.csv"),
+            out::connections_csv(&checked).as_bytes(),
+        )?;
+        write(
+            format!("{base}-connections.html"),
+            out::connections_html(system, &checked, crate::VERSION).as_bytes(),
+        )?;
+    }
+    for cable in &system.cables {
+        let name = format!("{base}-{}", out::slug(&cable.name));
+        if wanted("wiring") {
+            let rows = out::wiring(loaded, cable);
+            write(
+                format!("{name}-wiring.csv"),
+                out::wiring_csv(&rows).as_bytes(),
+            )?;
+        }
+        if wanted("harness") {
+            let pdf = out::harness_pdf(system, loaded, cable, crate::VERSION, &created);
+            write(format!("{name}-harness.pdf"), &pdf)?;
+        }
+    }
+    if wanted("step") {
+        let (text, _) =
+            crate::system3d::step(session, library, system, loaded, crate::VERSION, &created);
+        write(format!("{base}.step"), text.as_bytes())?;
+    }
+    Ok(files)
+}
+
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
 struct ExportParams {
     doc: Id,
     path: PathBuf,
@@ -2048,32 +2167,40 @@ pub fn call(
             let p: DocParams = parse(params)?;
             let system = system_of(project, p.doc)?;
             let loaded = load(session, cache, system);
-            let mut checked = check(system, &loaded);
-            let clearance = crate::mechanical::clearance_of(rules_of(project));
-            let (found, tessellate) = crate::system3d::collisions(
-                session, library, mechanical, system, &loaded, clearance,
-            );
-            for f in &found {
-                if !f.excluded {
-                    if f.severity == "error" {
-                        checked.errors += 1;
-                    } else {
-                        checked.warnings += 1;
-                    }
-                }
-            }
-            checked.findings.extend(found);
-            checked.findings.sort_by(|a, b| {
-                (a.severity != "error")
-                    .cmp(&(b.severity != "error"))
-                    .then_with(|| a.code.cmp(&b.code))
-                    .then_with(|| a.key.cmp(&b.key))
-            });
+            let (checked, tessellate) = full_check(session, library, mechanical, system, &loaded);
             let mut value = to_value(&checked)?;
             if let Some(object) = value.as_object_mut() {
                 object.insert("tessellate".into(), json!(tessellate));
             }
             Ok(Outcome::Read(value))
+        }
+        "system.bom" => {
+            let p: DocParams = parse(params)?;
+            let system = system_of(project, p.doc)?;
+            let loaded = load(session, cache, system);
+            Ok(Outcome::Read(
+                json!({"lines": crate::system_outputs::bom(system, &loaded)}),
+            ))
+        }
+        "system.wiring" => {
+            let p: CableParams = parse(params)?;
+            let system = system_of(project, p.doc)?;
+            let cable = system
+                .cables
+                .iter()
+                .find(|c| c.id == p.cable)
+                .ok_or_else(|| EngineError::not_found(format!("no cable {}", p.cable)))?;
+            let loaded = load(session, cache, system);
+            Ok(Outcome::Read(
+                json!({"rows": crate::system_outputs::wiring(&loaded, cable)}),
+            ))
+        }
+        "system.outputs" => {
+            let p: OutputsParams = parse(params)?;
+            let system = system_of(project, p.doc)?;
+            let loaded = load(session, cache, system);
+            let files = write_outputs(session, library, mechanical, system, &loaded, &p)?;
+            Ok(Outcome::Read(json!({"files": files})))
         }
         "system.stack" => {
             let p: DocParams = serde_json::from_value(json!({"doc": params.get("doc")}))

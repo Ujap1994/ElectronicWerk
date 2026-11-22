@@ -134,6 +134,18 @@ pub const SUMMARIES: &[(&str, &str)] = &[
         "`system.export {\"doc\", \"path\"}` → `{path, bytes, notes}`: writes the system's 3D assembly as one STEP file: every shown board's assembly with its enclosure at its place.",
     ),
     (
+        "system.bom",
+        "`system.bom {\"doc\"}` → `{\"lines\": [{kind, quantity, value, footprint, designators, length?}]}`: the system's bill of materials — every board's parts times the board's quantity, the boards, and per cable its type, the housings of its ends and its wires by gauge and colour with their total length.",
+    ),
+    (
+        "system.wiring",
+        "`system.wiring {\"doc\", \"cable\"}` → `{\"rows\": [{number, id, from, fromPin, to, toPin, signal, color, gauge, length}]}`: the wiring list of a cable (signals from the boards where the wire has none).",
+    ),
+    (
+        "system.outputs",
+        "`system.outputs {\"doc\", \"dir\"?, \"kinds\"?}` → `{\"files\"}`: writes the system's outputs into `dir` (default outputs/<system>/): the bill of materials (CSV), the connection report (CSV and HTML), per cable the wiring list (CSV) and the harness drawing (PDF), and the 3D assembly (STEP). `kinds` picks some of bom, connections, wiring, harness, step.",
+    ),
+    (
         "system.addBoard",
         "`system.addBoard {\"doc\", \"source\": {\"kind\": \"local\", \"doc\"} | {\"kind\": \"project\", \"path\", \"board\"?}, \"name\"?, \"quantity\"?, \"position\"?}` → `{\"id\"}`: adds a board of this project or of another project (path to its folder or .ewproj, stored relative) to the system.",
     ),
