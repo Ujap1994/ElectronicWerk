@@ -263,3 +263,40 @@ test('the net navigator lists a net on every sheet and jumps there', async () =>
   await page.getByTestId('net-places').click();
   await expect(page.getByTestId('net-navigator')).toContainText('Net GND');
 });
+
+test('gives a net a colour on the sheet', async () => {
+  launched = await launchApp();
+  const { page } = launched;
+  await page.setViewportSize({ width: 1280, height: 800 });
+  await importBlinky(launched);
+  await openDocument(page, 'Blinky');
+  // A GND symbol in the middle of the view, then select it.
+  await page.getByTestId('action-find').click();
+  await page.getByTestId('find-query').fill('GND');
+  await page.getByTestId('find-hits').getByRole('button').first().click();
+  await page.getByTestId('find-query').press('Escape');
+  await settle(page);
+  const canvas = viewerCanvas(page);
+  const box = await canvas.boundingBox();
+  await page.mouse.click(
+    (box?.x ?? 0) + (box?.width ?? 0) / 2,
+    (box?.y ?? 0) + (box?.height ?? 0) / 2,
+  );
+  const picker = page.getByTestId('net-color');
+  await expect(picker).toBeVisible();
+  await expect(page.getByText('Colour of net GND')).toBeVisible();
+  await page.getByTestId('net-color-43a047').click();
+  await expect(page.getByTestId('toolbar-undo')).toHaveAttribute(
+    'title',
+    /Change project properties/u,
+  );
+  await expect(page.getByTestId('net-color-43a047')).toHaveAttribute('aria-pressed', 'true');
+  await expect(page.getByTestId('net-colors-shown')).toBeChecked();
+  if (process.env['EW_LOOK'] !== undefined) {
+    await page.mouse.click((box?.x ?? 0) + 30, (box?.y ?? 0) + (box?.height ?? 0) - 30);
+    await page.screenshot({ path: process.env['EW_LOOK'] });
+  }
+  // None again.
+  await page.getByTestId('toolbar-undo').click();
+  await expect(page.getByTestId('net-colors-shown')).toHaveCount(0);
+});

@@ -220,7 +220,7 @@ pub fn snapshot(session: &Session) -> ProjectSnapshot {
         path: session.root().to_string_lossy().into_owned(),
         manifest_path: session.manifest_path().to_string_lossy().into_owned(),
         root_schematic: manifest.root_schematic,
-        settings: manifest.settings,
+        settings: manifest.settings.clone(),
         variants: manifest.variants.clone(),
         documents,
         history: session.history_state(),

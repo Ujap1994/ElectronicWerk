@@ -114,3 +114,63 @@ fn the_net_inspector_lists_every_net() {
     assert!(listed.iter().any(|n| n["length"].as_f64().unwrap() > 0.0));
     assert!(listed.iter().all(|n| n["class"].is_string()));
 }
+
+#[test]
+fn net_colours_belong_to_the_project_and_reach_the_sheets() {
+    let dir = tempfile::tempdir().unwrap();
+    let path = dir.path().join("Colours");
+    ew_format::store::create_project(&path, &ew_synth::generate(ew_synth::DesignSize::S, 5))
+        .unwrap();
+    let mut engine = Engine::without_journal();
+    call(&mut engine, "project.open", json!({"path": path}));
+    let info = call(&mut engine, "project.info", Value::Null);
+    let sheet = info["documents"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|d| d["kind"] == "schematic")
+        .unwrap()["id"]
+        .clone();
+    let content = call(&mut engine, "document.get", json!({"doc": sheet}));
+    let wire = content["wires"].as_array().unwrap()[0]["id"].clone();
+    let net = call(
+        &mut engine,
+        "schematic.net",
+        json!({"doc": sheet, "id": wire}),
+    )["net"]
+        .as_str()
+        .unwrap()
+        .to_owned();
+
+    // No colours: nothing to draw.
+    let none = call(&mut engine, "schematic.netColors", json!({"doc": sheet}));
+    assert_eq!(none["nets"], json!([]));
+
+    call(
+        &mut engine,
+        "project.setProperties",
+        json!({"settings": {"netColors": {net.clone(): "#1e88e5"}}}),
+    );
+    let info = call(&mut engine, "project.info", Value::Null);
+    assert_eq!(info["settings"]["netColors"][&net], "#1e88e5");
+    let coloured = call(&mut engine, "schematic.netColors", json!({"doc": sheet}));
+    let entry = &coloured["nets"][0];
+    assert_eq!(
+        (entry["name"].as_str(), entry["color"].as_str()),
+        (Some(net.as_str()), Some("#1e88e5"))
+    );
+    assert!(entry["items"].as_array().unwrap().contains(&wire));
+
+    // `null` removes the colour again.
+    call(
+        &mut engine,
+        "project.setProperties",
+        json!({"settings": {"netColors": {net.clone(): null}}}),
+    );
+    let info = call(&mut engine, "project.info", Value::Null);
+    assert!(
+        info["settings"].get("netColors").is_none(),
+        "{}",
+        info["settings"]
+    );
+}

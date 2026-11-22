@@ -23,7 +23,7 @@ pub enum Units {
 }
 
 /// Project-wide editor settings.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase", default)]
 pub struct ProjectSettings {
     /// Display units.
@@ -32,6 +32,10 @@ pub struct ProjectSettings {
     pub schematic_grid: Nm,
     /// Board grid.
     pub board_grid: Nm,
+    /// Colours of nets by name (`#rrggbb`), shown in schematics and on
+    /// boards.
+    #[serde(skip_serializing_if = "BTreeMap::is_empty")]
+    pub net_colors: BTreeMap<String, String>,
 }
 
 impl Default for ProjectSettings {
@@ -40,6 +44,7 @@ impl Default for ProjectSettings {
             units: Units::Mm,
             schematic_grid: um(1_270),
             board_grid: um(250),
+            net_colors: BTreeMap::new(),
         }
     }
 }
@@ -289,7 +294,7 @@ impl Project {
             description: manifest.description.clone(),
             variables: manifest.variables.clone(),
             root_schematic: manifest.root_schematic,
-            settings: manifest.settings,
+            settings: manifest.settings.clone(),
             variants: manifest.variants.clone(),
         }
     }

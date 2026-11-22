@@ -5,6 +5,7 @@ import type { Units } from '@shared/project';
 import { BOARD_EDITABLE, BoardProperties, MAX_EDITED } from '../board/BoardProperties';
 import { SelectSimilar } from './SelectSimilar';
 import { GroupActions } from '../board/GroupActions';
+import { NetColor } from './NetColor';
 import { EDITABLE_TYPES, PropertyEditor } from '../schematic/PropertyEditor';
 import { useAppState } from '../state';
 import type { SelectedObject, ViewerController } from '../viewer/controller';
@@ -152,6 +153,12 @@ export function Inspector({
         {boardLayers !== null && single.child === null && (
           <GroupActions doc={doc} ids={[single.id]} controller={controller} />
         )}
+        <NetColor
+          doc={doc}
+          id={single.id}
+          type={single.type}
+          net={snapshot.kind === 'pcb' ? single.net : undefined}
+        />
         <dl className="inspector__rows" data-testid="inspector-rows">
           {info.rows.map((row) => (
             <div key={row.key} className="inspector__row" data-testid={`inspector-${row.key}`}>

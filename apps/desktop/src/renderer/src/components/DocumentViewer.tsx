@@ -16,6 +16,7 @@ import { DrcPanel } from '../board/DrcPanel';
 import { NetInspector } from '../board/NetInspector';
 import type { BoardEditor } from '../board/editor';
 import { netInspector, routingCorners } from '../board/stores';
+import { netColorsShown } from '../viewer/net-colors';
 import { useBoardEditor, useSchematicCrossProbe } from '../board/useBoardEditor';
 import { useProject } from '../project/ProjectProvider';
 import { errorMessage } from '../project/labels';
@@ -280,10 +281,46 @@ export function DocumentViewer({
   const snapshot = useSyncExternalStore(controller.subscribe, controller.snapshot);
   const viewVersion = snapshot.version;
   const netsOpen = useSyncExternalStore(netInspector.subscribe, netInspector.get);
+  const netColors = project?.settings.netColors;
+  const hasNetColors = netColors !== undefined && Object.keys(netColors).length > 0;
+  const showNetColors = useSyncExternalStore(netColorsShown.subscribe, netColorsShown.get);
   const dark = useDarkScheme();
   const doc = document.id;
   const sheet = document.kind === 'schematic';
   // The selection filter of this kind of document.
+  // Net colours: boards colour by the scene's nets, sheets ask the engine
+  // which wires and labels belong to the coloured nets.
+  useEffect(() => {
+    controller.setNetColorsShown(showNetColors);
+  }, [controller, showNetColors]);
+  useEffect(() => {
+    if (!sheet) {
+      controller.setNetColors(netColors ?? {});
+    }
+  }, [controller, sheet, netColors]);
+  useEffect(() => {
+    if (!sheet) {
+      return undefined;
+    }
+    if (!hasNetColors) {
+      controller.setNetMembers([]);
+      return undefined;
+    }
+    let cancelled = false;
+    engine
+      .call<{ nets: { color: string; items: string[] }[] }>('schematic.netColors', { doc })
+      .then(
+        (reply) => {
+          if (!cancelled) {
+            controller.setNetMembers(reply.nets);
+          }
+        },
+        () => undefined,
+      );
+    return () => {
+      cancelled = true;
+    };
+  }, [engine, controller, sheet, doc, hasNetColors, netColors, viewVersion]);
   useEffect(() => {
     const kind = document.kind === 'pcb' ? 'pcb' : 'schematic';
     const apply = (): void => {
@@ -743,7 +780,7 @@ export function DocumentViewer({
         <Footer controller={controller} editor={editor} board={boardEditor} units={units} />
       </div>
       <aside className="viewer__side">
-        <LayerPanel controller={controller} />
+        <LayerPanel controller={controller} hasNetColors={hasNetColors} />
         <SelectionFilter kind={document.kind === 'pcb' ? 'pcb' : 'schematic'} />
         <Inspector
           controller={controller}

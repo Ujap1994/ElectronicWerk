@@ -811,6 +811,14 @@ export const en = {
     schTexts: 'Texts',
     schShapes: 'Graphics',
   },
+  netColor: {
+    title: 'Colour of net {net}',
+    swatch: 'Colour {color}',
+    custom: 'Another colour',
+    none: 'None',
+    shown: 'Show net colours',
+    forTicked: 'Colour of the ticked nets',
+  },
   inspector: {
     title: 'Properties',
     empty: 'Click an object to see its properties. Drag to select several objects.',

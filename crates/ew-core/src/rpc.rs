@@ -239,6 +239,7 @@ pub const METHODS: &[&str] = &[
     "schematic.find",
     "schematic.move",
     "schematic.net",
+    "schematic.netColors",
     "schematic.netlist",
     "schematic.orient",
     "schematic.paste",

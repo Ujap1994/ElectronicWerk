@@ -98,6 +98,15 @@ type InstanceKind = 'segments' | 'arcs' | 'circles' | 'rects';
 const INSTANCE_KINDS: readonly InstanceKind[] = ['rects', 'circles', 'segments', 'arcs'];
 
 const STATE_WIDTH = 2048;
+
+/** Schematic layers that show net colours (on boards: the copper layers). */
+const NET_COLOR_LAYERS: ReadonlySet<string> = new Set([
+  'sch.wires',
+  'sch.buses',
+  'sch.junctions',
+  'sch.labels',
+  'sch.power',
+]);
 const MIN_TEXT_PX = 3.5;
 /** Pad and net names appear once they are readable. */
 const MIN_NAME_PX = 7;
@@ -120,6 +129,11 @@ export class SceneRenderer {
   private indexBuffer: WebGLBuffer | null = null;
   private glyphBuffer: WebGLBuffer | null = null;
   private stateTexture: WebGLTexture | null = null;
+  private colorTexture: WebGLTexture | null = null;
+  /** Net colours are set. */
+  private netColors = false;
+  /** The layer being drawn shows net colours. */
+  private layerNetColors = false;
   private readonly atlasTexture: WebGLTexture;
   private atlas: GlyphAtlas | null = null;
   private scene: Scene | null = null;
@@ -355,6 +369,28 @@ export class SceneRenderer {
   }
 
   /**
+   * Net colours, four bytes (RGBA) per object; alpha 0: the layer colour.
+   * `null`: no net colours.
+   */
+  setColors(colors: Uint8Array | null): void {
+    const gl = this.gl;
+    this.netColors = colors !== null;
+    const height = colors === null ? 1 : Math.max(1, Math.ceil(colors.length / 4 / STATE_WIDTH));
+    const width = colors === null ? 1 : STATE_WIDTH;
+    const data = new Uint8Array(width * height * 4);
+    if (colors !== null) {
+      data.set(colors);
+    }
+    this.colorTexture ??= gl.createTexture();
+    gl.activeTexture(gl.TEXTURE2);
+    gl.bindTexture(gl.TEXTURE_2D, this.colorTexture);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA8, width, height, 0, gl.RGBA, gl.UNSIGNED_BYTE, data);
+    gl.activeTexture(gl.TEXTURE0);
+  }
+
+  /**
    * Per-object flags (1 selected, 2 hovered, 4 moving, 8 highlighted net),
    * one byte per object.
    */
@@ -397,6 +433,8 @@ export class SceneRenderer {
     gl.uniform1f(u('u_px'), camera.scale * dpr);
     gl.uniform1f(u('u_depth'), depth);
     gl.uniform1i(u('u_state'), 1);
+    gl.uniform1i(u('u_colors'), 2);
+    gl.uniform1i(u('u_netColor'), this.layerNetColors ? 1 : 0);
     gl.uniform1i(u('u_atlas'), 0);
     gl.uniform1f(u('u_minText'), MIN_TEXT_PX * dpr);
     gl.uniform1f(u('u_hatch'), 8 * dpr);
@@ -518,6 +556,8 @@ export class SceneRenderer {
         gl.blendFunc(gl.CONSTANT_ALPHA, gl.ONE_MINUS_CONSTANT_ALPHA);
         gl.blendColor(0, 0, 0, look.opacity);
         gl.enable(gl.SAMPLE_ALPHA_TO_COVERAGE);
+        this.layerNetColors =
+          this.netColors && (layer.meta.group === 'copper' || NET_COLOR_LAYERS.has(layer.meta.key));
         this.drawLayer(index, layer.meta.mesh.indexCount, frame, depth, view, look.color);
         for (const kind of INSTANCE_KINDS) {
           this.drawInstances(kind, layer.meta[kind], frame, depth, view, look.color);
@@ -584,6 +624,9 @@ export class SceneRenderer {
     gl.deleteTexture(this.atlasTexture);
     if (this.stateTexture !== null) {
       gl.deleteTexture(this.stateTexture);
+    }
+    if (this.colorTexture !== null) {
+      gl.deleteTexture(this.colorTexture);
     }
     for (const program of Object.values(this.programs)) {
       gl.deleteProgram(program.program);

@@ -288,6 +288,10 @@ pub fn call(project: &Project, method: &str, params: &Value) -> Result<Outcome, 
             let params: NetParams = parse(params)?;
             Ok(Outcome::Read(net(project, &params)))
         }
+        "schematic.netColors" => {
+            let params: DocIds = parse(params)?;
+            Ok(Outcome::Read(net_colors(project, params.doc)))
+        }
         "schematic.symbols" => Ok(Outcome::Read(symbols(project))),
         "schematic.components" => Ok(Outcome::Read(components(project))),
         "schematic.symbol" => {
@@ -601,6 +605,28 @@ fn net(project: &Project, params: &NetParams) -> Value {
         "sheets": sheets,
         "places": net_places(project, &connectivity, net),
     })
+}
+
+/// The coloured nets (project setting `netColors`) of a sheet with their
+/// wires, junctions, labels and power ports there.
+fn net_colors(project: &Project, doc: Id) -> Value {
+    let colors = &project.manifest.settings.net_colors;
+    if colors.is_empty() {
+        return json!({"nets": []});
+    }
+    let connectivity = ew_schematic::analyze(project);
+    let nets: Vec<Value> = connectivity
+        .nets
+        .iter()
+        .enumerate()
+        .filter_map(|(index, net)| {
+            let color = colors.get(&net.name)?;
+            let members = connectivity.members(index).remove(&doc)?;
+            (!members.items.is_empty())
+                .then(|| json!({"name": net.name, "color": color, "items": members.items}))
+        })
+        .collect();
+    json!({"nets": nets})
 }
 
 /// Order of the places of a net within one sheet: names first, pins last.

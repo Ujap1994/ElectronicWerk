@@ -18,12 +18,19 @@ uniform vec2 u_scale;
 uniform float u_px;
 uniform float u_depth;
 uniform usampler2D u_state;
+uniform sampler2D u_colors;
+uniform bool u_netColor;
 uniform vec2 u_offset;
 flat out uint v_state;
+flat out vec4 v_net;
 uint g_state = 0u;
 uint stateOf(uint obj) {
+  v_net = vec4(0.0);
   if (obj == 0xFFFFFFFFu) { g_state = 0u; return 0u; }
-  g_state = texelFetch(u_state, ivec2(int(obj & 2047u), int(obj >> 11u)), 0).r;
+  ivec2 at = ivec2(int(obj & 2047u), int(obj >> 11u));
+  g_state = texelFetch(u_state, at, 0).r;
+  // The colour of the object's net (alpha 0: none), on layers that show it.
+  if (u_netColor) { v_net = texelFetch(u_colors, at, 0); }
   return g_state;
 }
 vec4 clipOf(vec2 p) {
@@ -42,6 +49,7 @@ uniform vec4 u_highlight;
 uniform float u_hoverMix;
 uniform float u_px;
 flat in uint v_state;
+flat in vec4 v_net;
 out vec4 o_color;
 vec3 tint(vec3 c) {
   if ((v_state & 1u) != 0u) { return mix(c, u_select.rgb, u_select.a); }
@@ -54,7 +62,7 @@ void emit(float coverage) {
   if (coverage <= 0.004 || (v_state & 16u) != 0u) { discard; }
   // Faint (state bit 32): parts the assembly assistant does not show now.
   float alpha = (v_state & 32u) != 0u ? coverage * 0.4 : coverage;
-  o_color = vec4(tint(u_color), alpha);
+  o_color = vec4(tint(mix(u_color, v_net.rgb, v_net.a)), alpha);
 }
 float cover(float dist) {
   return clamp(0.5 - dist * u_px, 0.0, 1.0);

@@ -12,6 +12,7 @@ import { Icon } from '../components/Icon';
 import { useProject } from '../project/ProjectProvider';
 import { errorMessage } from '../project/labels';
 import { useAppState } from '../state';
+import { NET_SWATCHES } from '../components/NetColor';
 import { netInspector } from './stores';
 
 interface NetRow {
@@ -50,7 +51,8 @@ export function NetInspector({
   readonly onShow: (net: string | null) => void;
 }): ReactNode {
   const { t, engine, snapshot } = useAppState();
-  const { notify } = useProject();
+  const { notify, project, setProperties } = useProject();
+  const netColors = project?.settings.netColors ?? {};
   const [rows, setRows] = useState<readonly NetRow[] | null>(null);
   const [classes, setClasses] = useState<readonly string[]>([]);
   const [filter, setFilter] = useState('');
@@ -112,16 +114,18 @@ export function NetInspector({
         label: 'edit-properties',
         changes: ids.map((id) => ({ op: 'patch', doc, id, fields: { class: name } })),
       })
-      .then(
-        () => {
-          setTicked(new Set());
-        },
-        (error: unknown) => {
-          notify(errorMessage(t, error), 'error');
-        },
-      );
+      .catch((error: unknown) => {
+        notify(errorMessage(t, error), 'error');
+      });
   };
   const allTicked = shownRows.length > 0 && shownRows.every((row) => ticked.has(row.id));
+  /** One colour (or none) for the ticked nets, in one undo step. */
+  const colorTicked = (color: string | null): void => {
+    const names = (rows ?? []).filter((row) => ticked.has(row.id)).map((row) => row.name);
+    void setProperties({
+      settings: { netColors: Object.fromEntries(names.map((name) => [name, color])) },
+    });
+  };
 
   return (
     <section
@@ -147,9 +151,27 @@ export function NetInspector({
             setFilter(event.target.value);
           }}
         />
-        {ticked.size > 0 && (
+        <span className="erc__spacer" />
+        <button
+          type="button"
+          className="icon-button"
+          title={t('board.nets.close')}
+          aria-label={t('board.nets.close')}
+          data-testid="net-inspector-close"
+          onClick={() => {
+            netInspector.set(false);
+          }}
+        >
+          <Icon name="close" size={16} />
+        </button>
+      </header>
+      {ticked.size > 0 && (
+        <div className="net-inspector__bar" data-testid="net-ticked-bar">
+          <span className="net-inspector__ticked">
+            {t('board.nets.ticked', { count: ticked.size })}
+          </span>
           <label className="net-inspector__class">
-            <span>{t('board.nets.setClass', { count: ticked.size })}</span>
+            <span>{t('board.nets.setClass')}</span>
             <select
               className="field__control"
               value=""
@@ -168,21 +190,35 @@ export function NetInspector({
               ))}
             </select>
           </label>
-        )}
-        <span className="erc__spacer" />
-        <button
-          type="button"
-          className="icon-button"
-          title={t('board.nets.close')}
-          aria-label={t('board.nets.close')}
-          data-testid="net-inspector-close"
-          onClick={() => {
-            netInspector.set(false);
-          }}
-        >
-          <Icon name="close" size={16} />
-        </button>
-      </header>
+          <span className="net-inspector__colors" role="group" aria-label={t('netColor.forTicked')}>
+            <span>{t('board.nets.color')}</span>
+            {NET_SWATCHES.map((color) => (
+              <button
+                key={color}
+                type="button"
+                className="net-color__swatch"
+                style={{ background: color }}
+                title={color}
+                aria-label={t('netColor.swatch', { color })}
+                data-testid={`net-tick-color-${color.slice(1)}`}
+                onClick={() => {
+                  colorTicked(color);
+                }}
+              />
+            ))}
+            <button
+              type="button"
+              className="button button--small"
+              data-testid="net-tick-color-none"
+              onClick={() => {
+                colorTicked(null);
+              }}
+            >
+              {t('netColor.none')}
+            </button>
+          </span>
+        </div>
+      )}
       <div className="net-inspector__scroll">
         <table className="table net-inspector__table" data-testid="net-table">
           <thead>
@@ -257,7 +293,14 @@ export function NetInspector({
                     }}
                   />
                 </td>
-                <td className="net-inspector__name">{row.name}</td>
+                <td className="net-inspector__name">
+                  <span
+                    className="net-inspector__dot"
+                    style={{ background: netColors[row.name] ?? 'transparent' }}
+                    data-color={netColors[row.name] ?? ''}
+                  />
+                  {row.name}
+                </td>
                 <td>{row.class}</td>
                 <td className="net-inspector__number">
                   {row.length > 0

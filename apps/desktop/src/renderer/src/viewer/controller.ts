@@ -32,6 +32,8 @@ export interface SelectedObject {
   readonly id: string;
   readonly type: string;
   readonly child: { readonly kind: string; readonly index: number } | null;
+  /** The net of the object (boards). */
+  readonly net: string | null;
 }
 
 /** View settings of a document, kept while its tab is closed or hidden. */
@@ -270,6 +272,7 @@ export class ViewerController {
               key: scene.keyOf(obj),
               id: scene.idOf(obj),
               type: scene.typeOf(obj),
+              net: scene.netOf(obj),
               child:
                 parent === null || child === 0xffff_ffff
                   ? null
@@ -308,6 +311,7 @@ export class ViewerController {
     if (this.scene !== null) {
       this.renderer.setScene(this.scene);
       this.updateFlags();
+      this.updateColors();
     }
     this.listen(canvas);
     this.requestRender();
@@ -426,6 +430,7 @@ export class ViewerController {
     }
     this.renderer?.setScene(scene);
     this.updateFlags();
+    this.updateColors();
     if (restore) {
       this.camera.set(memory.camera);
       this.restoredCamera = true;
@@ -809,6 +814,111 @@ export class ViewerController {
     this.highlight = new Set(members);
     this.updateFlags();
     this.requestRender();
+  }
+
+  /**
+   * Net colours by net name (`#rrggbb`); on boards every object of a net
+   * takes its colour on the copper layers.
+   */
+  setNetColors(colors: Readonly<Record<string, string>>): void {
+    const next = new Map(Object.entries(colors));
+    if (sameColors(next, this.netColors)) {
+      return;
+    }
+    this.netColors = next;
+    this.updateColors();
+    this.requestRender();
+  }
+
+  /** Schematics: the objects (ids) of each coloured net on this sheet. */
+  setNetMembers(
+    nets: readonly { readonly color: string; readonly items: readonly string[] }[],
+  ): void {
+    this.netMembers = nets;
+    this.updateColors();
+    this.requestRender();
+  }
+
+  /** Shows net colours (or the layer colours only). */
+  setNetColorsShown(shown: boolean): void {
+    if (this.netColorsShown === shown) {
+      return;
+    }
+    this.netColorsShown = shown;
+    this.updateColors();
+    this.requestRender();
+  }
+
+  private netColors: ReadonlyMap<string, string> = new Map();
+  private netMembers: readonly { readonly color: string; readonly items: readonly string[] }[] = [];
+  private netColorsShown = true;
+
+  private updateColors(): void {
+    const scene = this.scene;
+    const renderer = this.renderer;
+    if (scene === null || renderer === null) {
+      return;
+    }
+    const board = scene.meta.kind === 'pcb';
+    if (
+      !this.netColorsShown ||
+      (board ? this.netColors.size === 0 : this.netMembers.length === 0)
+    ) {
+      renderer.setColors(null);
+      return;
+    }
+    const data = new Uint8Array(scene.objectCount * 4);
+    const paint = (
+      obj: number,
+      rgb: readonly [number, number, number],
+      children: boolean,
+    ): void => {
+      data[obj * 4] = rgb[0];
+      data[obj * 4 + 1] = rgb[1];
+      data[obj * 4 + 2] = rgb[2];
+      data[obj * 4 + 3] = 255;
+      if (children) {
+        for (const child of scene.childrenOf(obj)) {
+          paint(child, rgb, true);
+        }
+      }
+    };
+    if (board) {
+      const parsed = new Map<string, readonly [number, number, number]>();
+      for (const [net, color] of this.netColors) {
+        const rgb = hexColor(color);
+        if (rgb !== null) {
+          parsed.set(net, rgb);
+        }
+      }
+      // Tracks, vias, zones and pads carry their own net.
+      for (let obj = 0; obj < scene.objectCount; obj += 1) {
+        const net = scene.netOf(obj);
+        const rgb = net === null ? undefined : parsed.get(net);
+        if (rgb !== undefined) {
+          paint(obj, rgb, false);
+        }
+      }
+    } else {
+      const colorOf = new Map<string, readonly [number, number, number]>();
+      for (const net of this.netMembers) {
+        const rgb = hexColor(net.color);
+        if (rgb !== null) {
+          for (const id of net.items) {
+            colorOf.set(id, rgb);
+          }
+        }
+      }
+      for (let obj = 0; obj < scene.objectCount; obj += 1) {
+        if (scene.parentOf(obj) === null) {
+          const rgb = colorOf.get(scene.idOf(obj));
+          if (rgb !== undefined) {
+            paint(obj, rgb, true);
+          }
+        }
+      }
+    }
+    renderer.setColors(data);
   }
 
   /** Draws these top-level objects (and their parts) faintly. */
@@ -1452,4 +1562,21 @@ export class ViewerController {
       this.spaceDown = false;
     }
   };
+}
+
+/** `#rrggbb` as bytes, or `null`. */
+export function hexColor(text: string): readonly [number, number, number] | null {
+  const match = /^#([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})$/iu.exec(text.trim());
+  if (match === null) {
+    return null;
+  }
+  return [
+    Number.parseInt(match[1] ?? '0', 16),
+    Number.parseInt(match[2] ?? '0', 16),
+    Number.parseInt(match[3] ?? '0', 16),
+  ];
+}
+
+function sameColors(a: ReadonlyMap<string, string>, b: ReadonlyMap<string, string>): boolean {
+  return a.size === b.size && [...a].every(([key, value]) => b.get(key) === value);
 }

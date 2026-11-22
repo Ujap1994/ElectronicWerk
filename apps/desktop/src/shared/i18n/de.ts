@@ -817,6 +817,14 @@ export const de: Messages = {
     schTexts: 'Texte',
     schShapes: 'Grafiken',
   },
+  netColor: {
+    title: 'Farbe des Netzes {net}',
+    swatch: 'Farbe {color}',
+    custom: 'Andere Farbe',
+    none: 'Keine',
+    shown: 'Netzfarben zeigen',
+    forTicked: 'Farbe der angekreuzten Netze',
+  },
   inspector: {
     title: 'Eigenschaften',
     empty:

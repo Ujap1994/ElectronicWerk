@@ -74,6 +74,8 @@ export interface ProjectSettings {
   readonly units: Units;
   readonly schematicGrid: Nm;
   readonly boardGrid: Nm;
+  /** Colours of nets by name (`#rrggbb`). */
+  readonly netColors?: Readonly<Record<string, string>>;
 }
 
 /** How one part differs in an assembly variant. */

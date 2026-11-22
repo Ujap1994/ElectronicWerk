@@ -542,6 +542,30 @@ test('selects similar tracks and changes their width together', async () => {
   await rows.first().locator('input[type="checkbox"]').check();
   await page.getByTestId('net-set-class').selectOption({ index: 1 });
   await expect(page.getByTestId('toolbar-undo')).toHaveAttribute('title', /Change properties/u);
+
+  // A colour for the first net: its dot in the table, saved in the project.
+  const first = rows.first();
+  const colored = String(await first.getAttribute('data-name'));
+  await first.locator('input[type="checkbox"]').check();
+  await page.getByTestId('net-tick-color-1e88e5').click();
+  await expect(page.getByTestId('toolbar-undo')).toHaveAttribute(
+    'title',
+    /Change project properties/u,
+  );
+  await expect(first.locator('.net-inspector__dot')).toHaveAttribute('data-color', '#1e88e5');
+  await expect(page.getByTestId('net-colors-shown')).toBeChecked();
+  if (process.env['EW_LOOK'] !== undefined) {
+    await page.screenshot({ path: process.env['EW_LOOK'] });
+    await first.click();
+    const box = await canvas.boundingBox();
+    await page.mouse.click((box?.x ?? 0) + (box?.width ?? 0) - 12, (box?.y ?? 0) + 12);
+    await page.screenshot({ path: process.env['EW_LOOK'].replace('.png', '-2.png') });
+  }
+  await save(page);
+  const manifest = JSON.parse(
+    readFileSync(join(projectsDir, 'Similar', 'Similar.ewproj'), 'utf8'),
+  ) as { settings: { netColors?: Record<string, string> } };
+  expect(manifest.settings.netColors).toEqual({ [colored]: '#1e88e5' });
   await page.getByTestId('net-inspector-close').click();
   await expect(page.getByTestId('net-inspector')).toHaveCount(0);
 });

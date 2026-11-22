@@ -765,6 +765,10 @@ pub const SUMMARIES: &[(&str, &str)] = &[
         "`{\"doc\", \"id\"?, \"pin\"?: {\"symbol\", \"index\"}, \"at\"?}`. The net of a wire, label or other object, of a pin (its index in the unit's pin list) or of a point, and what belongs to it on each sheet: `{\"net\": \"/DIS\", \"sheets\": {\"<doc>\": {\"items\": [ids], \"pins\": [\"<symbol id>/pin/<n>\", \"<sheet id>/sheetPin/<n>\"]}}, \"places\":",
     ),
     (
+        "schematic.netColors",
+        "`{\"doc\"}` → `{\"nets\": [{\"name\", \"color\", \"items\"}]}`: the nets with a colour (project setting `netColors`, net name → `#rrggbb`) that run on this sheet, with their wires, junctions, labels and power ports there (ids), for drawing them in their colour.",
+    ),
+    (
         "schematic.netlist",
         "`schematic.netlist` (`{\"format\": \"kicad\" | \"csv\"}`) and `schematic.bom` return `{\"text\"}`: a KiCad netlist (version E), a CSV netlist (`Net,Designator,Pin`) or the bill of materials as CSV. See Schematic exports.",
     ),

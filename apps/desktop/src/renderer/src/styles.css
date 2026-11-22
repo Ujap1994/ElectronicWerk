@@ -6597,6 +6597,25 @@ textarea.field__control {
   padding: 2px var(--space-2);
 }
 
+.net-inspector__bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-1) var(--space-3);
+  border-bottom: 1px solid var(--color-border);
+  background: var(--color-surface-muted);
+  font-size: var(--font-size-s);
+}
+
+.net-inspector__ticked {
+  font-weight: 600;
+}
+
+.net-inspector .erc__summary {
+  white-space: nowrap;
+}
+
 .net-inspector__class {
   display: inline-flex;
   align-items: center;
@@ -6663,4 +6682,66 @@ textarea.field__control {
   flex-wrap: wrap;
   gap: var(--space-2);
   margin-block: var(--space-2);
+}
+
+/* --- Net colours ---------------------------------------------------------- */
+
+.inspector__net-color {
+  margin-block: var(--space-2);
+}
+
+.inspector__subtitle {
+  margin: 0 0 var(--space-1);
+  color: var(--color-text-muted);
+  font-size: var(--font-size-s);
+}
+
+.net-color,
+.net-inspector__colors {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-1);
+}
+
+.net-color__swatch {
+  width: 18px;
+  height: 18px;
+  padding: 0;
+  border: 1px solid var(--color-border);
+  border-radius: 50%;
+  cursor: pointer;
+}
+
+.net-color__swatch[aria-pressed='true'] {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 1px;
+}
+
+.net-color__custom {
+  width: 26px;
+  height: 20px;
+  padding: 0;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-s, 4px);
+  background: none;
+  cursor: pointer;
+}
+
+.net-inspector__dot {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  margin-inline-end: var(--space-2);
+  border: 1px solid var(--color-border);
+  border-radius: 50%;
+  vertical-align: middle;
+}
+
+.viewer-panel__check {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-1) var(--space-3);
+  font-size: var(--font-size-s);
 }

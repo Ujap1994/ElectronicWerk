@@ -2,11 +2,20 @@ import { useSyncExternalStore, type ReactNode } from 'react';
 
 import type { ViewerController } from '../viewer/controller';
 import { layerLabel } from '../viewer/labels';
+import { netColorsShown } from '../viewer/net-colors';
 import { useAppState } from '../state';
 import { Icon } from './Icon';
 
 /** Layers of the open document: visibility, active layer and opacity. */
-export function LayerPanel({ controller }: { readonly controller: ViewerController }): ReactNode {
+export function LayerPanel({
+  controller,
+  hasNetColors = false,
+}: {
+  readonly controller: ViewerController;
+  /** The project has net colours: offer to hide them. */
+  readonly hasNetColors?: boolean;
+}): ReactNode {
+  const showNetColors = useSyncExternalStore(netColorsShown.subscribe, netColorsShown.get);
   const { t } = useAppState();
   const snapshot = useSyncExternalStore(controller.subscribe, controller.snapshot);
   const { layers, active } = snapshot;
@@ -116,6 +125,19 @@ export function LayerPanel({ controller }: { readonly controller: ViewerControll
             }}
           />
           <output>{Math.round(activeLayer.opacity * 100)}&#8239;%</output>
+        </label>
+      )}
+      {hasNetColors && (
+        <label className="viewer-panel__check">
+          <input
+            type="checkbox"
+            checked={showNetColors}
+            data-testid="net-colors-shown"
+            onChange={() => {
+              netColorsShown.set(!showNetColors);
+            }}
+          />
+          <span>{t('netColor.shown')}</span>
         </label>
       )}
     </section>
