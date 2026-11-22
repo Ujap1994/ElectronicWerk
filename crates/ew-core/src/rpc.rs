@@ -252,6 +252,7 @@ pub const METHODS: &[&str] = &[
     "system.connectors",
     "system.counterparts",
     "system.exclude",
+    "system.importReference",
     "system.info",
     "system.pins",
     "system.removeBoard",

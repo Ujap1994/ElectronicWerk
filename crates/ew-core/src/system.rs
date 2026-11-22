@@ -1508,6 +1508,16 @@ struct RenameParams {
 
 #[derive(Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
+struct ImportParams {
+    doc: Id,
+    /// The KiCad project (or board) or Eagle board (absolute).
+    source: PathBuf,
+    #[serde(default)]
+    name: Option<String>,
+}
+
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
 struct AliasesParams {
     doc: Id,
     aliases: Vec<Vec<String>>,
@@ -2040,6 +2050,71 @@ pub fn call(
                 label: EDIT,
                 requests: vec![set(p.doc, &[("aliases", to_value(&aliases)?)])],
                 reply: json!({"aliases": aliases.len()}),
+            })
+        }
+        "system.importReference" => {
+            // An open design imported as its own project inside this one
+            // (`systems/references/<name>/`) and added as a board.
+            let p: ImportParams = parse(params)?;
+            let system = system_of(project, p.doc)?;
+            if !p.source.is_absolute() {
+                return Err(EngineError::invalid_params(
+                    "the source must be an absolute path",
+                ));
+            }
+            let eagle = crate::import::is_eagle(&p.source);
+            let imported = if eagle {
+                ew_eagle::import_project(&p.source, p.name.as_deref())
+            } else {
+                ew_kicad::import_project(&p.source, p.name.as_deref())
+            }
+            .map_err(|error| crate::import::engine_error(&error))?;
+            let name = imported.project.manifest.name.clone();
+            let folder = session
+                .root()
+                .join("systems/references")
+                .join(ew_format::store::sanitize_file_name(&name));
+            if folder.exists()
+                && std::fs::read_dir(&folder).map_or(true, |mut d| d.next().is_some())
+            {
+                return Err(EngineError::invalid_params(format!(
+                    "{} already exists",
+                    folder.display()
+                )));
+            }
+            let created = ew_format::store::create_project(&folder, &imported.project)
+                .map_err(|e| EngineError::internal(e.to_string()))?;
+            let report = imported.report.to_markdown(&format!(
+                "{} import: {name}",
+                if eagle { "Eagle" } else { "KiCad" }
+            ));
+            let _ = std::fs::write(folder.join(crate::import::REPORT_FILE), report);
+            let board_name = first_board(&imported.project, "")
+                .map(|b| b.name.clone())
+                .ok_or_else(|| EngineError::invalid_params("the design has no board"))?;
+            let entry = SystemBoard {
+                id: Id::random(),
+                name: name.clone(),
+                source: BoardSource::Project {
+                    path: relative_path(session.root(), &created.root.join(&created.manifest_file)),
+                    board: board_name,
+                },
+                quantity: 1,
+                position: Vec3::default(),
+                rotation: [Angle::ZERO; 3],
+                hidden: false,
+            };
+            let id = entry.id;
+            let path = match &entry.source {
+                BoardSource::Project { path, .. } => path.clone(),
+                BoardSource::Local { .. } => String::new(),
+            };
+            let mut boards = system.boards.clone();
+            boards.push(entry);
+            Ok(Outcome::Commit {
+                label: BOARDS,
+                requests: vec![set(p.doc, &[("boards", to_value(&boards)?)])],
+                reply: json!({"id": id, "path": path, "report": imported.report}),
             })
         }
         "system.counterparts" => {

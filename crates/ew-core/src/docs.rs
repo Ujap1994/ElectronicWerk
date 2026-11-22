@@ -118,6 +118,10 @@ pub const SUMMARIES: &[(&str, &str)] = &[
         "`system.info {\"doc\"}` → `{id, name, boards: [{id, name, source, quantity, position, rotation, hidden, local, project, root, loaded, error?, board, boardId, size, connectors}], links, cables, aliases, exclusions}`: a system of several boards with every board as read (boards of other projects are read from their files).",
     ),
     (
+        "system.importReference",
+        "`system.importReference {\"doc\", \"source\", \"name\"?}` → `{\"id\", \"path\", \"report\"}`: imports an open design (KiCad project or Eagle board, for example a reference board) as its own project in systems/references/<name>/ and adds its board to the system.",
+    ),
+    (
         "system.addBoard",
         "`system.addBoard {\"doc\", \"source\": {\"kind\": \"local\", \"doc\"} | {\"kind\": \"project\", \"path\", \"board\"?}, \"name\"?, \"quantity\"?, \"position\"?}` → `{\"id\"}`: adds a board of this project or of another project (path to its folder or .ewproj, stored relative) to the system.",
     ),

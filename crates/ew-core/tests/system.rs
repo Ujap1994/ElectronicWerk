@@ -278,6 +278,49 @@ fn checks_the_connections_of_a_system() {
         .contains("two different boards")
     );
 
+    // A reference board from its open design files.
+    let blinky = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+        .join("../ew-kicad/tests/fixtures/blinky/blinky.kicad_pro");
+    let reference = call(
+        &mut engine,
+        "system.importReference",
+        json!({"doc": doc, "source": blinky, "name": "Blinky"}),
+    );
+    assert_eq!(reference["path"], "systems/references/Blinky/Blinky.ewproj");
+    assert!(
+        root.join("systems/references/Blinky/Blinky.ewproj")
+            .is_file()
+    );
+    let info = call(&mut engine, "system.info", json!({"doc": doc}));
+    let blinky_board = info["boards"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|b| b["id"] == reference["id"])
+        .unwrap()
+        .clone();
+    assert_eq!(blinky_board["loaded"], true);
+    assert_eq!(blinky_board["local"], false);
+    let connectors = call(
+        &mut engine,
+        "system.connectors",
+        json!({"doc": doc, "board": reference["id"]}),
+    );
+    assert_eq!(connectors["connectors"][0]["designator"], "J1");
+    assert!(
+        error(
+            &mut engine,
+            "system.importReference",
+            json!({"doc": doc, "source": blinky, "name": "Blinky"})
+        )
+        .contains("already exists")
+    );
+    call(
+        &mut engine,
+        "system.removeBoard",
+        json!({"doc": doc, "id": reference["id"]}),
+    );
+
     // A cable from scratch, wired one to one.
     let cable = call(
         &mut engine,
