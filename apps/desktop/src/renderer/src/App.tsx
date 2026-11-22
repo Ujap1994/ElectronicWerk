@@ -10,6 +10,7 @@ import {
 import { DOCS_URL, PROJECT_URL } from '@shared/links';
 
 import type { Command } from './commands';
+import { CalculatorsDialog } from './components/CalculatorsDialog';
 import { CommandPalette } from './components/CommandPalette';
 import { ProjectDialogs } from './components/ProjectDialogs';
 import { ProjectWorkspace } from './components/ProjectWorkspace';
@@ -57,6 +58,7 @@ export function App(): ReactNode {
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [libraryOpen, setLibraryOpen] = useState(false);
+  const [calculatorsOpen, setCalculatorsOpen] = useState(false);
   const openLibrary = useCallback(() => {
     setLibraryOpen(true);
   }, []);
@@ -102,6 +104,9 @@ export function App(): ReactNode {
             break;
           case 'library':
             setLibraryOpen(true);
+            break;
+          case 'calculators':
+            setCalculatorsOpen(true);
             break;
           case 'new-project':
             newProject();
@@ -355,6 +360,13 @@ export function App(): ReactNode {
         label: 'commands.openLibrary',
         run: openLibrary,
       },
+      {
+        id: 'calculators',
+        label: 'commands.calculators',
+        run: () => {
+          setCalculatorsOpen(true);
+        },
+      },
       ...(project?.documents.some((document) => document.kind === 'pcb') === true
         ? [
             {
@@ -547,7 +559,13 @@ export function App(): ReactNode {
           {project === null ? (
             <StartScreen onOpenLibrary={openLibrary} />
           ) : (
-            <ProjectWorkspace projectView={projectView} onOpenLibrary={openLibrary} />
+            <ProjectWorkspace
+              projectView={projectView}
+              onOpenLibrary={openLibrary}
+              onOpenCalculators={() => {
+                setCalculatorsOpen(true);
+              }}
+            />
           )}
         </div>
         {libraryOpen && <LibraryManager onClose={closeLibrary} />}
@@ -569,6 +587,13 @@ export function App(): ReactNode {
             setSettingsOpen(false);
           }}
           onCheckUpdates={checkForUpdates}
+        />
+      )}
+      {calculatorsOpen && (
+        <CalculatorsDialog
+          onClose={() => {
+            setCalculatorsOpen(false);
+          }}
         />
       )}
       {paletteOpen && (

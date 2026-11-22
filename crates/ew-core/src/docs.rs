@@ -10,6 +10,30 @@ pub const REFERENCE: &str = "https://ujap1994.github.io/ElectronicWerk/reference
 /// Every method with its summary, in the order of [`crate::rpc::METHODS`].
 pub const SUMMARIES: &[(&str, &str)] = &[
     (
+        "calc.eSeries",
+        "`calc.eSeries {\"value\", \"series\"?: E3…E192 (E24)}` → `{\"nearest\", \"below\", \"above\", \"error\", \"tolerance\"}`: the preferred values (IEC 60063) next to a value; `error` in percent. No project needed.",
+    ),
+    (
+        "calc.divider",
+        "`calc.divider {\"vin\", \"vout\", \"series\"?, \"minTotal\"? (1 kΩ), \"maxTotal\"? (1 MΩ), \"count\"? (8)}` → `{\"ratio\", \"pairs\": [{r1, r2, vout, error, current, power}]}`: resistor pairs from a series for a voltage divider (R1 on top), smallest error first.",
+    ),
+    (
+        "calc.regulator",
+        "`calc.regulator {\"vref\", \"vout\", \"iadj\"? (0), \"series\"?, \"minLower\"? (100 Ω), \"maxLower\"? (1 MΩ), \"count\"?}` → `{\"pairs\": [{upper, lower, vout, error, current}]}`: feedback resistors of an adjustable regulator, Vout = Vref · (1 + upper/lower) + Iadj · upper.",
+    ),
+    (
+        "calc.track",
+        "`calc.track {\"current\" | \"width\", \"thickness\"? (35 µm), \"rise\"? (10 °C), \"ambient\"? (25 °C), \"length\"? (10 mm), \"standard\"?: ipc2152 | ipc2221, \"placement\"?: external | internal}` → `{\"current\", \"width\", \"area\", \"resistance\", \"voltageDrop\", \"power\", \"temperature\", \"notes\"}`: the width a current needs or the current a width carries. IPC-2152 is the fit of its figure 5-2 (no modifiers); `notes` name limits of the fit.",
+    ),
+    (
+        "calc.via",
+        "`calc.via {\"drill\", \"plating\"? (25 µm), \"length\"? (1.6 mm), \"rise\"?, \"ambient\"?, \"standard\"?}` → `{\"current\", \"area\", \"resistance\", \"voltageDrop\", \"power\", \"notes\"}`: the current a via barrel carries.",
+    ),
+    (
+        "calc.fusing",
+        "`calc.fusing {\"width\" (+ \"thickness\"?) | \"drill\" (+ \"plating\"?), \"time\"? (1 s), \"ambient\"?}` → `{\"current\", \"area\", \"notes\"}`: the current that melts a track or via barrel in that time (Onderdonk; no heat leaves, so for short pulses).",
+    ),
+    (
         "datasheet.read",
         "`datasheet.read {\"path\"}` → `{\"title\", \"author\", \"subject\", \"encrypted\", \"bookmarks\", \"pages\": [{number, width, height, scanned}]}`: opens a PDF datasheet (no project needed).",
     ),

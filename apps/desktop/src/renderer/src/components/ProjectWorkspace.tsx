@@ -84,9 +84,11 @@ const TAB_ICONS: Readonly<Record<string, IconName>> = {
 export function ProjectWorkspace({
   projectView,
   onOpenLibrary,
+  onOpenCalculators,
 }: {
   readonly projectView: number;
   readonly onOpenLibrary: () => void;
+  readonly onOpenCalculators: () => void;
 }): ReactNode {
   const { t, appInfo } = useAppState();
   const {
@@ -404,6 +406,14 @@ export function ProjectWorkspace({
             testId="toolbar-library"
             iconOnly
             onClick={onOpenLibrary}
+          />
+          <ToolButton
+            icon="calculator"
+            label={t('calc.open')}
+            title={t('commands.calculators')}
+            testId="toolbar-calculators"
+            iconOnly
+            onClick={onOpenCalculators}
           />
         </div>
         <div className="toolbar__spacer" />

@@ -165,6 +165,12 @@ export function buildMenu({
           onAction('library');
         },
       },
+      {
+        label: t('menu.calculators'),
+        click: () => {
+          onAction('calculators');
+        },
+      },
       { type: 'separator' },
       { label: t('menu.actualSize'), role: 'resetZoom' },
       { label: t('menu.zoomIn'), role: 'zoomIn' },

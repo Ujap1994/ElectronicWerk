@@ -180,7 +180,8 @@ export type MenuAction =
   | 'validate'
   | 'check-updates'
   | 'command-palette'
-  | 'library';
+  | 'library'
+  | 'calculators';
 
 /** Why a folder is chosen (sets the dialog title). */
 export type FolderPurpose = 'location' | 'saveAs' | 'saveCopy' | 'library' | 'exportKicad';
