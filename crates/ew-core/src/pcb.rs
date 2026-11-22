@@ -76,6 +76,8 @@ pub mod labels {
             BoardEdit::SetWidth { .. } => "set-width",
             BoardEdit::SetNet { .. } => "set-net",
             BoardEdit::DragTrack { .. } => "drag-track",
+            BoardEdit::Group { .. } => "group",
+            BoardEdit::Ungroup { .. } => "ungroup",
         }
     }
 }

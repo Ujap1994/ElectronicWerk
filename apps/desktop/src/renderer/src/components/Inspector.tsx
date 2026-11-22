@@ -4,6 +4,7 @@ import type { Units } from '@shared/project';
 
 import { BOARD_EDITABLE, BoardProperties, MAX_EDITED } from '../board/BoardProperties';
 import { SelectSimilar } from './SelectSimilar';
+import { GroupActions } from '../board/GroupActions';
 import { EDITABLE_TYPES, PropertyEditor } from '../schematic/PropertyEditor';
 import { useAppState } from '../state';
 import type { SelectedObject, ViewerController } from '../viewer/controller';
@@ -97,6 +98,13 @@ export function Inspector({
             </div>
           ))}
         </dl>
+        {boardLayers !== null && (
+          <GroupActions
+            doc={doc}
+            ids={selection.filter((entry) => entry.child === null).map((entry) => entry.id)}
+            controller={controller}
+          />
+        )}
         {boardLayers !== null &&
           sameType !== null &&
           BOARD_EDITABLE.has(sameType) &&
@@ -140,6 +148,9 @@ export function Inspector({
         )}
         {single.child === null && (
           <SelectSimilar doc={doc} id={single.id} units={units} controller={controller} />
+        )}
+        {boardLayers !== null && single.child === null && (
+          <GroupActions doc={doc} ids={[single.id]} controller={controller} />
         )}
         <dl className="inspector__rows" data-testid="inspector-rows">
           {info.rows.map((row) => (

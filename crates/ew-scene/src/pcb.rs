@@ -263,6 +263,30 @@ fn draw_zone(
     }
 }
 
+/// The groups of the board with the members that still exist (two or more).
+fn groups_of(pcb: &Pcb) -> Vec<Vec<Id>> {
+    let exists = |id: &Id| {
+        pcb.footprints.contains(*id)
+            || pcb.tracks.contains(*id)
+            || pcb.vias.contains(*id)
+            || pcb.zones.contains(*id)
+            || pcb.texts.contains(*id)
+            || pcb.shapes.contains(*id)
+    };
+    pcb.groups
+        .iter()
+        .map(|group| {
+            group
+                .members
+                .iter()
+                .copied()
+                .filter(exists)
+                .collect::<Vec<_>>()
+        })
+        .filter(|members| members.len() > 1)
+        .collect()
+}
+
 fn draw_board(pcb: &Pcb, grid: i64, options: &Options<'_>, record: bool) -> (SceneBuilder, Header) {
     let outline = pcb.outline_bounds();
     let origin = outline.map_or(Point::ORIGIN, |r| {
@@ -280,6 +304,7 @@ fn draw_board(pcb: &Pcb, grid: i64, options: &Options<'_>, record: bool) -> (Sce
         names.push(net.name.clone());
     }
     b.set_nets(names);
+    b.set_groups(groups_of(pcb));
     let net_of = |net: Option<Id>| net.and_then(|id| net_index.get(&id).copied());
     // Pad numbers and net names, shown on top of the copper when zoomed in
     // (not in prints).

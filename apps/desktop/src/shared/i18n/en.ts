@@ -215,6 +215,8 @@ export const en = {
     addJunction: 'Add junction',
     addText: 'Add text',
     move: 'Move',
+    group: 'Group',
+    ungroup: 'Ungroup',
     drag: 'Drag',
     rotate: 'Rotate',
     mirror: 'Mirror',

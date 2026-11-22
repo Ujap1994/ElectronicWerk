@@ -141,6 +141,13 @@ export const boardDe: Messages['board'] = {
     buried: 'Vergrabenes Via',
     micro: 'Mikrovia',
   },
+  groups: {
+    group: 'Gruppieren',
+    groupTip:
+      'Die ausgewählten Objekte zu einer Gruppe machen: ein Klick wählt alle, sie werden gemeinsam verschoben und gedreht (Strg+G)',
+    ungroup: 'Gruppe auflösen',
+    ungroupTip: 'Die Gruppe auflösen (Strg+Umschalt+G)',
+  },
   nets: {
     open: 'Netze',
     openTip: 'Der Netz-Inspektor: jedes Netz mit Klasse, Länge, Vias und offenen Verbindungen',

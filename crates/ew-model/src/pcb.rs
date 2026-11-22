@@ -891,6 +891,21 @@ const fn is_true(value: &bool) -> bool {
     *value
 }
 
+/// Board objects that belong together: a click selects them all, they move
+/// and turn together (Altium's unions, KiCad's groups).
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Group {
+    /// Object id.
+    pub id: Id,
+    /// Name (may be empty).
+    #[serde(default, skip_serializing_if = "String::is_empty")]
+    pub name: String,
+    /// The objects of the group (footprints, tracks, vias, zones, texts,
+    /// shapes); each object belongs to at most one group.
+    pub members: Vec<Id>,
+}
+
 impl_keyed!(
     Net,
     FootprintInstance,
@@ -899,7 +914,8 @@ impl_keyed!(
     Zone,
     BoardText,
     BoardShape,
-    MechanicalBody
+    MechanicalBody,
+    Group
 );
 
 /// A board (`.ewpcb`).
@@ -939,6 +955,9 @@ pub struct Pcb {
     /// Mechanical bodies of the 3D assembly (enclosure, panels, screws).
     #[serde(default, skip_serializing_if = "Collection::is_empty")]
     pub mechanical: Collection<MechanicalBody>,
+    /// Groups of objects.
+    #[serde(default, skip_serializing_if = "Collection::is_empty")]
+    pub groups: Collection<Group>,
     /// Design rules check findings marked as accepted (their keys).
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub drc_exclusions: Vec<String>,
@@ -977,6 +996,7 @@ impl Pcb {
             texts: Collection::new(),
             shapes: Collection::new(),
             mechanical: Collection::new(),
+            groups: Collection::new(),
             drc_exclusions: Vec::new(),
         }
     }

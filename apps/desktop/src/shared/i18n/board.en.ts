@@ -134,6 +134,13 @@ export const boardEn = {
     buried: 'Buried via',
     micro: 'Microvia',
   },
+  groups: {
+    group: 'Group',
+    groupTip:
+      'Make the selected objects one group: a click selects all of them, they move and turn together (Ctrl+G)',
+    ungroup: 'Ungroup',
+    ungroupTip: 'Dissolve the group (Ctrl+Shift+G)',
+  },
   nets: {
     open: 'Nets',
     openTip: 'The net inspector: every net with its class, length, vias and unrouted connections',

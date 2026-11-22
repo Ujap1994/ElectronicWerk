@@ -379,6 +379,7 @@ export class ViewerController {
     );
     const scene = new Scene(reply);
     this.scene = scene;
+    this.groupMates = null;
     this.status = 'ready';
     this.version += 1;
     this.settings = scene.meta.layers.map((layer) => {
@@ -1226,7 +1227,50 @@ export class ViewerController {
     this.viewChanged();
   };
 
-  private applySelection(hits: readonly number[], additive: boolean, toggle: boolean): void {
+  /** For each grouped top-level object, every object of its group. */
+  private groupMates: Map<number, readonly number[]> | null = null;
+
+  /** A hit in a group stands for the whole group. */
+  private withGroups(hits: readonly number[]): readonly number[] {
+    const scene = this.scene;
+    const groups = scene?.meta.groups ?? [];
+    if (scene === null || groups.length === 0) {
+      return hits;
+    }
+    if (this.groupMates === null) {
+      const index = new Map<string, number>();
+      for (let obj = 0; obj < scene.objectCount; obj += 1) {
+        if (scene.parentOf(obj) === null) {
+          index.set(scene.idOf(obj), obj);
+        }
+      }
+      const mates = new Map<number, readonly number[]>();
+      for (const group of groups) {
+        const members = group
+          .map((id) => index.get(id))
+          .filter((obj): obj is number => obj !== undefined);
+        for (const obj of members) {
+          mates.set(obj, members);
+        }
+      }
+      this.groupMates = mates;
+    }
+    const out = new Set<number>();
+    for (const hit of hits) {
+      const members = this.groupMates.get(this.rootOf(hit));
+      if (members === undefined) {
+        out.add(hit);
+      } else {
+        for (const obj of members) {
+          out.add(obj);
+        }
+      }
+    }
+    return [...out];
+  }
+
+  private applySelection(given: readonly number[], additive: boolean, toggle: boolean): void {
+    const hits = this.withGroups(given);
     let next: Set<number>;
     if (toggle) {
       next = new Set(this.selected);

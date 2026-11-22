@@ -652,6 +652,62 @@ test('drags a track while its 45° neighbours keep their direction', async () =>
   expect(sameP(a, newLeft ?? origin0) || sameP(b, newLeft ?? origin0)).toBe(true);
 });
 
+test('groups parts so that one click selects them all', async () => {
+  launched = await launchApp();
+  const { page, projectsDir } = launched;
+  await page.setViewportSize({ width: 1280, height: 800 });
+  await importAs(launched, 'Grouped');
+  await openBoard(page, 'Grouped');
+  const board = readBoard(join(projectsDir, 'Grouped'));
+  const part = (name: string): Board['footprints'][number] => {
+    const found = board.footprints.find((fp) => fp.designator === name);
+    if (found === undefined) {
+      throw new Error(`no part ${name}`);
+    }
+    return found;
+  };
+  const canvas = viewerCanvas(page);
+  const clearSelection = async (): Promise<void> => {
+    const box = await canvas.boundingBox();
+    await page.mouse.click((box?.x ?? 0) + (box?.width ?? 0) - 12, (box?.y ?? 0) + 12);
+  };
+  const [x1, y1] = await toScreen(canvas, part('R1').at);
+  const [x2, y2] = await toScreen(canvas, part('R2').at);
+  await page.mouse.click(x1, y1);
+  await page.keyboard.down('Shift');
+  await page.mouse.click(x2, y2);
+  await page.keyboard.up('Shift');
+  await expect(page.getByTestId('inspector-title')).toHaveText('2 objects selected');
+  const version = String(await canvas.getAttribute('data-version'));
+  await page.keyboard.press('Control+g');
+  await expect(page.getByTestId('toolbar-undo')).toHaveAttribute('title', /Group/u);
+  await expect(canvas).not.toHaveAttribute('data-version', version);
+
+  // A click on one of them selects the group.
+  await clearSelection();
+  await expect(page.getByTestId('inspector-title')).toBeHidden();
+  await page.mouse.click(x1, y1);
+  await expect(page.getByTestId('inspector-title')).toHaveText('2 objects selected');
+  await save(page);
+  const grouped = readBoard(join(projectsDir, 'Grouped')) as unknown as {
+    groups?: { members: string[] }[];
+  };
+  expect(grouped.groups?.length).toBe(1);
+  expect(grouped.groups?.[0]?.members.length).toBe(2);
+
+  // Ungroup: a click selects one part again.
+  const grouped2 = String(await canvas.getAttribute('data-version'));
+  await page.getByTestId('board-ungroup').click();
+  await expect(page.getByTestId('toolbar-undo')).toHaveAttribute('title', /Ungroup/u);
+  await expect(canvas).not.toHaveAttribute('data-version', grouped2);
+  await save(page);
+  const ungrouped = readBoard(join(projectsDir, 'Grouped')) as unknown as { groups?: unknown[] };
+  expect(ungrouped.groups).toBeUndefined();
+  await clearSelection();
+  await page.mouse.click(x1, y1);
+  await expect(page.getByTestId('inspector-title')).toContainText('R1');
+});
+
 test('pushes a track of another net aside in push-and-shove mode', async () => {
   launched = await launchApp();
   const { page, projectsDir } = launched;

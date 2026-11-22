@@ -357,6 +357,9 @@ pub struct SceneMeta {
     pub objects: ObjectSections,
     /// Net names, indexed by net index.
     pub nets: Vec<String>,
+    /// Groups of objects (their ids) that are selected together.
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    pub groups: Vec<Vec<Id>>,
     /// Counts.
     pub stats: SceneStats,
 }
@@ -378,6 +381,7 @@ pub struct SceneBuilder {
     layer_index: HashMap<String, usize>,
     objects: Vec<ObjectRec>,
     nets: Vec<String>,
+    groups: Vec<Vec<Id>>,
     record: bool,
 }
 
@@ -391,6 +395,7 @@ impl SceneBuilder {
             layer_index: HashMap::new(),
             objects: Vec::new(),
             nets: Vec::new(),
+            groups: Vec::new(),
             record: false,
         }
     }
@@ -420,6 +425,11 @@ impl SceneBuilder {
     /// Sets the net names (net index = position).
     pub fn set_nets(&mut self, nets: Vec<String>) {
         self.nets = nets;
+    }
+
+    /// The groups of objects that are selected together.
+    pub fn set_groups(&mut self, groups: Vec<Vec<Id>>) {
+        self.groups = groups;
     }
 
     /// Adds an object and returns its index.
@@ -684,6 +694,7 @@ impl SceneBuilder {
             object_types: ObjType::ALL.iter().map(|ty| ty.name()).collect(),
             objects,
             nets: self.nets,
+            groups: self.groups,
             stats,
         };
         Scene {

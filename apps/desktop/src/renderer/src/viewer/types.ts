@@ -100,6 +100,8 @@ export interface SceneMeta {
   readonly objectTypes: readonly string[];
   readonly objects: ObjectSections;
   readonly nets: readonly string[];
+  /** Groups of objects (their ids) selected together (boards). */
+  readonly groups?: readonly (readonly string[])[];
   readonly stats: SceneStats;
 }
 

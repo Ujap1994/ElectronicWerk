@@ -138,6 +138,19 @@ pub enum BoardEdit {
         /// The offset.
         offset: Point,
     },
+    /// The objects become one group (leaving any group they were in).
+    Group {
+        /// The objects.
+        ids: Vec<Id>,
+        /// Name of the group (may be empty).
+        #[serde(default)]
+        name: String,
+    },
+    /// The groups of the objects (or the groups themselves) are dissolved.
+    Ungroup {
+        /// Objects or groups.
+        ids: Vec<Id>,
+    },
 }
 
 /// Why an edit is not possible.
@@ -571,17 +584,54 @@ pub fn apply(doc: Id, pcb: &Pcb, edit: &BoardEdit) -> Result<Edit, EditError> {
         }
         BoardEdit::Delete { ids } => {
             let items = collect(pcb, ids)?;
-            let changes = items
+            let gone: Vec<Id> = items
                 .iter()
                 .filter(|item| !item.locked())
-                .map(|item| Change::Delete {
-                    doc,
-                    id: object_id(item),
-                })
+                .map(object_id)
                 .collect();
+            let mut changes: Vec<Change> = gone
+                .iter()
+                .map(|id| Change::Delete { doc, id: *id })
+                .collect();
+            // Groups lose the deleted members; one member is no group.
+            for group in &pcb.groups {
+                if !group.members.iter().any(|m| gone.contains(m)) {
+                    continue;
+                }
+                let rest: Vec<Id> = group
+                    .members
+                    .iter()
+                    .copied()
+                    .filter(|m| !gone.contains(m))
+                    .collect();
+                changes.push(if rest.len() < 2 {
+                    Change::Delete { doc, id: group.id }
+                } else {
+                    Change::Update {
+                        doc,
+                        object: Object::Group(ew_model::pcb::Group {
+                            members: rest,
+                            ..group.clone()
+                        }),
+                    }
+                });
+            }
             Ok(Edit {
                 changes,
                 select: Vec::new(),
+            })
+        }
+        BoardEdit::Group { ids, name } => Ok(group(doc, pcb, ids, name)),
+        BoardEdit::Ungroup { ids } => {
+            let changes = pcb
+                .groups
+                .iter()
+                .filter(|g| ids.contains(&g.id) || g.members.iter().any(|m| ids.contains(m)))
+                .map(|g| Change::Delete { doc, id: g.id })
+                .collect();
+            Ok(Edit {
+                changes,
+                select: ids.clone(),
             })
         }
         BoardEdit::Lock { ids, locked } => {
@@ -886,6 +936,62 @@ fn drag_track(doc: Id, pcb: &Pcb, id: Id, offset: Point) -> Result<Edit, EditErr
     Ok(edit)
 }
 
+/// One group of the given objects (those that exist and are no nets or
+/// groups); they leave the groups they were in, and groups left with fewer
+/// than two members go.
+fn group(doc: Id, pcb: &Pcb, ids: &[Id], name: &str) -> Edit {
+    let groupable = |id: &Id| {
+        pcb.footprints.contains(*id)
+            || pcb.tracks.contains(*id)
+            || pcb.vias.contains(*id)
+            || pcb.zones.contains(*id)
+            || pcb.texts.contains(*id)
+            || pcb.shapes.contains(*id)
+    };
+    let mut members: Vec<Id> = Vec::new();
+    for id in ids {
+        if groupable(id) && !members.contains(id) {
+            members.push(*id);
+        }
+    }
+    if members.len() < 2 {
+        return Edit::default();
+    }
+    let mut edit = Edit::default();
+    for other in &pcb.groups {
+        if !other.members.iter().any(|m| members.contains(m)) {
+            continue;
+        }
+        let rest: Vec<Id> = other
+            .members
+            .iter()
+            .copied()
+            .filter(|m| !members.contains(m))
+            .collect();
+        if rest.len() < 2 {
+            edit.changes.push(Change::Delete { doc, id: other.id });
+        } else {
+            edit.changes.push(Change::Update {
+                doc,
+                object: Object::Group(ew_model::pcb::Group {
+                    members: rest,
+                    ..other.clone()
+                }),
+            });
+        }
+    }
+    edit.changes.push(Change::Insert {
+        doc,
+        object: Object::Group(ew_model::pcb::Group {
+            id: Id::random(),
+            name: name.to_owned(),
+            members: members.clone(),
+        }),
+    });
+    edit.select = members;
+    edit
+}
+
 /// Moves a track; the ends of tracks and vias that touch its ends move with
 /// it.
 fn stretch_track(doc: Id, pcb: &Pcb, track: &Track, offset: Point) -> Edit {
@@ -1153,5 +1259,77 @@ mod tests {
             (inserted[0].start, inserted[0].end),
             (Point::mm(0, 0), Point::mm(2, 2))
         );
+    }
+
+    #[test]
+    fn groups_form_change_and_dissolve() {
+        let net = Id::random();
+        let mut pcb = board_with(vec![]);
+        let doc = pcb.id;
+        let ids: Vec<Id> = (0..3)
+            .map(|i| {
+                let t = track(net, Point::mm(i, 0), Point::mm(i, 5), CopperLayer::Top);
+                let id = t.id;
+                pcb.tracks.insert(t);
+                id
+            })
+            .collect();
+        // One object (or unknown ids) makes no group.
+        let edit = apply(
+            doc,
+            &pcb,
+            &BoardEdit::Group {
+                ids: vec![ids[0], Id::random()],
+                name: String::new(),
+            },
+        )
+        .unwrap();
+        assert_eq!(edit.changes, Vec::new());
+        // Group all three.
+        let edit = apply(
+            doc,
+            &pcb,
+            &BoardEdit::Group {
+                ids: ids.clone(),
+                name: "Filter".into(),
+            },
+        )
+        .unwrap();
+        let [
+            Change::Insert {
+                object: Object::Group(group),
+                ..
+            },
+        ] = edit.changes.as_slice()
+        else {
+            panic!("one new group: {:?}", edit.changes);
+        };
+        assert_eq!((group.name.as_str(), &group.members), ("Filter", &ids));
+        pcb.groups.insert(group.clone());
+        // Two of them in a new group: the old one keeps one member and goes.
+        let edit = apply(
+            doc,
+            &pcb,
+            &BoardEdit::Group {
+                ids: ids[1..].to_vec(),
+                name: String::new(),
+            },
+        )
+        .unwrap();
+        assert!(matches!(edit.changes[0], Change::Delete { id, .. } if id == group.id));
+        assert!(matches!(edit.changes[1], Change::Insert { .. }));
+        // Deleting a member shrinks the group.
+        let edit = apply(doc, &pcb, &BoardEdit::Delete { ids: vec![ids[0]] }).unwrap();
+        let Some(Change::Update {
+            object: Object::Group(shrunk),
+            ..
+        }) = edit.changes.last()
+        else {
+            panic!("the group is updated: {:?}", edit.changes);
+        };
+        assert_eq!(shrunk.members, ids[1..].to_vec());
+        // Ungrouping by a member removes the group.
+        let edit = apply(doc, &pcb, &BoardEdit::Ungroup { ids: vec![ids[2]] }).unwrap();
+        assert!(matches!(edit.changes.as_slice(), [Change::Delete { id, .. }] if *id == group.id));
     }
 }

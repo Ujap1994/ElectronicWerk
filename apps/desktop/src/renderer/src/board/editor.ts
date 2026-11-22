@@ -1375,6 +1375,10 @@ export class BoardEditor implements Interaction {
       return false;
     }
     const mod = event.ctrlKey || event.metaKey;
+    if (mod && !event.altKey && event.key.toLowerCase() === 'g') {
+      this.editSelection(event.shiftKey ? 'ungroup' : 'group');
+      return true;
+    }
     if (mod || event.altKey) {
       return mod && (event.key === 'Delete' || event.key === 'Backspace');
     }

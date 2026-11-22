@@ -6655,3 +6655,12 @@ textarea.field__control {
   color: var(--color-warn);
   font-weight: 600;
 }
+
+/* --- Group actions ------------------------------------------------------- */
+
+.group-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin-block: var(--space-2);
+}

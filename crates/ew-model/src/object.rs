@@ -10,7 +10,7 @@ use crate::collection::Keyed;
 use crate::id::Id;
 use crate::library::{ComponentDef, FootprintDef, Library, SymbolDef};
 use crate::pcb::{
-    BoardShape, BoardText, FootprintInstance, MechanicalBody, Net, Pcb, Track, Via, Zone,
+    BoardShape, BoardText, FootprintInstance, Group, MechanicalBody, Net, Pcb, Track, Via, Zone,
 };
 use crate::schematic::{
     Bus, BusEntry, Junction, Label, NoConnect, PlacedSymbol, PowerPort, Schematic, Shape,
@@ -96,6 +96,7 @@ objects! {
     BoardText(BoardText) = "boardText",
     BoardShape(BoardShape) = "boardShape",
     Mechanical(MechanicalBody) = "mechanical",
+    Group(Group) = "group",
     SymbolDef(SymbolDef) = "symbolDef",
     ComponentDef(ComponentDef) = "componentDef",
     FootprintDef(FootprintDef) = "footprintDef",
@@ -192,6 +193,7 @@ object_store!(Pcb {
     texts => BoardText,
     shapes => BoardShape,
     mechanical => Mechanical,
+    groups => Group,
 });
 
 object_store!(Library {

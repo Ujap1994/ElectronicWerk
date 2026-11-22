@@ -213,6 +213,8 @@ export const de: Messages = {
     addJunction: 'Verbindungspunkt setzen',
     addText: 'Text hinzufügen',
     move: 'Verschieben',
+    group: 'Gruppieren',
+    ungroup: 'Gruppe auflösen',
     drag: 'Ziehen',
     rotate: 'Drehen',
     mirror: 'Spiegeln',
