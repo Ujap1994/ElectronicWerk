@@ -12,6 +12,7 @@ use crate::outputs::{OutputJob, OutputJobProps};
 use crate::pcb::{Pcb, PcbProps};
 use crate::rules::{Rules, RulesProps};
 use crate::schematic::{Schematic, SchematicProps};
+use crate::system::{System, SystemProps};
 
 /// Kind of document.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord, Serialize, Deserialize)]
@@ -27,13 +28,16 @@ pub enum DocumentKind {
     Rules,
     /// Output job (`.ewout`).
     OutputJob,
+    /// System of several boards (`.ewsys`).
+    System,
 }
 
 impl DocumentKind {
     /// Every kind, in project tree order.
-    pub const ALL: [Self; 5] = [
+    pub const ALL: [Self; 6] = [
         Self::Schematic,
         Self::Pcb,
+        Self::System,
         Self::Library,
         Self::Rules,
         Self::OutputJob,
@@ -48,6 +52,7 @@ impl DocumentKind {
             Self::Library => "library",
             Self::Rules => "rules",
             Self::OutputJob => "outputJob",
+            Self::System => "system",
         }
     }
 
@@ -60,6 +65,7 @@ impl DocumentKind {
             Self::Library => "ewlib",
             Self::Rules => "ewrules",
             Self::OutputJob => "ewout",
+            Self::System => "ewsys",
         }
     }
 
@@ -72,6 +78,7 @@ impl DocumentKind {
             Self::Library => "library",
             Self::Rules => "rules",
             Self::OutputJob => "outputs",
+            Self::System => "systems",
         }
     }
 
@@ -108,6 +115,8 @@ pub enum Document {
     Rules(Rules),
     /// An output job.
     OutputJob(OutputJob),
+    /// A system of several boards.
+    System(System),
 }
 
 /// Editable document properties (everything except the objects).
@@ -124,6 +133,8 @@ pub enum DocProps {
     Rules(RulesProps),
     /// Output job.
     OutputJob(OutputJobProps),
+    /// System.
+    System(SystemProps),
 }
 
 impl DocProps {
@@ -136,6 +147,7 @@ impl DocProps {
             Self::Library(_) => DocumentKind::Library,
             Self::Rules(_) => DocumentKind::Rules,
             Self::OutputJob(_) => DocumentKind::OutputJob,
+            Self::System(_) => DocumentKind::System,
         }
     }
 
@@ -148,6 +160,7 @@ impl DocProps {
             Self::Library(props) => &props.name,
             Self::Rules(props) => &props.name,
             Self::OutputJob(props) => &props.name,
+            Self::System(props) => &props.name,
         }
     }
 
@@ -163,6 +176,7 @@ impl DocProps {
             DocumentKind::Library => Self::Library(serde_json::from_value(value)?),
             DocumentKind::Rules => Self::Rules(serde_json::from_value(value)?),
             DocumentKind::OutputJob => Self::OutputJob(serde_json::from_value(value)?),
+            DocumentKind::System => Self::System(serde_json::from_value(value)?),
         })
     }
 
@@ -178,6 +192,7 @@ impl DocProps {
             Self::Library(props) => serde_json::to_value(props),
             Self::Rules(props) => serde_json::to_value(props),
             Self::OutputJob(props) => serde_json::to_value(props),
+            Self::System(props) => serde_json::to_value(props),
         }
     }
 }
@@ -196,6 +211,7 @@ impl Document {
             DocumentKind::Library => Self::Library(Library::new(id, name)),
             DocumentKind::Rules => Self::Rules(Rules::new(id, name)),
             DocumentKind::OutputJob => Self::OutputJob(OutputJob::new(id, name)),
+            DocumentKind::System => Self::System(System::new(id, name)),
         }
     }
 
@@ -208,6 +224,7 @@ impl Document {
             Self::Library(_) => DocumentKind::Library,
             Self::Rules(_) => DocumentKind::Rules,
             Self::OutputJob(_) => DocumentKind::OutputJob,
+            Self::System(_) => DocumentKind::System,
         }
     }
 
@@ -220,6 +237,7 @@ impl Document {
             Self::Library(doc) => doc.id,
             Self::Rules(doc) => doc.id,
             Self::OutputJob(doc) => doc.id,
+            Self::System(doc) => doc.id,
         }
     }
 
@@ -232,6 +250,7 @@ impl Document {
             Self::Library(doc) => &doc.name,
             Self::Rules(doc) => &doc.name,
             Self::OutputJob(doc) => &doc.name,
+            Self::System(doc) => &doc.name,
         }
     }
 
@@ -244,6 +263,7 @@ impl Document {
             Self::Library(doc) => DocProps::Library(doc.props()),
             Self::Rules(doc) => DocProps::Rules(doc.props()),
             Self::OutputJob(doc) => DocProps::OutputJob(doc.props()),
+            Self::System(doc) => DocProps::System(doc.props()),
         }
     }
 
@@ -259,6 +279,7 @@ impl Document {
             (Self::Library(doc), DocProps::Library(props)) => doc.set_props(props),
             (Self::Rules(doc), DocProps::Rules(props)) => doc.set_props(props),
             (Self::OutputJob(doc), DocProps::OutputJob(props)) => doc.set_props(props),
+            (Self::System(doc), DocProps::System(props)) => doc.set_props(props),
             (doc, props) => {
                 return Err(ModelError::PropsMismatch {
                     given: props.kind().name(),
@@ -276,7 +297,7 @@ impl Document {
             Self::Schematic(doc) => doc.get_object(id),
             Self::Pcb(doc) => doc.get_object(id),
             Self::Library(doc) => doc.get_object(id),
-            Self::Rules(_) | Self::OutputJob(_) => None,
+            Self::Rules(_) | Self::OutputJob(_) | Self::System(_) => None,
         }
     }
 
@@ -287,7 +308,7 @@ impl Document {
             Self::Schematic(doc) => doc.type_of(id),
             Self::Pcb(doc) => doc.type_of(id),
             Self::Library(doc) => doc.type_of(id),
-            Self::Rules(_) | Self::OutputJob(_) => None,
+            Self::Rules(_) | Self::OutputJob(_) | Self::System(_) => None,
         }
     }
 
@@ -333,7 +354,7 @@ impl Document {
             Self::Schematic(doc) => doc.take_object(id),
             Self::Pcb(doc) => doc.take_object(id),
             Self::Library(doc) => doc.take_object(id),
-            Self::Rules(_) | Self::OutputJob(_) => None,
+            Self::Rules(_) | Self::OutputJob(_) | Self::System(_) => None,
         };
         removed.ok_or(ModelError::ObjectNotFound(id))
     }
@@ -345,7 +366,7 @@ impl Document {
             Self::Schematic(doc) => doc.count_objects(),
             Self::Pcb(doc) => doc.count_objects(),
             Self::Library(doc) => doc.count_objects(),
-            Self::Rules(_) | Self::OutputJob(_) => 0,
+            Self::Rules(_) | Self::OutputJob(_) | Self::System(_) => 0,
         }
     }
 
@@ -355,7 +376,7 @@ impl Document {
             Self::Schematic(doc) => doc.visit_ids(visit),
             Self::Pcb(doc) => doc.visit_ids(visit),
             Self::Library(doc) => doc.visit_ids(visit),
-            Self::Rules(_) | Self::OutputJob(_) => {}
+            Self::Rules(_) | Self::OutputJob(_) | Self::System(_) => {}
         }
     }
 
@@ -365,7 +386,7 @@ impl Document {
             Self::Schematic(doc) => doc.put_object(object),
             Self::Pcb(doc) => doc.put_object(object),
             Self::Library(doc) => doc.put_object(object),
-            Self::Rules(_) | Self::OutputJob(_) => Err(object.object_type()),
+            Self::Rules(_) | Self::OutputJob(_) | Self::System(_) => Err(object.object_type()),
         };
         result.map_err(|object_type| ModelError::NotAllowed {
             object: object_type.name(),

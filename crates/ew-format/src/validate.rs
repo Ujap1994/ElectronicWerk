@@ -309,6 +309,7 @@ fn check_documents(checker: &mut Checker<'_>) {
                     );
                 }
             }
+            Document::System(system) => check_system(checker, project, system),
             Document::OutputJob(job) => {
                 for output in &job.outputs {
                     if let Some(source) = output.source
@@ -501,6 +502,76 @@ fn check_schematic(
                 "a net label has no text".to_owned(),
                 Vec::new(),
             );
+        }
+    }
+}
+
+/// A system's references: its boards, the boards of its links and the
+/// ends of its wires.
+fn check_system(checker: &mut Checker<'_>, project: &Project, system: &ew_model::system::System) {
+    use ew_model::system::BoardSource;
+    let mut ids = BTreeSet::new();
+    for board in &system.boards {
+        if !ids.insert(board.id) {
+            checker.push(
+                Severity::Error,
+                "duplicate-system-board",
+                Some(board.id),
+                format!("system board `{}` is listed twice", board.name),
+                vec![("name", board.name.clone())],
+            );
+        }
+        if let BoardSource::Local { doc } = &board.source
+            && !matches!(project.document(*doc), Some(Document::Pcb(_)))
+        {
+            checker.push(
+                Severity::Error,
+                "system-board-missing",
+                Some(board.id),
+                format!("system board `{}` refers to a missing board", board.name),
+                vec![("name", board.name.clone())],
+            );
+        }
+    }
+    for link in &system.links {
+        for end in [&link.a, &link.b] {
+            if !ids.contains(&end.board) {
+                checker.push(
+                    Severity::Error,
+                    "system-link-board",
+                    Some(link.id),
+                    format!(
+                        "a connection of {} refers to a missing board",
+                        end.designator
+                    ),
+                    vec![("designator", end.designator.clone())],
+                );
+            }
+        }
+    }
+    for cable in &system.cables {
+        let ends: BTreeSet<Id> = cable.ends.iter().map(|e| e.id).collect();
+        for wire in &cable.wires {
+            if !ends.contains(&wire.from.end) || !ends.contains(&wire.to.end) {
+                checker.push(
+                    Severity::Error,
+                    "system-wire-end",
+                    Some(wire.id),
+                    format!("a wire of cable `{}` has an unknown end", cable.name),
+                    vec![("name", cable.name.clone())],
+                );
+            }
+        }
+        for end in cable.ends.iter().filter_map(|e| e.connector.as_ref()) {
+            if !ids.contains(&end.board) {
+                checker.push(
+                    Severity::Error,
+                    "system-link-board",
+                    Some(cable.id),
+                    format!("cable `{}` refers to a missing board", cable.name),
+                    vec![("designator", end.designator.clone())],
+                );
+            }
         }
     }
 }

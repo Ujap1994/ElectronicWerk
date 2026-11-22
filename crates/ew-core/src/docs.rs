@@ -114,6 +114,78 @@ pub const SUMMARIES: &[(&str, &str)] = &[
         "`mechanical.areas {\"doc\", \"step\"? (mm), \"quantum\"? (mm)}` → `{\"keepouts\", \"heights\": [{side, height}], \"removed\"}`: keep-out areas where enclosure material crosses the board, and height areas (keep-outs with a maximum part height) from rays to the enclosure over each side; replaces the areas it made before.",
     ),
     (
+        "system.info",
+        "`system.info {\"doc\"}` → `{id, name, boards: [{id, name, source, quantity, position, rotation, hidden, local, project, root, loaded, error?, board, boardId, size, connectors}], links, cables, aliases, exclusions}`: a system of several boards with every board as read (boards of other projects are read from their files).",
+    ),
+    (
+        "system.addBoard",
+        "`system.addBoard {\"doc\", \"source\": {\"kind\": \"local\", \"doc\"} | {\"kind\": \"project\", \"path\", \"board\"?}, \"name\"?, \"quantity\"?, \"position\"?}` → `{\"id\"}`: adds a board of this project or of another project (path to its folder or .ewproj, stored relative) to the system.",
+    ),
+    (
+        "system.updateBoard",
+        "`system.updateBoard {\"doc\", \"id\", \"name\"?, \"quantity\"?, \"position\"? [x, y, z] nm, \"rotation\"? [x, y, z] degrees, \"hidden\"?}`: changes a board of the system (its place in the 3D assembly: z is its bottom face).",
+    ),
+    (
+        "system.removeBoard",
+        "`system.removeBoard {\"doc\", \"id\"}`: removes a board with its connections; cable ends on it become free ends.",
+    ),
+    (
+        "system.connectors",
+        "`system.connectors {\"doc\", \"board\", \"all\"?}` → `{\"connectors\": [{designator, footprint, value, side, pins, signals}]}`: the connectors of a system board (by designator prefix and footprint name; `all: true` lists every footprint).",
+    ),
+    (
+        "system.pins",
+        "`system.pins {\"doc\", \"board\", \"designator\"}` → `{designator, footprint, value, side, pins: [{number, net?, power, at}]}`: the pins of a connector with their signals.",
+    ),
+    (
+        "system.addLink",
+        "`system.addLink {\"doc\", \"a\": {board, designator}, \"b\": {board, designator}, \"pairing\"?: number | mirrored | position}` → `{\"id\"}`: two connectors that mate directly (stacked boards, board-to-board connectors).",
+    ),
+    (
+        "system.updateLink",
+        "`system.updateLink {\"doc\", \"id\", \"a\"?, \"b\"?, \"pairing\"?}`: changes a connection.",
+    ),
+    (
+        "system.removeLink",
+        "`system.removeLink {\"doc\", \"id\"}`: removes a connection.",
+    ),
+    (
+        "system.addCable",
+        "`system.addCable {\"doc\", \"name\"?, \"part\"?, \"length\"? nm, \"ends\"?: [{label?, connector?: {board, designator}, housing?}], \"wires\"?: [{from: {end, pin}, to: {end, pin}, signal?, color?, gauge?, length?}]}` → `{\"id\", \"ends\"}`: a cable between boards (or to free ends).",
+    ),
+    (
+        "system.updateCable",
+        "`system.updateCable {\"doc\", \"id\", \"name\"?, \"part\"?, \"length\"?, \"ends\"?, \"wires\"?}`: changes a cable (ends and wires are replaced as given).",
+    ),
+    (
+        "system.removeCable",
+        "`system.removeCable {\"doc\", \"id\"}`: removes a cable.",
+    ),
+    (
+        "system.wireCable",
+        "`system.wireCable {\"doc\", \"cable\", \"from\", \"to\", \"color\"?, \"gauge\"?}` → `{\"wires\"}`: one wire per pin of the first end's connector to the same pin of the other end (replaces the cable's wires).",
+    ),
+    (
+        "system.check",
+        "`system.check {\"doc\"}` → `{findings, connections: [{id, kind, name, pairs: [{a, aNet, b, bNet, wire?, status}]}], errors, warnings}`: the connection check across the boards — different signals on mating pins (system-mismatch, also swapped pairs), supplies meeting signals or other supplies (system-power), signals meeting unconnected pins (system-missing), pin counts and pins without a partner (system-pins), missing boards and connectors (system-connector) and cable wires (system-cable).",
+    ),
+    (
+        "system.exclude",
+        "`system.exclude {\"doc\", \"keys\", \"excluded\"}`: accepts findings of the system check (or reports them again).",
+    ),
+    (
+        "system.setAliases",
+        "`system.setAliases {\"doc\", \"aliases\": [[\"SDA\", \"I2C_SDA\"]]}`: signal names that count as the same across boards.",
+    ),
+    (
+        "system.counterparts",
+        "`system.counterparts {\"doc\", \"board\", \"net\"}` → `{\"counterparts\": [{board, boardName, local, designator, pin, net?}]}`: the pins on other boards a signal reaches through connections and cables.",
+    ),
+    (
+        "system.renameSignal",
+        "`system.renameSignal {\"doc\", \"board\", \"net\", \"to\"}` → `{\"renamed\", \"others\"}`: renames a signal on every board of this project it reaches (board nets and schematic labels, one undo step); `others` lists boards of other projects to rename there.",
+    ),
+    (
         "board3d.scene",
         "`board3d.scene {\"doc\", \"inner\"?}` builds the 3D board of a board document: the laminate (outline minus holes), the copper, solder mask, silkscreen and paste of each side, the plated walls of holes and, with `inner: true`, the inner copper layers. The reply:",
     ),

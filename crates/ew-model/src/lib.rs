@@ -27,6 +27,7 @@ pub mod project;
 pub mod rules;
 pub mod schematic;
 pub mod shape;
+pub mod system;
 pub mod text;
 pub mod units;
 pub mod variables;

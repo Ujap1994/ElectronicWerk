@@ -62,6 +62,12 @@ pub struct DocumentStats {
     /// Output job: outputs.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub outputs: Option<usize>,
+    /// System: boards.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub boards: Option<usize>,
+    /// System: cables.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub cables: Option<usize>,
 }
 
 /// One document in the snapshot.
@@ -174,6 +180,12 @@ pub fn stats(document: &Document) -> DocumentStats {
         Document::OutputJob(job) => DocumentStats {
             objects,
             outputs: Some(job.outputs.len()),
+            ..DocumentStats::default()
+        },
+        Document::System(system) => DocumentStats {
+            objects,
+            boards: Some(system.boards.len()),
+            cables: Some(system.cables.len()),
             ..DocumentStats::default()
         },
     }

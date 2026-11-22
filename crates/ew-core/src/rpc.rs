@@ -245,6 +245,24 @@ pub const METHODS: &[&str] = &[
     "schematic.symbols",
     "schematic.syncSheetPins",
     "schematic.wire",
+    "system.addBoard",
+    "system.addCable",
+    "system.addLink",
+    "system.check",
+    "system.connectors",
+    "system.counterparts",
+    "system.exclude",
+    "system.info",
+    "system.pins",
+    "system.removeBoard",
+    "system.removeCable",
+    "system.removeLink",
+    "system.renameSignal",
+    "system.setAliases",
+    "system.updateBoard",
+    "system.updateCable",
+    "system.updateLink",
+    "system.wireCable",
     "view.item",
     "view.object",
     "view.scene",
@@ -287,6 +305,7 @@ pub struct Engine {
     drc: crate::pcb::DrcCache,
     datasheets: crate::datasheet::Datasheets,
     mechanical: crate::mechanical::Cache,
+    systems: crate::system::Cache,
 }
 
 impl Default for Engine {
@@ -507,6 +526,7 @@ impl Engine {
             drc: crate::pcb::DrcCache::default(),
             datasheets: crate::datasheet::Datasheets::default(),
             mechanical: crate::mechanical::Cache::default(),
+            systems: crate::system::Cache::default(),
         }
     }
 
@@ -521,6 +541,7 @@ impl Engine {
             drc: crate::pcb::DrcCache::default(),
             datasheets: crate::datasheet::Datasheets::default(),
             mechanical: crate::mechanical::Cache::default(),
+            systems: crate::system::Cache::default(),
         }
     }
 
@@ -712,6 +733,7 @@ impl Engine {
             }
             _ if method.starts_with("part.") => self.call_part(method, params),
             _ if method.starts_with("mechanical.") => self.call_mechanical(method, params),
+            _ if method.starts_with("system.") => self.call_system(method, params),
             "board3d.scene" => {
                 let session = self.session.as_ref().ok_or_else(EngineError::no_project)?;
                 let (mut meta, data) = crate::board3d::scene(session, &mut self.library, params)?;
@@ -817,6 +839,7 @@ impl Engine {
                 self.session = Some(Session::create(&params.path, &project, self.journaling)?);
                 self.drc.clear();
                 self.mechanical.clear();
+                self.systems.clear();
                 self.project_event("opened");
                 self.snapshot()
             }
@@ -826,6 +849,7 @@ impl Engine {
                 self.session = Some(Session::open(&params.path, self.journaling)?);
                 self.drc.clear();
                 self.mechanical.clear();
+                self.systems.clear();
                 self.project_event("opened");
                 self.snapshot()
             }
@@ -852,6 +876,7 @@ impl Engine {
                 self.session = None;
                 self.drc.clear();
                 self.mechanical.clear();
+                self.systems.clear();
                 Ok(json!({"closed": true}))
             }
             other => Err(EngineError::new(
@@ -1307,6 +1332,7 @@ impl Engine {
         }))
     }
 
+    #[allow(clippy::too_many_lines, reason = "one arm per import method")]
     fn call_import(&mut self, method: &str, params: &Value) -> Result<Value, EngineError> {
         match method {
             "import.kicadProbe" => {
@@ -1343,6 +1369,7 @@ impl Engine {
                 self.session = Some(session);
                 self.drc.clear();
                 self.mechanical.clear();
+                self.systems.clear();
                 self.project_event("opened");
                 Ok(json!({
                     "project": self.snapshot()?,
@@ -1416,6 +1443,24 @@ impl Engine {
         match crate::libedit::call(self.open()?.project(), method, params)? {
             crate::libedit::Outcome::Read(value) => Ok(value),
             crate::libedit::Outcome::Commit {
+                label,
+                requests,
+                reply,
+            } => {
+                let change_set = self.commit(label, requests)?;
+                let mut out = json!({"seq": change_set.seq, "history": change_set.history});
+                if let (Some(out), Value::Object(extra)) = (out.as_object_mut(), reply) {
+                    out.extend(extra);
+                }
+                Ok(out)
+            }
+        }
+    }
+
+    fn call_system(&mut self, method: &str, params: &Value) -> Result<Value, EngineError> {
+        match crate::system::call(self.session.as_ref(), &mut self.systems, method, params)? {
+            crate::system::Outcome::Read(value) => Ok(value),
+            crate::system::Outcome::Commit {
                 label,
                 requests,
                 reply,

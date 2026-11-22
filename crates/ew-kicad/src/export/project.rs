@@ -221,7 +221,7 @@ pub fn export_project(project: &Project, version: &str) -> KicadProject {
                 schematics.insert(s.id, s);
             }
             Document::Pcb(pcb) => boards.push(pcb),
-            Document::OutputJob(_) => {}
+            Document::OutputJob(_) | Document::System(_) => {}
         }
     }
     let lib_id = |name: &str| {

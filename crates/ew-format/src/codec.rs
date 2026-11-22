@@ -45,6 +45,7 @@ impl FileKind {
             Self::Document(DocumentKind::Library) => "electronicwerk.library",
             Self::Document(DocumentKind::Rules) => "electronicwerk.rules",
             Self::Document(DocumentKind::OutputJob) => "electronicwerk.outputJob",
+            Self::Document(DocumentKind::System) => "electronicwerk.system",
         }
     }
 }
@@ -123,6 +124,7 @@ pub fn encode_document(document: &Document) -> Result<String, serde_json::Error>
         Document::Library(doc) => encode(kind, doc),
         Document::Rules(doc) => encode(kind, doc),
         Document::OutputJob(doc) => encode(kind, doc),
+        Document::System(doc) => encode(kind, doc),
     }
 }
 
@@ -170,6 +172,9 @@ pub fn decode_document(
         }
         DocumentKind::OutputJob => {
             decode_with(path, text, file_kind, SCHEMA_VERSION, chain)?.map(Document::OutputJob)
+        }
+        DocumentKind::System => {
+            decode_with(path, text, file_kind, SCHEMA_VERSION, chain)?.map(Document::System)
         }
     }))
 }

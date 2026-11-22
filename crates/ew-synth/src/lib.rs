@@ -16,6 +16,7 @@ pub mod channels;
 pub mod datasheet;
 mod parts;
 mod rng;
+pub mod system;
 
 use std::collections::BTreeMap;
 use std::fmt;

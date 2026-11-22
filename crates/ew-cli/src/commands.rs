@@ -1234,9 +1234,12 @@ fn synth(size: &str, dir: &Path, seed: u64, json: bool, out: &mut impl Write) ->
         return synth_datasheets(dir, json, out);
     }
     let started = Instant::now();
-    // `channels`: a small design with a repeated sheet (channel layouts).
+    // `channels`: a small design with a repeated sheet (channel layouts);
+    // `system`: three boards joined by a header and a cable.
     let (project, size_name) = if size.eq_ignore_ascii_case("channels") {
         (ew_synth::channels::generate(3, seed), "channels".to_owned())
+    } else if size.eq_ignore_ascii_case("system") {
+        (ew_synth::system::generate(seed), "system".to_owned())
     } else {
         let size = parse_size(size)?;
         (ew_synth::generate(size, seed), size.name().to_owned())

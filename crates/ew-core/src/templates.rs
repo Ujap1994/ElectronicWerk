@@ -179,7 +179,7 @@ fn rename_documents(project: &mut Project, names: &DocumentNames) {
                 name_outputs(job, &names.outputs);
             }
             Document::Pcb(pcb) => project.manifest.name.clone_into(&mut pcb.name),
-            Document::Schematic(_) => {}
+            Document::Schematic(_) | Document::System(_) => {}
         }
     }
 }
@@ -195,7 +195,7 @@ pub(crate) fn name_imported_documents(project: &mut Project, names: &DocumentNam
                 rename(&mut job.name, names.output_job.as_ref());
                 name_outputs(job, &names.outputs);
             }
-            Document::Pcb(_) | Document::Schematic(_) => {}
+            Document::Pcb(_) | Document::Schematic(_) | Document::System(_) => {}
         }
     }
 }

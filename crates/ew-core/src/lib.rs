@@ -37,6 +37,7 @@ pub mod rpc;
 pub mod schematic;
 pub mod session;
 pub mod summary;
+pub mod system;
 pub mod templates;
 
 pub use error::{EngineError, ErrorCode};
