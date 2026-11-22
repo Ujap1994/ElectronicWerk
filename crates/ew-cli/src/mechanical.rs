@@ -411,11 +411,11 @@ pub fn run(command: MechanicalCommand, out: &mut impl Write) -> Outcome {
                         }
                     )?;
                 }
-                for file in report["tessellate"].as_array().into_iter().flatten() {
+                let curved = report["tessellate"].as_array().map_or(0, Vec::len);
+                if curved > 0 {
                     writeln!(
                         out,
-                        "Note: {} has curved faces and no mesh yet; open the board's 3D view in the app once.",
-                        file.as_str().unwrap_or("")
+                        "Note: {curved} STEP files have curved faces and no mesh yet (see --json); open the board's 3D view in the app once."
                     )?;
                 }
                 let stand_ins = report["standIns"].as_array().map_or(0, Vec::len);
@@ -457,7 +457,7 @@ pub fn run(command: MechanicalCommand, out: &mut impl Write) -> Outcome {
                 let polygons = section["polygons"].as_array().cloned().unwrap_or_default();
                 writeln!(
                     out,
-                    "Section at z = {} mm: {} areas",
+                    "Section at z = {:.3} mm: {} areas",
                     section["z"].as_f64().unwrap_or(0.0),
                     polygons.len()
                 )?;

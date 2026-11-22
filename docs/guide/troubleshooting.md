@@ -118,3 +118,21 @@ Use **Help → Report an Issue** in the app or open an issue on
   value.
 - **The wrong part name** in a datasheet that covers a family: name the PDF
   file after the part (`lm358.pdf`), or change the name in step 1.
+
+## The enclosure check leaves bodies out or uses boxes
+
+- **_STEP files have curved faces and no mesh yet_** (command line): the
+  check works on meshes. The app makes them from any STEP file when it
+  shows the board in 3D; the command line only reads files whose faces are
+  all flat. Open the board's 3D view in the app once, then run
+  `ewerk mechanical check` again.
+- **_… parts without a 3D model were checked as boxes_**: these parts have
+  no model, or their model has no mesh yet. They count as a box of their
+  courtyard with the footprint's **Height** property (else 3 mm). Give the
+  footprint a model or a `Height` property for an exact check.
+- **_… bodies could not be checked_**: the body's STEP file is missing from
+  the project's `mechanical/` folder (moved or deleted) — add it again.
+- **The board collides with the enclosure everywhere**: the body's origin is
+  somewhere else than expected. Use **Centre on the board**, then set z so
+  the board rests on the bosses (a [section](./enclosure#look-inside) shows
+  it best).

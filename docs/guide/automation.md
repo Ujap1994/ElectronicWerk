@@ -108,12 +108,12 @@ for other programs.
 
 ## Exit codes for CI
 
-| Code | Meaning                                                                       |
-| ---- | ----------------------------------------------------------------------------- |
-| `0`  | Success                                                                       |
-| `1`  | A check found errors: ERC, DRC, project validation, a failed output or step   |
-| `2`  | Wrong command-line usage                                                      |
-| `3`  | The command could not run: unknown part or pin, missing project, invalid JSON |
+| Code | Meaning                                                                                      |
+| ---- | -------------------------------------------------------------------------------------------- |
+| `0`  | Success                                                                                      |
+| `1`  | A check found errors: ERC, DRC, enclosure check, project validation, a failed output or step |
+| `2`  | Wrong command-line usage                                                                     |
+| `3`  | The command could not run: unknown part or pin, missing project, invalid JSON                |
 
 So a pipeline can fail on design errors:
 
@@ -187,23 +187,25 @@ resistor from VCC and a 100 nF decoupling capacitor. Route it and generate the
 Gerber files."_ The agent opens or creates the project and works with these
 tools:
 
-| Tool                                             | What it does                                     |
-| ------------------------------------------------ | ------------------------------------------------ |
-| `open_project`, `create_project`, `project_info` | Open, create and describe a project              |
-| `list_parts`, `list_nets`, `list_symbols`        | Read the schematic                               |
-| `search_library`, `list_footprint_presets`       | Find symbols and footprints                      |
-| `place_part`, `edit_part`, `connect_pins`        | Draw the schematic                               |
-| `mark_no_connect`, `run_erc`                     | Finish and check the schematic                   |
-| `update_board`, `board_info`                     | Bring the board up to date and read it           |
-| `place_footprint`, `arrange_footprints`          | Place footprints                                 |
-| `route_board`, `fill_zones`, `run_drc`           | Route, fill zones and check the board            |
-| `generate_outputs`                               | Write the manufacturing files of the output job  |
-| `datasheet_info`, `datasheet_text`               | Read a PDF datasheet: pages, bookmarks, text     |
-| `datasheet_extract`                              | The part draft recognised in a datasheet         |
-| `part_draft_read`, `part_draft_write`            | Read and write a part draft file (`*.part.json`) |
-| `part_preview`, `part_generate`                  | Check and make a part from a draft               |
-| `undo`, `redo`, `save_project`                   | Undo and redo (each tool call is one step), save |
-| `list_engine_methods`, `call_engine`             | Any other engine method, for advanced agents     |
+| Tool                                                        | What it does                                                           |
+| ----------------------------------------------------------- | ---------------------------------------------------------------------- |
+| `open_project`, `create_project`, `project_info`            | Open, create and describe a project                                    |
+| `list_parts`, `list_nets`, `list_symbols`                   | Read the schematic                                                     |
+| `search_library`, `list_footprint_presets`                  | Find symbols and footprints                                            |
+| `place_part`, `edit_part`, `connect_pins`                   | Draw the schematic                                                     |
+| `mark_no_connect`, `run_erc`                                | Finish and check the schematic                                         |
+| `update_board`, `board_info`                                | Bring the board up to date and read it                                 |
+| `place_footprint`, `arrange_footprints`                     | Place footprints                                                       |
+| `route_board`, `fill_zones`, `run_drc`                      | Route, fill zones and check the board                                  |
+| `generate_outputs`                                          | Write the manufacturing files of the output job                        |
+| `datasheet_info`, `datasheet_text`                          | Read a PDF datasheet: pages, bookmarks, text                           |
+| `datasheet_extract`                                         | The part draft recognised in a datasheet                               |
+| `part_draft_read`, `part_draft_write`                       | Read and write a part draft file (`*.part.json`)                       |
+| `part_preview`, `part_generate`                             | Check and make a part from a draft                                     |
+| `list_mechanical`, `add_mechanical`, `edit_mechanical`      | The enclosure's bodies: list, add, move, hide, remove                  |
+| `check_enclosure`, `make_enclosure`, `board_from_enclosure` | Enclosure check, a box that fits, outline and areas from the enclosure |
+| `undo`, `redo`, `save_project`                              | Undo and redo (each tool call is one step), save                       |
+| `list_engine_methods`, `call_engine`                        | Any other engine method, for advanced agents                           |
 
 ### Parts from datasheets
 
@@ -226,6 +228,20 @@ Changes are **saved after every tool call**, so you can look at them in the
 app at any time (reopen the project). `ewerk mcp --no-autosave` keeps them in
 memory until the agent calls `save_project`. `ewerk mcp --project <folder>`
 opens a project at the start.
+
+### The enclosure
+
+Ask, for example: _"Put the board into ~/Mechanics/case-bottom.step and
+case-lid.step and tell me what collides."_ The agent adds the STEP files
+(`add_mechanical`, positions in millimetres with z from the board's bottom
+face), moves them until the board sits right (`edit_mechanical`), and runs
+`check_enclosure`: collisions, clearances below the minimum, mounting holes
+without bosses, connectors without an opening and parts taller than their
+height area, each with the place in millimetres. `make_enclosure` makes a
+simple box that fits the board; `board_from_enclosure` takes the board
+outline (`what: "outline"`) or the keep-out and height areas
+(`what: "areas"`) from the enclosure. See the
+[enclosure guide](./enclosure).
 
 ## Programs (JSON-RPC)
 

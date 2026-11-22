@@ -54,6 +54,7 @@ macOS quarantines downloaded programs. Run
 | [`ewerk outputs list`](#ewerk-outputs-list)             | List the output jobs of a project                     |
 | [`ewerk outputs presets`](#ewerk-outputs-presets)       | List the presets for board makers                     |
 | [`ewerk export-3d`](#ewerk-export-3d)                   | Export a board as a STEP, GLB or VRML model           |
+| [`ewerk mechanical …`](#ewerk-mechanical)               | Enclosure bodies and the enclosure check              |
 | [`ewerk assembly`](#ewerk-assembly)                     | Print the assembly steps of a board with the progress |
 | [`ewerk library build`](#ewerk-library-build)           | Build the base library from KiCad libraries           |
 | [`ewerk library info`](#ewerk-library-info)             | Show what the base library contains                   |
@@ -638,7 +639,8 @@ The progress is saved at once; the project's documents are not changed.
 
 ```sh
 ewerk export-3d <project> [-o <file>] [--format step|glb|vrml] [--board <name or id>]
-                [--origin drill|center|absolute] [--include-dnp] [--units mm|m|inch] [--json]
+                [--origin drill|center|absolute] [--include-dnp] [--units mm|m|inch]
+                [--mechanical] [--json]
 ```
 
 Exports a board with its parts as a 3D model (see
@@ -647,7 +649,9 @@ first board of the project is exported; without `-o` the file is written to
 the current folder as `<board>.step` (`.glb`, `.wrl`). `--origin` chooses the
 origin (the drill and placement origin by default), `--include-dnp` also
 exports parts marked “do not populate”, `--units` sets the units of VRML
-files.
+files. `--mechanical` also writes the shown
+[mechanical bodies](../guide/enclosure#export-the-assembly) — the
+enclosure — into the file.
 
 ```text
 $ ewerk export-3d ~/Projects/Blinky -o ~/Mechanics/blinky.step
@@ -661,6 +665,82 @@ other parts are still written. GLB and VRML need meshes: models of the base
 library have them, STEP models get one when the board is first shown in the
 app's 3D view (the command line cannot convert STEP files). `--json` prints
 the report of [`board3d.export`](./engine-api#board3d-export).
+
+## Enclosure
+
+### `ewerk mechanical`
+
+```text
+ewerk mechanical list <project> [--board <name>] [--json]
+ewerk mechanical add <project> <file.step> [--board <name>] [--name <name>]
+                     [--kind enclosure|lid|panel|screw|carrier|other]
+                     [--at <x,y,z>] [--rotate <x,y,z>] [--json]
+ewerk mechanical move <project> <body> [--board <name>] [--at <x,y,z>] [--rotate <x,y,z>]
+ewerk mechanical remove <project> <body> [--board <name>]
+ewerk mechanical check <project> [--board <name>] [--clearance <mm>]
+                       [--default-height <mm>] [--json]
+ewerk mechanical enclosure <project> [--board <name>] [--margin <mm>] [--json]
+ewerk mechanical section <project> [--board <name>] [--z <mm>] [--json]
+ewerk mechanical outline <project> [--board <name>] [--clearance <mm>] [--dry-run] [--json]
+ewerk mechanical areas <project> [--board <name>] [--step <mm>] [--json]
+```
+
+The [enclosure and mechanical check](../guide/enclosure) on the command
+line. Bodies are named by name or id; positions are millimetres in board
+coordinates with z from the board's bottom face, rotations degrees about x,
+y and z. Every command that changes the board saves the project.
+
+- `add` copies a STEP file into the project's `mechanical/` folder and
+  places it (default: the board's centre, z = 0).
+- `move` places or turns a body; `remove` takes it off the board (the file
+  stays).
+- `check` runs the enclosure check and prints the findings with the place
+  in 3D. **It exits with 1 if there are errors** (collisions), so it can
+  guard a build like [`ewerk board drc`](./cli#ewerk-board-fill-zones-drc).
+- `enclosure` makes a [simple box](../guide/enclosure#make-a-simple-box)
+  that fits the board and adds it.
+- `section` prints the cross-section of the bodies at a height (the
+  polygons with `--json`).
+- `outline` sets the board outline from the room inside the enclosure
+  (`--dry-run` only prints it); `areas` adds the keep-out and height areas.
+
+```console
+$ ewerk mechanical enclosure Blinky
+Added a box enclosure, inside 41 × 31 × 17 mm, with 0 bosses: mechanical/enclosure-bottom.step and mechanical/enclosure-lid.step
+$ ewerk mechanical list Blinky
+Enclosure bottom         enclosure  at 120, 95, -4 mm, turned 0, 0, 0°  mechanical/enclosure-bottom.step
+Enclosure lid            lid        at 120, 95, -4 mm, turned 0, 0, 0°  mechanical/enclosure-lid.step
+Minimum clearance: 0.5 mm
+$ ewerk mechanical move Blinky "Enclosure lid" --at 120,95,-9
+Moved Enclosure lid.
+$ ewerk mechanical check Blinky
+error   J1 collides with Enclosure lid [mechanical-collision] at 103.68, 83.68, 8.00 mm
+Note: 4 STEP files have curved faces and no mesh yet (see --json); open the board's 3D view in the app once.
+Note: 7 parts without a 3D model were checked as boxes.
+Enclosure check: 1 errors, 0 warnings (71 ms)
+$ echo $?
+1
+$ ewerk mechanical outline Blinky --dry-run
+Would set the board outline with 4 corners from the enclosure:
+  100.000, 110.000 mm
+  100.000, 80.000 mm
+  140.000, 80.000 mm
+  140.000, 110.000 mm
+$ ewerk mechanical areas Blinky
+Added 0 keep-out areas and height areas:
+  top: parts up to 10.5 mm
+  bottom: parts up to 3 mm
+$ ewerk export-3d Blinky --mechanical -o assembly.step
+Blinky → assembly.step (421176 bytes)
+  10 parts placed, 7 exact models, 0 from meshes
+```
+
+The command line reads STEP files whose faces are all flat itself (like the
+boxes ElectronicWerk makes). Models with curved faces need the meshes the
+app makes when it shows the board in 3D; until then bodies of that kind are
+left out of the check and parts are checked as boxes, and the check says
+so. `--json` prints the reply of
+[`mechanical.check`](./engine-api#mechanical-check) with the files.
 
 ## Library
 

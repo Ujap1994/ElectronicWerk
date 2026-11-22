@@ -770,7 +770,11 @@ report of the board; without, the whole board is checked. Returns:
 `targets` are board objects (a pad: its footprint and pad index). `key`
 identifies the finding for `pcb.exclude`. `airwires` is the ratsnest.
 Differences to the schematic (`missing-footprint`, `extra-footprint`,
-`net-mismatch`) are part of every report.
+`net-mismatch`) are part of every report, and so are the findings of the
+[enclosure check](./engine-api#mechanical-check) (`mechanical-*`, with a 3D `point`)
+when the board has mechanical bodies or height areas. If STEP files of the
+enclosure still need a mesh, the reply names them in `tessellate`; the
+desktop app makes the meshes and checks again.
 
 ### `pcb.exclude`
 
@@ -1335,9 +1339,12 @@ nothing).
 ### `board3d.export`
 
 `board3d.export {"doc", "path", "format"?, "origin"?, "includeDnp"?,
-"units"?}` writes the board as a 3D model to `path` (absolute): `format`
-`step` (default), `glb` or `vrml`; `origin` `drill` (default), `center` or
-`absolute`; `units` (VRML) `mm` (default), `m` or `inch`. The reply:
+"units"?, "mechanical"?}` writes the board as a 3D model to `path`
+(absolute): `format` `step` (default), `glb` or `vrml`; `origin` `drill`
+(default), `center` or `absolute`; `units` (VRML) `mm` (default), `m` or
+`inch`; `mechanical: true` also writes the shown
+[mechanical bodies](#enclosure) (each a part of the assembly under its
+name). The reply:
 
 ```json
 {
@@ -1356,6 +1363,174 @@ nothing).
 merged as they are, `faceted` the models written from meshes, `missing` the
 model paths that were not found. `exactBody` tells whether the board body
 uses the exact outline and holes (else polygons).
+
+## Enclosure
+
+The mechanical bodies of a board's 3D assembly and the
+[enclosure check](../guide/enclosure). Lengths of positions are
+nanometres, other lengths millimetres; positions are board coordinates with
+z measured from the board's bottom face. Edits commit one undo step with the
+label in brackets and return `seq` and `history` with their reply.
+
+### `mechanical.list`
+
+`{"doc"}` → the bodies, sorted by name, and the minimum clearance of the
+design rules (mm):
+
+```json
+{
+  "bodies": [
+    {
+      "id": "…",
+      "name": "Enclosure bottom",
+      "path": "mechanical/enclosure-bottom.step",
+      "file": "/Users/me/Projects/Blinky/mechanical/enclosure-bottom.step",
+      "exists": true,
+      "kind": "enclosure",
+      "position": [120000000, 95000000, -4000000],
+      "rotation": [0, 0, 0],
+      "hidden": false,
+      "opacity": 100,
+      "check": true,
+      "matrix": [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 120, 95, -4, 1]
+    }
+  ],
+  "clearance": 0.5
+}
+```
+
+`kind` is `enclosure`, `lid`, `panel`, `screw`, `carrier` or `other`.
+`rotation` is degrees about x, y and z, applied in that order. `matrix`
+places the model (mm, column-major, as in [`board3d.parts`](./engine-api#board3d-parts)).
+
+### `mechanical.add`
+
+`{"doc", "file", "name"?, "kind"?, "position"?, "rotation"?}` → `{"id",
+"path"}` (`add-mechanical`). `file` is an absolute path to a STEP file; it
+is copied into the project's `mechanical/` folder (a file of the same name
+with other contents gets a number; the same file is used again) unless it
+is in the project already. Defaults: the file name, the kind guessed from
+the name, the board's centre at z = 0, no rotation.
+
+### `mechanical.update`
+
+`{"doc", "id", "name"?, "kind"?, "position"?, "rotation"?, "hidden"?,
+"opacity"?, "check"?}` changes a body (`edit-mechanical`). `opacity` is 5 to
+100 (percent); `check: false` leaves the body out of the check.
+
+### `mechanical.remove`
+
+`{"doc", "ids"}` removes bodies (`remove-mechanical`). Their files stay in
+`mechanical/`.
+
+### `mechanical.check`
+
+`{"doc", "clearance"?, "defaultHeight"?}` runs the enclosure check
+(`clearance` in mm instead of the rules' minimum; `defaultHeight` in mm for
+parts without a model and without a `Height` property, default 3):
+
+```json
+{
+  "findings": [
+    {
+      "code": "mechanical-collision",
+      "severity": "error",
+      "message": "J1 collides with Enclosure lid",
+      "args": { "part": "J1", "body": "Enclosure lid", "distance": "0 mm", "minimum": "0.5 mm" },
+      "at": [104030000, 84000000],
+      "point": [104.03, 84.0, 8.0],
+      "targets": [{ "id": "…" }, { "id": "…" }],
+      "key": "mechanical-collision:…/…",
+      "excluded": false
+    }
+  ],
+  "hits": [
+    {
+      "body": "…",
+      "other": { "kind": "part", "id": "…" },
+      "overlap": true,
+      "distance": 0,
+      "point": [104.03, 84.0, 8.0],
+      "otherPoint": [104.03, 84.0, 8.0]
+    }
+  ],
+  "errors": 1,
+  "warnings": 0,
+  "tessellate": [],
+  "unchecked": [],
+  "standIns": [],
+  "milliseconds": 9
+}
+```
+
+The findings have the form of the [design rules check](./engine-api#pcb-drc), with
+`point` (mm) where the bodies meet. Codes: `mechanical-collision` (an
+overlap), `mechanical-clearance` (closer than the minimum; `args.part` is
+empty for the board itself), `mechanical-mounting` (`args.variant`:
+`boss` — a boss without a hole, `hole` — a hole without a boss, `offset`,
+`small`), `mechanical-opening` and `mechanical-height`. `hits` are the raw
+results of the collision and clearance part (`other.kind` `board` or
+`part`). `tessellate` names curved STEP files without a mesh (the app makes
+them and checks again), `unchecked` the bodies that were left out for that
+or because their file is missing, `standIns` the parts checked as boxes.
+
+### `mechanical.section`
+
+`{"doc", "z"?}` → `{"z", "polygons", "unchecked", "tessellate"}`: the
+cross-section of the checked bodies with the plane `z` (mm above the
+board's bottom face; default the middle of the board), united. Each polygon
+is an outline followed by its holes, each a list of `[x, y]` in mm.
+
+### `mechanical.outline`
+
+`{"doc", "clearance"?, "apply"?}` → `{"outline", "replaced"}`
+(`outline-from-enclosure`). Takes the room inside the enclosure at the board
+plane (the hole of the section that contains the board's centre, else the
+largest), shrinks it by `clearance` (mm; default the rules' minimum) and
+replaces the board's outer outline with it; cut-outs stay. `outline` is the
+new outline in mm, `replaced` the number of outline shapes removed. With
+`apply: false` nothing changes and only `outline` is returned.
+
+### `mechanical.areas`
+
+`{"doc", "step"?, "quantum"?}` → `{"keepouts", "heights", "removed"}`
+(`areas-from-enclosure`). Adds keep-out areas named _Enclosure keep-out_
+where enclosure material crosses the board, and height areas named
+_Height area 4.5 mm (top)_ from rays up from the top face and down from the
+bottom face on a grid of `step` mm (default 1), the free heights rounded
+down to `quantum` mm (default 0.5) less the minimum clearance. A height area
+is a keep-out zone with `maxHeight`. Areas made by an earlier call are
+replaced (`removed`). `heights` lists `{side, height}` per level.
+
+### `mechanical.enclosure`
+
+`{"doc", "spec"?, "margin"?}` → `{"ids", "spec"}` (`make-enclosure`).
+Makes a box enclosure — bottom shell and lid as
+`mechanical/enclosure-bottom.step` and `mechanical/enclosure-lid.step` — and
+adds both as bodies. Without `spec` it fits the board: the outline plus
+`margin` (mm, default 0.5) inside, bosses under the unplated holes of at
+least 1.9 mm, the lid 2 mm above the tallest part. `spec` (mm):
+
+```json
+{
+  "width": 41,
+  "depth": 31,
+  "height": 17,
+  "wall": 2,
+  "standoff": 4,
+  "bosses": [[16.5, -11.5]],
+  "bossDiameter": 5.4,
+  "holeDiameter": 2.1,
+  "opening": [-6, 7.5, 10, 4]
+}
+```
+
+`height` is the room from the floor to the lid, `standoff` the height of the
+bosses (where the board's bottom face rests), `bosses` the boss centres from
+the middle of the box, `opening` an optional opening in the front wall
+(centre x, centre z, width, height). The model's origin is the middle of the
+floor's top face; the bodies are placed at the board's centre and
+z = −`standoff`.
 
 ## Library editor
 

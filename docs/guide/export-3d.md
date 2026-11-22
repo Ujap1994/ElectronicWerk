@@ -47,6 +47,17 @@ tools build on, and the board, its holes and every part must be where they
 belong. With the models of a KiCad installation, the parts of the exported
 file match KiCad's own STEP export of the same board triangle for triangle.
 
+### With the enclosure
+
+When the board has [mechanical bodies](./enclosure) — an enclosure, a
+lid, panels, screws — the 3D view's export menu offers **With the enclosure
+(shown bodies)** (`--mechanical` on the command line, `mechanical: true` in
+the engine API). The file then holds every shown body at its place as a
+part of the assembly, named like the body: in STEP files the exact solids of
+the body's STEP file, in GLB and VRML its mesh. Hidden bodies are left out.
+Without the option the file holds the board and its parts only, ready to be
+put into an enclosure in the CAD program.
+
 ## GLB
 
 GLB (binary glTF 2.0) is the standard format for 3D on the web and in

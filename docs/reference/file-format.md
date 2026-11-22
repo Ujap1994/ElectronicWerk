@@ -143,20 +143,51 @@ is relative to the project folder, uses `/` and must not leave the folder.
 
 ## Boards (`.ewpcb`)
 
-| Field             | Content                                                                                                                                                                                                                                                                                              |
-| ----------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `stackup`         | Physical layers from top to bottom (silkscreen, solder mask, copper, dielectric) and the surface finish                                                                                                                                                                                              |
-| `origin`          | Drill and placement origin                                                                                                                                                                                                                                                                           |
-| `nets`            | `name` and net `class`                                                                                                                                                                                                                                                                               |
-| `footprints`      | Placed footprints with their own copy of pads, graphics, texts and 3D models (as seen from the top; `side: "bottom"` mirrors them), `component`, `designator`, `value`, `at`, `rotation`, `locked`, `attributes`                                                                                     |
-| `tracks`          | `layer`, `net`, `width`, `start`, `end`, and `mid` for arcs                                                                                                                                                                                                                                          |
-| `vias`            | `at`, `diameter`, `drill`, `net`, `from`/`to` layers (default through), `micro`                                                                                                                                                                                                                      |
-| `zones`           | Copper pours and keep-outs: `name`, `net`, `layers`, `outline`, `holes`, `priority`, `keepout` (`tracks`, `vias`, `pads`, `pours`, `footprints`), `fill` settings, `filled` (the computed copper per layer: `layer`, `points`, `holes`), and `teardrop` (`true` for [teardrops](../guide/teardrops)) |
-| `texts`, `shapes` | Free text and graphics; the board outline is drawn on the `outline` layer                                                                                                                                                                                                                            |
-| `drcExclusions`   | Keys of [accepted DRC findings](../guide/drc#accepting-findings) (optional)                                                                                                                                                                                                                          |
+| Field             | Content                                                                                                                                                                                                                                                                                                                                                                                      |
+| ----------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `stackup`         | Physical layers from top to bottom (silkscreen, solder mask, copper, dielectric) and the surface finish                                                                                                                                                                                                                                                                                      |
+| `origin`          | Drill and placement origin                                                                                                                                                                                                                                                                                                                                                                   |
+| `nets`            | `name` and net `class`                                                                                                                                                                                                                                                                                                                                                                       |
+| `footprints`      | Placed footprints with their own copy of pads, graphics, texts and 3D models (as seen from the top; `side: "bottom"` mirrors them), `component`, `designator`, `value`, `at`, `rotation`, `locked`, `attributes`                                                                                                                                                                             |
+| `tracks`          | `layer`, `net`, `width`, `start`, `end`, and `mid` for arcs                                                                                                                                                                                                                                                                                                                                  |
+| `vias`            | `at`, `diameter`, `drill`, `net`, `from`/`to` layers (default through), `micro`                                                                                                                                                                                                                                                                                                              |
+| `zones`           | Copper pours and keep-outs: `name`, `net`, `layers`, `outline`, `holes`, `priority`, `keepout` (`tracks`, `vias`, `pads`, `pours`, `footprints`, and `maxHeight` in nm for [height areas](../guide/enclosure#keep-out-and-height-areas)), `fill` settings, `filled` (the computed copper per layer: `layer`, `points`, `holes`), and `teardrop` (`true` for [teardrops](../guide/teardrops)) |
+| `texts`, `shapes` | Free text and graphics; the board outline is drawn on the `outline` layer                                                                                                                                                                                                                                                                                                                    |
+| `mechanical`      | [Mechanical bodies](#mechanical-bodies) of the 3D assembly (optional)                                                                                                                                                                                                                                                                                                                        |
+| `drcExclusions`   | Keys of [accepted DRC findings](../guide/drc#accepting-findings) (optional)                                                                                                                                                                                                                                                                                                                  |
 
 The zone filler stores openings of a fill as `holes`; fills imported from
 KiCad cut them in with slits instead. Both read the same way.
+
+### Mechanical bodies
+
+The `mechanical` list of a board holds the bodies of its
+[enclosure](../guide/enclosure) (`type: "mechanical"` in edits):
+
+```json
+{
+  "id": "…",
+  "name": "Enclosure lid",
+  "path": "mechanical/enclosure-lid.step",
+  "kind": "lid",
+  "position": [120000000, 95000000, -4000000],
+  "rotation": [0, 0, 90],
+  "hidden": true,
+  "opacity": 40,
+  "check": false
+}
+```
+
+- `path` — the STEP file, relative to the project folder (the app copies
+  files into `mechanical/`).
+- `kind` — `enclosure` (the default, left out), `lid`, `panel`, `screw`,
+  `carrier` or `other`.
+- `position` — where the model's origin goes, in nm: board coordinates, z
+  from the board's bottom face (`[0, 0, 0]` is left out).
+- `rotation` — degrees about x, y and z, applied in that order (left out
+  when 0).
+- `hidden` (default `false`), `opacity` (percent, default 100) and `check`
+  (default `true`) are written only when they differ from the defaults.
 
 ## Libraries, rules and output jobs
 
@@ -176,7 +207,9 @@ KiCad cut them in with slits instead. Both read the same way.
     reading as before.
 - **Rules** (`.ewrules`): `constraints` (minimum clearance, track width, via,
   drill, annular ring, hole-to-hole, copper-to-edge, silkscreen width,
-  `minMicroViaDiameter`, `minMicroViaDrill`, and `allowBlindBuriedVias` and
+  `minMicroViaDiameter`, `minMicroViaDrill`, `minMechanicalClearance` (to
+  the [enclosure](../guide/enclosure); older files get 0.5 mm), and
+  `allowBlindBuriedVias` and
   `allowMicroVias`, which are written only when switched on), `netClasses`
   (with `microViaDiameter` and `microViaDrill`; older files get the
   defaults 0.3 mm and 0.1 mm; `impedance`, the name of the impedance profile

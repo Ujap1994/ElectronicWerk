@@ -6,6 +6,73 @@ project uses [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.18.0] - 2026-11-22
+
+The enclosure check: put the STEP files of the enclosure, lid, panels and
+screws around the board in 3D and find collisions and too small clearances
+while you lay out — before anything is built.
+
+### Added
+
+- **Mechanical bodies** in the board's 3D assembly: enclosure shells, lids,
+  front panels, screws and carrier boards from STEP files, copied into the
+  project's `mechanical/` folder. Each body has a name, a kind, a position
+  (z from the board's bottom face) and a rotation, can be hidden, made
+  see-through (5–100 %) and left out of the check, and is cut by the
+  section view. Every change is one undo step. See
+  [Enclosure and mechanical check](docs/guide/enclosure.md).
+- **Enclosure panel** in the 3D view (the box button): add STEP files, make
+  a box, edit the selected body (position, rotation, opacity, kind, name),
+  centre it on the board, remove it; clicking a solid body in 3D selects
+  it. The view fits the enclosure when it first appears.
+- **Make box:** a simple box enclosure that fits the board — the outline
+  plus 0.5 mm inside, 2 mm walls, the board 4 mm above the floor on bosses
+  under its mounting holes, the lid 2 mm above the tallest part — as two
+  real STEP solids.
+- **Enclosure check**, after every change while _Check while editing_ is on:
+  - `mechanical-collision` (error): a part or the board cuts into a body or
+    lies inside it;
+  - `mechanical-clearance` (warning): closer than the new minimum
+    **Clearance to the enclosure** of the design rules (0.5 mm); the board
+    may rest on a body;
+  - `mechanical-mounting` (warning): a boss without a mounting hole, a hole
+    without a boss, a hole beside its boss or smaller than its screw hole;
+  - `mechanical-opening` (warning): a connector reaching over the board
+    edge with no opening in front of it;
+  - `mechanical-height` (warning): a part taller than its height area.
+
+  Findings are red and orange markers in 3D; a click moves the view there
+  and selects the part. Parts without a 3D model are checked as boxes of
+  their courtyard and their `Height` property (else 3 mm). The findings are
+  part of the layout editor's design rules check, with translated messages,
+  severities and accepted findings like every other check.
+
+- **From the enclosure:** _Board outline_ replaces the board outline with
+  the room inside the enclosure at the board plane, less the clearance;
+  _Keep-out and height areas_ adds keep-out areas where the enclosure
+  crosses the board and **height areas** for both sides. A height area is a
+  keep-out area with a maximum part height (new _Limit the part height_ in
+  the keep-out dialog, `maxHeight` in the file).
+- **Assembly export:** _With the enclosure (shown bodies)_ in the 3D view's
+  export menu, `ewerk export-3d --mechanical` and `board3d.export
+{"mechanical": true}` write the board, its parts and the enclosure into
+  one STEP, GLB or VRML file (exact solids in STEP).
+- `ewerk mechanical list|add|move|remove|check|enclosure|section|outline|areas`
+  ([CLI reference](docs/reference/cli.md#ewerk-mechanical)); `check` exits
+  with 1 on collisions.
+- Engine methods `mechanical.list`, `.add`, `.update`, `.remove`, `.check`,
+  `.enclosure`, `.section`, `.outline`, `.areas`; findings of `pcb.drc` and
+  `mechanical.check` carry a 3D `point`
+  ([engine API](docs/reference/engine-api.md#enclosure)).
+- MCP tools `list_mechanical`, `add_mechanical`, `edit_mechanical`,
+  `check_enclosure`, `make_enclosure` and `board_from_enclosure` for AI
+  agents.
+- The engine reads STEP files with only flat faces itself, so the command
+  line checks generated enclosures and package models without the app;
+  curved files are tessellated by the app (and its engine host does that
+  on its own before a check that needs them).
+- [ADR-0018](docs/adr/0018-enclosure-check.md) records the decisions.
+
 ## [0.17.1] - 2026-11-21
 
 Parts from datasheets: open a part's PDF datasheet and get its symbol, an
@@ -1300,7 +1367,8 @@ quality gates and the delivery pipeline that every later feature builds on.
   process ([ujap1994.github.io/ElectronicWerk](https://ujap1994.github.io/ElectronicWerk/)).
   **Help → Documentation** opens it.
 
-[Unreleased]: https://github.com/Ujap1994/ElectronicWerk/compare/v0.17.1...HEAD
+[Unreleased]: https://github.com/Ujap1994/ElectronicWerk/compare/v0.18.0...HEAD
+[0.18.0]: https://github.com/Ujap1994/ElectronicWerk/compare/v0.17.1...v0.18.0
 [0.17.1]: https://github.com/Ujap1994/ElectronicWerk/compare/v0.16.0...v0.17.1
 [0.16.0]: https://github.com/Ujap1994/ElectronicWerk/compare/v0.15.1...v0.16.0
 [0.15.1]: https://github.com/Ujap1994/ElectronicWerk/compare/v0.15.0...v0.15.1

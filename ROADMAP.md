@@ -1,7 +1,7 @@
 # ElectronicWerk Roadmap
 
-> **Status:** v0.28 (2026-11-20). M0 to M16 are complete (releases v0.1.0 to
-> v0.17.1; M0, M1 and M3 accepted by the maintainer); M17 is next.
+> **Status:** v0.29 (2026-11-22). M0 to M17 are complete (releases v0.1.0 to
+> v0.18.0; M0, M1 and M3 accepted by the maintainer); M18 is next.
 > The GitHub integration (M11) is switched off since v0.14.1 until the
 > maintainer decides to offer it (ADR-0014).
 > This roadmap is a living document. It **must** be updated with every feature
@@ -254,7 +254,7 @@ own work only. Maintainer test cycles and feedback come on top. Status values:
 | M14 | Interoperability: further open formats                | v0.15.0 | F3                | 5–8 S           | ✅     |
 | M15 | Advanced layout                                       | v0.16.0 | F7                | 12–20 S         | ✅     |
 | M16 | Part generator from datasheets                        | v0.17.0 | F13               | 8–12 S          | ✅     |
-| M17 | Mechanical assembly and enclosure check               | v0.18.0 | F14               | 6–10 S          | ⬜     |
+| M17 | Mechanical assembly and enclosure check               | v0.18.0 | F14               | 6–10 S          | ✅     |
 | M18 | Multi-board design                                    | v0.19.0 | F15               | 8–12 S          | ⬜     |
 | M19 | Hardening, UX audit, final docs and videos            | v1.0.0  | T3–T5, D1         | 6–10 S          | ⬜     |
 |     | **Total to v1.0**                                     |         |                   | **≈ 140–215 S** |        |
@@ -938,7 +938,7 @@ check; AI help through drafts and MCP tools; `ewerk part`. OCR for scanned
 datasheets was not added (rare for current parts; the AI agent covers them),
 and four-sided pinout drawings are not read. See ADR-0017.
 
-### M17 — Mechanical assembly and enclosure check (v0.18.0, 6–10 S)
+### M17 — Mechanical assembly and enclosure check (v0.18.0, 6–10 S) ✅
 
 Requested by the maintainer: find collisions between the board and its
 enclosure before anything is built.
@@ -961,6 +961,20 @@ enclosure before anything is built.
   mechanical CAD, and the check in the CLI and the engine API.
 - Builds on the 3D view, the mesh cache and the STEP writer (M9) and the
   DRC (M7).
+
+**Done (v0.18.0):** mechanical bodies as board objects (STEP files copied
+into `mechanical/`, position, rotation, kind, hidden, opacity, check), an
+enclosure panel in the 3D view (add, move, turn, show, see through, section)
+and a box enclosure made to fit the board; the check on triangle meshes
+(R-tree, overlaps told from touching, containment by rays) for the board and
+every part, parts without a model as courtyard boxes with their height; the
+minimum clearance as a design rule; findings in 3D, in the layout editor's
+DRC and updated while editing; helpers for the board outline, keep-out and
+height areas (keep-outs with a maximum part height), bosses against mounting
+holes and connectors against openings; the assembly in STEP, GLB and VRML;
+`ewerk mechanical`, MCP tools and `mechanical.*` engine methods. The engine
+reads planar STEP files itself; curved ones are tessellated by the app once.
+See ADR-0018.
 
 ### M18 — Multi-board design (v0.19.0, 8–12 S)
 
@@ -1111,4 +1125,5 @@ joined by cables.
 | 2026-11-15 | v0.25      | Real-time collaboration taken off the post-1.0 candidates: it is planned again only once v1.0.0 runs cleanly in the maintainer's daily work.                                                                                                                                                                                                                                                                                                               |
 | 2026-11-15 | v0.26      | M15 started. Added the impedance calculator to M15 (requested by the maintainer) with two working modes in the settings: Beginner computes and applies the widths, Advanced lets the user set impedance and geometry.                                                                                                                                                                                                                                      |
 | 2026-11-20 | v0.28      | M16 complete: v0.17.1 (0.17.0 tagged, not published: its macOS build failed) with the part generator: own PDF reader, recognition of pins, packages and dimensions, review next to the datasheet, symbol, IPC-7351 footprint, STEP model and component, duplicate check (name and nearly the same pads, requested by the maintainer), AI help through the user's agent and MCP (no API key in the app, the maintainer's choice). OCR deferred (ADR-0017).  |
+| 2026-11-22 | v0.29      | M17 complete: v0.18.0 with the enclosure check — STEP bodies around the board in 3D, collision and clearance check as design rules check findings, helpers for outline, height areas, mounting holes and openings, the assembly as STEP, a box enclosure made to fit (ADR-0018).                                                                                                                                                                           |
 | 2026-11-16 | v0.27      | M15 complete: v0.16.0 with blind, buried and microvias, push and shove, the impedance calculator with the working modes, differential pairs, length matching, teardrops, stitching vias, channels and assembly variants. Back drilling deferred (ADR-0016).                                                                                                                                                                                                |

@@ -74,6 +74,11 @@ full CLI.
   and dimensions are read from the datasheet and shown beside it for
   checking; a part already in a library is named instead; your own AI agent
   can help through MCP (no API key in the app)
+- **Enclosure check:** place the STEP files of the enclosure, lid, panels
+  and screws around the board in 3D (or make a box that fits) and find
+  collisions, too small clearances, mounting holes without bosses and
+  connectors without an opening while you lay out; take the board outline
+  and height areas from the enclosure; export the whole assembly as STEP
 - **Design rules** with net classes, name patterns, board minimums and
   **custom rules** in a small query language (`A.netclass == 'HV' &&
 B.netclass != 'HV'`)
@@ -171,11 +176,10 @@ B.netclass != 'HV'`)
 
 ## Planned highlights
 
-- Further open standard formats (KiCad export, Specctra, DXF export)
-- Push-and-shove routing, differential pairs and length tuning
-- Gerber and Excellon import as a reference layer, Eagle import
-- Later: a **part generator** that reads a datasheet and draws symbol,
-  footprint and 3D model
+- **Multi-board design:** systems of several boards (a shield on a carrier
+  board, boards joined by cables) with a connection check across the boards
+  and the system in 3D
+- Hardening for version 1.0 on real designs
 
 ## License
 

@@ -83,3 +83,11 @@ settings ask for the layers and what is forbidden inside:
 
 Keep-out areas have no net and are never filled. They show as a hatched
 area on their layers.
+
+**Limit the part height** turns a keep-out area into a **height area**:
+parts on its side (the copper layer it is drawn on) may be at most the
+given height, measured from the board surface — the room under a lid, a
+rib or a display. The [enclosure check](./enclosure) reports taller parts
+(`mechanical-height`), using their 3D models. The enclosure panel can make
+these areas from the enclosure; they can also be drawn by hand like any
+keep-out area.
