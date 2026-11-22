@@ -724,19 +724,19 @@ pub fn call(
                 .map(|n| (n.net, n.length))
                 .collect();
             let mut tracks: HashMap<Id, usize> = HashMap::new();
-            for track in pcb.tracks.iter() {
+            for track in &pcb.tracks {
                 if let Some(net) = track.net {
                     *tracks.entry(net).or_default() += 1;
                 }
             }
             let mut vias: HashMap<Id, usize> = HashMap::new();
-            for via in pcb.vias.iter() {
+            for via in &pcb.vias {
                 if let Some(net) = via.net {
                     *vias.entry(net).or_default() += 1;
                 }
             }
             let mut pads: HashMap<Id, usize> = HashMap::new();
-            for fp in pcb.footprints.iter() {
+            for fp in &pcb.footprints {
                 for pad in &fp.pads {
                     if let Some(net) = pad.net {
                         *pads.entry(net).or_default() += 1;
