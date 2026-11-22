@@ -292,4 +292,4 @@ and leaves those bodies out.
   between checks, so a check after a small change takes a few
   milliseconds.
 - The decisions behind the design are in
-  [ADR-0018](../adr/0018-enclosure-check).
+  [ADR-0018](https://github.com/Ujap1994/ElectronicWerk/blob/main/docs/adr/0018-enclosure-check.md).
