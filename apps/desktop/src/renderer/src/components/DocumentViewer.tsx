@@ -45,6 +45,8 @@ import type { SceneReply } from '../viewer/types';
 import { Icon, type IconName } from './Icon';
 import { Inspector } from './Inspector';
 import { LayerPanel } from './LayerPanel';
+import { SelectionFilter } from './SelectionFilter';
+import { selectable, selectionFilter } from '../viewer/selection-filter';
 
 /** View settings per document, kept while the project is open. */
 const memories = new Map<string, ViewMemory>();
@@ -278,6 +280,15 @@ export function DocumentViewer({
   const dark = useDarkScheme();
   const doc = document.id;
   const sheet = document.kind === 'schematic';
+  // The selection filter of this kind of document.
+  useEffect(() => {
+    const kind = document.kind === 'pcb' ? 'pcb' : 'schematic';
+    const apply = (): void => {
+      controller.setSelectable((type) => selectable(kind, type));
+    };
+    apply();
+    return selectionFilter.subscribe(apply);
+  }, [controller, document.kind]);
   const [chooser, setChooser] = useState(false);
   const [finding, setFinding] = useState(false);
   const [annotating, setAnnotating] = useState(false);
@@ -720,6 +731,7 @@ export function DocumentViewer({
       </div>
       <aside className="viewer__side">
         <LayerPanel controller={controller} />
+        <SelectionFilter kind={document.kind === 'pcb' ? 'pcb' : 'schematic'} />
         <Inspector
           controller={controller}
           doc={doc}

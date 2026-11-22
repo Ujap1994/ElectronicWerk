@@ -769,7 +769,7 @@ export class SchematicEditor implements Interaction {
         if (event.shiftKey || event.ctrlKey || event.metaKey || event.altKey) {
           return false;
         }
-        const obj = this.controller.pickAtPoint(point);
+        const obj = this.controller.pickSelectableAtPoint(point);
         if (obj === null) {
           return false;
         }

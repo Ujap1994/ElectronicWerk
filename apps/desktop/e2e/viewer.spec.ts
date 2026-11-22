@@ -96,6 +96,21 @@ test('board view: navigation, selection, inspector and layers', async () => {
   await page.getByTestId('layers-show-all').click();
   await expect(page.getByTestId('layer-cu.bottom')).toHaveAttribute('data-visible', 'true');
 
+  // The selection filter: without tracks, they are not selected.
+  await page.getByTestId('selection-filter-toggle').click();
+  await page.getByTestId('selection-filter-tracks').uncheck();
+  await expect(page.getByTestId('selection-filter-active')).toHaveText('1 off');
+  await canvas.focus();
+  await page.keyboard.press('ControlOrMeta+a');
+  await expect(page.getByTestId('inspector-title')).toHaveText(
+    `${topLevel - board.tracks.length} objects selected`,
+  );
+  await page.getByTestId('selection-filter-all').click();
+  await expect(page.getByTestId('selection-filter-active')).toHaveCount(0);
+  await canvas.focus();
+  await page.keyboard.press('ControlOrMeta+a');
+  await expect(page.getByTestId('inspector-title')).toHaveText(`${topLevel} objects selected`);
+
   // Box selection across the whole view (left to right: fully inside).
   const box = await canvas.boundingBox();
   if (box === null) {

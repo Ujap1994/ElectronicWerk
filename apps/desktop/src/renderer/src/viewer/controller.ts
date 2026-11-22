@@ -617,7 +617,11 @@ export class ViewerController {
     }
     const all = new Set<number>();
     for (let obj = 0; obj < scene.objectCount; obj += 1) {
-      if (scene.parentOf(obj) === null && scene.isVisible(obj, this.isLayerVisible)) {
+      if (
+        scene.parentOf(obj) === null &&
+        scene.isVisible(obj, this.isLayerVisible) &&
+        this.isSelectable(obj)
+      ) {
         all.add(obj);
       }
     }
@@ -652,6 +656,51 @@ export class ViewerController {
       HIT_TOLERANCE_PX / this.camera.scale,
       this.isLayerVisible,
       this.active,
+    );
+  }
+
+  /**
+   * Which object types the selection may take (the selection filter);
+   * `null` takes everything. Pads and texts follow their part.
+   */
+  setSelectable(filter: ((type: string) => boolean) | null): void {
+    this.selectableType = filter;
+    if (this.hovered !== null && !this.isSelectable(this.hovered)) {
+      this.hovered = null;
+      this.updateFlags();
+    }
+    this.viewChanged();
+  }
+
+  private selectableType: ((type: string) => boolean) | null = null;
+
+  private isSelectable = (obj: number): boolean => {
+    const scene = this.scene;
+    const filter = this.selectableType;
+    if (scene === null || filter === null) {
+      return true;
+    }
+    return filter(scene.typeOf(this.rootOf(obj)));
+  };
+
+  /** Like `pickAtPoint`, but only what the selection filter lets through. */
+  pickSelectableAtPoint(point: readonly [number, number]): number | null {
+    const scene = this.scene;
+    if (scene === null) {
+      return null;
+    }
+    const [sx, sy] = this.screenOf(point);
+    const [x, y] = this.camera.toScene(sx, sy);
+    const tolerance = HIT_TOLERANCE_PX / this.camera.scale;
+    return pick(
+      scene,
+      x,
+      y,
+      tolerance,
+      this.isLayerVisible,
+      this.active,
+      tolerance / 2,
+      this.isSelectable,
     );
   }
 
@@ -1141,13 +1190,16 @@ export class ViewerController {
     let hits: number[];
     if (drag.kind === 'pending') {
       const [sx, sy] = this.camera.toScene(drag.x, drag.y);
+      const tolerance = HIT_TOLERANCE_PX / this.camera.scale;
       const hit = pick(
         scene,
         sx,
         sy,
-        HIT_TOLERANCE_PX / this.camera.scale,
+        tolerance,
         this.isLayerVisible,
         this.active,
+        tolerance / 2,
+        this.isSelectable,
       );
       hits = hit === null ? [] : [hit];
     } else if (drag.kind === 'box') {
@@ -1155,13 +1207,19 @@ export class ViewerController {
       const [ax, ay] = this.camera.toScene(drag.x, drag.y);
       const [bx, by] = this.camera.toScene(x, y);
       const box: Box = [Math.min(ax, bx), Math.min(ay, by), Math.max(ax, bx), Math.max(ay, by)];
-      hits = selectBox(scene, box, x < drag.x ? 'crossing' : 'window', this.isLayerVisible);
+      hits = selectBox(
+        scene,
+        box,
+        x < drag.x ? 'crossing' : 'window',
+        this.isLayerVisible,
+        this.isSelectable,
+      );
     } else {
       const polygon: number[] = [];
       for (let i = 0; i < drag.points.length; i += 2) {
         polygon.push(...this.camera.toScene(drag.points[i] ?? 0, drag.points[i + 1] ?? 0));
       }
-      hits = selectLasso(scene, polygon, this.isLayerVisible);
+      hits = selectLasso(scene, polygon, this.isLayerVisible, this.isSelectable);
     }
     this.overlay = null;
     this.applySelection(hits, additive, toggle);
@@ -1215,13 +1273,16 @@ export class ViewerController {
       return;
     }
     const [x, y] = this.camera.toScene(pointer[0], pointer[1]);
+    const tolerance = HIT_TOLERANCE_PX / this.camera.scale;
     const hit = pick(
       scene,
       x,
       y,
-      HIT_TOLERANCE_PX / this.camera.scale,
+      tolerance,
       this.isLayerVisible,
       this.active,
+      tolerance / 2,
+      this.isSelectable,
     );
     if (hit !== this.hovered) {
       this.hovered = hit;

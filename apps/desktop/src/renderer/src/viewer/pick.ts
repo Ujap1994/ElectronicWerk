@@ -81,6 +81,7 @@ export function pick(
   visible: LayerFilter,
   active: number | null = null,
   direct = tolerance / 2,
+  allowed: (obj: number) => boolean = () => true,
 ): number | null {
   const index = scene.index;
   if (index === null) {
@@ -90,6 +91,9 @@ export function pick(
   let best: number | null = null;
   let bestKey: readonly number[] = [Infinity];
   for (const obj of candidates) {
+    if (!allowed(obj)) {
+      continue;
+    }
     const type = scene.typeOf(obj);
     const box = scene.box(obj);
     let distance: number;
@@ -129,6 +133,7 @@ export function selectBox(
   box: Box,
   mode: 'window' | 'crossing',
   visible: LayerFilter,
+  allowed: (obj: number) => boolean = () => true,
 ): number[] {
   const index = scene.index;
   if (index === null) {
@@ -137,7 +142,7 @@ export function selectBox(
   return index
     .search(box[0], box[1], box[2], box[3])
     .filter((obj) => {
-      if (scene.parentOf(obj) !== null || !scene.isVisible(obj, visible)) {
+      if (scene.parentOf(obj) !== null || !scene.isVisible(obj, visible) || !allowed(obj)) {
         return false;
       }
       if (mode === 'crossing') {
@@ -154,6 +159,7 @@ export function selectLasso(
   scene: Scene,
   polygon: readonly number[],
   visible: LayerFilter,
+  allowed: (obj: number) => boolean = () => true,
 ): number[] {
   const index = scene.index;
   if (index === null || polygon.length < 6) {
@@ -174,7 +180,7 @@ export function selectLasso(
   return index
     .search(minX, minY, maxX, maxY)
     .filter((obj) => {
-      if (scene.parentOf(obj) !== null || !scene.isVisible(obj, visible)) {
+      if (scene.parentOf(obj) !== null || !scene.isVisible(obj, visible) || !allowed(obj)) {
         return false;
       }
       const b = scene.box(obj);
