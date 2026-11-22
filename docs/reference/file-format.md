@@ -17,6 +17,7 @@ and written by
 | `.ewlib`   | Library (symbols and footprints) | `electronicwerk.library`   |
 | `.ewrules` | Design rules                     | `electronicwerk.rules`     |
 | `.ewout`   | Output job                       | `electronicwerk.outputJob` |
+| `.ewsys`   | System of several boards         | `electronicwerk.system`    |
 
 Every file starts with the same header:
 
@@ -188,6 +189,77 @@ The `mechanical` list of a board holds the bodies of its
   when 0).
 - `hidden` (default `false`), `opacity` (percent, default 100) and `check`
   (default `true`) are written only when they differ from the defaults.
+
+## Systems (`.ewsys`)
+
+A [system](../guide/systems) in `systems/` lists its boards and how they
+connect:
+
+```json
+{
+  "format": "electronicwerk.system",
+  "schemaVersion": 1,
+  "id": "…",
+  "name": "Station",
+  "boards": [
+    { "id": "…", "name": "Carrier", "source": { "kind": "local", "doc": "…" } },
+    {
+      "id": "…",
+      "name": "Shield",
+      "source": { "kind": "project", "path": "../Shield/Shield.ewproj", "board": "Shield" },
+      "quantity": 2,
+      "position": [12540000, 10000000, 10080000],
+      "rotation": [0, 0, 90]
+    }
+  ],
+  "links": [
+    {
+      "id": "…",
+      "a": { "board": "…", "designator": "J1" },
+      "b": { "board": "…", "designator": "P1" },
+      "pairing": "position"
+    }
+  ],
+  "cables": [
+    {
+      "id": "…",
+      "name": "W1",
+      "part": "4-wire cable",
+      "length": 150000000,
+      "ends": [
+        {
+          "id": "…",
+          "label": "X1",
+          "connector": { "board": "…", "designator": "J2" },
+          "housing": "Socket 1x04 2.54 mm"
+        }
+      ],
+      "wires": [
+        {
+          "id": "…",
+          "from": { "end": "…", "pin": "1" },
+          "to": { "end": "…", "pin": "1" },
+          "color": "red",
+          "gauge": "AWG 24"
+        }
+      ]
+    }
+  ],
+  "aliases": [["BUTTON", "BTN"]],
+  "exclusions": ["system-missing:…"]
+}
+```
+
+- `boards[].source` — `local` (a board document of this project) or
+  `project` (another project, its path relative to this project or
+  absolute, and the board's name or id; empty: its first board).
+- `quantity` (default 1), `position` (nm, z = the board's bottom face;
+  default `[0, 0, 0]`), `rotation` (degrees about x, y, z) and `hidden` are
+  written only when they differ from the defaults.
+- `links[].pairing` — `number` (default, left out), `mirrored` or
+  `position`.
+- A cable end without `connector` is a free end; a wire's `signal` and
+  `length` (nm) are optional.
 
 ## Libraries, rules and output jobs
 

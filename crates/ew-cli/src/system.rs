@@ -80,6 +80,9 @@ pub enum SystemCommand {
         /// lower connector's height).
         #[arg(long)]
         gap: Option<f64>,
+        /// Turn the board over (a mezzanine board facing down).
+        #[arg(long)]
+        flip: bool,
     },
     /// The connection check across the boards. Exits with 1 if there are
     /// errors.
@@ -351,6 +354,7 @@ pub fn run(command: SystemCommand, out: &mut impl Write) -> Outcome {
             board,
             system,
             gap,
+            flip,
         } => {
             let mut engine = open(&project)?;
             let (doc, _) = system_id(&mut engine, system.as_deref())?;
@@ -365,7 +369,7 @@ pub fn run(command: SystemCommand, out: &mut impl Write) -> Outcome {
                 .ok_or_else(|| {
                     Failure(format!("{board} is not the second board of a connection"))
                 })?;
-            let mut params = json!({ "doc": doc, "link": link });
+            let mut params = json!({ "doc": doc, "link": link, "flip": flip });
             if let Some(gap) = gap {
                 params["gap"] = json!(gap);
             }

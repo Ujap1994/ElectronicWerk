@@ -1532,6 +1532,181 @@ the middle of the box, `opening` an optional opening in the front wall
 floor's top face; the bodies are placed at the board's centre and
 z = −`standoff`.
 
+## Systems
+
+[Systems of several boards](../guide/systems): a system document (kind
+`system`) holds its boards, connections, cables, aliases and accepted
+findings. Lengths are nanometres, positions board coordinates with z from a
+board's bottom face. Edits commit one undo step (labels in brackets) and
+return `seq` and `history` with their reply. Boards are addressed by their
+id in the system (`board`), connectors as `{board, designator}`.
+
+### `system.info`
+
+`{"doc"}` → the system with every board as read:
+
+```json
+{
+  "id": "…",
+  "name": "Station",
+  "boards": [
+    {
+      "id": "…",
+      "name": "Shield",
+      "source": { "kind": "project", "path": "../Shield/Shield.ewproj", "board": "Shield" },
+      "quantity": 1,
+      "position": [12540000, 10000000, 10080000],
+      "rotation": [0, 0, 0],
+      "hidden": false,
+      "local": false,
+      "project": "Shield",
+      "root": "/Users/me/Projects/Shield",
+      "loaded": true,
+      "board": "Shield",
+      "boardId": "…",
+      "size": [60, 40],
+      "connectors": 1
+    }
+  ],
+  "links": [
+    {
+      "id": "…",
+      "a": { "board": "…", "designator": "J1" },
+      "b": { "board": "…", "designator": "P1" },
+      "pairing": "position"
+    }
+  ],
+  "cables": [
+    {
+      "id": "…",
+      "name": "W1",
+      "part": "4-wire cable",
+      "length": 150000000,
+      "ends": [],
+      "wires": []
+    }
+  ],
+  "aliases": [["BUTTON", "BTN"]],
+  "exclusions": []
+}
+```
+
+A board that cannot be read has `loaded: false` and an `error`.
+
+### Boards
+
+- `system.addBoard {"doc", "source", "name"?, "quantity"?, "position"?}` →
+  `{"id"}` (`system-boards`). `source` is `{"kind": "local", "doc"}` for a
+  board of this project or `{"kind": "project", "path", "board"?}` for
+  another project (folder or `.ewproj`, absolute or relative; stored
+  relative to this project).
+- `system.importReference {"doc", "source", "name"?}` → `{"id", "path",
+"report"}` (`system-boards`): imports a KiCad project or Eagle board as its
+  own project in `systems/references/<name>/` and adds its board.
+- `system.updateBoard {"doc", "id", "name"?, "quantity"?, "position"?,
+"rotation"?, "hidden"?}`, `system.removeBoard {"doc", "id"}`
+  (`system-boards`; removing a board removes its connections and frees its
+  cable ends).
+- `system.connectors {"doc", "board", "all"?}` → `{"connectors": [{designator,
+footprint, value, side, pins, signals}]}` and `system.pins {"doc",
+"board", "designator"}` → `{designator, footprint, value, side, pins:
+[{number, net?, power, at}]}`.
+
+### Connections and cables
+
+- `system.addLink {"doc", "a", "b", "pairing"?}` → `{"id"}`,
+  `system.updateLink {"doc", "id", "a"?, "b"?, "pairing"?}`,
+  `system.removeLink {"doc", "id"}` (`system-links`). `pairing`: `number`
+  (default), `mirrored` or `position`.
+- `system.addCable {"doc", "name"?, "part"?, "length"?, "ends"?, "wires"?}` →
+  `{"id", "ends"}`, `system.updateCable {"doc", "id", …}` (ends and wires are
+  replaced as given), `system.removeCable {"doc", "id"}`,
+  `system.wireCable {"doc", "cable", "from", "to", "color"?, "gauge"?}` →
+  `{"wires"}` (`system-cables`). An end is `{label?, connector?: {board,
+designator}, housing?}`, a wire `{from: {end, pin}, to: {end, pin},
+signal?, color?, gauge?, length?}`.
+- `system.stack {"doc", "link", "gap"?, "flip"?}` → `{board, position,
+rotation, gap}` (`system-boards`): places the link's second board on the
+  first one's connector.
+
+### `system.check`
+
+`{"doc"}` → the connection check across the boards and the collision check
+in 3D:
+
+```json
+{
+  "findings": [
+    {
+      "code": "system-mismatch",
+      "severity": "error",
+      "message": "SDA and SCL are swapped: Carrier J1 pins 5 and 6 meet Shield P1 pins 6 and 5",
+      "args": {
+        "variant": "swapped",
+        "signalA": "SDA",
+        "signalB": "SCL",
+        "a": "Carrier J1",
+        "b": "Shield P1",
+        "pinsA": "5, 6",
+        "pinsB": "6, 5"
+      },
+      "connection": "…",
+      "pins": [{ "board": "…", "designator": "J1", "pin": "5" }],
+      "key": "system-mismatch:…/swap/5/6",
+      "excluded": false
+    }
+  ],
+  "connections": [
+    {
+      "id": "…",
+      "kind": "link",
+      "name": "Carrier J1 ↔ Shield P1",
+      "pairs": [{ "a": "5", "aNet": "SDA", "b": "6", "bNet": "SCL", "status": "swapped" }]
+    }
+  ],
+  "errors": 2,
+  "warnings": 1,
+  "tessellate": []
+}
+```
+
+Codes: `system-mismatch` (`args.variant` `pin` or `swapped`),
+`system-power`, `system-missing`, `system-pins` (`count`, `unmated`),
+`system-connector` (`board`, `missing`, `cable`), `system-cable` (`pin`,
+`open`, `unwired`), `system-collision` and `system-clearance`. Findings
+through a cable carry its name in `args.cable`. Pair statuses: `ok`,
+`mismatch`, `swapped`, `power`, `missing`, `unmated`, `open`, `unused`.
+`tessellate` names STEP files that still need a mesh (the desktop app makes
+them and checks again).
+
+### Signals
+
+- `system.counterparts {"doc", "board", "net"}` → `{"counterparts": [{board,
+boardName, local, designator, pin, net?}]}`: the pins on other boards a
+  signal reaches through connections and cables.
+- `system.renameSignal {"doc", "board", "net", "to"}` → `{"renamed",
+"others"}` (`rename-signal`): renames the signal on the board and every
+  board of this project it reaches (nets and schematic labels); `others`
+  lists boards of other projects.
+- `system.setAliases {"doc", "aliases"}` and `system.exclude {"doc", "keys",
+"excluded"}` (`edit-system`).
+
+### 3D and outputs
+
+- `system.scene {"doc"}` builds the 3D assembly like
+  [`board3d.scene`](./engine-api#board3d-scene): all shown boards' meshes in
+  one buffer, their parts (models of other projects by their files) and
+  their enclosures, plus `boards` with their bounds.
+- `system.export {"doc", "path"}` → `{path, bytes, notes}`: the assembly as
+  one STEP file.
+- `system.bom {"doc"}` → `{"lines": [{kind, quantity, value, footprint,
+designators, length?}]}` (`kind`: `board`, `part`, `cable`, `housing`,
+  `wire`), `system.wiring {"doc", "cable"}` → `{"rows": [{number, id, from,
+fromPin, to, toPin, signal, color, gauge, length}]}`.
+- `system.outputs {"doc", "dir"?, "kinds"?}` → `{"files"}`: writes the
+  outputs (`bom`, `connections`, `wiring`, `harness`, `step`) into `dir`
+  (default `outputs/<system>/`).
+
 ## Library editor
 
 The methods of the [library editor](../guide/library-editor). Items are

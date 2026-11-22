@@ -16,7 +16,8 @@ export const systemEn = {
   addBoardTip: 'Add a board of this project, of another project or a reference design',
   thisProject: 'Boards of this project',
   otherProject: 'Board of another project…',
-  reference: 'Reference design (KiCad, Eagle)…',
+  referenceKicad: 'Reference design from KiCad…',
+  referenceEagle: 'Reference design from Eagle…',
   noBoards:
     'No boards yet. Add the boards that belong together: a carrier and its shield, a main board and its front panel …',
   check: 'Check',

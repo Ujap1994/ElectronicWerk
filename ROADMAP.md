@@ -1,7 +1,7 @@
 # ElectronicWerk Roadmap
 
-> **Status:** v0.29 (2026-11-22). M0 to M17 are complete (releases v0.1.0 to
-> v0.18.0; M0, M1 and M3 accepted by the maintainer); M18 is next.
+> **Status:** v0.30 (2026-11-22). M0 to M18 are complete (releases v0.1.0 to
+> v0.19.0; M0, M1 and M3 accepted by the maintainer); M19 (v1.0) is next.
 > The GitHub integration (M11) is switched off since v0.14.1 until the
 > maintainer decides to offer it (ADR-0014).
 > This roadmap is a living document. It **must** be updated with every feature
@@ -255,7 +255,7 @@ own work only. Maintainer test cycles and feedback come on top. Status values:
 | M15 | Advanced layout                                       | v0.16.0 | F7                | 12–20 S         | ✅     |
 | M16 | Part generator from datasheets                        | v0.17.0 | F13               | 8–12 S          | ✅     |
 | M17 | Mechanical assembly and enclosure check               | v0.18.0 | F14               | 6–10 S          | ✅     |
-| M18 | Multi-board design                                    | v0.19.0 | F15               | 8–12 S          | ⬜     |
+| M18 | Multi-board design                                    | v0.19.0 | F15               | 8–12 S          | ✅     |
 | M19 | Hardening, UX audit, final docs and videos            | v1.0.0  | T3–T5, D1         | 6–10 S          | ⬜     |
 |     | **Total to v1.0**                                     |         |                   | **≈ 140–215 S** |        |
 
@@ -976,7 +976,7 @@ holes and connectors against openings; the assembly in STEP, GLB and VRML;
 reads planar STEP files itself; curved ones are tessellated by the app once.
 See ADR-0018.
 
-### M18 — Multi-board design (v0.19.0, 8–12 S)
+### M18 — Multi-board design (v0.19.0, 8–12 S) ✅
 
 Requested by the maintainer: systems of several boards, for example a
 shield on a carrier board, a main board with a front panel board, or boards
@@ -997,6 +997,20 @@ joined by cables.
   and a harness drawing (PDF).
 - System outputs: a system BOM, the connection report, the 3D assembly;
   the system in the CLI and the engine API.
+
+**Done (v0.19.0):** systems as project documents (`.ewsys`) with boards of
+this project, of other projects (relative paths, read from their files) and
+reference designs imported from KiCad or Eagle; connections of mating
+connectors (pins paired by number, mirrored rows or position in 3D) and
+cables with ends, housings and coloured wires; the connection check across
+the boards (different and swapped signals, supplies, open pins, pin counts,
+cable wires, collisions and clearances in 3D) with accepted findings and
+signal aliases; renaming a signal on every board of the project it reaches
+as one undo step; stacking a board on its mating connector; the system in
+the 3D view and as one STEP file; a system bill of materials, connection
+report (CSV, HTML), wiring lists and harness drawings (PDF, SVG); a system
+editor in the app, `ewerk system`, MCP tools and `system.*` engine methods.
+See ADR-0019.
 
 ### M19 — Hardening, UX audit, final docs and videos (v1.0.0, 6–10 S)
 
@@ -1126,4 +1140,5 @@ joined by cables.
 | 2026-11-15 | v0.26      | M15 started. Added the impedance calculator to M15 (requested by the maintainer) with two working modes in the settings: Beginner computes and applies the widths, Advanced lets the user set impedance and geometry.                                                                                                                                                                                                                                      |
 | 2026-11-20 | v0.28      | M16 complete: v0.17.1 (0.17.0 tagged, not published: its macOS build failed) with the part generator: own PDF reader, recognition of pins, packages and dimensions, review next to the datasheet, symbol, IPC-7351 footprint, STEP model and component, duplicate check (name and nearly the same pads, requested by the maintainer), AI help through the user's agent and MCP (no API key in the app, the maintainer's choice). OCR deferred (ADR-0017).  |
 | 2026-11-22 | v0.29      | M17 complete: v0.18.0 with the enclosure check — STEP bodies around the board in 3D, collision and clearance check as design rules check findings, helpers for outline, height areas, mounting holes and openings, the assembly as STEP, a box enclosure made to fit (ADR-0018).                                                                                                                                                                           |
+| 2026-11-22 | v0.30      | M18 complete: v0.19.0 with systems of several boards — boards of this and other projects and reference designs, mating connectors and cables, the connection check across the boards with renaming signals, stacking and collisions in 3D, one STEP file, system bill of materials, connection report, wiring lists and harness drawings (ADR-0019).                                                                                                       |
 | 2026-11-16 | v0.27      | M15 complete: v0.16.0 with blind, buried and microvias, push and shove, the impedance calculator with the working modes, differential pairs, length matching, teardrops, stitching vias, channels and assembly variants. Back drilling deferred (ADR-0016).                                                                                                                                                                                                |

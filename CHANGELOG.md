@@ -6,6 +6,71 @@ project uses [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.19.0] - 2026-11-22
+
+Systems of several boards: a shield on a carrier, a main board with its
+front panel, boards joined by cables — with a connection check across the
+boards before anything is built.
+
+### Added
+
+- **Systems** as documents of the project (new group _Systems_ in the
+  project tree, `.ewsys` files in `systems/`): the boards that belong
+  together and how they connect. Every change is one undo step. See
+  [Systems of several boards](docs/guide/systems.md).
+- **Boards of a system:** boards of this project, boards of **other
+  projects** (stored relative to this project and read from their files
+  whenever they change) and **reference designs** imported from KiCad or
+  Eagle as their own project in `systems/references/`. Each board has a
+  name, a quantity, a position and a rotation in the system, can be turned
+  upside down and hidden.
+- **Connections** of connectors that mate directly — stacked boards,
+  board-to-board connectors — with the pins paired by number, as mirrored
+  rows or by their position in 3D; a table of every pin pair with both
+  signals and its status.
+- **Stack:** places a board on the connector it mates with — turned so the
+  pins lie on each other, at the height of the lower connector's model.
+- **Cables and harnesses:** ends with a label, the connector they plug into
+  (or a free end) and the cable's housing; wires from pin to pin with
+  colour, gauge, signal and length; _Wire one to one_.
+- **Connection check across the boards**, after every change of the system
+  or any of its boards:
+  - `system-mismatch` (error): mating pins or wire ends with different
+    signals; exchanged pairs are reported once as **swapped**;
+  - `system-power` (error): a supply meets a signal or another supply;
+  - `system-missing` (warning): a signal meets an unconnected pin;
+  - `system-pins` (warning): different pin counts, a pin without a partner;
+  - `system-connector` (error): a board that cannot be read, a missing
+    connector;
+  - `system-cable` (warning): wires on missing or unconnected pins, signals
+    without a wire;
+  - `system-collision` (error) and `system-clearance` (warning): boards,
+    parts and enclosures of different boards in 3D.
+
+  Signals are compared without their sheet path and case; supplies are
+  recognised by name or net class. Findings can be accepted;
+  **signals with different names** can be declared the same (`BUTTON =
+BTN`).
+
+- **Rename a signal across boards:** _Use SDA on Shield_ renames the signal
+  on that board and on every board of this project it reaches through
+  connections and cables (nets and schematic labels) as one undo step, and
+  names the boards of other projects to change there.
+- **The system in 3D** in the system editor, with all tools of the 3D view;
+  the whole system exported as **one STEP file**.
+- **System outputs** into `outputs/<system>/`: a bill of materials of the
+  whole system (parts times quantities, boards, cables, housings, wires by
+  gauge and colour), the connection report (CSV and HTML), a wiring list per
+  cable (CSV) and a **harness drawing** per cable (PDF and SVG).
+- `ewerk system new|list|add-board|link|stack|check|outputs|export-3d`
+  ([CLI reference](docs/reference/cli.md#ewerk-system)); `check` exits with
+  1 on errors. `ewerk synth system` makes the example system _Station_ with
+  three mistakes to find.
+- Engine methods `system.*`
+  ([engine API](docs/reference/engine-api.md#systems)) and MCP tools
+  `system_info` and `system_check` for AI agents.
+- [ADR-0019](docs/adr/0019-systems.md) records the decisions.
+
 ## [0.18.0] - 2026-11-22
 
 The enclosure check: put the STEP files of the enclosure, lid, panels and
@@ -1367,7 +1432,8 @@ quality gates and the delivery pipeline that every later feature builds on.
   process ([ujap1994.github.io/ElectronicWerk](https://ujap1994.github.io/ElectronicWerk/)).
   **Help → Documentation** opens it.
 
-[Unreleased]: https://github.com/Ujap1994/ElectronicWerk/compare/v0.18.0...HEAD
+[Unreleased]: https://github.com/Ujap1994/ElectronicWerk/compare/v0.19.0...HEAD
+[0.19.0]: https://github.com/Ujap1994/ElectronicWerk/compare/v0.18.0...v0.19.0
 [0.18.0]: https://github.com/Ujap1994/ElectronicWerk/compare/v0.17.1...v0.18.0
 [0.17.1]: https://github.com/Ujap1994/ElectronicWerk/compare/v0.16.0...v0.17.1
 [0.16.0]: https://github.com/Ujap1994/ElectronicWerk/compare/v0.15.1...v0.16.0

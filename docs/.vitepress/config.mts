@@ -72,6 +72,7 @@ export default defineConfig({
           { text: 'The 3D view', link: '/guide/view-3d' },
           { text: '3D models: STEP, GLB, VRML', link: '/guide/export-3d' },
           { text: 'Enclosure and mechanical check', link: '/guide/enclosure' },
+          { text: 'Systems of several boards', link: '/guide/systems' },
           { text: 'DXF drawings', link: '/guide/dxf-export' },
           { text: 'Panels', link: '/guide/panels' },
           { text: 'Project documentation', link: '/guide/documentation' },

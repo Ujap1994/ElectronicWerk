@@ -19,7 +19,8 @@ export const systemDe: Messages['system'] = {
     'Eine Leiterplatte dieses Projekts, eines anderen Projekts oder ein Referenzdesign hinzufügen',
   thisProject: 'Leiterplatten dieses Projekts',
   otherProject: 'Leiterplatte eines anderen Projekts…',
-  reference: 'Referenzdesign (KiCad, Eagle)…',
+  referenceKicad: 'Referenzdesign aus KiCad…',
+  referenceEagle: 'Referenzdesign aus Eagle…',
   noBoards:
     'Noch keine Leiterplatten. Füge die Leiterplatten hinzu, die zusammengehören: eine Trägerplatine und ihr Shield, eine Hauptplatine und ihre Frontplatine …',
   check: 'Prüfen',

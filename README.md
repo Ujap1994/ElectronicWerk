@@ -79,6 +79,14 @@ full CLI.
   collisions, too small clearances, mounting holes without bosses and
   connectors without an opening while you lay out; take the board outline
   and height areas from the enclosure; export the whole assembly as STEP
+- **Systems of several boards:** a shield on a carrier, a main board with a
+  front panel, boards of other projects or reference designs from KiCad and
+  Eagle, joined by mating connectors or **cables**; a **connection check
+  across the boards** finds swapped and different signals, supplies on
+  signal pins and open pins, and renames a signal on every board at once;
+  the boards are stacked on their connectors in 3D and checked for
+  collisions; a system bill of materials, connection report, wiring lists,
+  **harness drawings** and one STEP file
 - **Design rules** with net classes, name patterns, board minimums and
   **custom rules** in a small query language (`A.netclass == 'HV' &&
 B.netclass != 'HV'`)
@@ -176,10 +184,8 @@ B.netclass != 'HV'`)
 
 ## Planned highlights
 
-- **Multi-board design:** systems of several boards (a shield on a carrier
-  board, boards joined by cables) with a connection check across the boards
-  and the system in 3D
-- Hardening for version 1.0 on real designs
+- Hardening for version 1.0 on real designs: performance, stability,
+  a walkthrough of every workflow and acceptance on real boards
 
 ## License
 

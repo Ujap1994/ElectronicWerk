@@ -55,6 +55,7 @@ macOS quarantines downloaded programs. Run
 | [`ewerk outputs presets`](#ewerk-outputs-presets)       | List the presets for board makers                     |
 | [`ewerk export-3d`](#ewerk-export-3d)                   | Export a board as a STEP, GLB or VRML model           |
 | [`ewerk mechanical …`](#ewerk-mechanical)               | Enclosure bodies and the enclosure check              |
+| [`ewerk system …`](#ewerk-system)                       | Systems of several boards and their connection check  |
 | [`ewerk assembly`](#ewerk-assembly)                     | Print the assembly steps of a board with the progress |
 | [`ewerk library build`](#ewerk-library-build)           | Build the base library from KiCad libraries           |
 | [`ewerk library info`](#ewerk-library-info)             | Show what the base library contains                   |
@@ -742,6 +743,57 @@ left out of the check and parts are checked as boxes, and the check says
 so. `--json` prints the reply of
 [`mechanical.check`](./engine-api#mechanical-check) with the files.
 
+## Systems
+
+### `ewerk system`
+
+```text
+ewerk system new <project> <name>
+ewerk system list <project> [--json]
+ewerk system add-board <project> [--system <name>] (--board <name> | --other <project> [--other-board <name>])
+                       [--name <name>] [--quantity <n>]
+ewerk system link <project> <board:designator> <board:designator> [--system <name>]
+                  [--pairing number|mirrored|position]
+ewerk system stack <project> <board> [--system <name>] [--gap <mm>] [--flip]
+ewerk system check <project> [--system <name>] [--json]
+ewerk system outputs <project> [--system <name>] [--dir <folder>] [--json]
+ewerk system export-3d <project> [--system <name>] [-o <file.step>]
+```
+
+[Systems of several boards](../guide/systems) on the command line. Without
+`--system` the first system of the project is used. Boards are named by
+their name in the system.
+
+- `new` creates a system; `add-board` adds a board of this project
+  (`--board`) or of another project (`--other`, stored relative to this
+  project); `link` joins two connectors that mate.
+- `stack` places a board on the connector it mates with (the board must be
+  the second one of a connection); `--gap` sets the distance, `--flip`
+  turns the board over.
+- `check` runs the connection check across the boards and the collision
+  check in 3D. **It exits with 1 if there are errors.**
+- `outputs` writes the bill of materials, the connection report, the wiring
+  lists, the harness drawings (PDF and SVG) and the 3D assembly;
+  `export-3d` only the STEP file.
+
+```console
+$ ewerk synth system Station
+$ ewerk system list Station
+Station
+  board  Carrier          this project: Carrier
+  board  Shield           this project: Shield
+  board  Front panel      this project: Front panel
+  link   Carrier:J1 ↔ Shield:P1
+  cable  W1 (4 wires)
+$ ewerk system check Station
+error   Carrier J2 pin 4 carries BUTTON but Front panel J1 pin 4 carries BTN (cable W1) [system-mismatch]
+error   SDA and SCL are swapped: Carrier J1 pins 5 and 6 meet Shield P1 pins 6 and 5 [system-mismatch]
+warning Carrier J1 pin 11 carries A0 but Shield P1 pin 12 is not connected [system-missing]
+System Station: 2 errors, 1 warnings
+$ ewerk system stack Station Shield
+Placed Shield at 12.54, 10, 10.08 mm, turned 0° (8.5 mm above the connector's board).
+```
+
 ## Library
 
 The library commands work on the [base library](../guide/library). Every
@@ -1061,13 +1113,16 @@ any engine method; see [AI agents (MCP)](../guide/automation#ai-agents-mcp).
 ### `ewerk synth`
 
 ```text
-ewerk synth <S|M|L|XL|channels|datasheets> <dir> [--seed <n>] [--json]
+ewerk synth <S|M|L|XL|channels|system|datasheets> <dir> [--seed <n>] [--json]
 ```
 
 Generates a synthetic, reproducible reference design (see
 [Benchmarks](../development/benchmarks)). The same size and seed always
 produce the same project. `channels` makes a small design with a sheet used
-three times, to try out [channels](../guide/channels). `datasheets` writes
+three times, to try out [channels](../guide/channels). `system` makes the
+example [system](../guide/systems) _Station_: a carrier, a shield and a front
+panel board with a header and a cable, and three mistakes for the check.
+`datasheets` writes
 the two synthetic PDF datasheets of the [part generator](../guide/part-generator)
 (`ew7021.pdf`, `ew4410.pdf`) into `dir`.
 

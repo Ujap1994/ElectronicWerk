@@ -198,3 +198,9 @@ panel: STEP files of enclosure parts, panels and screws placed around the
 board, a simple box made to fit, and a check that finds collisions and too
 small clearances while you work. See
 [Enclosure and mechanical check](./enclosure).
+
+## Several boards
+
+A system of several boards — a shield stacked on a carrier, boards joined
+by cables — is shown in 3D in its system editor, with the same tools, and
+exported as one STEP file. See [Systems of several boards](./systems).

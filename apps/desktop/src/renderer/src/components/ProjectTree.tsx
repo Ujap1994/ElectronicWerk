@@ -252,6 +252,7 @@ export function ProjectTree({ selected, onSelect }: ProjectTreeProps): ReactNode
         return [
           ...addFor('schematics'),
           ...addFor('boards'),
+          ...addFor('systems'),
           ...addFor('libraries'),
           ...addFor('outputJobs'),
           reveal(),

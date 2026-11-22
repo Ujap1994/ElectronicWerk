@@ -327,9 +327,9 @@ export function SystemEditor({ document }: { readonly document: DocumentSummary 
       await call('system.addBoard', { source: { kind: 'project', path } });
     }
   };
-  const addReference = async (): Promise<void> => {
+  const addReference = async (kind: 'kicadProject' | 'eagleProject'): Promise<void> => {
     setMenu(false);
-    const path = await window.ew.dialogs.chooseImport('kicadProject');
+    const path = await window.ew.dialogs.chooseImport(kind);
     if (path !== null) {
       await call('system.importReference', { source: path });
     }
@@ -437,18 +437,21 @@ export function SystemEditor({ document }: { readonly document: DocumentSummary 
                 <Icon name="folder" size={14} />
                 {t('system.otherProject')}
               </button>
-              <button
-                type="button"
-                role="menuitem"
-                className="popover__item"
-                data-testid="system-add-reference"
-                onClick={() => {
-                  void addReference();
-                }}
-              >
-                <Icon name="download" size={14} />
-                {t('system.reference')}
-              </button>
+              {(['kicadProject', 'eagleProject'] as const).map((kind) => (
+                <button
+                  key={kind}
+                  type="button"
+                  role="menuitem"
+                  className="popover__item"
+                  data-testid={`system-add-reference-${kind}`}
+                  onClick={() => {
+                    void addReference(kind);
+                  }}
+                >
+                  <Icon name="download" size={14} />
+                  {t(kind === 'kicadProject' ? 'system.referenceKicad' : 'system.referenceEagle')}
+                </button>
+              ))}
             </div>
           )}
         </span>

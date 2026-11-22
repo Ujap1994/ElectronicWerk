@@ -204,6 +204,7 @@ tools:
 | `part_preview`, `part_generate`                             | Check and make a part from a draft                                     |
 | `list_mechanical`, `add_mechanical`, `edit_mechanical`      | The enclosure's bodies: list, add, move, hide, remove                  |
 | `check_enclosure`, `make_enclosure`, `board_from_enclosure` | Enclosure check, a box that fits, outline and areas from the enclosure |
+| `system_info`, `system_check`                               | Systems of several boards and their connection check                   |
 | `undo`, `redo`, `save_project`                              | Undo and redo (each tool call is one step), save                       |
 | `list_engine_methods`, `call_engine`                        | Any other engine method, for advanced agents                           |
 
@@ -242,6 +243,15 @@ simple box that fits the board; `board_from_enclosure` takes the board
 outline (`what: "outline"`) or the keep-out and height areas
 (`what: "areas"`) from the enclosure. See the
 [enclosure guide](./enclosure).
+
+### Systems of boards
+
+Ask, for example: _"Check whether the shield fits the carrier board."_ The
+agent reads the [systems](./systems) of the project (`system_info`) and
+their findings (`system_check`): swapped or different signals, supplies on
+signal pins, open pins, cable wires and collisions in 3D. It fixes signal
+names with `call_engine` and `system.renameSignal`, or tells you which pins
+to change.
 
 ## Programs (JSON-RPC)
 
