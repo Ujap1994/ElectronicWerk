@@ -1,8 +1,9 @@
 # ElectronicWerk Roadmap
 
-> **Status:** v0.31 (2026-11-22). M0 to M18 are complete (releases v0.1.0 to
-> v0.19.1; M0, M1 and M3 accepted by the maintainer). Next: a part catalog
-> with complete parts and categories (v0.20.0), then M19 (v1.0).
+> **Status:** v0.32 (2026-11-22). M0 to M18 are complete (releases v0.1.0 to
+> v0.19.1; M0, M1 and M3 accepted by the maintainer). Next: M19 part catalog
+> (v0.20.0), M20–M23 further features chosen by the maintainer, then M24
+> (v1.0).
 > The GitHub integration (M11) is switched off since v0.14.1 until the
 > maintainer decides to offer it (ADR-0014).
 > This roadmap is a living document. It **must** be updated with every feature
@@ -257,8 +258,13 @@ own work only. Maintainer test cycles and feedback come on top. Status values:
 | M16 | Part generator from datasheets                        | v0.17.0 | F13               | 8–12 S          | ✅     |
 | M17 | Mechanical assembly and enclosure check               | v0.18.0 | F14               | 6–10 S          | ✅     |
 | M18 | Multi-board design                                    | v0.19.0 | F15               | 8–12 S          | ✅     |
-| M19 | Hardening, UX audit, final docs and videos            | v1.0.0  | T3–T5, D1         | 6–10 S          | ⬜     |
-|     | **Total to v1.0**                                     |         |                   | **≈ 140–215 S** |        |
+| M19 | Part catalog                                          | v0.20.0 | F16               | 5–8 S           | ⬜     |
+| M20 | Everyday editing                                      | v0.21.0 | F17               | 8–12 S          | ⬜     |
+| M21 | Layout construction                                   | v0.22.0 | F18               | 10–15 S         | ⬜     |
+| M22 | Layout routing                                        | v0.23.0 | F19               | 12–20 S         | ⬜     |
+| M23 | Exchange: ODB++, Gerber to board, version comparison  | v0.24.0 | F20               | 8–12 S          | ⬜     |
+| M24 | Hardening, UX audit, final docs and videos            | v1.0.0  | T3–T5, D1         | 6–10 S          | ⬜     |
+|     | **Total to v1.0**                                     |         |                   | **≈ 185–280 S** |        |
 
 **Stages:**
 
@@ -267,7 +273,10 @@ own work only. Maintainer test cycles and feedback come on top. Status values:
   works.
 - After **M18**: parts from datasheets, the board in its enclosure and
   systems of several boards.
-- **M19**: v1.0.0.
+- After **M23**: a part catalog, the everyday tools, construction and
+  routing aids of professional layout tools, ODB++, Gerber to board and
+  version comparison.
+- **M24**: v1.0.0.
 
 Expected code size by v1.0: about 150,000–250,000 lines (Rust + TypeScript,
 including tests).
@@ -1013,7 +1022,75 @@ report (CSV, HTML), wiring lists and harness drawings (PDF, SVG); a system
 editor in the app, `ewerk system`, MCP tools and `system.*` engine methods.
 See ADR-0019.
 
-### M19 — Hardening, UX audit, final docs and videos (v1.0.0, 6–10 S)
+### M19 — Part catalog (v0.20.0, 5–8 S)
+
+Requested by the maintainer after M18: the library lacked complete parts and
+was hard to find one's way in.
+
+- **Complete parts:** a symbol with its footprint and 3D model as one part,
+  from the base library (79 % of the KiCad symbols name their footprint)
+  and from the project's components.
+- **Basic parts with a package choice:** resistors, capacitors, inductors,
+  diodes, LEDs, crystals, fuses and generic connectors offer their common
+  packages (0402, 0603, 0805, 1206, SOD-123, through-hole, pin headers …),
+  each a ready part; the value is set when placing.
+- **Categories:** a tree (passive parts, discrete semiconductors, ICs by
+  function and vendor, RF, connectors, electromechanical parts, modules,
+  mechanical parts) derived from the library and symbol names, with counts.
+- In the library window and in the schematic's place dialog: browse the
+  tree, search inside a category, see symbol, footprint and 3D side by side,
+  place with the footprint assigned.
+- No ordering data yet (decided by the maintainer).
+
+### M20 — Everyday editing (v0.21.0, 8–12 S)
+
+From Altium Designer and KiCad, chosen by the maintainer:
+
+- **Net colours** in the schematic and the layout.
+- **Selection filter** (only parts, tracks, vias, zones, texts … can be
+  picked).
+- **Select similar objects** and **edit many objects at once** in the
+  properties panel.
+- **Net inspector:** every net with its class, length, vias, pads and
+  unrouted connections; sort, filter, highlight, edit several at once.
+- **Groups** that move, turn and lock together.
+- **Custom shortcuts** for every command.
+- **Calculators:** voltage divider and regulator resistors, E series,
+  track and via current (IPC-2152), fusing current.
+- **Logo and image import** into silkscreen and copper (bitmap to polygons),
+  **QR codes**.
+
+### M21 — Layout construction (v0.22.0, 10–15 S)
+
+- **Dimensions** (linear, aligned, radial, leader) and a **fabrication
+  drawing**: board outline with dimensions, stack-up table, drill table and
+  notes, as PDF and in the output jobs.
+- **Design blocks:** a part of a schematic with its layout saved for reuse
+  and placed again in other projects.
+- **Rooms:** areas for placing and for rules; parts selected in the
+  schematic are placed into a room.
+- **Creepage and clearance check** for high voltages (IEC 60664 tables).
+- **Padstacks per layer** and **via-in-pad** with filling and capping
+  (IPC-4761) in the outputs.
+
+### M22 — Layout routing (v0.23.0, 12–20 S)
+
+- **Fan-out** of BGA and QFN parts (dog-bone or via in pad).
+- **Bus routing:** several tracks at once, with their spacing.
+- **Arc tracks** while routing and rounding corners of routed tracks.
+- **A built-in autorouter** (shape-based, 45°, respecting the rules and
+  locked tracks) besides the external one through Specctra.
+
+### M23 — Exchange (v0.24.0, 8–12 S)
+
+- **ODB++ export** in the output jobs.
+- **Gerber to board:** Gerber and drill files back into an editable board
+  (copper as tracks, pads and zones; nets from connectivity; outline).
+- **Version comparison** of schematics and boards (two files, two Git
+  revisions, a file and its last save): changed, added and removed
+  objects listed and shown in colour.
+
+### M24 — Hardening, UX audit, final docs and videos (v1.0.0, 6–10 S)
 
 - Performance and stability campaign on XL designs, fuzzing of every importer,
   a memory-leak audit. Found in the check of v0.19.1 (fuzzing of every
@@ -1056,36 +1133,41 @@ See ADR-0019.
 
 ## 11. Requirements traceability
 
-| Req.  | Summary                                                                                          | Milestone(s)                                   |
-| ----- | ------------------------------------------------------------------------------------------------ | ---------------------------------------------- |
-| P1    | Open-source alternative (MIT) modelled on Altium/KiCad/DipTrace/Eagle, everything self-developed | whole project                                  |
-| P2    | Target audience: beginners and advanced hobbyists                                                | M5–M7, M19 (UX)                                |
-| F1    | Online part search (SnapEDA, Ultra Librarian, …) with accounts in Settings                       | M10                                            |
-| F2    | Deduplicate and merge base libraries                                                             | M4 (KiCad; other sources pluggable)            |
-| F3    | Import projects cleanly, edit them, save them as own projects                                    | M1, M3 (KiCad), M14 (Eagle and others)         |
-| F4    | Schematic editor                                                                                 | M5                                             |
-| F5    | Symbol/component editor                                                                          | M6                                             |
-| F6    | Footprint editor                                                                                 | M6                                             |
-| F7    | Layout editor                                                                                    | M7, M15                                        |
-| F8    | Live 3D view, optionally in its own window                                                       | M9                                             |
-| F9    | GitHub integration (local or GitHub when creating a project)                                     | M1 (wizard), M11                               |
-| F10   | ERC, DRC, rules and standard features                                                            | M5, M7, M8                                     |
-| F11   | Assembly assistant and extras                                                                    | M13                                            |
-| F12   | CLI for scripts and AI agents                                                                    | M0–M12 (grows), M12 (complete)                 |
-| F13   | Part generator from datasheets (symbol, footprint, 3D model)                                     | M16                                            |
-| F14   | Mechanical assembly: STEP enclosures, collision and clearance check                              | M17                                            |
-| F15   | Multi-board design: systems of boards, connections across boards, cables                         | M18                                            |
-| T1    | Electron + Rust/TypeScript/C++                                                                   | M0 (ADR-0001)                                  |
-| T2    | 100 % lint from the start                                                                        | M0 onwards                                     |
-| T3/T4 | Efficiency and performance at any design size                                                    | section 6, every milestone                     |
-| T5    | Absolute usability                                                                               | every milestone, M19 audit                     |
-| T6    | Future-proof and extensible                                                                      | sections 2–4                                   |
-| T7    | Update notice with release notes and "skip version"                                              | M0                                             |
-| D1    | Detailed docs with screenshots for every feature; videos at the end                              | every milestone, M19                           |
-| D2    | Everything anonymized                                                                            | every milestone (synthetic demo projects only) |
-| D3    | Commit, CI and release after every tested feature                                                | every milestone                                |
-| D4    | Packages for Windows, macOS and Linux                                                            | M0 (section 7)                                 |
-| D5    | Detailed roadmap, updated with every feature                                                     | this document                                  |
+| Req.  | Summary                                                                                           | Milestone(s)                                   |
+| ----- | ------------------------------------------------------------------------------------------------- | ---------------------------------------------- |
+| P1    | Open-source alternative (MIT) modelled on Altium/KiCad/DipTrace/Eagle, everything self-developed  | whole project                                  |
+| P2    | Target audience: beginners and advanced hobbyists                                                 | M5–M7, M24 (UX)                                |
+| F1    | Online part search (SnapEDA, Ultra Librarian, …) with accounts in Settings                        | M10                                            |
+| F2    | Deduplicate and merge base libraries                                                              | M4 (KiCad; other sources pluggable)            |
+| F3    | Import projects cleanly, edit them, save them as own projects                                     | M1, M3 (KiCad), M14 (Eagle and others)         |
+| F4    | Schematic editor                                                                                  | M5                                             |
+| F5    | Symbol/component editor                                                                           | M6                                             |
+| F6    | Footprint editor                                                                                  | M6                                             |
+| F7    | Layout editor                                                                                     | M7, M15                                        |
+| F8    | Live 3D view, optionally in its own window                                                        | M9                                             |
+| F9    | GitHub integration (local or GitHub when creating a project)                                      | M1 (wizard), M11                               |
+| F10   | ERC, DRC, rules and standard features                                                             | M5, M7, M8                                     |
+| F11   | Assembly assistant and extras                                                                     | M13                                            |
+| F12   | CLI for scripts and AI agents                                                                     | M0–M12 (grows), M12 (complete)                 |
+| F13   | Part generator from datasheets (symbol, footprint, 3D model)                                      | M16                                            |
+| F14   | Mechanical assembly: STEP enclosures, collision and clearance check                               | M17                                            |
+| F15   | Multi-board design: systems of boards, connections across boards, cables                          | M18                                            |
+| F16   | Part catalog: complete parts, categories, packages of basic parts                                 | M19                                            |
+| F17   | Everyday editing: net colours, selection filter, select similar, net inspector, groups, shortcuts | M20                                            |
+| F18   | Layout construction: dimensions, fabrication drawing, design blocks, rooms, creepage, padstacks   | M21                                            |
+| F19   | Layout routing: fan-out, bus routing, arc tracks, built-in autorouter                             | M22                                            |
+| F20   | Exchange: ODB++, Gerber to board, version comparison                                              | M23                                            |
+| T1    | Electron + Rust/TypeScript/C++                                                                    | M0 (ADR-0001)                                  |
+| T2    | 100 % lint from the start                                                                         | M0 onwards                                     |
+| T3/T4 | Efficiency and performance at any design size                                                     | section 6, every milestone                     |
+| T5    | Absolute usability                                                                                | every milestone, M24 audit                     |
+| T6    | Future-proof and extensible                                                                       | sections 2–4                                   |
+| T7    | Update notice with release notes and "skip version"                                               | M0                                             |
+| D1    | Detailed docs with screenshots for every feature; videos at the end                               | every milestone, M24                           |
+| D2    | Everything anonymized                                                                             | every milestone (synthetic demo projects only) |
+| D3    | Commit, CI and release after every tested feature                                                 | every milestone                                |
+| D4    | Packages for Windows, macOS and Linux                                                             | M0 (section 7)                                 |
+| D5    | Detailed roadmap, updated with every feature                                                      | this document                                  |
 
 ## 12. Risks, open decisions and deferred items
 
@@ -1112,7 +1194,11 @@ See ADR-0019.
 ### Deferred items
 
 - **Post-1.0 candidates:** a plugin API, signal-integrity helpers, back
-  drilling, layer changes inside a routed differential pair.
+  drilling, layer changes inside a routed differential pair; from the
+  comparison with Altium, DipTrace and KiCad (2026-11-22): an interactive
+  HTML assembly list, photorealistic 3D renders, Altium and EasyEDA/LCSC
+  import, ordering data and prices, power distribution analysis, rigid-flex
+  boards.
 - **Collaboration (several people on one design):** taken off the plan by
   the maintainer. It is taken up again, and planned properly, only once
   v1.0.0 runs cleanly in the maintainer's daily work.
@@ -1151,4 +1237,5 @@ See ADR-0019.
 | 2026-11-22 | v0.29      | M17 complete: v0.18.0 with the enclosure check — STEP bodies around the board in 3D, collision and clearance check as design rules check findings, helpers for outline, height areas, mounting holes and openings, the assembly as STEP, a box enclosure made to fit (ADR-0018).                                                                                                                                                                           |
 | 2026-11-22 | v0.30      | M18 complete: v0.19.0 with systems of several boards — boards of this and other projects and reference designs, mating connectors and cables, the connection check across the boards with renaming signals, stacking and collisions in 3D, one STEP file, system bill of materials, connection report, wiring lists and harness drawings (ADR-0019).                                                                                                       |
 | 2026-11-22 | v0.31      | The maintainer's remarks after M18 fixed in v0.19.1 (maximized windows, Esc hint, mouse wheel zoom, online parts in the own browser, pad and net names, designators instead of placeholders, cut-off fields), plus robustness, stability and performance checks; findings added to M19. A part catalog with complete parts and categories comes next (v0.20.0), as the maintainer asked.                                                                   |
+| 2026-11-22 | v0.32      | New milestones chosen by the maintainer from a comparison with Altium Designer, DipTrace and KiCad: M19 part catalog, M20 everyday editing, M21 layout construction, M22 layout routing, M23 exchange (ODB++, Gerber to board, version comparison); hardening and v1.0 move to M24. The other candidates follow after v1.0.                                                                                                                                |
 | 2026-11-16 | v0.27      | M15 complete: v0.16.0 with blind, buried and microvias, push and shove, the impedance calculator with the working modes, differential pairs, length matching, teardrops, stitching vias, channels and assembly variants. Back drilling deferred (ADR-0016).                                                                                                                                                                                                |

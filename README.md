@@ -184,6 +184,15 @@ B.netclass != 'HV'`)
 
 ## Planned highlights
 
+- A **part catalog**: complete parts (symbol, footprint, 3D model) in
+  categories, basic parts with a choice of packages
+- **Everyday tools:** net colours, a selection filter, select similar and
+  edit many at once, a net inspector, groups, custom shortcuts, calculators,
+  logos and QR codes
+- **Layout construction and routing:** dimensions and a fabrication drawing,
+  design blocks, rooms, a creepage check, padstacks, fan-out, bus routing,
+  arc tracks and a built-in autorouter
+- **Exchange:** ODB++, Gerber back to a board, comparing two versions
 - Hardening for version 1.0 on real designs: performance, stability,
   a walkthrough of every workflow and acceptance on real boards
 
