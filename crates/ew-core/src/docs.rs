@@ -143,7 +143,7 @@ pub const SUMMARIES: &[(&str, &str)] = &[
     ),
     (
         "system.outputs",
-        "`system.outputs {\"doc\", \"dir\"?, \"kinds\"?}` → `{\"files\"}`: writes the system's outputs into `dir` (default outputs/<system>/): the bill of materials (CSV), the connection report (CSV and HTML), per cable the wiring list (CSV) and the harness drawing (PDF), and the 3D assembly (STEP). `kinds` picks some of bom, connections, wiring, harness, step.",
+        "`system.outputs {\"doc\", \"dir\"?, \"kinds\"?}` → `{\"files\"}`: writes the system's outputs into `dir` (default outputs/<system>/): the bill of materials (CSV), the connection report (CSV and HTML), per cable the wiring list (CSV) and the harness drawing (PDF and SVG), and the 3D assembly (STEP). `kinds` picks some of bom, connections, wiring, harness, step.",
     ),
     (
         "system.addBoard",

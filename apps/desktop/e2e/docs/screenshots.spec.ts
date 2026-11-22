@@ -2573,6 +2573,87 @@ test('enclosure', async () => {
   await close();
 });
 
+// --- Systems of several boards (M18) -----------------------------------------
+
+test('systems', async () => {
+  test.setTimeout(300_000);
+  freshProjects();
+  const project = join(PROJECTS, 'Station');
+  const ewerk = (...args: string[]): string =>
+    execFileSync(ewerkBinary(), args, {
+      env: { ...process.env, EW_LIBRARY_DIR: join(PROJECTS, '..', 'no-library') },
+      encoding: 'utf8',
+    });
+  ewerk('synth', 'system', project);
+
+  const { app, page, close } = await start({ settings: { theme: 'light' } });
+  await page.setViewportSize({ width: 1400, height: 860 });
+  await queueDialogAnswer(app, join(project, 'Station.ewproj'));
+  await page.getByTestId('open-project').click();
+  await page.getByTestId('workspace').waitFor();
+  const system = page.locator('[data-testid^="tree-doc:"]').filter({ hasText: /^Station$/u });
+  await system.click();
+  await page.mouse.move(10, 10);
+  await shoot(page.getByTestId('details-system'), 'system-details');
+  await system.dblclick();
+  const editor = page.getByTestId('system-editor');
+  await expect(editor).toBeVisible();
+  await expect(page.getByTestId('system-summary')).toContainText('2 errors', { timeout: 60_000 });
+  await page.mouse.move(10, 10);
+  await shoot(page, 'system-boards');
+
+  // Adding a board.
+  await page.getByTestId('system-add-board').click();
+  await shoot(editor, 'system-add-board');
+  await page.getByTestId('system-add-board').click();
+
+  // The stacking header with its pins.
+  await page.getByTestId('system-tab-connections').click();
+  await expect(page.getByTestId('system-link-pins').locator('tbody tr')).toHaveCount(16);
+  await shoot(editor, 'system-connections');
+
+  // The cable.
+  await page.getByTestId('system-tab-cables').click();
+  await expect(page.getByTestId('system-wire')).toHaveCount(4);
+  await shoot(editor, 'system-cables');
+
+  // The findings.
+  await page.getByTestId('system-tab-check').click();
+  await expect(page.getByTestId('system-finding')).toHaveCount(3);
+  await shoot(editor, 'system-check');
+
+  // The system in 3D, with the models of a KiCad installation.
+  await page.getByTestId('system-tab-view3d').click();
+  const canvas = page.locator('[data-testid="view3d-canvas"][data-ready="true"]');
+  await expect(canvas).toBeVisible({ timeout: 60_000 });
+  await expect(page.getByTestId('view3d-models')).toHaveText(/^(\d+) of \1 models$/u, {
+    timeout: 120_000,
+  });
+  await page.mouse.move(5, 300);
+  await page.waitForTimeout(800);
+  await shoot(editor, 'system-3d');
+
+  // A collision: the shield 7 mm lower meets the carrier's controller.
+  await page.getByTestId('system-tab-boards').click();
+  const shield = page.getByTestId('system-board').filter({ has: page.locator('[value="Shield"]') });
+  await shield.getByTestId('system-board-z').fill('3');
+  await shield.getByTestId('system-board-z').press('Enter');
+  await page.getByTestId('system-tab-check').click();
+  await expect(
+    page.locator('[data-testid="system-finding"][data-code="system-collision"]').first(),
+  ).toBeVisible({ timeout: 60_000 });
+  await shoot(editor, 'system-collision');
+  await page.getByTestId('toolbar-undo').click();
+
+  // The outputs, and the harness drawing.
+  await page.getByTestId('system-outputs').click();
+  await expect(page.getByTestId('system-message')).toContainText('files written', {
+    timeout: 60_000,
+  });
+  await shootSvg(page, join(project, 'outputs/station/station-w1-harness.svg'), 'system-harness');
+  await close();
+});
+
 test('online parts', async () => {
   test.setTimeout(240_000);
   freshProjects();

@@ -561,6 +561,7 @@ fn writes_the_system_outputs() {
             "station-connections.html",
             "station-w1-wiring.csv",
             "station-w1-harness.pdf",
+            "station-w1-harness.svg",
             "station.step"
         ]
     );

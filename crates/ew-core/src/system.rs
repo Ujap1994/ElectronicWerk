@@ -1651,6 +1651,8 @@ fn write_outputs(
         if wanted("harness") {
             let pdf = out::harness_pdf(system, loaded, cable, crate::VERSION, &created);
             write(format!("{name}-harness.pdf"), &pdf)?;
+            let svg = out::harness_svg(system, loaded, cable, crate::VERSION, &created);
+            write(format!("{name}-harness.svg"), svg.as_bytes())?;
         }
     }
     if wanted("step") {

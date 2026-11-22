@@ -6069,8 +6069,8 @@ textarea.field__control {
 }
 
 .system {
-  display: grid;
-  grid-template-rows: auto auto auto minmax(0, 1fr);
+  display: flex;
+  flex-direction: column;
   height: 100%;
   min-height: 0;
   background: var(--color-bg);
@@ -6186,6 +6186,7 @@ textarea.field__control {
 }
 
 .system__body {
+  flex: 1;
   min-height: 0;
   padding: var(--space-3) var(--space-4);
   overflow: auto;
@@ -6352,7 +6353,7 @@ textarea.field__control {
 
 .system__view3d {
   height: 100%;
-  min-height: 480px;
+  min-height: 420px;
 }
 
 .system__table > thead > tr > *,

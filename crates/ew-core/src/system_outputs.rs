@@ -402,10 +402,8 @@ fn label(page: &mut Page, text: &str, at: [f64; 2], size: f64, h: i8, color: Col
     );
 }
 
-/// The harness drawing of a cable (A4 landscape): its ends as pin tables,
-/// the wires between them in their colours, and the wiring list.
+/// The harness drawing of a cable as a PDF file.
 #[must_use]
-#[allow(clippy::too_many_lines, reason = "one drawing")]
 pub fn harness_pdf(
     system: &System,
     loaded: &[Loaded],
@@ -413,6 +411,39 @@ pub fn harness_pdf(
     version: &str,
     created: &str,
 ) -> Vec<u8> {
+    let doc = Doc {
+        title: format!("{} – {}", system.name, cable.name),
+        version: version.to_owned(),
+        created: created.to_owned(),
+        pages: vec![harness_page(system, loaded, cable, version, created)],
+    };
+    ew_output::pdf::write(&doc)
+}
+
+/// The harness drawing of a cable as an SVG file.
+#[must_use]
+pub fn harness_svg(
+    system: &System,
+    loaded: &[Loaded],
+    cable: &Cable,
+    version: &str,
+    created: &str,
+) -> String {
+    let page = harness_page(system, loaded, cable, version, created);
+    ew_output::svg::write(&page, &format!("{} – {}", system.name, cable.name))
+}
+
+/// The harness drawing of a cable (A4 landscape): its ends as pin tables,
+/// the wires between them in their colours, and the wiring list.
+#[must_use]
+#[allow(clippy::too_many_lines, reason = "one drawing")]
+pub fn harness_page(
+    system: &System,
+    loaded: &[Loaded],
+    cable: &Cable,
+    version: &str,
+    created: &str,
+) -> Page {
     let (width, height) = (297.0 * MM, 210.0 * MM);
     let mut page = Page::new(cable.name.clone(), width, height);
     let ink = Color::rgb(27, 31, 36);
@@ -631,13 +662,7 @@ pub fn harness_pdf(
         -1,
         muted,
     );
-    let doc = Doc {
-        title: format!("{} – {}", system.name, cable.name),
-        version: version.to_owned(),
-        created: created.to_owned(),
-        pages: vec![page],
-    };
-    ew_output::pdf::write(&doc)
+    page
 }
 
 /// A file name part from a name (`Front panel` → `front-panel`).

@@ -125,7 +125,7 @@ test('checks the connections of a system of boards', async () => {
 
   // Outputs.
   await page.getByTestId('system-outputs').click();
-  await expect(page.getByTestId('system-message')).toContainText('6 files written');
+  await expect(page.getByTestId('system-message')).toContainText('7 files written');
   expect(existsSync(join(folder, 'outputs/station/station-w1-harness.pdf'))).toBe(true);
 
   // The system in 3D.
