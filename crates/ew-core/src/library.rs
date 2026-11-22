@@ -533,6 +533,11 @@ impl LibraryState {
                 let query: Query = parse(params)?;
                 to_value(&self.index()?.search(&query).map_err(library_error)?)
             }
+            "library.categories" => to_value(&self.index()?.categories().map_err(library_error)?),
+            "library.packages" => {
+                let params: IdParams = parse(params)?;
+                to_value(&self.index()?.packages(params.id).map_err(library_error)?)
+            }
             "library.facets" => {
                 let params: KindParams = parse(params)?;
                 to_value(&self.index()?.facets(params.kind).map_err(library_error)?)

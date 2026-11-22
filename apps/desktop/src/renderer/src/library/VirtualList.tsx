@@ -49,6 +49,7 @@ export function VirtualList<T>({
   const [scrollTop, setScrollTop] = useState(0);
   const [height, setHeight] = useState(400);
   const [rows, setRows] = useState<ReadonlyMap<number, T>>(() => new Map());
+  const mountedRef = useRef(true);
   const pagesRef = useRef(new Set<number>());
   const [focusIndex, setFocusIndex] = useState(0);
 
@@ -69,9 +70,11 @@ export function VirtualList<T>({
   const first = Math.max(0, Math.floor(scrollTop / rowHeight) - OVERSCAN);
   const last = Math.min(total, Math.ceil((scrollTop + height) / rowHeight) + OVERSCAN);
 
-  // Fetch the pages of the visible rows.
+  // Fetch the pages of the visible rows. A page that arrives after the
+  // visible range moved still belongs to this list (a new search makes a
+  // new list), so it is kept; dropping it would leave its rows empty for
+  // good, since the page counts as requested.
   useEffect(() => {
-    let cancelled = false;
     const wanted = new Set<number>();
     for (let index = first; index < last; index += PAGE_SIZE) {
       wanted.add(Math.floor(index / PAGE_SIZE));
@@ -87,7 +90,7 @@ export function VirtualList<T>({
       const offset = page * PAGE_SIZE;
       void fetchPage(offset, PAGE_SIZE).then(
         (items) => {
-          if (cancelled) {
+          if (!mountedRef.current) {
             return;
           }
           setRows((current) => {
@@ -101,10 +104,13 @@ export function VirtualList<T>({
         },
       );
     }
-    return () => {
-      cancelled = true;
-    };
   }, [first, last, fetchPage]);
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+    };
+  }, []);
 
   const scrollIntoView = useCallback(
     (index: number) => {

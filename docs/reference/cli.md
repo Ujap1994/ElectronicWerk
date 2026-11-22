@@ -60,6 +60,8 @@ macOS quarantines downloaded programs. Run
 | [`ewerk library build`](#ewerk-library-build)           | Build the base library from KiCad libraries           |
 | [`ewerk library info`](#ewerk-library-info)             | Show what the base library contains                   |
 | [`ewerk library search`](#ewerk-library-search)         | Search the base library                               |
+| [`ewerk library categories`](#ewerk-library-categories) | The categories of the part catalog                    |
+| [`ewerk library packages`](#ewerk-library-packages)     | The packages of a part                                |
 | [`ewerk library duplicates`](#ewerk-library-duplicates) | Print the deduplication report                        |
 | [`ewerk library pack`](#ewerk-library-pack)             | Write library packs for a library release             |
 | [`ewerk library install`](#ewerk-library-install)       | Install a library pack                                |
@@ -846,12 +848,15 @@ library.
 ### `ewerk library search`
 
 ```text
-ewerk library search <text> [--kind symbol|footprint|model] [--library <name>] [--limit <n>]
-                     [--dir <dir>] [--json]
+ewerk library search <text> [--kind symbol|footprint|model] [--library <name>]
+                     [--category <path>] [--limit <n>] [--dir <dir>] [--json]
 ```
 
 Searches like the [library manager](../guide/library#searching): every word
-must match the start of a word, words with punctuation are phrases.
+must match the start of a word, words with punctuation are phrases, an entry
+named exactly like the search comes first. `--category` keeps the parts of a
+[catalog category](../guide/library#categories) (`passive/resistor`,
+`ic/mcu/ST`; `*` for every part).
 
 ```console
 $ ewerk library search 0805 --kind footprint
@@ -859,6 +864,47 @@ footprint Demo:C_0805  Capacitor SMD 0805 (demo)
 footprint Demo:R_0805  Resistor SMD 0805 (demo)
 footprint Demo:R_0805_Wide  Resistor SMD 0805, wider pad spacing (demo)
 3 matches in 0.2 ms
+```
+
+### `ewerk library categories`
+
+```text
+ewerk library categories [--dir <dir>] [--json]
+```
+
+The categories of the [part catalog](../guide/library#the-part-catalog) with
+their number of parts, indented by level:
+
+```console
+$ ewerk library categories
+    525  passive
+    105    passive/resistor
+     23    passive/capacitor
+  16761  ic
+   5362    ic/mcu
+   2856      ic/mcu/ST
+…
+```
+
+### `ewerk library packages`
+
+```text
+ewerk library packages <library:name> [--dir <dir>] [--json]
+```
+
+The packages of a part: its own footprint (`(the symbol names its
+footprint)`), or the footprints that fit a basic part, the common ones first
+(marked `*`):
+
+```console
+$ ewerk library packages Device:LED
+* LED_SMD:LED_0603_1608Metric  2 pads, smd, 3D
+* LED_SMD:LED_0805_2012Metric  2 pads, smd, 3D
+* LED_SMD:LED_1206_3216Metric  2 pads, smd, 3D
+* LED_THT:LED_D3.0mm  2 pads, tht, 3D
+* LED_THT:LED_D5.0mm  2 pads, tht, 3D
+  LED_SMD:LED_1206_3216Metric_ReverseMount_Hole1.8x2.4mm  2 pads, smd, 3D
+…
 ```
 
 ### `ewerk library duplicates`

@@ -4,8 +4,10 @@ The base library brings the symbols, footprints and 3D models of the official
 KiCad libraries into one searchable place: about 23,000 symbols, 15,000
 footprints and 7,000 3D models. The library manager lets you search them in
 milliseconds, look at every part in 2D and 3D, and copy what you need into
-your project. It also finds duplicates, so the same part shows up once
-instead of three times (see [Duplicates](./duplicates)).
+your project. Its **part catalog** sorts the parts into categories and
+gives every part its package, so a resistor, an LED or a microcontroller is
+one click from the schematic. It also finds duplicates, so the same part
+shows up once instead of three times (see [Duplicates](./duplicates)).
 
 ![A footprint with its 3D model in the library manager](/screenshots/library-footprint-3d.png)
 
@@ -23,6 +25,79 @@ instead of three times (see [Duplicates](./duplicates)).
 The library covers the whole window. Your project stays open underneath:
 press <kbd>Esc</kbd> or click **×** to go back to it. The library remembers
 the search, the filters and the selected entry until you quit the app.
+
+## The part catalog
+
+**Parts**, the first tab of the library, shows **complete parts**: a symbol
+with its footprint (and the footprint's 3D model), ready to place.
+
+![The part catalog: a resistor with its packages](/screenshots/part-catalog.png)
+
+### Categories
+
+The tree on the left sorts the parts by what they are, with the number of
+parts in each category:
+
+| Category                    | Contains                                                                                                                                                          |
+| --------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Passive parts**           | Resistors, capacitors, inductors and transformers, crystals and resonators, fuses and protection, filters                                                         |
+| **Discrete semiconductors** | Diodes, LEDs, transistors, thyristors and triacs                                                                                                                  |
+| **Integrated circuits**     | Microcontrollers (by vendor), processors, FPGAs and CPLDs, memory, power, amplifiers, ADCs and DACs, interfaces, drivers, logic, timers, sensors, audio and video |
+| **RF and wireless**         | Wireless modules, RF amplifiers, mixers, antennas                                                                                                                 |
+| **Connectors**              | Pin headers and generic connectors; USB, audio and other connectors                                                                                               |
+| **Electromechanical**       | Switches and buttons, relays, motors, displays, buzzers and speakers, batteries                                                                                   |
+| **Modules**                 | Development boards and modules (Arduino, …)                                                                                                                       |
+| **Mechanical parts**        | Mounting holes, fiducials and the like                                                                                                                            |
+
+Click a category to see its parts; its subcategories open below it.
+**All parts** shows every part (power symbols and simulation sources are not
+parts and are left out). The search searches inside the chosen category:
+`3.3` in **Power** finds the 3.3 V regulators, `STM32F401` in
+**Microcontrollers › ST** the matching microcontrollers. A part named exactly
+like the search comes first (`LED` before the many LEDs whose description
+says "LED").
+
+![The categories of the catalog](/screenshots/part-categories.png)
+
+The categories come from the names of the KiCad libraries (`MCU_ST_STM32F4`,
+`Regulator_Linear`, `Sensor_Humidity` …) and, for KiCad's general `Device`
+library, from the symbol names (`R`, `C_Polarized`, `LED`, `Q_NPN_BCE` …);
+see [ADR-0020](https://github.com/Ujap1994/ElectronicWerk/blob/main/docs/adr/0020-part-catalog.md).
+
+### Packages
+
+On the right, the catalog shows the part's symbol, its **package** and the
+package's footprint in 2D and 3D.
+
+- A part whose symbol names its footprint — about four of five KiCad
+  symbols, most ICs among them — **comes with that package**: an
+  STM32F401RETx is an LQFP-64.
+- A **basic part** — resistor, capacitor, inductor, LED, diode, crystal,
+  fuse, generic pin header — lets you **choose the package**. The list shows
+  the footprints of the base library that KiCad's footprint filters of the
+  symbol allow and that have as many pads as the symbol has pins. The
+  **common packages** come first (resistors: 0603, 0805, 0402, 1206, 2512
+  and axial; electrolytic capacitors: 5 × 5.4 mm, 6.3 × 5.4 mm …; a 1 × 4
+  header: 2.54 mm pin header, socket, JST XH, JST PH, 1.27 mm), then every
+  other footprint that fits. Each entry says whether it is SMD or
+  through-hole and whether it has a 3D model.
+
+![A complete part: a microcontroller with its own package](/screenshots/part-catalog-mcu.png)
+
+### Adding and placing
+
+- **Add to project** copies the symbol, the chosen footprint and a
+  **component** that ties them together into the project library, as one
+  step you can undo. The component is named after its package
+  (`R_0603_1608Metric`, `Conn_01x04_PinHeader_1x04_P2.54mm_Vertical`); a part
+  already in the project library is not added twice.
+- **Place in schematic** (with a schematic open) adds the part the same way,
+  closes the library and lets you place it: it hangs at the pointer, a click
+  puts it down with its footprint already assigned. Set the value (`10k`,
+  `100n`) in the properties.
+
+The schematic's place dialog (<kbd>A</kbd>) leads here as well: **Part
+catalog…** opens the catalog with what you typed.
 
 ## Setting up the library
 

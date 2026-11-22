@@ -42,8 +42,34 @@ export interface SearchQuery {
   readonly withModel?: boolean;
   readonly duplicates?: boolean;
   readonly includeMerged?: boolean;
+  /** A part category (`passive/resistor`, `ic/mcu/ST`; `*`: every part). */
+  readonly category?: string;
   readonly offset: number;
   readonly limit: number;
+}
+
+/** A category of the part catalog (`library.categories`). */
+export interface CategoryCount {
+  readonly path: string;
+  readonly count: number;
+}
+
+/** A package a part can have (`library.packages`). */
+export interface PartPackage {
+  /** Index id of the footprint (0 if the library lacks it). */
+  readonly id: number;
+  readonly library: string;
+  readonly name: string;
+  readonly pads: number;
+  readonly mounting: string | null;
+  readonly model: boolean;
+  readonly recommended: boolean;
+}
+
+export interface PartPackages {
+  /** The symbol names its footprint. */
+  readonly fixed: boolean;
+  readonly packages: readonly PartPackage[];
 }
 
 export interface EntrySummary {

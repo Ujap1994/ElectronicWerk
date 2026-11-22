@@ -130,7 +130,9 @@ pub const METHODS: &[&str] = &[
     "libedit.symbol",
     "libedit.wizard",
     "library.add",
+    "library.addPart",
     "library.build",
+    "library.categories",
     "library.decide",
     "library.detect",
     "library.facets",
@@ -140,6 +142,7 @@ pub const METHODS: &[&str] = &[
     "library.mesh",
     "library.model",
     "library.open",
+    "library.packages",
     "library.preview",
     "library.report",
     "library.search",
@@ -466,6 +469,18 @@ struct AddParams {
 
 const fn yes() -> bool {
     true
+}
+
+/// A part of the catalog: a symbol with the package chosen for it.
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct AddPartParams {
+    symbol: i64,
+    /// The footprint (index id); none keeps the symbol's own.
+    #[serde(default)]
+    footprint: Option<i64>,
+    #[serde(default)]
+    doc: Option<Id>,
 }
 
 #[derive(Deserialize)]
@@ -810,6 +825,7 @@ impl Engine {
                 Ok(meta)
             }
             "library.add" => self.library_add(&parse(params)?),
+            "library.addPart" => self.library_add_part(&parse(params)?),
             _ if method.starts_with("library.") => self.library.call(method, params),
             "view.scene" => {
                 let params: SceneParams = parse(params)?;
@@ -1286,6 +1302,105 @@ impl Engine {
             "symbols": symbols,
             "footprints": footprints,
             "skipped": skipped,
+            "history": to_value(&history)?,
+        }))
+    }
+
+    /// Copies a part of the catalog into a project library: its symbol, the
+    /// chosen footprint and a component that ties them together, so the
+    /// part is placed with its package. One undoable step.
+    fn library_add_part(&mut self, params: &AddPartParams) -> Result<Value, EngineError> {
+        let invalid = |error: serde_json::Error| EngineError::internal(error);
+        let (kind, definition, _) = self.library.definition(params.symbol)?;
+        if kind != ew_library::Kind::Symbol {
+            return Err(EngineError::invalid_params("`symbol` must be a symbol"));
+        }
+        let symbol: ew_model::library::SymbolDef =
+            serde_json::from_value(definition).map_err(invalid)?;
+        let footprint_id = match params.footprint {
+            Some(id) => Some(id),
+            None => match &symbol.footprint {
+                Some(name) => self.library.find(ew_library::Kind::Footprint, name)?,
+                None => None,
+            },
+        };
+        let footprint: Option<ew_model::library::FootprintDef> = match footprint_id {
+            Some(id) => {
+                let (kind, definition, _) = self.library.definition(id)?;
+                if kind != ew_library::Kind::Footprint {
+                    return Err(EngineError::invalid_params(
+                        "`footprint` must be a footprint",
+                    ));
+                }
+                Some(serde_json::from_value(definition).map_err(invalid)?)
+            }
+            None => None,
+        };
+        let session = self.open()?;
+        let project = session.project();
+        let doc = match params.doc {
+            Some(doc) => doc,
+            None => project
+                .documents_of(DocumentKind::Library)
+                .next()
+                .map(|entry| entry.id)
+                .ok_or_else(|| EngineError::not_found("the project has no library"))?,
+        };
+        let Some(Document::Library(library)) = project.document(doc) else {
+            return Err(EngineError::invalid_params("the target must be a library"));
+        };
+        // `R` with `R_0603_1608Metric` is `R_0603_1608Metric`; `Conn_01x04`
+        // with a pin header is `Conn_01x04_PinHeader_1x04_P2.54mm_Vertical`.
+        let short = |name: &str| name.rsplit(':').next().unwrap_or(name).to_owned();
+        let symbol_name = short(&symbol.name);
+        let component_name = match &footprint {
+            Some(fp) => {
+                let fp_name = short(&fp.name);
+                if fp_name.starts_with(&format!("{symbol_name}_")) {
+                    fp_name
+                } else {
+                    format!("{symbol_name}_{fp_name}")
+                }
+            }
+            None => symbol_name.clone(),
+        };
+        let component = ew_model::library::ComponentDef {
+            id: Id::random(),
+            name: component_name.clone(),
+            description: symbol.description.clone(),
+            keywords: symbol.keywords.clone(),
+            symbol: symbol.name.clone(),
+            footprint: footprint.as_ref().map(|fp| fp.name.clone()),
+            value: symbol.value.clone(),
+            manufacturer: String::new(),
+            mpn: String::new(),
+            datasheet: symbol.datasheet.clone(),
+            properties: std::collections::BTreeMap::new(),
+            suppliers: Vec::new(),
+        };
+        let exists = library.component(&component_name).is_some();
+        let symbol_ref = component.symbol.clone();
+        let imported = ew_kicad::library::Library {
+            symbols: vec![symbol],
+            footprints: footprint.into_iter().collect(),
+        };
+        let mut report = ew_kicad::ImportReport::new("library");
+        let (_, _, mut requests) = import::library_changes(project, doc, imported, &mut report);
+        if !exists {
+            requests.push(Request::Insert {
+                doc,
+                object: Object::ComponentDef(component),
+            });
+        }
+        let history = if requests.is_empty() {
+            self.open()?.history_state()
+        } else {
+            self.commit(labels::ADD_FROM_LIBRARY, requests)?.history
+        };
+        Ok(json!({
+            "component": component_name,
+            "symbol": symbol_ref,
+            "added": !exists,
             "history": to_value(&history)?,
         }))
     }

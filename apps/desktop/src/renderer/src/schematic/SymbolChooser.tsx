@@ -3,6 +3,7 @@ import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { Modal } from '../components/Modal';
 import type { EntrySummary, LibraryStatus, SearchResult } from '../library/types';
 import { Icon } from '../components/Icon';
+import { openCatalog } from '../library/stores';
 import { openOnlineParts } from '../parts/stores';
 import { useAppState } from '../state';
 import type { SymbolDefJson } from './editor';
@@ -280,6 +281,19 @@ export function SymbolChooser({
           )}
           <h3 className="chooser__heading">{t('schematic.chooser.project')}</h3>
           {shown.length === 0 && <p className="chooser__empty">{t('schematic.chooser.empty')}</p>}
+          <button
+            type="button"
+            className="button button--quiet chooser__online"
+            title={t('schematic.chooser.catalogTip')}
+            data-testid="chooser-catalog"
+            onClick={() => {
+              onClose();
+              openCatalog(query);
+            }}
+          >
+            <Icon name="library" size={16} />
+            <span>{t('schematic.chooser.catalog')}</span>
+          </button>
           <button
             type="button"
             className="button button--quiet chooser__online"

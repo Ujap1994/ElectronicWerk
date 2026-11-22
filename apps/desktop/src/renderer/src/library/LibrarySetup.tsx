@@ -53,7 +53,7 @@ export function LibrarySetup({
   readonly building: BuildProgress | null;
   readonly failure: string | null;
 }): ReactNode {
-  const { engine, t } = useAppState();
+  const { engine, t, snapshot } = useAppState();
   const [release, setRelease] = useState<LibraryRelease | null | undefined>(undefined);
   const [releaseError, setReleaseError] = useState<string | null>(null);
   const [found, setFound] = useState<readonly Found[]>([]);
@@ -96,7 +96,7 @@ export function LibrarySetup({
   };
 
   const indexPack = release?.packs.find((p) => p.kind === 'index');
-  const number = (value: number): string => new Intl.NumberFormat().format(value);
+  const number = (value: number): string => new Intl.NumberFormat(snapshot.language).format(value);
   const busy =
     building !== null || download.kind === 'downloading' || download.kind === 'installing';
 

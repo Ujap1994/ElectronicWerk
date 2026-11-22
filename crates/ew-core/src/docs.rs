@@ -399,8 +399,16 @@ pub const SUMMARIES: &[(&str, &str)] = &[
         "`{\"ids\": [42, 43], \"doc\": \"…\", \"footprints\": true}`. Copies symbols and footprints into a library of the open project (default: the first one), as one undoable step (`add-from-library`). With `footprints` (default), the default footprints of the symbols are copied too, if the base library has them.",
     ),
     (
+        "library.addPart",
+        "`{\"symbol\": 42, \"footprint\": 77, \"doc\": \"…\"}`. Copies a part of the catalog into a project library (default: the first one): the symbol, the chosen footprint (default: the symbol's own) and a component tying them together (named after the footprint, `R_0603_1608Metric`, or `Conn_01x04_PinHeader_1x04_P2.54mm_Vertical`), as one undoable step (`add-from-library`). Returns `{\"component\", \"symbol\", \"added\", \"history\"}`; placing the component puts the part with its package on the sheet.",
+    ),
+    (
         "library.build",
         "A background build returns `{\"started\": true}` at once and reports through events (see below); searches keep using the old index until the new one is ready. With `wait`, the result is `{\"status\", \"problems\"}`. Review decisions are kept.",
+    ),
+    (
+        "library.categories",
+        "The part catalog's categories in the order of the tree, with the number of parts in each and below it: `[{\"path\": \"passive/resistor\", \"count\": 105}]`. Paths: `passive`, `discrete`, `ic` (with `ic/mcu/<vendor>`), `rf`, `connector`, `electromechanical`, `module`, `mechanical`, `other` and their children. Power symbols and simulation sources are no parts.",
     ),
     (
         "library.decide",
@@ -439,6 +447,10 @@ pub const SUMMARIES: &[(&str, &str)] = &[
         "`{\"dir\": \"…\"}`. Uses another library folder (closes the current index).",
     ),
     (
+        "library.packages",
+        "`{\"id\": 42}` (a symbol). The packages of the part: `{\"fixed\", \"packages\"}`. A symbol that names its footprint has just that one (`fixed: true`). A basic part (resistor, capacitor, LED, pin header …) lists the footprints its KiCad footprint filters allow with as many pads as it has pins, the common ones first (`recommended`). Each package: `id` (0 if the library lacks it), `library`, `name`, `pads`, `mounting`, `model` (has a 3D model), `recommended`.",
+    ),
+    (
         "library.preview",
         "`{\"id\": 42, \"unit\": 1}`. The 2D scene of a symbol (one unit) or footprint, in the same form as `view.scene` (the desktop app receives the buffer separately). 3D models have no 2D preview (`invalidParams`).",
     ),
@@ -448,7 +460,7 @@ pub const SUMMARIES: &[(&str, &str)] = &[
     ),
     (
         "library.search",
-        "Returns `{\"total\", \"items\", \"elapsedMs\"}`. Each item: `id`, `kind`, `library`, `name`, `description`, `value`, `package`, `pins`, `mounting`, `mergedInto` (the id of the entry it is merged into, or `null`) and `groups` (the number of duplicate groups it belongs to).",
+        "`{\"text\", \"kind\", \"libraries\", \"category\", \"mounting\", \"withModel\", \"offset\", \"limit\"}`; `category` keeps the symbols of a part category and below it (`ic/mcu/ST`). Returns `{\"total\", \"items\", \"elapsedMs\"}`. Each item: `id`, `kind`, `library`, `name`, `description`, `value`, `package`, `pins`, `mounting`, `mergedInto` (the id of the entry it is merged into, or `null`) and `groups` (the number of duplicate groups it belongs to).",
     ),
     (
         "library.status",

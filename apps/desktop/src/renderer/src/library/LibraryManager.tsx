@@ -29,6 +29,16 @@ let remembered: {
   selected: null,
 };
 
+/** The next opening shows the part catalog, searching for `text`. */
+export function showCatalog(text: string): void {
+  remembered = {
+    ...remembered,
+    tab: 'browse',
+    filters: { ...EMPTY_FILTERS, text },
+    selected: null,
+  };
+}
+
 function InfoPanel({
   status,
   onRebuild,
@@ -38,7 +48,7 @@ function InfoPanel({
   readonly onRebuild: () => void;
   readonly onClose: () => void;
 }): ReactNode {
-  const { engine, t } = useAppState();
+  const { engine, t, snapshot } = useAppState();
   const [check, setCheck] = useState<
     | { kind: 'idle' }
     | { kind: 'checking' }
@@ -52,7 +62,7 @@ function InfoPanel({
     return null;
   }
   const source = index.sources[0];
-  const number = (value: number): string => new Intl.NumberFormat().format(value);
+  const number = (value: number): string => new Intl.NumberFormat(snapshot.language).format(value);
   return (
     <div
       className="library-info"
@@ -364,6 +374,7 @@ export function LibraryManager({ onClose }: { readonly onClose: () => void }): R
             onSelect={setSelected}
             release={release}
             version={version}
+            onPlaced={onClose}
           />
         )}
         {installed && tab === 'duplicates' && (

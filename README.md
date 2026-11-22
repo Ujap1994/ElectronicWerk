@@ -79,6 +79,11 @@ full CLI.
   collisions, too small clearances, mounting holes without bosses and
   connectors without an opening while you lay out; take the board outline
   and height areas from the enclosure; export the whole assembly as STEP
+- A **part catalog**: complete parts (symbol, footprint and 3D model) sorted
+  into categories — passive parts, semiconductors, ICs by function and
+  microcontrollers by vendor, connectors, … — with a choice of the common
+  packages for basic parts (0402 … 1206, pin headers, JST, …); place a part
+  on the schematic with its package in two clicks
 - **Systems of several boards:** a shield on a carrier, a main board with a
   front panel, boards of other projects or reference designs from KiCad and
   Eagle, joined by mating connectors or **cables**; a **connection check
@@ -184,8 +189,6 @@ B.netclass != 'HV'`)
 
 ## Planned highlights
 
-- A **part catalog**: complete parts (symbol, footprint, 3D model) in
-  categories, basic parts with a choice of packages
 - **Everyday tools:** net colours, a selection filter, select similar and
   edit many at once, a net inspector, groups, custom shortcuts, calculators,
   logos and QR codes

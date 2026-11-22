@@ -139,14 +139,32 @@ fn tools() -> Vec<Tool> {
         Tool {
             name: "search_library",
             title: "Search the base library",
-            description: "Full-text search in the base library (KiCad symbols and footprints, if installed). Use the full name (library:name) in place_part or as a footprint.",
+            description: "Full-text search in the base library (KiCad symbols and footprints, if installed). Use the full name (library:name) in place_part or as a footprint. `category` (see list_part_categories) keeps the parts of a category, for example `ic/power` for regulators.",
             schema: object(
                 json!({
                     "text": {"type": "string"},
                     "kind": {"type": "string", "enum": ["symbol", "footprint"]},
+                    "category": {"type": "string", "description": "Part category such as passive/resistor or ic/mcu/ST"},
                     "limit": {"type": "integer", "minimum": 1, "maximum": 100},
                 }),
                 &["text"],
+            ),
+            read_only: true,
+        },
+        Tool {
+            name: "list_part_categories",
+            title: "Part categories",
+            description: "The categories of the part catalog (passive parts, discrete semiconductors, ICs by function and microcontrollers by vendor, connectors, …) with their number of parts.",
+            schema: object(json!({}), &[]),
+            read_only: true,
+        },
+        Tool {
+            name: "part_packages",
+            title: "Packages of a part",
+            description: "The packages a base library symbol can have: its own footprint, or for basic parts (resistors, capacitors, LEDs, pin headers …) the footprints that fit, the common ones first. Pass the chosen footprint to place_part.",
+            schema: object(
+                json!({"symbol": {"type": "string", "description": "library:name, for example Device:R"}}),
+                &["symbol"],
             ),
             read_only: true,
         },
@@ -589,10 +607,50 @@ impl Server {
             "list_nets" => self.engine_call("design.nets", Value::Null),
             "list_symbols" => self.engine_call("schematic.symbols", Value::Null),
             "list_footprint_presets" => self.engine_call("design.presets", Value::Null),
+            "list_part_categories" => self.engine_call("library.categories", json!({})),
+            "part_packages" => {
+                let symbol = args
+                    .get("symbol")
+                    .and_then(Value::as_str)
+                    .unwrap_or_default();
+                let (library, name) = symbol.split_once(':').unwrap_or(("", symbol));
+                let mut query = json!({"text": name, "kind": "symbol", "limit": 50});
+                if !library.is_empty() {
+                    query["libraries"] = json!([library]);
+                }
+                let found = self.engine_call("library.search", query)?;
+                let id = found["items"]
+                    .as_array()
+                    .into_iter()
+                    .flatten()
+                    .find(|item| item["name"] == name)
+                    .map(|item| item["id"].clone())
+                    .ok_or_else(|| format!("the base library has no symbol {symbol}"))?;
+                let packages = self.engine_call("library.packages", json!({"id": id}))?;
+                let list: Vec<Value> = packages["packages"]
+                    .as_array()
+                    .into_iter()
+                    .flatten()
+                    .map(|p| {
+                        json!({
+                            "footprint": format!("{}:{}", p["library"].as_str().unwrap_or(""), p["name"].as_str().unwrap_or("")),
+                            "pads": p["pads"],
+                            "mounting": p["mounting"],
+                            "model": p["model"],
+                            "common": p["recommended"],
+                        })
+                    })
+                    .collect();
+                Ok(json!({"fixed": packages["fixed"], "packages": list}))
+            }
             "search_library" => {
                 let mut params = json!({ "text": args.get("text").cloned().unwrap_or_default() });
                 if let Some(kind) = args.get("kind") {
                     params["kind"] = kind.clone();
+                }
+                if let Some(category) = args.get("category") {
+                    params["category"] = category.clone();
+                    params["kind"] = json!("symbol");
                 }
                 params["limit"] = args.get("limit").cloned().unwrap_or(json!(20));
                 let result = self.engine_call("library.search", params)?;

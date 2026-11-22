@@ -17,7 +17,8 @@ import { SettingsDialog } from './components/SettingsDialog';
 import { StartScreen } from './components/StartScreen';
 import { StatusBar } from './components/StatusBar';
 import { UpdateDialog, type UpdateDialogState } from './components/UpdateDialog';
-import { LibraryManager } from './library/LibraryManager';
+import { LibraryManager, showCatalog } from './library/LibraryManager';
+import { catalogRequest } from './library/stores';
 import { useProject } from './project/ProjectProvider';
 import { activeBoard } from './board/stores';
 import { outputCommands } from './outputs/stores';
@@ -62,6 +63,19 @@ export function App(): ReactNode {
   const closeLibrary = useCallback(() => {
     setLibraryOpen(false);
   }, []);
+  // The schematic's place dialog opens the part catalog.
+  useEffect(
+    () =>
+      catalogRequest.subscribe(() => {
+        const request = catalogRequest.get();
+        if (request !== null) {
+          catalogRequest.set(null);
+          showCatalog(request.text);
+          setLibraryOpen(true);
+        }
+      }),
+    [],
+  );
   const [update, setUpdate] = useState<UpdateDialogState | null>(null);
 
   const checkForUpdates = useCallback(() => {

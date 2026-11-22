@@ -77,8 +77,10 @@ pub struct SourceInfo {
 
 /// An open library index.
 pub struct Library {
-    conn: Connection,
+    pub(crate) conn: Connection,
     dir: PathBuf,
+    /// The categories of the part catalog were computed ([`crate::parts`]).
+    pub(crate) categories_ready: std::sync::atomic::AtomicBool,
 }
 
 /// A search request.
@@ -97,6 +99,9 @@ pub struct Query {
     pub with_model: bool,
     /// Only entries in a duplicate group (of any class).
     pub duplicates: bool,
+    /// Only symbols of this part category or below it (`passive`,
+    /// `ic/mcu/ST`; `*`: every part, without power symbols and the like).
+    pub category: Option<String>,
     /// Also entries merged into another one.
     pub include_merged: bool,
     /// First result.
@@ -265,7 +270,7 @@ pub struct Status {
 }
 
 #[allow(clippy::needless_pass_by_value, reason = "used with map_err")]
-fn sql_error(error: rusqlite::Error) -> LibraryError {
+pub(crate) fn sql_error(error: rusqlite::Error) -> LibraryError {
     LibraryError::Sqlite(error.to_string())
 }
 
@@ -407,6 +412,7 @@ impl Library {
         Ok(Self {
             conn,
             dir: dir.to_path_buf(),
+            categories_ready: std::sync::atomic::AtomicBool::new(false),
         })
     }
 
@@ -549,18 +555,31 @@ impl Library {
         if query.duplicates {
             filters.push("EXISTS (SELECT 1 FROM members m WHERE m.item = i.id)".to_owned());
         }
+        if let Some(category) = query.category.as_ref().filter(|c| !c.is_empty()) {
+            values.push(category.clone().into());
+            filters.push(self.category_condition(values.len())?);
+        }
         if !query.include_merged {
             filters.push("i.canonical IS NULL".to_owned());
         }
         let columns = "i.id, i.kind, i.library, i.name, i.description, i.value, i.package, i.pins, \
                        i.mounting, i.canonical, (SELECT count(*) FROM members m WHERE m.item = i.id)";
+        // Parameters only the ordering uses (not the count).
+        let mut order_only = 0;
         let (from, order) = match fts_query(&query.text) {
             Some(fts) => {
                 values.push(fts.into());
                 filters.push(format!("search MATCH ?{}", values.len()));
+                // An entry named exactly like the search comes first (`LED`
+                // before the many LEDs whose description says "LED").
+                values.push(query.text.trim().to_lowercase().into());
+                let exact = values.len();
+                order_only = 1;
                 (
                     "search JOIN items i ON i.id = search.rowid",
-                    format!("bm25(search, {WEIGHTS}), length(i.name), i.name, i.id"),
+                    format!(
+                        "lower(i.name) = ?{exact} DESC, bm25(search, {WEIGHTS}), length(i.name), i.name, i.id"
+                    ),
                 )
             }
             None => ("items i", "i.library, i.name, i.id".to_owned()),
@@ -574,7 +593,8 @@ impl Library {
             .conn
             .prepare_cached(&format!("SELECT count(*) FROM {from} {filter}"))
             .and_then(|mut stmt| {
-                stmt.query_row(rusqlite::params_from_iter(values.iter()), |row| row.get(0))
+                let counted = &values[..values.len() - order_only];
+                stmt.query_row(rusqlite::params_from_iter(counted.iter()), |row| row.get(0))
             })
             .map_err(sql_error)?;
         let sql = format!(

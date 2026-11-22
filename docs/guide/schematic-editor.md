@@ -61,6 +61,10 @@ symbols of the [base library](./library).
 - A symbol of the base library is copied into the project library first
   (**Add to the project and place**), together with its default footprint.
   This is one undo step of its own.
+- **Part catalog…** opens the [part catalog](./library#the-part-catalog)
+  of the base library with what you typed: complete parts by category, with
+  a choice of packages for basic parts; **Place in schematic** there brings
+  you back with the part at the pointer, its footprint assigned.
 - Not there? **Search online (SnapEDA, Ultra Librarian)…** opens the
   [online part libraries](./online-parts) with what you typed; the imported
   part shows up in the project library of the dialog.

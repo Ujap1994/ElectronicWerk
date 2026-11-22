@@ -15,6 +15,7 @@
     reason = "coordinates are limited by the data model; ids and counts fit into i64"
 )]
 
+pub mod category;
 pub mod dedup;
 pub mod entry;
 mod error;
@@ -23,6 +24,7 @@ pub mod index;
 pub mod ingest;
 pub mod mesh;
 pub mod pack;
+pub mod parts;
 
 use std::path::Path;
 

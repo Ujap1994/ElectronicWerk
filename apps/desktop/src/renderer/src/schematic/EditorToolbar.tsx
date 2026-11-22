@@ -70,6 +70,8 @@ export interface EditorCommands {
   readonly exportMenu: () => void;
   readonly grid: () => void;
   readonly guide: () => void;
+  /** Starts placing a symbol of the project libraries (with a component). */
+  readonly place: (symbol: string, component: string | null) => void;
 }
 
 /** The drawing tools (a column at the left edge of the drawing). */

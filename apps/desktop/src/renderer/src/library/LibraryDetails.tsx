@@ -38,6 +38,30 @@ function Row({
   );
 }
 
+/** Where a footprint's 3D model sits (from its first shown model). */
+export function modelPlacement(details: EntryDetails | null): Placement | null {
+  const footprintModel = details?.definition?.models?.find((model) => model.hidden !== true);
+  if (footprintModel === undefined) {
+    return null;
+  }
+  const offset = footprintModel.offset ?? { x: 0, y: 0, z: 0 };
+  const [rx = 0, ry = 0, rz = 0] = footprintModel.rotation ?? [];
+  const [sx = 1, sy = 1, sz = 1] = footprintModel.scale ?? [];
+  return {
+    offset: [offset.x / 1e6, offset.y / 1e6, offset.z / 1e6],
+    rotation: [rx, ry, rz],
+    scale: [sx, sy, sz],
+  };
+}
+
+/** The piece of board a footprint's 3D preview stands on. */
+export function previewBoard(details: EntryDetails | null): BoardSize | null {
+  if (details?.kind !== 'footprint' || details.size === null) {
+    return null;
+  }
+  return { width: details.size[0] + 1, depth: details.size[1] + 1 };
+}
+
 export function LibraryDetails({
   id,
   release,
@@ -69,26 +93,8 @@ export function LibraryDetails({
     };
   }, [engine, id]);
 
-  const footprintModel = details?.definition?.models?.find((model) => model.hidden !== true);
-  const placement = useMemo<Placement | null>(() => {
-    if (footprintModel === undefined) {
-      return null;
-    }
-    const offset = footprintModel.offset ?? { x: 0, y: 0, z: 0 };
-    const [rx = 0, ry = 0, rz = 0] = footprintModel.rotation ?? [];
-    const [sx = 1, sy = 1, sz = 1] = footprintModel.scale ?? [];
-    return {
-      offset: [offset.x / 1e6, offset.y / 1e6, offset.z / 1e6],
-      rotation: [rx, ry, rz],
-      scale: [sx, sy, sz],
-    };
-  }, [footprintModel]);
-  const board = useMemo<BoardSize | null>(() => {
-    if (details?.kind !== 'footprint' || details.size === null) {
-      return null;
-    }
-    return { width: details.size[0] + 1, depth: details.size[1] + 1 };
-  }, [details]);
+  const placement = useMemo(() => modelPlacement(details), [details]);
+  const board = useMemo(() => previewBoard(details), [details]);
 
   if (details === null) {
     return <div className="library-details library-details--empty">{t('library.loading')}</div>;

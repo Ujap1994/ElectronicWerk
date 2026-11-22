@@ -139,6 +139,7 @@ pub fn run(command: LibraryCommand, out: &mut impl Write) -> Outcome {
             text,
             kind,
             library,
+            category,
             limit,
             target,
         } => {
@@ -146,6 +147,10 @@ pub fn run(command: LibraryCommand, out: &mut impl Write) -> Outcome {
             let mut query = json!({"text": text, "limit": limit});
             if let Some(kind) = kind {
                 query["kind"] = Value::String(kind);
+            }
+            if let Some(category) = category {
+                query["category"] = Value::String(category);
+                query["kind"] = json!("symbol");
             }
             if let Some(library) = library {
                 query["libraries"] = json!([library]);
@@ -170,6 +175,70 @@ pub fn run(command: LibraryCommand, out: &mut impl Write) -> Outcome {
                     result["total"],
                     result["elapsedMs"].as_f64().unwrap_or(0.0)
                 )?;
+            }
+            Ok(ExitCode::SUCCESS)
+        }
+        LibraryCommand::Categories { target } => {
+            let mut engine = engine(&target)?;
+            let result = call(&mut engine, "library.categories", json!({}))?;
+            if target.json {
+                print_json(out, &result)?;
+            } else {
+                for category in result.as_array().into_iter().flatten() {
+                    let path = category["path"].as_str().unwrap_or("");
+                    let depth = path.matches('/').count();
+                    writeln!(
+                        out,
+                        "{:>7}  {}{}",
+                        category["count"],
+                        "  ".repeat(depth),
+                        path
+                    )?;
+                }
+            }
+            Ok(ExitCode::SUCCESS)
+        }
+        LibraryCommand::Packages { symbol, target } => {
+            let mut engine = engine(&target)?;
+            let (library, name) = symbol.split_once(':').unwrap_or(("", symbol.as_str()));
+            let mut query = json!({"text": name, "kind": "symbol", "limit": 50});
+            if !library.is_empty() {
+                query["libraries"] = json!([library]);
+            }
+            let found = call(&mut engine, "library.search", query)?;
+            let id = found["items"]
+                .as_array()
+                .into_iter()
+                .flatten()
+                .find(|item| item["name"] == name)
+                .map(|item| item["id"].clone())
+                .ok_or_else(|| Failure(format!("the library has no symbol {symbol}")))?;
+            let result = call(&mut engine, "library.packages", json!({"id": id}))?;
+            if target.json {
+                print_json(out, &result)?;
+            } else {
+                for package in result["packages"].as_array().into_iter().flatten() {
+                    writeln!(
+                        out,
+                        "{} {}:{}  {} pads{}{}",
+                        if package["recommended"] == true {
+                            "*"
+                        } else {
+                            " "
+                        },
+                        package["library"].as_str().unwrap_or(""),
+                        package["name"].as_str().unwrap_or(""),
+                        package["pads"],
+                        package["mounting"]
+                            .as_str()
+                            .map(|m| format!(", {m}"))
+                            .unwrap_or_default(),
+                        if package["model"] == true { ", 3D" } else { "" }
+                    )?;
+                }
+                if result["fixed"] == true {
+                    writeln!(out, "(the symbol names its footprint)")?;
+                }
             }
             Ok(ExitCode::SUCCESS)
         }

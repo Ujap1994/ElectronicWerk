@@ -126,6 +126,13 @@ fn searches_by_name_part_number_and_filters() {
         ["Demo:R_0805", "Demo_Copy:R_0805", "Demo:R_0805_Wide"]
     );
     assert_eq!(search("LMA-123", None, false), ["Demo:LM_A"]);
+    // An entry named exactly like the search comes first.
+    assert_eq!(
+        search("R", Some(Kind::Symbol), false)
+            .first()
+            .map(String::as_str),
+        Some("Demo:R")
+    );
     assert_eq!(search("demo semi", Some(Kind::Symbol), false).len(), 2);
     assert_eq!(search("SOIC", None, false), ["Demo:SOIC-8", "Demo:SOIC-8"]);
     // Browsing without text lists everything visible, by library and name.

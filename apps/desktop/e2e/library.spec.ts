@@ -19,6 +19,7 @@ import {
   removeTemp,
   type LaunchedApp,
 } from './fixtures';
+import { openDocument, viewerCanvas } from './viewer-helpers';
 
 const REPO = resolve(APP_DIR, '../..');
 const FIXTURES = join(REPO, 'crates/ew-library/tests/fixtures');
@@ -128,6 +129,57 @@ test('builds the library from KiCad folders, searches, previews and reviews dupl
   await expect(page.getByTestId('notice').last()).toContainText('already has Demo:LM_B');
   await page.getByTestId('library-close').click();
   await expect(page.getByTestId('toolbar-undo')).toHaveAttribute('title', /Add from library/u);
+});
+
+test('the part catalog: categories, packages, add and place with the package', async () => {
+  test.setTimeout(120_000);
+  launched = await launchApp();
+  const { app, page } = launched;
+  await createProjectWithWizard(page, 'Catalog', 'empty');
+  await openDocument(page, 'Root');
+  // The guide of a new project must not cover the click point.
+  await page.getByTestId('guide-close').click();
+  await page.getByTestId('toolbar-library').click();
+  await queueDialogAnswer(app, join(FIXTURES, 'kicad'));
+  await page.getByTestId('library-local').click();
+  await expect(page.getByTestId('library-manager')).toHaveAttribute('data-installed', 'true', {
+    timeout: 60_000,
+  });
+
+  // The parts tab is the first one; the synthetic library's parts are in
+  // "Other" (its library is not named like a KiCad library).
+  await expect(page.getByTestId('library-kind-part')).toHaveAttribute('aria-selected', 'true');
+  await expect(page.getByTestId('library-category-*')).toContainText('All parts');
+  await page.getByTestId('library-category-other').click();
+  await page.getByTestId('library-search').fill('R');
+  await row(page, 'Demo:R').click();
+  const details = page.getByTestId('part-details');
+  await expect(details).toHaveAttribute('data-name', 'R');
+  // A basic part: the footprints its filter allows, with as many pads.
+  const packages = page.getByTestId('part-package');
+  await expect(packages.locator('option', { hasText: 'R_0805' }).first()).toBeAttached();
+  await expect(page.getByTestId('part-footprint')).toHaveAttribute('data-state', 'ready');
+
+  // Place it: the library makes way, the part hangs at the pointer and is
+  // placed with its package.
+  await page.getByTestId('part-place').click();
+  await expect(page.getByTestId('library-manager')).toHaveCount(0);
+  await expect(page.getByTestId('notice').last()).toContainText('R_0805');
+  const canvas = viewerCanvas(page);
+  const box = await canvas.boundingBox();
+  await page.mouse.click((box?.x ?? 0) + 300, (box?.y ?? 0) + 250);
+  await expect(page.getByTestId('property-footprint')).toHaveValue(/R_0805/u);
+  await expect(page.getByTestId('toolbar-undo')).toHaveAttribute('title', /Place/u);
+
+  // The place dialog of the schematic leads to the catalog, with its query.
+  await page.keyboard.press('Escape');
+  await canvas.focus();
+  await page.keyboard.press('a');
+  await page.getByTestId('chooser-search').fill('LM');
+  await page.getByTestId('chooser-catalog').click();
+  await expect(page.getByTestId('library-manager')).toBeVisible();
+  await expect(page.getByTestId('library-kind-part')).toHaveAttribute('aria-selected', 'true');
+  await expect(page.getByTestId('library-search')).toHaveValue('LM');
 });
 
 test('downloads the library and its 3D models from a release', async () => {

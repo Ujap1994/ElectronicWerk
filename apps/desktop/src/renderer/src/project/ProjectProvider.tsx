@@ -144,6 +144,15 @@ export interface ProjectApi {
   ) => Promise<void>;
   /** Copies base-library entries (and the symbols' footprints) into the project library. */
   readonly addFromLibrary: (ids: readonly number[], name: string) => Promise<void>;
+  /**
+   * Copies a part of the catalog (symbol, chosen footprint, a component
+   * tying them together) into the project library; the component's name,
+   * or `null` if it failed.
+   */
+  readonly addPart: (
+    symbol: number,
+    footprint: number | null,
+  ) => Promise<{ readonly component: string; readonly symbol: string } | null>;
   /** Shows a short notice. */
   readonly notify: (text: string, kind?: Notice['kind']) => void;
 }
@@ -980,6 +989,28 @@ export function ProjectProvider({ children }: { readonly children: ReactNode }):
     [engine, notify, run, t],
   );
 
+  const addPart = useCallback(
+    async (symbol: number, footprint: number | null) => {
+      const result = await run('libraryImport.importing', () =>
+        engine.call<{ component: string; symbol: string; added: boolean }>(
+          'library.addPart',
+          footprint === null ? { symbol } : { symbol, footprint },
+          LONG_CALL_MS,
+        ),
+      );
+      if (result === null) {
+        return null;
+      }
+      notify(
+        t(result.added ? 'library.part.added' : 'library.part.already', {
+          name: result.component,
+        }),
+      );
+      return { component: result.component, symbol: result.symbol };
+    },
+    [engine, notify, run, t],
+  );
+
   // Grouped, so the dependency list of the API stays small enough for
   // the type checker.
   const netlistActions = useMemo(
@@ -987,8 +1018,8 @@ export function ProjectProvider({ children }: { readonly children: ReactNode }):
     [importNetlist, applyNetlist, closeNetlist],
   );
   const libraryActions = useMemo(
-    () => ({ importLibrary, addFromLibrary }),
-    [importLibrary, addFromLibrary],
+    () => ({ importLibrary, addFromLibrary, addPart }),
+    [importLibrary, addFromLibrary, addPart],
   );
 
   const value = useMemo<ProjectApi>(
@@ -1036,6 +1067,7 @@ export function ProjectProvider({ children }: { readonly children: ReactNode }):
       closeNetlist: netlistActions.closeNetlist,
       importLibrary: libraryActions.importLibrary,
       addFromLibrary: libraryActions.addFromLibrary,
+      addPart: libraryActions.addPart,
       notify,
     }),
     [

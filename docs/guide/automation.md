@@ -192,6 +192,7 @@ tools:
 | `open_project`, `create_project`, `project_info`            | Open, create and describe a project                                    |
 | `list_parts`, `list_nets`, `list_symbols`                   | Read the schematic                                                     |
 | `search_library`, `list_footprint_presets`                  | Find symbols and footprints                                            |
+| `list_part_categories`, `part_packages`                     | The part catalog's categories and the packages of a part               |
 | `place_part`, `edit_part`, `connect_pins`                   | Draw the schematic                                                     |
 | `mark_no_connect`, `run_erc`                                | Finish and check the schematic                                         |
 | `update_board`, `board_info`                                | Bring the board up to date and read it                                 |

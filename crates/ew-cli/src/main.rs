@@ -385,9 +385,26 @@ enum LibraryCommand {
         /// Only this library.
         #[arg(long)]
         library: Option<String>,
+        /// Only symbols of this part category (`passive/resistor`,
+        /// `ic/mcu/ST`; `*`: every part). See `ewerk library categories`.
+        #[arg(long)]
+        category: Option<String>,
         /// Number of results.
         #[arg(long, default_value_t = 20)]
         limit: u32,
+        #[command(flatten)]
+        target: LibraryDir,
+    },
+    /// The categories of the part catalog with their number of parts.
+    Categories {
+        #[command(flatten)]
+        target: LibraryDir,
+    },
+    /// The packages of a part (`Device:R`): its own footprint, or the
+    /// footprints that fit a basic part, the common ones first.
+    Packages {
+        /// The symbol (`library:name`).
+        symbol: String,
         #[command(flatten)]
         target: LibraryDir,
     },

@@ -6,6 +6,51 @@ project uses [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.20.0] - 2026-11-22
+
+The part catalog: complete parts in categories, basic parts with a choice
+of their common packages, placed on the schematic with their footprint.
+
+### Added
+
+- **Part catalog** as the first tab of the library: complete parts — a
+  symbol with its footprint and the footprint's 3D model. See
+  [The part catalog](docs/guide/library.md#the-part-catalog).
+- **Categories** in a tree with the number of parts in each: passive parts
+  (resistors, capacitors, inductors, crystals, protection, filters),
+  discrete semiconductors, integrated circuits by function (microcontrollers
+  by vendor, power, analog, interfaces, logic, sensors …), RF, connectors,
+  electromechanical parts, modules and mechanical parts. The search searches
+  inside the chosen category.
+- **Packages:** a part whose symbol names its footprint comes with it; a
+  basic part (resistor, capacitor, inductor, LED, diode, crystal, fuse,
+  generic pin header) offers the footprints that fit its KiCad footprint
+  filters and pin count, the common ones first (0603, 0805, 0402, 1206 …;
+  pin headers, sockets, JST XH/PH by row count).
+- **Add to project** copies symbol, footprint and a component that ties
+  them together into the project library; **Place in schematic** puts the
+  part at the pointer with its footprint assigned.
+- **Part catalog…** in the schematic's place dialog opens the catalog with
+  the text typed there.
+- Engine methods `library.categories`, `library.packages`,
+  `library.addPart` and `category` in `library.search`;
+  `ewerk library categories`, `ewerk library packages`,
+  `ewerk library search --category`; MCP tools `list_part_categories` and
+  `part_packages`.
+- [ADR-0020](docs/adr/0020-part-catalog.md) records the decisions.
+
+### Changed
+
+- Library search: an entry named exactly like the search comes first
+  (`LED` before the many LEDs whose description says "LED").
+- Numbers in the library and the import dialogs follow the UI language
+  (an English UI on a German system showed `22.733`).
+
+### Fixed
+
+- Rows of the library list could stay empty for good when the list moved
+  while a page was loading.
+
 ## [0.19.1] - 2026-11-22
 
 The remarks of the maintainer's first use after M18, and a thorough check
@@ -1501,7 +1546,8 @@ quality gates and the delivery pipeline that every later feature builds on.
   process ([ujap1994.github.io/ElectronicWerk](https://ujap1994.github.io/ElectronicWerk/)).
   **Help → Documentation** opens it.
 
-[Unreleased]: https://github.com/Ujap1994/ElectronicWerk/compare/v0.19.1...HEAD
+[Unreleased]: https://github.com/Ujap1994/ElectronicWerk/compare/v0.20.0...HEAD
+[0.20.0]: https://github.com/Ujap1994/ElectronicWerk/compare/v0.19.1...v0.20.0
 [0.19.1]: https://github.com/Ujap1994/ElectronicWerk/compare/v0.19.0...v0.19.1
 [0.19.0]: https://github.com/Ujap1994/ElectronicWerk/compare/v0.18.0...v0.19.0
 [0.18.0]: https://github.com/Ujap1994/ElectronicWerk/compare/v0.17.1...v0.18.0

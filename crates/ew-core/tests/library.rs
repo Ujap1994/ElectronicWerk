@@ -164,4 +164,47 @@ fn searches_previews_decides_and_adds_to_a_project() {
     let again = call(&mut engine, "library.add", json!({"ids": [symbol]}));
     assert_eq!(again["symbols"], 0);
     assert_eq!(again["skipped"], 1);
+
+    check_catalog(&mut engine);
+}
+
+/// The part catalog: categories, packages and a part with its package.
+fn check_catalog(engine: &mut Engine) {
+    let categories = call(engine, "library.categories", json!({}));
+    let paths: Vec<&str> = categories
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|c| c["path"].as_str().unwrap())
+        .collect();
+    assert!(paths.contains(&"other"), "{paths:?}");
+    let resistor = find(engine, "R", "symbol");
+    let packages = call(engine, "library.packages", json!({"id": resistor}));
+    assert_eq!(packages["fixed"], false);
+    let r0805 = packages["packages"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|p| p["name"] == "R_0805")
+        .expect("R_0805 fits the filter R_*")["id"]
+        .clone();
+    let part = call(
+        engine,
+        "library.addPart",
+        json!({"symbol": resistor, "footprint": r0805}),
+    );
+    assert_eq!(part["component"], "R_0805");
+    assert_eq!(part["added"], true);
+    let again = call(
+        engine,
+        "library.addPart",
+        json!({"symbol": resistor, "footprint": r0805}),
+    );
+    assert_eq!(again["added"], false);
+    let in_category = call(
+        engine,
+        "library.search",
+        json!({"text": "", "kind": "symbol", "category": "other", "limit": 50}),
+    );
+    assert!(in_category["total"].as_u64().unwrap() >= 3);
 }

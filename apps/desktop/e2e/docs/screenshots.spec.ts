@@ -6,6 +6,7 @@
 import {
   appendFileSync,
   cpSync,
+  mkdtempSync,
   existsSync,
   mkdirSync,
   readdirSync,
@@ -15,7 +16,7 @@ import {
   writeFileSync,
 } from 'node:fs';
 import { execFile, execFileSync } from 'node:child_process';
-import { homedir } from 'node:os';
+import { homedir, tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 
 import { expect, test, type Locator, type Page } from '@playwright/test';
@@ -2696,6 +2697,54 @@ test('systems', async () => {
     timeout: 60_000,
   });
   await shootSvg(page, join(project, 'outputs/station/station-w1-harness.svg'), 'system-harness');
+  await close();
+});
+
+// --- The part catalog (M19), with the installed base library --------------
+
+test('part catalog', async () => {
+  test.setTimeout(300_000);
+  // The real base library of this machine (KiCad's libraries, CC BY-SA),
+  // copied so the app's own data stay untouched (without the 3D meshes).
+  const installed = join(homedir(), 'Library/Application Support/ElectronicWerk/library');
+  test.skip(!existsSync(join(installed, 'library.sqlite')), 'needs an installed base library');
+  const data = mkdtempSync(join(tmpdir(), 'ew-docs-catalog-'));
+  writeFileSync(join(data, 'settings.json'), JSON.stringify({ language: 'en', theme: 'light' }));
+  mkdirSync(join(data, 'library'));
+  for (const file of ['library.sqlite', 'LICENSE.md', 'decisions.json']) {
+    if (existsSync(join(installed, file))) {
+      cpSync(join(installed, file), join(data, 'library', file));
+    }
+  }
+  const { page, close } = await start({ userDataDir: data });
+  await page.setViewportSize({ width: 1400, height: 860 });
+  await page.getByTestId('library').click();
+  await expect(page.getByTestId('library-manager')).toHaveAttribute('data-installed', 'true');
+  await expect(page.getByTestId('library-kind-part')).toHaveAttribute('aria-selected', 'true');
+
+  // A basic part: a resistor with a choice of packages.
+  await page.getByTestId('library-category-passive').click();
+  await page.getByTestId('library-category-passive/resistor').click();
+  await page.locator('.library-row[data-name="Device:R"]').click();
+  await expect(page.getByTestId('part-footprint')).toHaveAttribute('data-state', 'ready');
+  await page.mouse.move(10, 840);
+  await page.waitForTimeout(400);
+  await shoot(page, 'part-catalog');
+  await shoot(page.getByTestId('library-categories'), 'part-categories');
+
+  // A complete part: a microcontroller with its own package.
+  await page.getByTestId('library-category-ic').click();
+  await page.getByTestId('library-category-ic/mcu').click();
+  await page.getByTestId('library-category-ic/mcu/ST').click();
+  await page.getByTestId('library-search').fill('STM32F401RE');
+  await expect(page.getByTestId('library-count')).toContainText('1 result');
+  await page.locator('.library-row[data-name="MCU_ST_STM32F4:STM32F401RETx"]').click();
+  await expect(page.getByTestId('part-details')).toHaveAttribute('data-name', 'STM32F401RETx');
+  await expect(page.getByTestId('part-package-fixed')).toBeVisible();
+  await expect(page.getByTestId('part-footprint')).toHaveAttribute('data-state', 'ready');
+  await page.mouse.move(10, 840);
+  await page.waitForTimeout(400);
+  await shoot(page, 'part-catalog-mcu');
   await close();
 });
 

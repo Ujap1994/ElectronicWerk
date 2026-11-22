@@ -1,9 +1,8 @@
 # ElectronicWerk Roadmap
 
-> **Status:** v0.32 (2026-11-22). M0 to M18 are complete (releases v0.1.0 to
-> v0.19.1; M0, M1 and M3 accepted by the maintainer). Next: M19 part catalog
-> (v0.20.0), M20–M23 further features chosen by the maintainer, then M24
-> (v1.0).
+> **Status:** v0.33 (2026-11-22). M0 to M19 are complete (releases v0.1.0 to
+> v0.20.0; M0, M1 and M3 accepted by the maintainer). Next: M20–M23 further
+> features chosen by the maintainer, then M24 (v1.0).
 > The GitHub integration (M11) is switched off since v0.14.1 until the
 > maintainer decides to offer it (ADR-0014).
 > This roadmap is a living document. It **must** be updated with every feature
@@ -258,7 +257,7 @@ own work only. Maintainer test cycles and feedback come on top. Status values:
 | M16 | Part generator from datasheets                        | v0.17.0 | F13               | 8–12 S          | ✅     |
 | M17 | Mechanical assembly and enclosure check               | v0.18.0 | F14               | 6–10 S          | ✅     |
 | M18 | Multi-board design                                    | v0.19.0 | F15               | 8–12 S          | ✅     |
-| M19 | Part catalog                                          | v0.20.0 | F16               | 5–8 S           | ⬜     |
+| M19 | Part catalog                                          | v0.20.0 | F16               | 5–8 S           | ✅     |
 | M20 | Everyday editing                                      | v0.21.0 | F17               | 8–12 S          | ⬜     |
 | M21 | Layout construction                                   | v0.22.0 | F18               | 10–15 S         | ⬜     |
 | M22 | Layout routing                                        | v0.23.0 | F19               | 12–20 S         | ⬜     |
@@ -1022,7 +1021,7 @@ report (CSV, HTML), wiring lists and harness drawings (PDF, SVG); a system
 editor in the app, `ewerk system`, MCP tools and `system.*` engine methods.
 See ADR-0019.
 
-### M19 — Part catalog (v0.20.0, 5–8 S)
+### M19 — Part catalog (v0.20.0, 5–8 S) ✅
 
 Requested by the maintainer after M18: the library lacked complete parts and
 was hard to find one's way in.
@@ -1041,6 +1040,15 @@ was hard to find one's way in.
   tree, search inside a category, see symbol, footprint and 3D side by side,
   place with the footprint assigned.
 - No ordering data yet (decided by the maintainer).
+
+**Done (v0.20.0):** categories derived from the KiCad library and symbol
+names (nine groups, microcontrollers by vendor, counts; 25 ms for the whole
+index, nothing stored), packages from the footprint filters and the pad
+count with the common ones first, parts added as components and placed with
+their footprint; a Parts tab with the category tree and a part view in the
+library window, the place dialog leading there; exact names first in the
+search; `ewerk library categories|packages`, `--category`, MCP tools
+`list_part_categories` and `part_packages`. See ADR-0020.
 
 ### M20 — Everyday editing (v0.21.0, 8–12 S)
 
@@ -1238,4 +1246,5 @@ From Altium Designer and KiCad, chosen by the maintainer:
 | 2026-11-22 | v0.30      | M18 complete: v0.19.0 with systems of several boards — boards of this and other projects and reference designs, mating connectors and cables, the connection check across the boards with renaming signals, stacking and collisions in 3D, one STEP file, system bill of materials, connection report, wiring lists and harness drawings (ADR-0019).                                                                                                       |
 | 2026-11-22 | v0.31      | The maintainer's remarks after M18 fixed in v0.19.1 (maximized windows, Esc hint, mouse wheel zoom, online parts in the own browser, pad and net names, designators instead of placeholders, cut-off fields), plus robustness, stability and performance checks; findings added to M19. A part catalog with complete parts and categories comes next (v0.20.0), as the maintainer asked.                                                                   |
 | 2026-11-22 | v0.32      | New milestones chosen by the maintainer from a comparison with Altium Designer, DipTrace and KiCad: M19 part catalog, M20 everyday editing, M21 layout construction, M22 layout routing, M23 exchange (ODB++, Gerber to board, version comparison); hardening and v1.0 move to M24. The other candidates follow after v1.0.                                                                                                                                |
+| 2026-11-22 | v0.33      | M19 complete: v0.20.0 with the part catalog — categories, complete parts, packages of basic parts, add and place with the package (ADR-0020).                                                                                                                                                                                                                                                                                                              |
 | 2026-11-16 | v0.27      | M15 complete: v0.16.0 with blind, buried and microvias, push and shove, the impedance calculator with the working modes, differential pairs, length matching, teardrops, stitching vias, channels and assembly variants. Back drilling deferred (ADR-0016).                                                                                                                                                                                                |

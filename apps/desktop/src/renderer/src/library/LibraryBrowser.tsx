@@ -4,20 +4,26 @@
  */
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
 
+import type { MessageKey } from '@shared/i18n';
 import type { LibraryKind } from '@shared/library';
 
 import { Icon } from '../components/Icon';
 import { useAppState } from '../state';
 import { LibraryDetails } from './LibraryDetails';
-import type { EntrySummary, Facet, SearchQuery, SearchResult } from './types';
+import { PartDetails } from './PartDetails';
+import type { CategoryCount, EntrySummary, Facet, SearchQuery, SearchResult } from './types';
 import { VirtualList } from './VirtualList';
 
 const ROW_HEIGHT = 44;
-const KINDS: readonly (LibraryKind | 'all')[] = ['all', 'symbol', 'footprint', 'model'];
+/** `part`: the part catalog (symbols by category, with their packages). */
+type BrowseKind = LibraryKind | 'all' | 'part';
+const KINDS: readonly BrowseKind[] = ['part', 'all', 'symbol', 'footprint', 'model'];
 
 export interface BrowseFilters {
   readonly text: string;
-  readonly kind: LibraryKind | 'all';
+  readonly kind: BrowseKind;
+  /** Part category (`*`: every part). */
+  readonly category: string;
   readonly libraries: readonly string[];
   readonly mounting: string;
   readonly withModel: boolean;
@@ -27,7 +33,8 @@ export interface BrowseFilters {
 
 export const EMPTY_FILTERS: BrowseFilters = {
   text: '',
-  kind: 'all',
+  kind: 'part',
+  category: '*',
   libraries: [],
   mounting: '',
   withModel: false,
@@ -55,7 +62,10 @@ export function LibraryBrowser({
   onSelect,
   release,
   version,
+  onPlaced,
 }: {
+  /** A part is being placed on the schematic (the library closes). */
+  readonly onPlaced: () => void;
   readonly filters: BrowseFilters;
   readonly onFilters: (filters: BrowseFilters) => void;
   readonly selected: number | null;
@@ -64,7 +74,7 @@ export function LibraryBrowser({
   /** Changes when the index changes (rebuild, install, decision). */
   readonly version: number;
 }): ReactNode {
-  const { engine, t } = useAppState();
+  const { engine, t, snapshot } = useAppState();
   const text = useDebounced(filters.text, 120);
   const [result, setResult] = useState<SearchResult | null>(null);
   const [facetState, setFacetState] = useState<{ kind: string; list: readonly Facet[] } | null>(
@@ -73,10 +83,15 @@ export function LibraryBrowser({
   const facets = facetState?.kind === filters.kind ? facetState.list : [];
   const [libraryFilter, setLibraryFilter] = useState('');
 
+  const parts = filters.kind === 'part';
   const query = useMemo<Omit<SearchQuery, 'offset' | 'limit'>>(
     () => ({
       text,
-      ...(filters.kind === 'all' ? {} : { kind: filters.kind }),
+      ...(filters.kind === 'all'
+        ? {}
+        : filters.kind === 'part'
+          ? { kind: 'symbol' as const, category: filters.category === '' ? '*' : filters.category }
+          : { kind: filters.kind }),
       libraries: filters.libraries,
       ...(filters.mounting === '' ? {} : { mounting: filters.mounting }),
       withModel: filters.withModel,
@@ -86,6 +101,7 @@ export function LibraryBrowser({
     [
       text,
       filters.kind,
+      filters.category,
       filters.libraries,
       filters.mounting,
       filters.withModel,
@@ -113,7 +129,7 @@ export function LibraryBrowser({
 
   useEffect(() => {
     const kind = filters.kind;
-    if (kind === 'all') {
+    if (kind === 'all' || kind === 'part') {
       return undefined;
     }
     let cancelled = false;
@@ -164,13 +180,22 @@ export function LibraryBrowser({
               className={`library-kinds__item${filters.kind === kind ? ' library-kinds__item--active' : ''}`}
               data-testid={`library-kind-${kind}`}
               onClick={() => {
-                set({ kind, libraries: [], mounting: '', withModel: false });
+                set({ kind, libraries: [], mounting: '', withModel: false, category: '*' });
               }}
             >
               {t(`library.kinds.${kind}`)}
             </button>
           ))}
         </div>
+        {parts && (
+          <CategoryTree
+            selected={filters.category === '' ? '*' : filters.category}
+            version={version}
+            onSelect={(category) => {
+              set({ category });
+            }}
+          />
+        )}
         {filters.kind === 'footprint' && (
           <label className="field">
             <span className="field__label">{t('library.mounting')}</span>
@@ -202,29 +227,33 @@ export function LibraryBrowser({
             {t('library.withModel')}
           </label>
         )}
-        <label className="checkbox">
-          <input
-            type="checkbox"
-            checked={filters.duplicates}
-            data-testid="library-only-duplicates"
-            onChange={(event) => {
-              set({ duplicates: event.target.checked });
-            }}
-          />
-          {t('library.onlyDuplicates')}
-        </label>
-        <label className="checkbox">
-          <input
-            type="checkbox"
-            checked={filters.includeMerged}
-            data-testid="library-show-merged"
-            onChange={(event) => {
-              set({ includeMerged: event.target.checked });
-            }}
-          />
-          {t('library.showMerged')}
-        </label>
-        {filters.kind !== 'all' && facets.length > 0 && (
+        {!parts && (
+          <label className="checkbox">
+            <input
+              type="checkbox"
+              checked={filters.duplicates}
+              data-testid="library-only-duplicates"
+              onChange={(event) => {
+                set({ duplicates: event.target.checked });
+              }}
+            />
+            {t('library.onlyDuplicates')}
+          </label>
+        )}
+        {!parts && (
+          <label className="checkbox">
+            <input
+              type="checkbox"
+              checked={filters.includeMerged}
+              data-testid="library-show-merged"
+              onChange={(event) => {
+                set({ includeMerged: event.target.checked });
+              }}
+            />
+            {t('library.showMerged')}
+          </label>
+        )}
+        {filters.kind !== 'all' && !parts && facets.length > 0 && (
           <div className="library-facets">
             <span className="field__label">{t('library.libraries')}</span>
             <input
@@ -288,8 +317,8 @@ export function LibraryBrowser({
             type="search"
             // The search field is the first thing to use in the library.
             autoFocus
-            placeholder={t('library.searchPlaceholder')}
-            aria-label={t('library.searchPlaceholder')}
+            placeholder={t(parts ? 'library.partsPlaceholder' : 'library.searchPlaceholder')}
+            aria-label={t(parts ? 'library.partsPlaceholder' : 'library.searchPlaceholder')}
             value={filters.text}
             data-testid="library-search"
             onChange={(event) => {
@@ -301,7 +330,7 @@ export function LibraryBrowser({
           {result === null
             ? t('library.loading')
             : t(result.total === 1 ? 'library.resultsOne' : 'library.results', {
-                count: new Intl.NumberFormat().format(result.total),
+                count: new Intl.NumberFormat(snapshot.language).format(result.total),
                 ms: result.elapsedMs.toFixed(1),
               })}
         </p>
@@ -320,15 +349,21 @@ export function LibraryBrowser({
           }}
           renderRow={(item) => (
             <div className="library-row" data-name={`${item.library}:${item.name}`}>
-              <span className={`library-kind library-kind--${item.kind}`}>
-                {t(`library.kindOne.${item.kind}`)}
-              </span>
+              {!parts && (
+                <span className={`library-kind library-kind--${item.kind}`}>
+                  {t(`library.kindOne.${item.kind}`)}
+                </span>
+              )}
               <span className="library-row__text">
                 <span className="library-row__name">
                   {item.name}
                   <span className="library-row__library">{item.library}</span>
                 </span>
-                <span className="library-row__description">{item.description}</span>
+                <span className="library-row__description">
+                  {parts && item.package !== ''
+                    ? `${item.package.split(':').pop() ?? ''} · ${item.description}`
+                    : item.description}
+                </span>
               </span>
               {item.groups > 0 && (
                 <span className="library-row__badge" title={t('library.fields.groups')}>
@@ -342,10 +377,83 @@ export function LibraryBrowser({
       <section className="library-side">
         {selected === null ? (
           <p className="library-details library-details--empty">{t('library.selectHint')}</p>
+        ) : parts ? (
+          <PartDetails key={selected} id={selected} release={release} onPlaced={onPlaced} />
         ) : (
           <LibraryDetails key={selected} id={selected} release={release} onSelect={onSelect} />
         )}
       </section>
     </div>
+  );
+}
+
+/**
+ * The categories of the part catalog as a tree: the main groups always,
+ * the children of the chosen branch.
+ */
+function CategoryTree({
+  selected,
+  version,
+  onSelect,
+}: {
+  readonly selected: string;
+  readonly version: number;
+  readonly onSelect: (category: string) => void;
+}): ReactNode {
+  const { engine, t, snapshot } = useAppState();
+  const [categories, setCategories] = useState<readonly CategoryCount[]>([]);
+  useEffect(() => {
+    let cancelled = false;
+    void engine.call<CategoryCount[]>('library.categories', {}).then(
+      (reply) => {
+        if (!cancelled) {
+          setCategories(reply);
+        }
+      },
+      () => undefined,
+    );
+    return () => {
+      cancelled = true;
+    };
+  }, [engine, version]);
+  const total = categories
+    .filter((c) => !c.path.includes('/'))
+    .reduce((sum, c) => sum + c.count, 0);
+  // A child shows when its parent is the chosen category or above it.
+  const shown = categories.filter((c) => {
+    const parent = c.path.includes('/') ? c.path.slice(0, c.path.lastIndexOf('/')) : null;
+    return parent === null || selected === parent || selected.startsWith(`${parent}/`);
+  });
+  const label = (path: string): string => {
+    const key = `library.categories.${path}` as MessageKey;
+    const text = t(key);
+    return text === key ? (path.split('/').pop() ?? path) : text;
+  };
+  const row = (path: string, text: string, count: number, depth: number): ReactNode => (
+    <li key={path}>
+      <button
+        type="button"
+        className={`category-tree__item${selected === path ? ' category-tree__item--active' : ''}`}
+        style={{ paddingInlineStart: `${(8 + depth * 14).toString()}px` }}
+        aria-current={selected === path}
+        data-testid={`library-category-${path}`}
+        onClick={() => {
+          onSelect(path);
+        }}
+      >
+        <span className="category-tree__name">{text}</span>
+        <span className="category-tree__count">
+          {new Intl.NumberFormat(snapshot.language).format(count)}
+        </span>
+      </button>
+    </li>
+  );
+  return (
+    <nav className="category-tree" aria-label={t('library.kinds.part')}>
+      <ul data-testid="library-categories">
+        {row('*', t('library.categories.all'), total, 0)}
+        {shown.map((c) => row(c.path, label(c.path), c.count, c.path.split('/').length - 1))}
+      </ul>
+    </nav>
   );
 }

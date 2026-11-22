@@ -351,10 +351,13 @@ export function DocumentViewer({
     if (!sheet) {
       return undefined;
     }
-    const call = (name: keyof EditorCommands) => (): void => {
+    const call = (name: Exclude<keyof EditorCommands, 'place'>) => (): void => {
       commandsRef.current?.[name]();
     };
     activeSheet.set({
+      place: (symbol, component) => {
+        commandsRef.current?.place(symbol, component);
+      },
       chooseSymbol: call('chooseSymbol'),
       annotate: call('annotate'),
       erc: call('erc'),
@@ -406,6 +409,12 @@ export function DocumentViewer({
     guide: () => {
       guideDismissed.delete(doc);
       setGuide(!guide);
+    },
+    place: (symbol, component) => {
+      if (editor !== null) {
+        editor.placeSymbol(symbol, component);
+        canvasRef.current?.focus();
+      }
     },
   };
   useEffect(() => {

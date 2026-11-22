@@ -94,6 +94,8 @@ export const schematicEn = {
   chooser: {
     title: 'Add symbol',
     search: 'Search symbols',
+    catalog: 'Part catalog…',
+    catalogTip: 'Browse complete parts by category and choose their package',
     project: 'Project library',
     base: 'Base library',
     noBase: 'The base library is not set up. Open the library manager to download it.',

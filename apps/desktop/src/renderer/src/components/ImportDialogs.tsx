@@ -182,7 +182,7 @@ function KicadImportDialog(): ReactNode {
 }
 
 function ImportReportDialog(): ReactNode {
-  const { t } = useAppState();
+  const { t, snapshot } = useAppState();
   const { prompts, closeImportReport, showInFolder } = useProject();
   const prompt = prompts.importReport;
   if (prompt === null) {
@@ -238,7 +238,9 @@ function ImportReportDialog(): ReactNode {
           return (
             <div key={key} className="import-counts__row">
               <dt>{label === undefined ? key : t(label)}</dt>
-              <dd className="import-counts__value">{new Intl.NumberFormat().format(count)}</dd>
+              <dd className="import-counts__value">
+                {new Intl.NumberFormat(snapshot.language).format(count)}
+              </dd>
             </div>
           );
         })}

@@ -99,6 +99,8 @@ export const schematicDe: Messages['schematic'] = {
   chooser: {
     title: 'Symbol hinzufügen',
     search: 'Symbole suchen',
+    catalog: 'Bauteil-Katalog …',
+    catalogTip: 'Fertige Bauteile nach Kategorien durchsuchen und ihr Gehäuse wählen',
     project: 'Projektbibliothek',
     base: 'Basisbibliothek',
     noBase:

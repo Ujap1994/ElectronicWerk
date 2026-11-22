@@ -2117,18 +2117,19 @@ are kept.
 
 ### `library.search`
 
-| Parameter         | Type     | Meaning                                         |
-| ----------------- | -------- | ----------------------------------------------- |
-| `text`            | string   | Search text (empty: browse by library and name) |
-| `kind`            | string   | `symbol`, `footprint` or `model`                |
-| `libraries`       | string[] | Only these libraries                            |
-| `mounting`        | string   | Footprints: `smd`, `tht` or `other`             |
-| `withModel`       | boolean  | Footprints with a 3D model only                 |
-| `duplicates`      | boolean  | Entries in a duplicate group only               |
-| `includeMerged`   | boolean  | Also entries merged into another one            |
-| `offset`, `limit` | number   | Paging (`limit` at most 500)                    |
+| Parameter         | Type     | Meaning                                                                                         |
+| ----------------- | -------- | ----------------------------------------------------------------------------------------------- |
+| `text`            | string   | Search text (empty: browse by library and name)                                                 |
+| `kind`            | string   | `symbol`, `footprint` or `model`                                                                |
+| `libraries`       | string[] | Only these libraries                                                                            |
+| `mounting`        | string   | Footprints: `smd`, `tht` or `other`                                                             |
+| `withModel`       | boolean  | Footprints with a 3D model only                                                                 |
+| `duplicates`      | boolean  | Entries in a duplicate group only                                                               |
+| `includeMerged`   | boolean  | Also entries merged into another one                                                            |
+| `category`        | string   | Only symbols of a part category and below it (`passive/resistor`, `ic/mcu/ST`; `*`: every part) |
+| `offset`, `limit` | number   | Paging (`limit` at most 500)                                                                    |
 
-Returns `{"total", "items", "elapsedMs"}`. Each item: `id`, `kind`,
+An entry named exactly like the search text comes first. Returns `{"total", "items", "elapsedMs"}`. Each item: `id`, `kind`,
 `library`, `name`, `description`, `value`, `package`, `pins`, `mounting`,
 `mergedInto` (the id of the entry it is merged into, or `null`) and `groups`
 (the number of duplicate groups it belongs to).
@@ -2206,6 +2207,36 @@ footprints into a library of the open project (default: the first one), as
 one undoable step (`add-from-library`). With `footprints` (default), the
 default footprints of the symbols are copied too, if the base library has
 them. Returns `{"symbols", "footprints", "skipped", "history"}`.
+
+### `library.categories`
+
+The categories of the [part catalog](../guide/library#the-part-catalog) in the
+order of the tree, with the number of parts in each and below it:
+`[{"path": "passive", "count": 525}, {"path": "passive/resistor", "count": 105}, …]`.
+Microcontrollers have a third level by vendor (`ic/mcu/ST`). Power symbols
+and simulation sources are no parts. The categories are computed from the
+library and symbol names when the index is first asked (about 25 ms); the
+index files stay as they are.
+
+### `library.packages`
+
+`{"id": 42}` (a symbol) → `{"fixed", "packages"}`. A symbol that names its
+footprint has just that one (`fixed: true`). A basic part lists the
+footprints its KiCad footprint filters allow with as many pads as it has
+pins, the common packages first (`recommended`), at most 60. Each package:
+`id` (0 if the library lacks the footprint), `library`, `name`, `pads`,
+`mounting`, `model` (has a 3D model), `recommended`.
+
+### `library.addPart`
+
+`{"symbol": 42, "footprint": 77, "doc": "…"}` → `{"component", "symbol",
+"added", "history"}`. Copies the symbol, the chosen footprint (default: the
+symbol's own) and a component tying them together into a project library
+(default: its first), as one undoable step (`add-from-library`). The
+component is named after the footprint (`R_0603_1608Metric`, or
+`Conn_01x04_PinHeader_1x04_P2.54mm_Vertical` when the footprint's name does
+not start with the symbol's); `added` is `false` if the library already has
+it. Place it with `schematic.place` and `component`.
 
 ### Library events
 
