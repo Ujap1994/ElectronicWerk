@@ -2638,6 +2638,15 @@ textarea.field__control {
   text-overflow: ellipsis;
 }
 
+/* After a route or wire: how to get back to the select tool, easy to see. */
+.viewer__hint--next {
+  padding: 0 var(--space-2);
+  border-radius: 999px;
+  background: var(--color-accent-soft);
+  color: var(--color-accent);
+  font-weight: 600;
+}
+
 .net-chip {
   flex: none;
   padding: 0 var(--space-2);

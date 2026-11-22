@@ -5,6 +5,8 @@ import type { EngineStatus } from '@shared/engine';
 import { createTranslator, type Translate } from '@shared/i18n';
 import type { SettingsPatch } from '@shared/settings';
 
+import { setWheelZoom } from './viewer/wheel';
+
 import { EngineClient } from './engine-client';
 
 export interface AppState {
@@ -55,6 +57,11 @@ export function AppStateProvider({ initial, children }: ProviderProps): ReactNod
   const [engineStatus, setEngineStatus] = useState(initial.engineStatus);
 
   useEffect(() => window.ew.settings.onChanged(setSnapshot), []);
+  // Every 2D view zooms by the step of the settings.
+  const wheelZoom = snapshot.settings.wheelZoom;
+  useEffect(() => {
+    setWheelZoom(wheelZoom);
+  }, [wheelZoom]);
 
   useEffect(() => {
     const unsubscribe = window.ew.engine.onStatus((status) => {

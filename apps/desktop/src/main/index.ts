@@ -66,6 +66,7 @@ import { createSenderCheck, hardenApp, openExternalSafely } from './security';
 import { SettingsStore } from './settings-store';
 import { runSmokeTest, SMOKE_TEST_FLAG } from './smoke-test';
 import { UpdateService } from './updates';
+import { DownloadWatch } from './download-watch';
 import { ProviderWindows } from './providers';
 import { registerGithubIpc, type GithubIpc } from './github/ipc';
 import { createMainWindow, createViewWindow } from './window';
@@ -135,6 +136,8 @@ function main(): void {
 
   let mainWindow: BrowserWindow | null = null;
   let providerWindows: ProviderWindows | null = null;
+  /** Provider pages opened in the user's browser (recorded instead in tests). */
+  const externalPages: string[] = [];
   /** Windows with a view of the open project (3D views), by board. */
   const viewWindows = new Map<string, BrowserWindow>();
   const closeViewWindows = (): void => {
@@ -595,6 +598,24 @@ function main(): void {
     });
     providerWindows = providers;
 
+    // Parts downloaded in the user's own browser are offered for import too.
+    const downloadsOverride = process.env['EW_DOWNLOADS_DIR'];
+    const downloadWatch = new DownloadWatch(
+      () =>
+        testHooksEnabled() && downloadsOverride !== undefined && downloadsOverride !== ''
+          ? downloadsOverride
+          : app.getPath('downloads'),
+      (download) => {
+        mainWindow?.webContents.send(IPC.providersDownload, download);
+        if (mainWindow !== null && !mainWindow.isDestroyed()) {
+          mainWindow.focus();
+        }
+      },
+    );
+    app.on('will-quit', () => {
+      downloadWatch.stop();
+    });
+
     ipcMain.on(IPC.providersOpen, (event, id: unknown, page: unknown, query: unknown) => {
       if (
         isTrustedSender(event.senderFrame) &&
@@ -617,7 +638,13 @@ function main(): void {
       ) {
         const url = providerUrl(id, page, query);
         if (isProviderUrl(url)) {
-          void shell.openExternal(url);
+          downloadWatch.start(id);
+          if (testHooksEnabled()) {
+            // Tests never open the real website.
+            externalPages.push(url);
+          } else {
+            void shell.openExternal(url);
+          }
         }
       }
     });
@@ -766,6 +793,7 @@ function main(): void {
           viewWindows: () => [...viewWindows.keys()],
           providerWindows: () => providerWindows?.openIds() ?? [],
           githubPages: () => [...(github?.openedPages ?? [])],
+          externalPages: () => [...externalPages],
         },
       });
     }

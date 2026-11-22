@@ -10,6 +10,7 @@ import { boundsOf, pick, selectBox, selectLasso } from './pick';
 import { SceneRenderer, WebGlUnavailableError, type LayerAppearance } from './renderer';
 import { Scene } from './scene';
 import type { Box, LayerGroup, SceneReply } from './types';
+import { WheelClassifier, inputOf, nextZoomTarget, wheelZoomFactor } from './wheel';
 
 export interface LayerUi {
   readonly index: number;
@@ -109,7 +110,6 @@ type Drag =
   | { kind: 'box'; x: number; y: number; pointer: number }
   | { kind: 'lasso'; points: number[]; pointer: number };
 
-const WHEEL_ZOOM = 1.25;
 const KEY_ZOOM = 1.5;
 const DRAG_THRESHOLD = 4;
 const HIT_TOLERANCE_PX = 4;
@@ -156,6 +156,7 @@ export class ViewerController {
   private drag: Drag | null = null;
   private overlay: ViewState['overlay'] = null;
   private zoomAnimation: { x: number; y: number; target: number } | null = null;
+  private readonly wheel = new WheelClassifier();
   private fitAnimation: { from: CameraState; to: CameraState; start: number } | null = null;
   private spaceDown = false;
   private interaction: Interaction | null = null;
@@ -1001,8 +1002,8 @@ export class ViewerController {
   private zoomAround(x: number, y: number, factor: number): void {
     this.navigated();
     this.fitAnimation = null;
-    const base = this.zoomAnimation?.target ?? this.camera.scale;
-    this.zoomAnimation = { x, y, target: this.camera.clamp(base * factor) };
+    const target = nextZoomTarget(this.camera.scale, this.zoomAnimation?.target ?? null, factor);
+    this.zoomAnimation = { x, y, target: this.camera.clamp(target) };
     this.requestRender();
   }
 
@@ -1240,15 +1241,16 @@ export class ViewerController {
       // Pinch gesture (trackpad) or Ctrl+wheel.
       this.fitAnimation = null;
       this.zoomAnimation = null;
-      this.camera.zoomAt(x, y, Math.exp(-dy * 0.01));
+      // A pinch sends small deltas; a notch of Ctrl+wheel must not jump.
+      this.camera.zoomAt(x, y, Math.exp(Math.max(-0.4, Math.min(0.4, -dy * 0.01))));
       this.requestRender();
     } else if (event.shiftKey) {
       this.camera.pan(-(dy || dx), 0);
       this.requestRender();
     } else {
-      const mouseWheel = lines || (dx === 0 && Math.abs(dy) >= 50 && Number.isInteger(dy));
-      if (mouseWheel) {
-        this.zoomAround(x, y, dy < 0 ? WHEEL_ZOOM : 1 / WHEEL_ZOOM);
+      const input = inputOf(event);
+      if (this.wheel.classify(input) === 'mouse') {
+        this.zoomAround(x, y, wheelZoomFactor(input));
       } else {
         this.fitAnimation = null;
         this.camera.pan(-dx, -dy);

@@ -92,6 +92,8 @@ export async function launchApp(options: LaunchOptions = {}): Promise<LaunchedAp
       ...process.env,
       EW_USER_DATA_DIR: userDataDir,
       EW_TEST_HOOKS: '1',
+      // The same window size on every machine (the app starts maximized).
+      EW_WINDOW_MAXIMIZE: '0',
       EW_UPDATE_FEED: feedFile,
       EW_UPDATE_DELAY_MS: '0',
       EW_PROJECTS_DIR: projectsDir,

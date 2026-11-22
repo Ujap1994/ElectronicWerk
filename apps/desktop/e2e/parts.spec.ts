@@ -7,7 +7,8 @@
  * from the file; the settings show the provider accounts.
  */
 import { createServer, type Server } from 'node:http';
-import { existsSync, readFileSync } from 'node:fs';
+import { copyFileSync, existsSync, mkdtempSync, readFileSync, renameSync } from 'node:fs';
+import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 
 import { expect, test } from '@playwright/test';
@@ -40,10 +41,31 @@ test.afterEach(async () => {
   server = undefined;
 });
 
+/** User agents the provider website saw in its request headers. */
+const headerAgents: string[] = [];
+
 /** A tiny provider website: a search page with a download link. */
 async function startProvider(): Promise<string> {
   server = createServer((request, response) => {
     const url = new URL(request.url ?? '/', 'http://localhost');
+    headerAgents.push(request.headers['user-agent'] ?? '');
+    if (url.pathname === '/agent') {
+      // What bot checks compare: the page's and a worker's user agent.
+      response.writeHead(200, { 'content-type': 'text/html; charset=utf-8' });
+      response.end(
+        '<!doctype html><title>Agent</title><p id="page"></p><p id="worker"></p><script>' +
+          'document.getElementById("page").textContent = navigator.userAgent;' +
+          'const worker = new Worker("/agent-worker.js");' +
+          'worker.onmessage = (e) => { document.getElementById("worker").textContent = e.data; };' +
+          '</script>',
+      );
+      return;
+    }
+    if (url.pathname === '/agent-worker.js') {
+      response.writeHead(200, { 'content-type': 'text/javascript' });
+      response.end('postMessage(navigator.userAgent);');
+      return;
+    }
     if (url.pathname.endsWith('/search')) {
       const query = url.searchParams.get('q') ?? '';
       response.writeHead(200, { 'content-type': 'text/html; charset=utf-8' });
@@ -120,6 +142,60 @@ test('imports a part downloaded in the provider window', async () => {
     ).__ewTest.providerWindows(),
   );
   expect(windows).toEqual(['snapeda']);
+});
+
+test('the provider window looks like one browser to the website', async () => {
+  const base = await startProvider();
+  launched = await launchApp({ env: { EW_PROVIDER_BASE: base } });
+  const { app, page } = launched;
+  await createProjectWithWizard(page, 'Agents', 'empty');
+  await page.keyboard.press('ControlOrMeta+Shift+P');
+  await page.getByTestId('command-input').fill('parts online');
+  await page.keyboard.press('Enter');
+  await page.getByTestId('online-query').fill('NE555');
+  const opened = app.waitForEvent('window');
+  await page.getByTestId('online-search-snapeda').click();
+  const provider = await opened;
+  await provider.goto(`${base}/agent`);
+  await expect(provider.locator('#worker')).not.toBeEmpty();
+  const pageAgent = (await provider.locator('#page').textContent()) ?? '';
+  const workerAgent = (await provider.locator('#worker').textContent()) ?? '';
+  // Bot checks (Cloudflare) compare them: one browser, no Electron.
+  expect(pageAgent).toMatch(/Chrome\//u);
+  expect(pageAgent).not.toMatch(/Electron|ElectronicWerk/u);
+  expect(workerAgent).toBe(pageAgent);
+  expect(headerAgents.at(-1)).toBe(pageAgent);
+});
+
+test('offers a part downloaded in the own browser for import', async () => {
+  const downloads = mkdtempSync(join(tmpdir(), 'ew-downloads-'));
+  // An older download is not offered.
+  copyFileSync(join(PARTS, 'ul_OPAMP-DEMO.zip'), join(downloads, 'old.zip'));
+  launched = await launchApp({ env: { EW_DOWNLOADS_DIR: downloads } });
+  const { app, page } = launched;
+  await createProjectWithWizard(page, 'Browser Watch', 'empty');
+  await page.keyboard.press('ControlOrMeta+Shift+P');
+  await page.getByTestId('command-input').fill('parts online');
+  await page.keyboard.press('Enter');
+  await page.getByTestId('online-query').fill('NE555');
+  await page.getByTestId('online-external-snapeda').click();
+  const pages = await app.evaluate(() =>
+    (
+      globalThis as unknown as { __ewTest: { externalPages: () => string[] } }
+    ).__ewTest.externalPages(),
+  );
+  expect(pages).toHaveLength(1);
+  expect(pages[0]).toContain('snapeda.com');
+  expect(pages[0]).toContain('NE555');
+
+  // The browser writes a temporary file and renames it when it is done.
+  const partial = join(downloads, 'NE555-DEMO.zip.crdownload');
+  copyFileSync(join(PARTS, 'NE555-DEMO.zip'), partial);
+  renameSync(partial, join(downloads, 'NE555-DEMO.zip'));
+  const importer = page.getByTestId('download-import');
+  await expect(importer).toBeVisible({ timeout: 30_000 });
+  await expect(importer).toContainText('NE555-DEMO.zip');
+  await expect(importer).toContainText('SnapEDA');
 });
 
 test('imports a download from the own browser and shows the accounts', async () => {

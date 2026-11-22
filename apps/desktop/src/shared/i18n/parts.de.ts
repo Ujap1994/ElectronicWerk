@@ -9,10 +9,12 @@ export const partsDe: Messages['parts'] = {
     'Ein Bauteil auf SnapEDA oder Ultra Librarian suchen und im KiCad-Format (KiCad 6 oder neuer) herunterladen. ElectronicWerk importiert den Download in die Projektbibliothek: Symbol, Footprint und 3D-Modell.',
   query: 'Teilenummer oder Suchbegriff',
   queryPlaceholder: 'zum Beispiel NE555 oder TPS62130',
-  search: 'Auf {provider} suchen',
-  searchExternal: 'Im eigenen Browser',
+  search: 'Im Fenster des Programms',
+  searchTip:
+    '{provider} in einem Fenster von ElectronicWerk öffnen. Die Bot-Prüfung mancher Websites lässt eingebettete Browser nicht durch; dann den eigenen Browser nehmen.',
+  searchExternal: 'Auf {provider} suchen',
   searchExternalTip:
-    '{provider} im eigenen Browser öffnen; den Download mit „Download importieren…“ übernehmen',
+    '{provider} im eigenen Browser öffnen. ElectronicWerk achtet 30 Minuten lang auf deinen Download-Ordner und bietet heruntergeladene Bauteile zum Import an.',
   searchOnline: 'Online suchen (SnapEDA, Ultra Librarian)…',
   importFile: 'Download importieren…',
   importFileTip:
@@ -23,11 +25,11 @@ export const partsDe: Messages['parts'] = {
     ultralibrarian:
       'Modelle der Hersteller in vielen CAD-Formaten, kostenlos mit Konto. Beim Herunterladen „KiCad“ wählen.',
   },
-  session: 'Angemeldet (das Anbieterfenster behält die Sitzung)',
+  session: 'Im Programmfenster angemeldet',
   noSession: 'Nicht angemeldet',
   howItWorks:
-    'Das Anbieterfenster ist ein eigener, abgeschotteter Browser: ElectronicWerk sieht Ihr Passwort nie und sucht oder lädt nichts von selbst. Was Sie dort herunterladen, wird zum Import angeboten.',
-  noProject: 'Öffnen Sie ein Projekt, um {file} zu importieren.',
+    'Am einfachsten im eigenen Browser: Dort bist du schon angemeldet, und ElectronicWerk bietet Bauteile, die du in den nächsten 30 Minuten in deinen Download-Ordner lädst, zum Import an. Das Programmfenster ist ein eigener, abgeschotteter Browser. ElectronicWerk sieht dein Passwort nie und sucht oder lädt nichts von selbst.',
+  noProject: 'Öffne ein Projekt, um {file} zu importieren.',
   downloaded: '{file} heruntergeladen',
   downloadFailed: 'Der Download von {file} ist fehlgeschlagen.',
   notImportable: '{file} ist kein KiCad-Download; die Datei liegt in {folder}.',

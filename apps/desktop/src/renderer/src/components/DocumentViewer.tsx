@@ -119,7 +119,15 @@ function BoardStatus({ editor }: { readonly editor: BoardEditor }): ReactNode {
   return (
     <>
       {state.hint !== null && (
-        <span className="viewer__hint" data-testid="editor-hint">
+        <span
+          className={
+            state.hint === 'board.hints.routeEnded'
+              ? 'viewer__hint viewer__hint--next'
+              : 'viewer__hint'
+          }
+          title={t(state.hint)}
+          data-testid="editor-hint"
+        >
           {t(state.hint)}
         </span>
       )}
@@ -163,7 +171,15 @@ function EditorStatus({ editor }: { readonly editor: SchematicEditor }): ReactNo
   return (
     <>
       {state.hint !== null && (
-        <span className="viewer__hint" data-testid="editor-hint">
+        <span
+          className={
+            state.hint === 'schematic.hints.wireEnded'
+              ? 'viewer__hint viewer__hint--next'
+              : 'viewer__hint'
+          }
+          title={t(state.hint)}
+          data-testid="editor-hint"
+        >
           {t(state.hint)}
         </span>
       )}

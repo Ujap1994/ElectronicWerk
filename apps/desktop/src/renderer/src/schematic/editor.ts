@@ -727,7 +727,7 @@ export class SchematicEditor implements Interaction {
 
   private finishWire(): void {
     const points = this.state.wire;
-    this.update({ wire: [] });
+    this.update({ wire: [], hint: 'schematic.hints.wireEnded' });
     if (points.length >= 2) {
       this.run('schematic.wire', { points, bus: this.state.tool === 'bus' });
     }
@@ -737,7 +737,7 @@ export class SchematicEditor implements Interaction {
     const wire = this.state.wire;
     const last = wire.at(-1);
     if (last === undefined) {
-      this.update({ wire: [p] });
+      this.update({ wire: [p], hint: HINTS[this.state.tool] });
       return;
     }
     if (last[0] === p[0] && last[1] === p[1]) {
@@ -1039,8 +1039,12 @@ export class SchematicEditor implements Interaction {
       this.cancel();
       return true;
     }
-    if (this.state.wire.length > 0 || this.state.sheetCorner !== null) {
-      this.update({ wire: [], sheetCorner: null });
+    if (this.state.wire.length > 0) {
+      this.update({ wire: [], hint: 'schematic.hints.wireEnded' });
+      return true;
+    }
+    if (this.state.sheetCorner !== null) {
+      this.update({ sheetCorner: null });
       return true;
     }
     if (this.state.tool !== 'select') {

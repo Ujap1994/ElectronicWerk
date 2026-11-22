@@ -39,14 +39,15 @@ export const boardEn = {
   hints: {
     select: 'R turns, Shift+F flips to the other side, D drags a track, Del deletes',
     route:
-      'Click fixes the route · V via and layer change · / corner first · Backspace back · Enter or double-click ends',
+      'Click fixes the route · V via and layer change · / corner first · Backspace back · Enter, double-click or Esc ends',
+    routeEnded: 'Route ended · click starts the next one · Esc again: back to the select tool',
     via: 'Click places a via',
     zone: 'Click adds a corner · Enter or double-click closes · Backspace removes the last corner',
     outline: 'Click two corners (rectangle) · / switches between rectangle and polygon',
     text: 'Click where the text goes',
     footprint: 'Click places the footprint · R turns it',
     highlight: 'Click copper to highlight its net',
-    pair: 'Click fixes the pair · on a pad of the pair it ends there · / corner first · Backspace back · Enter or double-click ends',
+    pair: 'Click fixes the pair · on a pad of the pair it ends there · / corner first · Backspace back · Enter, double-click or Esc ends',
     noPartner:
       'No differential pair here: start on a pad of a net named like USB_DP / USB_DN, TX+ / TX- or CANH / CANL, with its partner within 10 mm',
     pairLayer: 'A pair stays on its layer: finish it, then change the layer of each net with a via',

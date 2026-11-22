@@ -95,7 +95,7 @@ export function OnlineParts({ initialQuery }: { readonly initialQuery: string })
           }}
           onKeyDown={(event) => {
             if (event.key === 'Enter') {
-              search('snapeda', false);
+              search('snapeda', true);
             }
           }}
         />
@@ -118,25 +118,26 @@ export function OnlineParts({ initialQuery }: { readonly initialQuery: string })
                 <button
                   type="button"
                   className="button button--primary"
-                  data-testid={`online-search-${provider.id}`}
-                  onClick={() => {
-                    search(provider.id, false);
-                  }}
-                >
-                  <Icon name="search" />
-                  <span>{t('parts.search', { provider: provider.name })}</span>
-                </button>
-                <button
-                  type="button"
-                  className="button"
                   title={t('parts.searchExternalTip', { provider: provider.name })}
                   data-testid={`online-external-${provider.id}`}
                   onClick={() => {
                     search(provider.id, true);
                   }}
                 >
+                  <Icon name="search" />
+                  <span>{t('parts.searchExternal', { provider: provider.name })}</span>
+                </button>
+                <button
+                  type="button"
+                  className="button"
+                  title={t('parts.searchTip', { provider: provider.name })}
+                  data-testid={`online-search-${provider.id}`}
+                  onClick={() => {
+                    search(provider.id, false);
+                  }}
+                >
                   <Icon name="reveal" />
-                  <span>{t('parts.searchExternal')}</span>
+                  <span>{t('parts.search')}</span>
                 </button>
               </div>
             </section>

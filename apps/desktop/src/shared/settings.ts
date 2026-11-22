@@ -9,12 +9,16 @@ export type ThemeSetting = 'system' | 'light' | 'dark';
  */
 export type WorkMode = 'beginner' | 'advanced';
 
+/** How far one notch of the mouse wheel zooms the 2D views. */
+export type WheelZoomSetting = 'fine' | 'normal' | 'coarse';
+
 /** User settings, persisted as JSON in the user data directory. */
 export interface Settings {
   readonly schemaVersion: 1;
   readonly language: LanguageSetting;
   readonly theme: ThemeSetting;
   readonly workMode: WorkMode;
+  readonly wheelZoom: WheelZoomSetting;
   readonly updates: {
     readonly checkOnStartup: boolean;
     /** A release the user chose to skip (for example `0.2.0`), or `null`. */
@@ -27,6 +31,7 @@ export interface SettingsPatch {
   readonly language?: LanguageSetting;
   readonly theme?: ThemeSetting;
   readonly workMode?: WorkMode;
+  readonly wheelZoom?: WheelZoomSetting;
   readonly updates?: Partial<Settings['updates']>;
 }
 
@@ -35,11 +40,13 @@ export const DEFAULT_SETTINGS: Settings = {
   language: 'system',
   theme: 'system',
   workMode: 'beginner',
+  wheelZoom: 'normal',
   updates: { checkOnStartup: true, skippedVersion: null },
 };
 
 const THEMES: readonly ThemeSetting[] = ['system', 'light', 'dark'];
 const WORK_MODES: readonly WorkMode[] = ['beginner', 'advanced'];
+export const WHEEL_ZOOM_SETTINGS: readonly WheelZoomSetting[] = ['fine', 'normal', 'coarse'];
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
@@ -57,6 +64,10 @@ function isWorkMode(value: unknown): value is WorkMode {
   return typeof value === 'string' && (WORK_MODES as readonly string[]).includes(value);
 }
 
+function isWheelZoom(value: unknown): value is WheelZoomSetting {
+  return typeof value === 'string' && (WHEEL_ZOOM_SETTINGS as readonly string[]).includes(value);
+}
+
 /**
  * Turns untrusted input (a settings file, an IPC message) into valid
  * settings. Invalid or missing values fall back to the defaults; unknown
@@ -71,6 +82,7 @@ export function sanitizeSettings(raw: unknown): Settings {
     language: isLanguageSetting(input['language']) ? input['language'] : DEFAULT_SETTINGS.language,
     theme: isThemeSetting(input['theme']) ? input['theme'] : DEFAULT_SETTINGS.theme,
     workMode: isWorkMode(input['workMode']) ? input['workMode'] : DEFAULT_SETTINGS.workMode,
+    wheelZoom: isWheelZoom(input['wheelZoom']) ? input['wheelZoom'] : DEFAULT_SETTINGS.wheelZoom,
     updates: {
       checkOnStartup:
         typeof updates['checkOnStartup'] === 'boolean'

@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react';
 
 import { LANGUAGES, isLanguage, type LanguageSetting } from '@shared/i18n';
-import type { ThemeSetting, WorkMode } from '@shared/settings';
+import { WHEEL_ZOOM_SETTINGS, type ThemeSetting, type WorkMode } from '@shared/settings';
 
 import { useAppState } from '../state';
 import { AutomationSettings } from '../automation/AutomationSettings';
@@ -94,6 +94,24 @@ export function SettingsDialog({ onClose, onCheckUpdates }: SettingsDialogProps)
           ))}
         </select>
         <span className="field__hint">{t('settings.workModeHint')}</span>
+      </label>
+
+      <label className="field">
+        <span className="field__label">{t('settings.wheelZoom')}</span>
+        <select
+          className="field__control"
+          value={settings.wheelZoom}
+          data-testid="setting-wheel-zoom"
+          onChange={(event) => {
+            const zoom = WHEEL_ZOOM_SETTINGS.find((z) => z === event.target.value);
+            updateSettings({ wheelZoom: zoom ?? 'normal' });
+          }}
+        >
+          <option value="fine">{t('settings.wheelZoomFine')}</option>
+          <option value="normal">{t('settings.wheelZoomNormal')}</option>
+          <option value="coarse">{t('settings.wheelZoomCoarse')}</option>
+        </select>
+        <span className="field__hint">{t('settings.wheelZoomHint')}</span>
       </label>
 
       <fieldset className="field field--group">

@@ -23,6 +23,7 @@ describe('sanitizeSettings', () => {
       language: 'de',
       theme: 'system',
       workMode: 'advanced',
+      wheelZoom: 'normal',
       updates: { checkOnStartup: false, skippedVersion: '0.2.0' },
     });
   });
@@ -39,6 +40,11 @@ describe('sanitizeSettings', () => {
   it('falls back to the beginner work mode', () => {
     expect(sanitizeSettings({ workMode: 'expert' }).workMode).toBe('beginner');
     expect(sanitizeSettings({}).workMode).toBe('beginner');
+  });
+
+  it('keeps a known wheel zoom step', () => {
+    expect(sanitizeSettings({ wheelZoom: 'fine' }).wheelZoom).toBe('fine');
+    expect(sanitizeSettings({ wheelZoom: 'huge' }).wheelZoom).toBe('normal');
   });
 });
 

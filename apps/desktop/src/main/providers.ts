@@ -24,6 +24,7 @@ import {
 } from '@shared/providers';
 
 import { paths } from './paths';
+import { present } from './window';
 
 /** Web contents of provider windows (the app's navigation rules skip them). */
 export const providerContents = new WeakSet<WebContents>();
@@ -170,6 +171,7 @@ export class ProviderWindows {
       height: 860,
       minWidth: 640,
       minHeight: 480,
+      show: false,
       title: `${providerById(id).name} – ElectronicWerk`,
       ...(process.platform === 'darwin' ? {} : { icon: paths.windowIcon }),
       webPreferences: this.webPreferences(id),
@@ -181,6 +183,7 @@ export class ProviderWindows {
         this.windows.delete(id);
       }
     });
+    present(window);
     void window.loadURL(url);
   }
 

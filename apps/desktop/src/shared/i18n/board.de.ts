@@ -43,14 +43,16 @@ export const boardDe: Messages['board'] = {
   hints: {
     select: 'R dreht, Umschalt+F wechselt die Seite, D zieht eine Leiterbahn, Entf löscht',
     route:
-      'Klick legt fest · V Via und Lagenwechsel · / Ecke zuerst · Rücktaste zurück · Enter oder Doppelklick beendet',
+      'Klick legt fest · V Via und Lagenwechsel · / Ecke zuerst · Rücktaste zurück · Enter, Doppelklick oder Esc beendet',
+    routeEnded:
+      'Leiterbahn beendet · Klick beginnt die nächste · Esc noch einmal: zurück zum Auswahl-Werkzeug',
     via: 'Klick setzt ein Via',
     zone: 'Klick setzt eine Ecke · Enter oder Doppelklick schließt · Rücktaste entfernt die letzte Ecke',
     outline: 'Klicke zwei Ecken (Rechteck) · / wechselt zwischen Rechteck und Polygon',
     text: 'Klicke, wo der Text hin soll',
     footprint: 'Klick platziert den Footprint · R dreht ihn',
     highlight: 'Klicke auf Kupfer, um sein Netz hervorzuheben',
-    pair: 'Klick legt das Paar fest · auf einem Pad des Paars endet es dort · / Ecke zuerst · Rücktaste zurück · Enter oder Doppelklick beendet',
+    pair: 'Klick legt das Paar fest · auf einem Pad des Paars endet es dort · / Ecke zuerst · Rücktaste zurück · Enter, Doppelklick oder Esc beendet',
     noPartner:
       'Hier beginnt kein differenzielles Paar: Starte auf einem Pad eines Netzes wie USB_DP / USB_DN, TX+ / TX- oder CANH / CANL, dessen Partner höchstens 10 mm entfernt ist',
     pairLayer:
@@ -367,7 +369,7 @@ export const boardDe: Messages['board'] = {
     step2:
       'Öffne die DSN-Datei im Router, lass ihn entflechten und speichere das Ergebnis als Sitzungsdatei (SES).',
     step3:
-      'Importiere die Sitzung: Ihre Leiterbahnen und Vias ersetzen die nicht gesperrten Leiterbahnen der entflochtenen Netze.',
+      'Importiere die Sitzung: Die Leiterbahnen und Vias daraus ersetzen die nicht gesperrten Leiterbahnen der entflochtenen Netze.',
     import: 'Sitzungsdatei importieren…',
     imported: '{tracks} Leiterbahnen und {vias} Vias vom Autorouter importiert',
     result:

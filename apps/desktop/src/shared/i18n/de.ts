@@ -68,6 +68,12 @@ export const de: Messages = {
     workModeAdvanced: 'Fortgeschritten',
     workModeHint:
       'Einsteiger: ElectronicWerk berechnet technische Werte wie Leiterbahnbreiten für eine Impedanz aus wenigen Angaben und wendet sie an. Fortgeschritten: Du legst jeden Wert selbst fest, das Programm zeigt das Ergebnis.',
+    wheelZoom: 'Zoomen mit dem Mausrad',
+    wheelZoomFine: 'Fein (8 % pro Raste)',
+    wheelZoomNormal: 'Normal (15 % pro Raste)',
+    wheelZoomCoarse: 'Grob (30 % pro Raste)',
+    wheelZoomHint:
+      'Wie weit eine Raste des Mausrads Schaltpläne, Leiterplatten und Vorschauen zoomt.',
   },
   updates: {
     checking: 'Suche nach Updates …',
@@ -1126,17 +1132,17 @@ export const de: Messages = {
         'Die Basisbibliothek enthält die Symbole, Footprints und 3D-Modelle der KiCad-Bibliotheken, an einem Ort durchsuchbar und auf Dubletten geprüft.',
       download: 'KiCad-Bibliothek herunterladen',
       downloadHint:
-        '{name}: {symbols} Symbole, {footprints} Footprints, {models} 3D-Modelle. Jetzt {size} herunterladen; 3D-Modelle werden geladen, wenn Sie sie zum ersten Mal ansehen.',
+        '{name}: {symbols} Symbole, {footprints} Footprints, {models} 3D-Modelle. Jetzt {size} herunterladen; 3D-Modelle werden geladen, wenn du sie zum ersten Mal ansiehst.',
       checking: 'Bibliothek wird auf GitHub gesucht…',
       noRelease:
-        'Es ist noch keine Bibliotheksversion verfügbar. Verwenden Sie stattdessen die KiCad-Bibliotheken dieses Computers.',
+        'Es ist noch keine Bibliotheksversion verfügbar. Verwende stattdessen die KiCad-Bibliotheken dieses Computers.',
       checkFailed: 'Die Bibliothek wurde nicht gefunden: {message}',
       downloading: '{file} wird geladen: {percent} %',
       installing: 'Bibliothek wird installiert…',
       downloadFailed: 'Der Download ist fehlgeschlagen: {message}',
       local: 'KiCad-Bibliotheken dieses Computers verwenden',
       localHint:
-        'Baut die Bibliothek aus einer KiCad-Installation oder aus Ordnern mit den KiCad-Bibliotheks-Repositories. 3D-Modelle werden umgewandelt, wenn Sie sie zum ersten Mal ansehen.',
+        'Baut die Bibliothek aus einer KiCad-Installation oder aus Ordnern mit den KiCad-Bibliotheks-Repositories. 3D-Modelle werden umgewandelt, wenn du sie zum ersten Mal ansiehst.',
       found: 'KiCad-Bibliotheken in {path}',
       useFound: 'Diese verwenden',
       chooseFolder: 'Ordner wählen…',
@@ -1169,7 +1175,7 @@ export const de: Messages = {
     },
     dup: {
       intro:
-        'Exakte Dubletten werden automatisch zusammengeführt. Ähnliche Dubletten warten auf Ihre Prüfung; Aliase sind verschiedene Bauteile mit derselben Zeichnung.',
+        'Exakte Dubletten werden automatisch zusammengeführt. Ähnliche Dubletten warten auf deine Prüfung; Aliase sind verschiedene Bauteile mit derselben Zeichnung.',
       classes: { exact: 'Exakte Dubletten', near: 'Ähnliche Dubletten', alias: 'Aliase' },
       classOne: { exact: 'Exakt', near: 'Ähnlich', alias: 'Alias' },
       allClasses: 'Alle Klassen',

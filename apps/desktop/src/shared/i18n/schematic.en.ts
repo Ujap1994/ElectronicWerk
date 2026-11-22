@@ -52,7 +52,8 @@ export const schematicEn = {
   hints: {
     select:
       'Click to select · drag to move (wires follow, Alt: they stay) · R rotate · X/Y mirror · Del delete',
-    wire: 'Click to start · click to bend · / changes the bend · a pin, Enter or a double-click ends it · Esc',
+    wire: 'Click to start · click to bend · / changes the bend · a pin, Enter or a double-click ends it · Esc discards it',
+    wireEnded: 'Wire ended · click starts the next one · Esc again: back to the select tool',
     label: 'Click where the label connects (a wire end or a pin) · R rotates',
     power: 'Click where the power port connects · R rotates',
     flag: 'Click on a pin or a wire end',

@@ -510,10 +510,12 @@ test('drags a track while its 45° neighbours keep their direction', async () =>
   await page.mouse.click(ex, ey);
   await page.keyboard.press('Enter');
   await expect(page.getByTestId('route-status')).toHaveCount(0);
+  // Still routing: the hint says how to get back to the select tool.
+  await expect(page.getByTestId('editor-hint')).toHaveText(/Esc again: back to the select tool/u);
+  await expect(page.getByTestId('editor-hint')).toHaveClass(/viewer__hint--next/u);
   // The route is in the board (and selected) once the view has reloaded.
   await expect(page.getByTestId('toolbar-undo')).toHaveAttribute('title', /Route/u);
   await settle(page);
-  await canvas.focus();
   await page.keyboard.press('Escape');
   await expect(page.getByTestId('board-tool-select')).toHaveAttribute('aria-pressed', 'true');
   // Escape ends the net highlight and then the selection of the new route.

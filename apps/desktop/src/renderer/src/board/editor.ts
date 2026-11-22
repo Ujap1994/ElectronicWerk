@@ -1009,7 +1009,13 @@ export class BoardEditor implements Interaction {
     if (route === null) {
       return;
     }
-    this.update({ route: null, preview: null });
+    // Still in the routing tool: say how to get back to the select tool.
+    const routing = this.state.tool === 'route' || this.state.tool === 'pair';
+    this.update({
+      route: null,
+      preview: null,
+      ...(routing ? { hint: 'board.hints.routeEnded' as const } : {}),
+    });
     const pair = route.pair;
     if (pair !== null) {
       if (pair.fixed.mine.length >= 2 && pair.fixed.theirs.length >= 2) {

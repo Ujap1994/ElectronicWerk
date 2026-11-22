@@ -97,7 +97,9 @@ test('places, wires, edits and checks a schematic', async () => {
   await page.keyboard.press('Enter');
   await expect(page.getByTestId('preview-wire')).toHaveCount(0);
   await expect(page.getByTestId('toolbar-undo')).toHaveAttribute('title', /Draw wire/u);
+  await expect(page.getByTestId('editor-hint')).toHaveText(/Esc again: back to the select tool/u);
   await page.keyboard.press('Escape');
+  await expect(page.getByTestId('editor-hint')).not.toHaveText(/Esc again/u);
 
   // The check finds the loose end and the open pin 2.
   await page.getByTestId('action-erc').click();

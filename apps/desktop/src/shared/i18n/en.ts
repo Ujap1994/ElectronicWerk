@@ -71,6 +71,11 @@ export const en = {
     workModeAdvanced: 'Advanced',
     workModeHint:
       'Beginner: ElectronicWerk computes and applies engineering values such as track widths for an impedance from a few choices. Advanced: you set every value yourself and the app shows the result.',
+    wheelZoom: 'Mouse wheel zoom',
+    wheelZoomFine: 'Fine (8 % per notch)',
+    wheelZoomNormal: 'Normal (15 % per notch)',
+    wheelZoomCoarse: 'Coarse (30 % per notch)',
+    wheelZoomHint: 'How far one notch of the mouse wheel zooms schematics, boards and previews.',
   },
   updates: {
     checking: 'Checking for updates…',

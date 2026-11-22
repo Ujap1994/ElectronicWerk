@@ -5,7 +5,7 @@ export const partgenDe: Messages['partgen'] = {
   title: 'Bauteil aus einem Datenblatt',
   open: 'Datenblatt öffnen …',
   openHint:
-    'Wählen Sie das PDF-Datenblatt des Bauteils. Alles, was daraus gelesen wird, sehen Sie zur Kontrolle, bevor etwas erzeugt wird.',
+    'Wähle das PDF-Datenblatt des Bauteils. Alles, was daraus gelesen wird, siehst du zur Kontrolle, bevor etwas erzeugt wird.',
   drop: 'PDF-Datenblatt hier ablegen',
   reading: 'Datenblatt wird gelesen …',
   recognising: 'Pins, Gehäuse und Maße werden gesucht …',
@@ -57,7 +57,7 @@ export const partgenDe: Messages['partgen'] = {
   },
   package: {
     choose: 'Gehäuse',
-    none: 'Es wurde kein Gehäuse gefunden. Tragen Sie die Pins ein und wählen Sie eine Gehäusefamilie.',
+    none: 'Es wurde kein Gehäuse gefunden. Trage die Pins ein und wähle eine Gehäusefamilie.',
     family: 'Gehäusefamilie',
     terminals: 'Anschlüsse',
     exposedPad: 'Freiliegendes Pad unter dem Gehäuse',
@@ -71,8 +71,8 @@ export const partgenDe: Messages['partgen'] = {
     main: 'Hauptmaße zeigen',
     drawing: 'Gehäusezeichnung zeigen',
     noPins:
-      'Noch kein Pin hat ein Pad in diesem Gehäuse. Ergänzen Sie die Pins im nächsten Schritt oder wählen Sie ein anderes Gehäuse.',
-    other: 'Wählen Sie die Gehäusefamilie, damit der Footprint erzeugt werden kann.',
+      'Noch kein Pin hat ein Pad in diesem Gehäuse. Ergänze die Pins im nächsten Schritt oder wähle ein anderes Gehäuse.',
+    other: 'Wähle die Gehäusefamilie, damit der Footprint erzeugt werden kann.',
     fromTable: '{count} Maße aus dem Datenblatt, {standard} Standardwerte.',
   },
   dims: {
@@ -117,7 +117,7 @@ export const partgenDe: Messages['partgen'] = {
     newName: 'NEU',
     remove: 'Pin {name} entfernen',
     missing:
-      'Pads ohne Pin: {pads}. Sie werden zu nicht verbundenen Pins (NC), wenn Sie sie nicht ergänzen.',
+      'Pads ohne Pin: {pads}. Sie werden zu nicht verbundenen Pins (NC), wenn du sie nicht ergänzt.',
     count: '{count} Pins in {package}',
   },
   types: {
@@ -146,8 +146,8 @@ export const partgenDe: Messages['partgen'] = {
     density: 'Padgröße (IPC-7351-Dichte)',
     split: 'Symbol ab dieser Pinzahl in Teilsymbole aufteilen (0: nie)',
     library: 'In die Bibliothek',
-    noLibrary: 'Das Projekt hat noch keine Bibliothek. Legen Sie zuerst im Projektbaum eine an.',
-    noProject: 'Öffnen Sie ein Projekt, um das Bauteil in seiner Bibliothek zu speichern.',
+    noLibrary: 'Das Projekt hat noch keine Bibliothek. Lege zuerst im Projektbaum eine an.',
+    noProject: 'Öffne ein Projekt, um das Bauteil in seiner Bibliothek zu speichern.',
     generate: 'Bauteil erzeugen',
     generating: 'Wird erzeugt …',
     done: '{component} ist in der Bibliothek {library}: Symbol {symbol}, Footprint {footprint} und sein 3D-Modell.',
@@ -168,9 +168,9 @@ export const partgenDe: Messages['partgen'] = {
     related: 'In einer Bibliothek mit anderem Gehäuse: {list}.',
   },
   ai: {
-    title: 'Hilfe von Ihrem KI-Agenten',
+    title: 'Hilfe von deinem KI-Agenten',
     intro:
-      'Ein unübersichtliches Datenblatt? Ihr KI-Agent (zum Beispiel Claude) kann es lesen und den Entwurf über den MCP-Server von ElectronicWerk korrigieren; hier wird kein API-Schlüssel gespeichert. Entwurf speichern, dem Agenten diese Anfrage geben und den Entwurf danach wieder laden.',
+      'Ein unübersichtliches Datenblatt? Dein KI-Agent (zum Beispiel Claude) kann es lesen und den Entwurf über den MCP-Server von ElectronicWerk korrigieren; hier wird kein API-Schlüssel gespeichert. Entwurf speichern, dem Agenten diese Anfrage geben und den Entwurf danach wieder laden.',
     save: 'Entwurf für den Agenten speichern',
     saved: 'Der Entwurf ist gespeichert: {path}',
     load: 'Korrigierten Entwurf laden',

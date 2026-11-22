@@ -56,7 +56,9 @@ export const schematicDe: Messages['schematic'] = {
   hints: {
     select:
       'Klicken wählt aus · Ziehen verschiebt (Leitungen folgen, mit Alt nicht) · R drehen · X/Y spiegeln · Entf löschen',
-    wire: 'Klicken beginnt · Klicken knickt · / wechselt die Knickrichtung · ein Pin, Enter oder Doppelklick beendet · Esc',
+    wire: 'Klicken beginnt · Klicken knickt · / wechselt die Knickrichtung · ein Pin, Enter oder Doppelklick beendet · Esc verwirft',
+    wireEnded:
+      'Leitung beendet · Klicken beginnt die nächste · Esc noch einmal: zurück zum Auswahl-Werkzeug',
     label: 'Dort klicken, wo das Label anschließt (Leitungsende oder Pin) · R dreht',
     power: 'Dort klicken, wo das Versorgungssymbol anschließt · R dreht',
     flag: 'Auf einen Pin oder ein Leitungsende klicken',

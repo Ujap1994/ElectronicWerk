@@ -7,10 +7,12 @@ export const partsEn = {
     'Search a part on SnapEDA or Ultra Librarian and download it in KiCad format (KiCad 6 or newer). ElectronicWerk imports the download into the project library: symbol, footprint and 3D model.',
   query: 'Part number or keyword',
   queryPlaceholder: 'for example NE555 or TPS62130',
-  search: 'Search on {provider}',
-  searchExternal: 'In your browser',
+  search: 'In a window of the app',
+  searchTip:
+    'Open {provider} in a window of ElectronicWerk. The bot check of some websites does not let embedded browsers through; then use your own browser.',
+  searchExternal: 'Search on {provider}',
   searchExternalTip:
-    'Open {provider} in your own browser; import the download with “Import a download…”',
+    'Open {provider} in your own browser. ElectronicWerk watches your downloads folder for 30 minutes and offers parts you download there for import.',
   searchOnline: 'Search online (SnapEDA, Ultra Librarian)…',
   importFile: 'Import a download…',
   importFileTip: 'Import a ZIP file (or a KiCad library or STEP file) you downloaded',
@@ -20,10 +22,10 @@ export const partsEn = {
     ultralibrarian:
       'Models from manufacturers in many CAD formats, free with an account. Choose “KiCad” when you download.',
   },
-  session: 'Signed in (the provider window keeps the session)',
+  session: 'Signed in in the app window',
   noSession: 'Not signed in',
   howItWorks:
-    'The provider window is a separate, isolated browser: ElectronicWerk never sees your password and does not search or download anything by itself. Files you download there are offered for import.',
+    'Easiest in your own browser: you are signed in there already, and ElectronicWerk offers parts you download into your downloads folder in the next 30 minutes for import. The app window is a separate, isolated browser. ElectronicWerk never sees your password and does not search or download anything by itself.',
   noProject: 'Open a project to import {file}.',
   downloaded: 'Downloaded {file}',
   downloadFailed: 'The download of {file} failed.',

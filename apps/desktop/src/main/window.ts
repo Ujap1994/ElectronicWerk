@@ -3,6 +3,18 @@ import { BrowserWindow, nativeTheme } from 'electron';
 import { paths } from './paths';
 import { APP_ORIGIN } from './urls';
 
+/**
+ * Shows a window maximized (the maintainer's wish: every window starts
+ * filling the screen). `EW_WINDOW_MAXIMIZE=0` keeps the default size — the
+ * end-to-end tests use it to get the same window size on every machine.
+ */
+export function present(window: BrowserWindow): void {
+  if (process.env['EW_WINDOW_MAXIMIZE'] !== '0') {
+    window.maximize();
+  }
+  window.show();
+}
+
 /** Background colours matching the UI theme tokens (avoids a white flash). */
 const BACKGROUND = { light: '#f6f7f9', dark: '#15171c' } as const;
 
@@ -42,7 +54,7 @@ export function createViewWindow(
     webPreferences: webPreferences(isPackaged),
   });
   window.once('ready-to-show', () => {
-    window.show();
+    present(window);
   });
   const base = devUrl ?? `${APP_ORIGIN}/index.html`;
   void window.loadURL(`${base}#${fragment}`);
@@ -64,7 +76,7 @@ export function createMainWindow(devUrl: string | undefined, isPackaged: boolean
   });
 
   window.once('ready-to-show', () => {
-    window.show();
+    present(window);
   });
 
   if (devUrl === undefined) {
