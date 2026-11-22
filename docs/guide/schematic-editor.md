@@ -101,7 +101,8 @@ Press <kbd>W</kbd>, then:
 ![Drawing a wire from a resistor to a capacitor](/screenshots/schematic-wire.png)
 
 <kbd>Backspace</kbd> removes the last corner, <kbd>Esc</kbd> throws the wire
-away. Straight runs are merged: three points on a line give one wire.
+away. After a wire, the status line shows in green that the next click starts
+another wire and <kbd>Esc</kbd> once more returns to **Select and move**. Straight runs are merged: three points on a line give one wire.
 
 Two wires are connected where an end of one meets the other, at its end or in
 its middle. Wires that only cross are **not** connected. ElectronicWerk adds a

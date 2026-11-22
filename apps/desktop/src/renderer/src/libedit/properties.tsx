@@ -1034,7 +1034,7 @@ export function FootprintSelection({
           {PAD_LAYERS.map((layer) => (
             <CheckInput
               key={layer}
-              label={layer}
+              label={layerName(t, layer)}
               checked={pad.layers.includes(layer)}
               onSave={(on) => {
                 const layers = on

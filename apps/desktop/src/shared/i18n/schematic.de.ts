@@ -129,7 +129,7 @@ export const schematicDe: Messages['schematic'] = {
     style: 'Symbol',
     parameters: 'Parameter',
     addParameter: 'Parameter hinzufügen',
-    parameterName: 'Name des Parameters',
+    parameterName: 'Parametername',
     parameterValue: 'Wert von {name}',
     removeParameter: '{name} entfernen',
     syncPins: 'Pins aus dem Unterplan übernehmen',

@@ -281,6 +281,19 @@ fn draw_board(pcb: &Pcb, grid: i64, options: &Options<'_>, record: bool) -> (Sce
     }
     b.set_nets(names);
     let net_of = |net: Option<Id>| net.and_then(|id| net_index.get(&id).copied());
+    // Pad numbers and net names, shown on top of the copper when zoomed in
+    // (not in prints).
+    let name_layers = (!record).then(|| NameLayers::new(&mut b));
+    let net_names: HashMap<Id, &str> = pcb
+        .nets
+        .iter()
+        .map(|net| (net.id, short_net(&net.name)))
+        .collect();
+    let net_name = |net: Option<Id>| -> String {
+        net.and_then(|id| net_names.get(&id).copied())
+            .unwrap_or_default()
+            .to_owned()
+    };
 
     // Zones first: they are the largest objects and sit below everything
     // else on their layer.
@@ -293,7 +306,7 @@ fn draw_board(pcb: &Pcb, grid: i64, options: &Options<'_>, record: bool) -> (Sce
     graphics(&mut b, &layers, pcb, origin_p, options);
 
     for fp in &pcb.footprints {
-        footprint(
+        let pads = footprint(
             &mut b,
             &layers,
             fp,
@@ -302,6 +315,9 @@ fn draw_board(pcb: &Pcb, grid: i64, options: &Options<'_>, record: bool) -> (Sce
             options,
             pcb.stackup.copper_count(),
         );
+        if let Some(names) = &name_layers {
+            names.pads(&mut b, fp, &pads, origin_p, &net_name);
+        }
     }
 
     for track in &pcb.tracks {
@@ -312,14 +328,17 @@ fn draw_board(pcb: &Pcb, grid: i64, options: &Options<'_>, record: bool) -> (Sce
         b.set_net(obj, net_of(track.net));
         let (start, end) = (local(track.start), local(track.end));
         let width = track.width as f64;
-        match track
+        if let Some((center, radius, from, sweep)) = track
             .mid
             .and_then(|mid| geom::arc_through(start, local(mid), end))
         {
-            Some((center, radius, from, sweep)) => {
-                b.arc(layer, obj, center, radius, from, sweep, width);
+            b.arc(layer, obj, center, radius, from, sweep, width);
+        } else {
+            b.segment(layer, obj, start, end, width);
+            if let Some(names) = &name_layers {
+                let net = net_name(track.net);
+                names.track(&mut b, track.layer, obj, start, end, width, &net);
             }
-            None => b.segment(layer, obj, start, end, width),
         }
     }
 
@@ -343,6 +362,180 @@ fn draw_board(pcb: &Pcb, grid: i64, options: &Options<'_>, record: bool) -> (Sce
         grid,
     };
     (b, header)
+}
+
+/// A net name without its sheet path (`/Sensors/SDA` → `SDA`).
+fn short_net(name: &str) -> &str {
+    name.rsplit('/').next().unwrap_or(name)
+}
+
+/// The layers with pad numbers and net names of each board side.
+struct NameLayers {
+    top: usize,
+    bottom: usize,
+}
+
+impl NameLayers {
+    fn new(b: &mut SceneBuilder) -> Self {
+        let mut layer = |side: &'static str, z: i32| {
+            b.layer(LayerDef {
+                key: format!("names.{side}"),
+                group: "names",
+                side: Some(side),
+                name: None,
+                z,
+                visible: true,
+            })
+        };
+        Self {
+            top: layer("top", 1100),
+            bottom: layer("bottom", 1090),
+        }
+    }
+
+    /// Number and net of each pad, as large as the pad allows, along its
+    /// longer side; two lines when the pad has a net.
+    fn pads(
+        &self,
+        b: &mut SceneBuilder,
+        fp: &FootprintInstance,
+        objects: &[u32],
+        origin: P,
+        net_name: &dyn Fn(Option<Id>) -> String,
+    ) {
+        let bottom = fp.side == Side::Bottom;
+        let xf = Xform {
+            offset: P::of(fp.at).sub(origin),
+            angle: geom::radians(fp.rotation),
+            mirror: bottom,
+        };
+        for (index, pad) in fp.pads.iter().enumerate() {
+            let (on_top, on_bottom) = pad_sides(pad, bottom);
+            let Some(obj) = objects.get(index).copied() else {
+                continue;
+            };
+            if !on_top && !on_bottom {
+                continue;
+            }
+            let rotation = geom::radians(pad.rotation);
+            let center = xf.apply(P::of(pad.at));
+            let (w, h) = (pad.size.w as f64, pad.size.h as f64);
+            let (long, short) = (w.max(h), w.min(h));
+            // Along the longer side of the pad.
+            let turn = if h > w {
+                std::f64::consts::FRAC_PI_2
+            } else {
+                0.0
+            };
+            // Readable (not upside down), so the number stays the upper line.
+            let angle = geom::readable(xf.shape_angle(rotation + turn).to_degrees());
+            let across = P::new(0.0, 1.0)
+                .rotate(angle.to_radians())
+                .scale(short * 0.22);
+            let net = net_name(pad.net);
+            let lines: Vec<(&str, P, f64)> = if net.is_empty() {
+                vec![(pad.number.as_str(), center, short * 0.6)]
+            } else {
+                // The scene's y axis points up: the number is the upper line.
+                vec![
+                    (pad.number.as_str(), center.add(across), short * 0.36),
+                    (net.as_str(), center.sub(across), short * 0.36),
+                ]
+            };
+            for (text, at, height) in lines {
+                let chars = text.chars().count().max(1) as f64;
+                let size = height.min(long * 0.86 / (chars * text::ADVANCE));
+                if text.is_empty() || size < 20_000.0 {
+                    continue;
+                }
+                for (side, layer) in [(on_top, self.top), (on_bottom, self.bottom)] {
+                    if !side {
+                        continue;
+                    }
+                    let item = TextItem {
+                        text: text.to_owned(),
+                        at,
+                        size,
+                        rotation: angle,
+                        h: 0,
+                        v: 0,
+                        flags: if layer == self.bottom {
+                            text::MIRROR
+                        } else {
+                            0
+                        },
+                        obj,
+                    };
+                    b.text(layer, obj, text::upright(item));
+                }
+            }
+        }
+    }
+
+    /// The net name in the middle of a straight track, if it fits.
+    #[allow(clippy::too_many_arguments, reason = "one track")]
+    fn track(
+        &self,
+        b: &mut SceneBuilder,
+        layer: CopperLayer,
+        obj: u32,
+        start: P,
+        end: P,
+        width: f64,
+        net: &str,
+    ) {
+        let target = match layer {
+            CopperLayer::Top => self.top,
+            CopperLayer::Bottom => self.bottom,
+            CopperLayer::Inner(_) => return,
+        };
+        if net.is_empty() {
+            return;
+        }
+        let length = end.sub(start).len();
+        let size = width * 0.55;
+        let span = net.chars().count() as f64 * text::ADVANCE * size;
+        if size < 20_000.0 || span * 1.6 > length {
+            return;
+        }
+        let d = end.sub(start);
+        let item = TextItem {
+            text: net.to_owned(),
+            at: start.add(d.scale(0.5)),
+            size,
+            rotation: d.y.atan2(d.x).to_degrees(),
+            h: 0,
+            v: 0,
+            flags: if target == self.bottom {
+                text::MIRROR
+            } else {
+                0
+            },
+            obj,
+        };
+        b.text(target, obj, text::upright(item));
+    }
+}
+
+/// Whether a pad has copper on the top and on the bottom of the board.
+fn pad_sides(pad: &Pad, flipped: bool) -> (bool, bool) {
+    let mut top = false;
+    let mut bottom = false;
+    for spec in &pad.layers {
+        let (t, b) = match spec {
+            LayerSpec::AllCopper => (true, true),
+            LayerSpec::Layer(Layer::Copper(CopperLayer::Top)) => (true, false),
+            LayerSpec::Layer(Layer::Copper(CopperLayer::Bottom)) => (false, true),
+            _ => (false, false),
+        };
+        top |= t;
+        bottom |= b;
+    }
+    if flipped {
+        (bottom, top)
+    } else {
+        (top, bottom)
+    }
 }
 
 /// Free shapes and texts of the board.
@@ -397,7 +590,7 @@ fn footprint(
     net_of: &dyn Fn(Option<Id>) -> Option<u32>,
     options: &Options<'_>,
     copper_count: u8,
-) {
+) -> Vec<u32> {
     let bottom = fp.side == Side::Bottom;
     let xf = Xform {
         offset: P::of(fp.at).sub(origin),
@@ -424,12 +617,14 @@ fn footprint(
             &xf,
         );
     }
+    let mut pads = Vec::with_capacity(fp.pads.len());
     for (index, pad) in fp.pads.iter().enumerate() {
         let pad_obj = b.object(ObjType::Pad, fp.id, Some(obj), Some(index));
         b.set_net(pad_obj, net_of(pad.net));
         draw_pad(b, layers, pad_obj, pad, &xf, &flip);
         let bbox = b.bbox(pad_obj);
         b.extend(obj, bbox);
+        pads.push(pad_obj);
     }
     if b.bbox(obj).is_empty() {
         b.extend(obj, geom::BBox::of(xf.offset).grow(250_000.0));
@@ -441,14 +636,7 @@ fn footprint(
         let Some(layer) = layers.get(flip(text.layer)) else {
             continue;
         };
-        let content = match text.kind {
-            FootprintTextKind::Designator if text.text.is_empty() => fp.designator.clone(),
-            FootprintTextKind::Value if text.text.is_empty() => fp.value.clone(),
-            _ => text
-                .text
-                .replace("${REFERENCE}", &fp.designator)
-                .replace("${VALUE}", &fp.value),
-        };
+        let content = fp.shown_text(text);
         let text_obj = b.object(ObjType::FootprintText, fp.id, Some(obj), Some(index));
         let rotation = xf.shape_angle(geom::radians(text.rotation)).to_degrees();
         let mut item = TextItem::styled(
@@ -463,6 +651,7 @@ fn footprint(
         }
         b.text(layer, text_obj, text::upright(item));
     }
+    pads
 }
 
 /// The scene of the footprint editor: a footprint at the origin with every
@@ -635,6 +824,15 @@ mod tests {
         );
         let silk = meta.layers.iter().find(|l| l.key == "silk.top").unwrap();
         assert!(!silk.texts.is_empty(), "designators");
+        // Pad numbers and net names, on their own layers.
+        let names = meta.layers.iter().find(|l| l.key == "names.top").unwrap();
+        assert_eq!(names.group, "names");
+        assert!(names.texts.iter().any(|t| t.text == "1"), "pad numbers");
+        let net = short_net(&pcb.nets.iter().find(|n| !n.name.is_empty()).unwrap().name);
+        assert!(names.texts.iter().any(|t| t.text == net), "net names");
+        // Not in prints.
+        let plotted = plot(pcb, &options());
+        assert!(plotted.layers.iter().all(|l| !l.key.starts_with("names.")));
         assert_eq!(meta.nets.len(), pcb.nets.len());
         let objects = pcb.tracks.len() + pcb.vias.len() + pcb.footprints.len();
         assert!(

@@ -58,6 +58,9 @@ part is about 10 mm wide on a typical screen.
 | <kbd>Shift</kbd> + wheel             | Pan sideways                                            |
 | <kbd>Ctrl</kbd>/<kbd>⌘</kbd> + wheel | Zoom continuously (for mice with a free-spinning wheel) |
 
+How far one notch zooms (8, 15 or 30 %) is set under
+[Mouse wheel zoom](./settings#mouse-wheel-zoom) in the settings.
+
 ### Trackpad
 
 | Gesture                 | Effect                  |
@@ -189,6 +192,21 @@ the board outline and the drill holes. Copper layers with a name in the
 Solder mask and paste are hidden by default. Layers without anything on them
 are marked **Empty**. Overlapping shapes on one layer never darken each other,
 so a track that runs over a pad looks like one piece of copper.
+
+### Pad and net names
+
+The layers **Pad and net names (top)** and **(bottom)** label the copper,
+like KiCad does: each pad shows its **number** and, below it, the **name of
+its net** (without the sheet path), as large as the pad allows and along its
+longer side; a straight track shows its net name in the middle when the name
+fits. The names appear once they are large enough to read (zoom in) and
+always face the viewer's side; the names of the bottom side are mirrored
+until you [view the board from the bottom](#view-from-the-bottom). Hide the
+layers to switch the names off. They are only shown in the view: prints,
+Gerber files and the other outputs never contain them, and clicking a name
+selects the pad or track below it.
+
+![Pad numbers and net names on pads and tracks](/screenshots/viewer-pad-selected.png)
 
 ### Active layer
 

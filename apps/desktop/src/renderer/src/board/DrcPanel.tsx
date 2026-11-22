@@ -6,6 +6,8 @@ import { isEngineEvent } from '@shared/project';
 import { Icon } from '../components/Icon';
 import { useProject } from '../project/ProjectProvider';
 import { errorMessage } from '../project/labels';
+import { layerLabel } from '../viewer/labels';
+import { translateTerm } from './drc-terms';
 import { useAppState } from '../state';
 import { drcState, type DrcFinding, type DrcReport } from './stores';
 
@@ -78,6 +80,9 @@ export function findingMessage(
       return finding.message;
     }
     args['problem'] = translated;
+  }
+  for (const [name, value] of Object.entries(args)) {
+    args[name] = translateTerm(t, value);
   }
   // Enclosure findings about the board itself name no part.
   if (finding.code.startsWith('mechanical-') && args['part'] === '') {
@@ -237,7 +242,9 @@ export function DrcPanel({
               >
                 <Icon name={finding.severity === 'error' ? 'error' : 'warning'} size={16} />
                 <span className="erc__message">{findingMessage(t, finding)}</span>
-                <span className="erc__where">{finding.layer ?? ''}</span>
+                <span className="erc__where">
+                  {finding.layer === undefined ? '' : layerLabel(t, finding.layer)}
+                </span>
               </button>
             </li>
           ))}

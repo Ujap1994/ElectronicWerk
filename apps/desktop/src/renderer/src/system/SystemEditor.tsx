@@ -84,7 +84,7 @@ function ConnectorPicker({
   return (
     <span className="system__picker">
       <select
-        className="input"
+        className="field__control"
         value={value?.board ?? ''}
         data-testid={`${testId}-board`}
         aria-label={t('system.link.boardA')}
@@ -109,7 +109,7 @@ function ConnectorPicker({
       </select>
       {value !== undefined && (
         <select
-          className="input"
+          className="field__control"
           value={value.designator}
           data-testid={`${testId}-connector`}
           aria-label={t('system.link.connector')}
@@ -530,7 +530,7 @@ export function SystemEditor({ document }: { readonly document: DocumentSummary 
                     <td>
                       <input
                         key={`${b.id}:${b.name}`}
-                        className="input"
+                        className="field__control"
                         defaultValue={b.name}
                         aria-label={t('system.board.name')}
                         onBlur={(event) => {
@@ -912,7 +912,7 @@ function LinkEditor({
       <div className="system__row">
         <span className="system__label">{t('system.link.pairing')}</span>
         <select
-          className="input"
+          className="field__control"
           value={link.pairing ?? 'number'}
           data-testid="system-link-pairing"
           onChange={(event) => {
@@ -990,11 +990,12 @@ function CableEditor({
     value: string | undefined,
     label: MessageKey,
     commit: (value: string) => void,
+    width: 'pin' | 'short' | 'wide' = 'wide',
     testId?: string,
   ): ReactNode => (
     <input
       key={`${label}:${value ?? ''}`}
-      className="input"
+      className={`field__control system__input system__input--${width}`}
       defaultValue={value ?? ''}
       aria-label={t(label)}
       data-testid={testId}
@@ -1008,26 +1009,43 @@ function CableEditor({
   const [first, second] = cable.ends;
   return (
     <div className="system__editor" data-testid="system-cable-editor">
-      <div className="system__row">
-        <label className="system__label">{t('system.cable.name')}</label>
-        {text(cable.name, 'system.cable.name', (name) => {
-          onUpdate({ name });
-        })}
-        <label className="system__label">{t('system.cable.part')}</label>
-        {text(cable.part, 'system.cable.part', (part) => {
-          onUpdate({ part });
-        })}
-        <label className="system__label">{t('system.cable.length')}</label>
-        <NumberField
-          key={`len:${String(cable.length ?? 0)}`}
-          value={fromNm(cable.length)}
-          label={t('system.cable.length')}
-          step={10}
-          testId="system-cable-length"
-          onCommit={(mm) => {
-            onUpdate({ length: Math.max(0, Math.round(mm * 1e6)) });
+      <div className="system__fields">
+        <label className="field">
+          <span className="field__label">{t('system.cable.name')}</span>
+          {text(cable.name, 'system.cable.name', (name) => {
+            onUpdate({ name });
+          })}
+        </label>
+        <label className="field">
+          <span className="field__label">{t('system.cable.part')}</span>
+          {text(cable.part, 'system.cable.part', (part) => {
+            onUpdate({ part });
+          })}
+        </label>
+        <label className="field">
+          <span className="field__label">{t('system.cable.length')}</span>
+          <NumberField
+            key={`len:${String(cable.length ?? 0)}`}
+            value={fromNm(cable.length)}
+            label={t('system.cable.length')}
+            step={10}
+            testId="system-cable-length"
+            onCommit={(mm) => {
+              onUpdate({ length: Math.max(0, Math.round(mm * 1e6)) });
+            }}
+          />
+        </label>
+        <button
+          type="button"
+          className="button button--danger system__remove"
+          data-testid="system-cable-remove"
+          onClick={() => {
+            void call('system.removeCable', { id: cable.id });
           }}
-        />
+        >
+          <Icon name="trash" size={16} />
+          {t('system.cable.remove')}
+        </button>
       </div>
       <h3 className="system__subtitle">{t('system.cable.ends')}</h3>
       <table className="system__table">
@@ -1121,17 +1139,6 @@ function CableEditor({
           <Icon name="plus" size={16} />
           {t('system.cable.addWire')}
         </button>
-        <button
-          type="button"
-          className="button button--danger"
-          data-testid="system-cable-remove"
-          onClick={() => {
-            void call('system.removeCable', { id: cable.id });
-          }}
-        >
-          <Icon name="trash" size={16} />
-          {t('system.cable.remove')}
-        </button>
       </div>
       <table className="system__table" data-testid="system-wires">
         <thead>
@@ -1153,7 +1160,7 @@ function CableEditor({
             const pair = pairs.find((p) => p.wire === w.id);
             const endSelect = (value: string, onChange: (end: string) => void): ReactNode => (
               <select
-                className="input"
+                className="field__control"
                 value={value}
                 onChange={(event) => {
                   onChange(event.target.value);
@@ -1175,9 +1182,14 @@ function CableEditor({
                   })}
                 </td>
                 <td>
-                  {text(w.from.pin, 'system.cable.pin', (pin) => {
-                    setWire(i, { from: { ...w.from, pin } });
-                  })}
+                  {text(
+                    w.from.pin,
+                    'system.cable.pin',
+                    (pin) => {
+                      setWire(i, { from: { ...w.from, pin } });
+                    },
+                    'pin',
+                  )}
                 </td>
                 <td>
                   {endSelect(w.to.end, (end) => {
@@ -1185,9 +1197,14 @@ function CableEditor({
                   })}
                 </td>
                 <td>
-                  {text(w.to.pin, 'system.cable.pin', (pin) => {
-                    setWire(i, { to: { ...w.to, pin } });
-                  })}
+                  {text(
+                    w.to.pin,
+                    'system.cable.pin',
+                    (pin) => {
+                      setWire(i, { to: { ...w.to, pin } });
+                    },
+                    'pin',
+                  )}
                 </td>
                 <td>
                   {w.signal !== undefined && w.signal !== ''
@@ -1195,14 +1212,24 @@ function CableEditor({
                     : shortName(pair?.aNet ?? pair?.bNet)}
                 </td>
                 <td>
-                  {text(w.color, 'system.cable.color', (color) => {
-                    setWire(i, { color });
-                  })}
+                  {text(
+                    w.color,
+                    'system.cable.color',
+                    (color) => {
+                      setWire(i, { color });
+                    },
+                    'short',
+                  )}
                 </td>
                 <td>
-                  {text(w.gauge, 'system.cable.gauge', (gauge) => {
-                    setWire(i, { gauge });
-                  })}
+                  {text(
+                    w.gauge,
+                    'system.cable.gauge',
+                    (gauge) => {
+                      setWire(i, { gauge });
+                    },
+                    'short',
+                  )}
                 </td>
                 <td>{pair !== undefined && <Status status={pair.status} />}</td>
                 <td>
@@ -1236,7 +1263,7 @@ function Aliases({ info, call }: { readonly info: SystemInfo; readonly call: Cal
       <h3 className="system__subtitle">{t('system.findings.aliases')}</h3>
       <p className="field__hint">{t('system.findings.aliasesHint')}</p>
       <textarea
-        className="input"
+        className="field__control"
         rows={3}
         value={draft ?? current}
         data-testid="system-aliases"

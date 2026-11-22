@@ -352,7 +352,7 @@ select {
 
 /* The design rules: wide tables of lengths. */
 .dialog--rules {
-  width: min(880px, calc(100vw - 32px));
+  width: min(1180px, calc(100vw - 32px));
 }
 
 .dialog__footer {
@@ -3509,7 +3509,7 @@ textarea.field__control {
 }
 
 .item-canvas__field select {
-  max-width: 150px;
+  max-width: 190px;
   padding: 2px 4px;
   border: 1px solid var(--color-border);
   border-radius: var(--radius-s);
@@ -3696,7 +3696,17 @@ textarea.field__control {
 }
 
 .item-table__table .length-input__control {
-  width: 72px;
+  width: 64px;
+}
+
+/* Compact columns, so the tables fit beside the drawing. */
+.item-table__table input.field__control:not(.length-input__control) {
+  width: 9em;
+}
+
+.item-table__table input[data-testid^='pin-number-'],
+.item-table__table input[data-testid^='pad-number-'] {
+  width: 4.5em;
 }
 
 .item-table__layers {
@@ -4136,6 +4146,11 @@ textarea.field__control {
   gap: var(--space-2);
 }
 
+/* Rows of fields without labels above them. */
+.board-form__row--center {
+  align-items: center;
+}
+
 .board-form__group {
   display: flex;
   flex-wrap: wrap;
@@ -4299,6 +4314,7 @@ textarea.field__control {
 
 .board-add {
   align-self: flex-start;
+  width: fit-content;
 }
 
 /* --- Output jobs ---------------------------------------------------------- */
@@ -6213,8 +6229,28 @@ textarea.field__control {
   font-size: var(--font-size-s);
 }
 
-.system__table .input {
+.system .system__table .field__control {
   min-width: 0;
+  padding: 2px 6px;
+}
+
+.system__input--pin {
+  width: 4.5em;
+}
+
+.system__input--short {
+  width: 7em;
+}
+
+.system__fields {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 220px)) auto;
+  align-items: end;
+  gap: var(--space-2) var(--space-3);
+}
+
+.system__remove {
+  justify-self: end;
 }
 
 .system__table .mech__number {

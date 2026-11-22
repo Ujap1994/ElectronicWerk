@@ -113,6 +113,8 @@ export class Scene {
   readonly meta: SceneMeta;
   readonly buffer: ArrayBuffer;
   readonly layers: readonly LayerViews[];
+  /** Layers that only label other objects (pad and net names): never picked. */
+  private readonly labelLayers: readonly boolean[];
   readonly objectCount: number;
   readonly types: Uint8Array;
   readonly parents: Uint32Array;
@@ -133,6 +135,7 @@ export class Scene {
   constructor(reply: SceneReply) {
     const { data, ...meta } = reply;
     this.meta = meta;
+    this.labelLayers = meta.layers.map((layer) => layer.group === 'names');
     const buffer = alignedBuffer(data);
     this.buffer = buffer;
     const objects = meta.objects;
@@ -315,7 +318,8 @@ export class Scene {
     const from = this.refStart[obj] ?? 0;
     const to = this.refStart[obj + 1] ?? 0;
     for (let r = from; r < to; r += 1) {
-      if (visible((this.refLayerKind[r] ?? 0) >> 3)) {
+      const layer = (this.refLayerKind[r] ?? 0) >> 3;
+      if (this.labelLayers[layer] !== true && visible(layer)) {
         return true;
       }
     }
@@ -338,7 +342,7 @@ export class Scene {
     for (let r = from; r < to && best > 0; r += 1) {
       const lk = this.refLayerKind[r] ?? 0;
       const layerIndex = lk >> 3;
-      if (!visible(layerIndex)) {
+      if (this.labelLayers[layerIndex] === true || !visible(layerIndex)) {
         continue;
       }
       const layer = this.layers[layerIndex];

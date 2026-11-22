@@ -9,6 +9,7 @@ import { useEffect, useState, type ReactNode } from 'react';
 import type { MessageKey } from '@shared/i18n';
 import type { Units } from '@shared/project';
 
+import { Icon } from '../components/Icon';
 import { Modal } from '../components/Modal';
 import { CheckInput, LengthInput, TextInput } from '../libedit/fields';
 import { useProject } from '../project/ProjectProvider';
@@ -294,11 +295,12 @@ export function RulesDialog({
                           type="button"
                           className="button button--small button--quiet"
                           aria-label={t('board.rules.remove')}
+                          title={t('board.rules.remove')}
                           onClick={() => {
                             patch({ netClasses: classes.filter((_, i) => i !== index) });
                           }}
                         >
-                          ×
+                          <Icon name="trash" size={14} />
                         </button>
                       )}
                     </td>
@@ -328,7 +330,10 @@ export function RulesDialog({
           <h3 className="dialog__section">{t('board.rules.assignments')}</h3>
           <p className="field__hint">{t('board.rules.assignmentsHint')}</p>
           {rules.assignments.map((assignment, index) => (
-            <div key={`assignment-${index.toString()}`} className="board-form__row">
+            <div
+              key={`assignment-${index.toString()}`}
+              className="board-form__row board-form__row--center"
+            >
               <TextInput
                 bare
                 label={t('board.rules.pattern')}
@@ -361,11 +366,12 @@ export function RulesDialog({
                 type="button"
                 className="button button--small button--quiet"
                 aria-label={t('board.rules.remove')}
+                title={t('board.rules.remove')}
                 onClick={() => {
                   patch({ assignments: rules.assignments.filter((_, i) => i !== index) });
                 }}
               >
-                ×
+                <Icon name="trash" size={14} />
               </button>
             </div>
           ))}
@@ -462,11 +468,12 @@ export function RulesDialog({
                   type="button"
                   className="button button--small button--quiet"
                   aria-label={t('board.rules.remove')}
+                  title={t('board.rules.remove')}
                   onClick={() => {
                     patch({ custom: rules.custom.filter((_, i) => i !== index) });
                   }}
                 >
-                  ×
+                  <Icon name="trash" size={14} />
                 </button>
               </div>
               <ConditionInput

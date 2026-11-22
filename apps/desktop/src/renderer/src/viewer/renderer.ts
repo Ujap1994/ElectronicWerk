@@ -99,6 +99,8 @@ const INSTANCE_KINDS: readonly InstanceKind[] = ['rects', 'circles', 'segments',
 
 const STATE_WIDTH = 2048;
 const MIN_TEXT_PX = 3.5;
+/** Pad and net names appear once they are readable. */
+const MIN_NAME_PX = 7;
 
 export class WebGlUnavailableError extends Error {
   constructor() {
@@ -567,6 +569,9 @@ export class SceneRenderer {
     const program = this.programs.text;
     const layout = INSTANCE_LAYOUTS.glyphs;
     this.use(program, frame, depth);
+    if (this.scene?.layers[index]?.meta.group === 'names') {
+      gl.uniform1f(program.uniforms.get('u_minText') ?? null, MIN_NAME_PX * frame.dpr);
+    }
     gl.uniform3f(program.uniforms.get('u_color') ?? null, color[0], color[1], color[2]);
     gl.bindBuffer(gl.ARRAY_BUFFER, this.glyphBuffer);
     this.pointers(program, layout.attributes, layout.stride, range[0] * layout.stride, 1);

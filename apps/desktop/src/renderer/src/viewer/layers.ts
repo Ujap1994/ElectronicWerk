@@ -81,6 +81,8 @@ const BOARD_COLORS: Readonly<Record<string, string>> = {
   'courtyard.bottom': '#26e9ff',
   outline: '#e8e04a',
   holes: '#05070a',
+  'names.top': '#ffffff',
+  'names.bottom': '#dce6ff',
 };
 
 const SHEET_COLORS: Readonly<Record<CanvasTheme, Readonly<Record<string, string>>>> = {
@@ -154,6 +156,7 @@ const GROUP_OPACITY: Readonly<Record<LayerGroup, number>> = {
   mechanical: 0.9,
   user: 0.9,
   holes: 1,
+  names: 0.95,
   schematic: 1,
 };
 
@@ -180,6 +183,11 @@ export function drawOrder(
   const rank = (layer: SceneLayer, index: number): [number, number] => {
     if (layer.group === 'holes') {
       return [3, 0];
+    }
+    // Pad and net names of the side facing the viewer go on top of all.
+    if (layer.group === 'names') {
+      const facing = flipped ? layer.side === 'bottom' : layer.side === 'top';
+      return facing ? [4, 0] : [0, -10_000];
     }
     if (!sided(layer) && layer.group !== 'schematic') {
       return [2, layer.z];

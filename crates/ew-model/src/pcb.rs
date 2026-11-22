@@ -471,6 +471,62 @@ pub struct FootprintInstance {
     pub attributes: FootprintAttributes,
 }
 
+/// Placeholders of the designator that library footprints carry (KiCad,
+/// Altium, Eagle and others).
+const DESIGNATOR_PLACEHOLDERS: &[&str] = &[
+    "REF**",
+    "REF*",
+    "${REFERENCE}",
+    "Designator",
+    ".Designator",
+    ">NAME",
+    "%R",
+    "Ref**",
+];
+/// Placeholders of the value.
+const VALUE_PLACEHOLDERS: &[&str] = &["${VALUE}", ".Comment", ">VALUE", "%V"];
+
+impl FootprintInstance {
+    /// The text a footprint text shows on the board. The designator and the
+    /// value field always show the part's own designator and value, whatever
+    /// placeholder the library footprint carries (`REF**`, `Designator`,
+    /// `>NAME` …); a free text that is just such a placeholder shows them
+    /// too, and `${REFERENCE}` and `${VALUE}` inside a text are replaced.
+    #[must_use]
+    pub fn shown_text(&self, text: &FootprintText) -> String {
+        let own = |value: &str, fallback: &str| {
+            if value.is_empty() {
+                fallback.to_owned()
+            } else {
+                value.to_owned()
+            }
+        };
+        let trimmed = text.text.trim();
+        match text.kind {
+            FootprintTextKind::Designator => own(&self.designator, &text.text),
+            FootprintTextKind::Value => own(&self.value, &text.text),
+            FootprintTextKind::User
+                if DESIGNATOR_PLACEHOLDERS
+                    .iter()
+                    .any(|p| p.eq_ignore_ascii_case(trimmed)) =>
+            {
+                own(&self.designator, &text.text)
+            }
+            FootprintTextKind::User
+                if VALUE_PLACEHOLDERS
+                    .iter()
+                    .any(|p| p.eq_ignore_ascii_case(trimmed)) =>
+            {
+                own(&self.value, &text.text)
+            }
+            FootprintTextKind::User => text
+                .text
+                .replace("${REFERENCE}", &self.designator)
+                .replace("${VALUE}", &self.value),
+        }
+    }
+}
+
 /// A copper track segment (straight, or an arc through `mid`).
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -959,6 +1015,49 @@ impl Pcb {
 mod tests {
     use super::*;
     use crate::units::mm;
+
+    #[test]
+    fn footprint_texts_show_the_parts_own_designator_and_value() {
+        use FootprintTextKind::{Designator, User, Value};
+        let fp = FootprintInstance {
+            id: Id::random(),
+            component: None,
+            footprint: "SOIC-8".to_owned(),
+            designator: "U1".to_owned(),
+            value: "NE555".to_owned(),
+            at: Point::ORIGIN,
+            rotation: Angle::ZERO,
+            side: Side::Top,
+            locked: false,
+            pads: Vec::new(),
+            graphics: Vec::new(),
+            texts: Vec::new(),
+            models: Vec::new(),
+            properties: BTreeMap::new(),
+            attributes: FootprintAttributes::default(),
+        };
+        let text = |kind: FootprintTextKind, content: &str| FootprintText {
+            kind,
+            text: content.to_owned(),
+            layer: Layer::Silkscreen(Side::Top),
+            at: Point::ORIGIN,
+            rotation: Angle::ZERO,
+            style: TextStyle::board(),
+            visible: true,
+        };
+        for placeholder in ["REF**", "Designator", "${REFERENCE}", ">NAME", ""] {
+            assert_eq!(
+                fp.shown_text(&text(Designator, placeholder)),
+                "U1",
+                "{placeholder}"
+            );
+        }
+        assert_eq!(fp.shown_text(&text(Value, "VAL**")), "NE555");
+        assert_eq!(fp.shown_text(&text(User, ".Designator")), "U1");
+        assert_eq!(fp.shown_text(&text(User, ">VALUE")), "NE555");
+        assert_eq!(fp.shown_text(&text(User, "${REFERENCE}-1")), "U1-1");
+        assert_eq!(fp.shown_text(&text(User, "Pin 1")), "Pin 1");
+    }
 
     #[test]
     fn standard_stackups_have_the_requested_thickness() {

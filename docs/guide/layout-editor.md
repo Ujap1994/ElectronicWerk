@@ -36,7 +36,10 @@ The editor is built for the usual way of designing a board:
 ## Tools
 
 Pick a tool in the column on the left or with its key. **Esc** ends what is
-in progress, and a second **Esc** returns to the select tool.
+in progress, and a second **Esc** returns to the select tool. After a route
+the status line says so in green — _Route ended · click starts the next one ·
+Esc again: back to the select tool_ — so you can draw the next track right
+away or leave the tool.
 
 | Tool                        | Key | What it does                                                                                                                |
 | --------------------------- | --- | --------------------------------------------------------------------------------------------------------------------------- |

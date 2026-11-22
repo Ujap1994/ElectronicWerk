@@ -509,14 +509,7 @@ impl<'a> BoardArt<'a> {
                 FootprintTextKind::Value if silk && !self.options.silk_values => continue,
                 _ => {}
             }
-            let content = match text.kind {
-                FootprintTextKind::Designator if text.text.is_empty() => fp.designator.clone(),
-                FootprintTextKind::Value if text.text.is_empty() => fp.value.clone(),
-                _ => text
-                    .text
-                    .replace("${REFERENCE}", &fp.designator)
-                    .replace("${VALUE}", &fp.value),
-            };
+            let content = fp.shown_text(text);
             let content = if content.contains("${") {
                 (self.resolve)(&content)
             } else {

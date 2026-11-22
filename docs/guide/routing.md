@@ -27,15 +27,15 @@ class.
 The cursor snaps to pads and vias of the routed net: hovering over the
 target pad routes to its centre exactly, whatever the grid.
 
-| Key or action      | While routing                                                      |
-| ------------------ | ------------------------------------------------------------------ |
-| Click              | Fix the path to the cursor; on copper of the net: finish           |
-| Double-click/Enter | Finish (fixed segments go into the board)                          |
-| V                  | Place a via at the end and continue on the opposite outer layer    |
-| Page Up/Page Down  | Place a via and continue on the previous/next copper layer         |
-| /                  | Start with the diagonal instead of the straight segment (and back) |
-| Backspace          | Take back the last fixed segment (and its via)                     |
-| Esc                | End: fixed segments go into the board, the live path is dropped    |
+| Key or action      | While routing                                                                                             |
+| ------------------ | --------------------------------------------------------------------------------------------------------- |
+| Click              | Fix the path to the cursor; on copper of the net: finish                                                  |
+| Double-click/Enter | Finish (fixed segments go into the board)                                                                 |
+| V                  | Place a via at the end and continue on the opposite outer layer                                           |
+| Page Up/Page Down  | Place a via and continue on the previous/next copper layer                                                |
+| /                  | Start with the diagonal instead of the straight segment (and back)                                        |
+| Backspace          | Take back the last fixed segment (and its via)                                                            |
+| Esc                | End: fixed segments go into the board, the live path is dropped; Esc once more returns to the select tool |
 
 The whole route is **one undo step** (`route`), with all its tracks and vias.
 

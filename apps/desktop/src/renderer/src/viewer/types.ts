@@ -43,6 +43,7 @@ export type LayerGroup =
   | 'mechanical'
   | 'user'
   | 'holes'
+  | 'names'
   | 'schematic';
 
 export interface SceneLayer {

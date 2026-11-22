@@ -10,8 +10,8 @@ model and a check against the base library.
 
 ## How it works
 
-1. Search the part on the provider's website, in a **provider window** of
-   ElectronicWerk or in your own browser.
+1. Search the part on the provider's website, in **your own browser** (the
+   default) or in a **provider window** of ElectronicWerk.
 2. Download it **in KiCad format** (KiCad 6 or newer). Both providers need a
    free account for downloads.
 3. ElectronicWerk shows what the download contains and imports it into the
@@ -37,9 +37,21 @@ Open the online part libraries with:
   [schematic editor](./schematic-editor) (it takes over what you typed).
 
 Type a part number or a keyword and choose **Search on SnapEDA** or **Search
-on Ultra Librarian**. The provider's search page opens with your query in
-the provider window. **In your browser** opens the same page in your own
-browser instead.
+on Ultra Librarian** (<kbd>Enter</kbd> searches on SnapEDA). The provider's
+search page opens with your query **in your own browser**, where you are
+usually signed in already.
+
+For the next **30 minutes**, ElectronicWerk watches your **downloads folder**:
+a part you download there (a ZIP file, a KiCad library or a STEP model) is
+offered for import as soon as the browser has finished writing it — you do
+not have to look for the file. Files that were in the folder before are left
+alone. Each new search starts the 30 minutes again. On macOS, the system
+asks once whether ElectronicWerk may read the downloads folder.
+
+**In a window of the app** opens the page in a provider window instead (see
+below). The bot check of some websites (SnapEDA uses one) does not let
+embedded browsers through and keeps asking whether you are human; use your
+own browser then.
 
 ### The provider window
 
@@ -57,8 +69,9 @@ The provider window is a separate, isolated browser:
 
 ## Importing a download
 
-When a download arrives — or after **Import a download…** in the dialog for a
-file downloaded with your own browser — the import dialog shows its content:
+When a download arrives — from your browser's downloads folder, from a
+provider window, or after **Import a download…** in the dialog for any other
+file — the import dialog shows its content:
 
 ![Importing a SnapEDA download](/screenshots/parts-import.png)
 

@@ -54,6 +54,22 @@ The working mode changes what the [controlled impedance](./impedance#two-working
 tab of the design rules shows. Both modes edit the same design rules, so you
 can switch at any time.
 
+## Mouse wheel zoom
+
+How far one notch of the mouse wheel zooms schematics, boards, the library
+previews and the other 2D views:
+
+| Option               | Zoom per notch |
+| -------------------- | -------------- |
+| **Fine**             | 8 %            |
+| **Normal** (default) | 15 %           |
+| **Coarse**           | 30 %           |
+
+A notch zooms one step however the wheel reports it: high-resolution wheels
+that send a notch in several small parts zoom one step in total, and a fast
+turn never runs far ahead of the picture. Trackpads are not affected: two
+fingers pan, a pinch zooms (see [Navigating](./viewer#navigating)).
+
 ## Updates
 
 | Option                               | Effect                                                                           |
@@ -116,6 +132,7 @@ Example content:
   "language": "system",
   "theme": "dark",
   "workMode": "beginner",
+  "wheelZoom": "normal",
   "updates": {
     "checkOnStartup": true,
     "skippedVersion": null

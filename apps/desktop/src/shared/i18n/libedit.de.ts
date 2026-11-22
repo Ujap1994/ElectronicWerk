@@ -24,7 +24,7 @@ export const libeditDe: Messages['libedit'] = {
     fromDatasheetHint:
       'Symbol, Footprint, 3D-Modell und Bauteil aus dem PDF-Datenblatt eines Bauteils erzeugen.',
     label: 'Elemente der Bibliothek',
-    search: 'Nach Name oder Beschreibung suchen',
+    search: 'Name oder Beschreibung',
     emptySymbols: 'Diese Bibliothek hat noch keine Symbole.',
     emptyFootprints: 'Diese Bibliothek hat noch keine Footprints.',
     emptyComponents:

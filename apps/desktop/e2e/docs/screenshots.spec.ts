@@ -4,6 +4,7 @@
  * demo data is shown, so the images are safe to publish.
  */
 import {
+  appendFileSync,
   cpSync,
   existsSync,
   mkdirSync,
@@ -30,6 +31,7 @@ import {
   type LaunchOptions,
 } from '../fixtures';
 import { startFakeGithub, type FakeGithub } from '../../test/github-server';
+import { auditPage } from './ui-audit';
 import {
   openDocument,
   settle,
@@ -42,7 +44,10 @@ import {
 /** A tidy, anonymous project folder for the screenshots. */
 const PROJECTS = '/tmp/ElectronicWerk/Projects';
 
-const OUT = resolve(import.meta.dirname, '../../../../docs/public/screenshots');
+/** `EW_UI_AUDIT=<folder>`: check every screen for cut-off controls instead. */
+const AUDIT = process.env['EW_UI_AUDIT'] ?? '';
+const OUT =
+  AUDIT === '' ? resolve(import.meta.dirname, '../../../../docs/public/screenshots') : AUDIT;
 mkdirSync(OUT, { recursive: true });
 
 const DEMO_NOTES = [
@@ -72,10 +77,50 @@ async function start(options: LaunchOptions = {}): Promise<LaunchedApp> {
 }
 
 async function shoot(target: Page | Locator, name: string): Promise<void> {
+  if (AUDIT !== '') {
+    await auditScreen('page' in target ? target.page() : target, name);
+  }
   await target.screenshot({ path: join(OUT, `${name}.png`), scale: 'css', animations: 'disabled' });
 }
 
-test.describe.configure({ mode: 'serial' });
+/** Checks the screen in English and German and keeps a German picture. */
+async function auditScreen(page: Page, name: string): Promise<void> {
+  const setLanguage = async (language: 'en' | 'de'): Promise<void> => {
+    await page.evaluate(async (value) => {
+      await (
+        globalThis as unknown as {
+          ew: { settings: { set: (patch: object) => Promise<unknown> } };
+        }
+      ).ew.settings.set({ language: value });
+    }, language);
+    await page.waitForTimeout(250);
+  };
+  const english = await auditPage(page);
+  // Switching the language ends a placement or a drag in progress.
+  if (/place|drag|route|draw|move/u.test(name)) {
+    appendFileSync(
+      join(OUT, 'audit.jsonl'),
+      english.map((f) => `${JSON.stringify({ shot: name, language: 'en', ...f })}\n`).join(''),
+    );
+    return;
+  }
+  await setLanguage('de');
+  const german = await auditPage(page);
+  await page.screenshot({
+    path: join(OUT, `${name}-de.png`),
+    scale: 'css',
+    animations: 'disabled',
+  });
+  await setLanguage('en');
+  const lines = [
+    ...english.map((finding) => ({ shot: name, language: 'en', ...finding })),
+    ...german.map((finding) => ({ shot: name, language: 'de', ...finding })),
+  ].map((line) => `${JSON.stringify(line)}\n`);
+  appendFileSync(join(OUT, 'audit.jsonl'), lines.join(''));
+}
+
+// An audit goes on after a failing scenario.
+test.describe.configure({ mode: AUDIT === '' ? 'serial' : 'default' });
 
 test('start screen', async () => {
   for (const theme of ['light', 'dark'] as const) {

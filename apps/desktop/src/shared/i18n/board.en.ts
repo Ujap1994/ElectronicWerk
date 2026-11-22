@@ -232,6 +232,20 @@ export const boardEn = {
       'mechanical-opening': '{part} reaches over the board edge but {body} has no opening for it',
     },
     board: 'The board',
+    items: {
+      pad: 'pad {name}',
+      track: 'track',
+      via: 'via',
+      zone: 'zone',
+      namedZone: 'zone {name}',
+    },
+    sources: {
+      board: 'board constraints',
+      netClass: 'net class {name}',
+      rule: 'rule {name}',
+      pad: 'pad clearance',
+      zone: 'zone clearance',
+    },
   },
   chooser: {
     title: 'Place a footprint',

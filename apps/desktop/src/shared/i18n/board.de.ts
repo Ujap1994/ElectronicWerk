@@ -241,6 +241,20 @@ export const boardDe: Messages['board'] = {
       'mechanical-opening': '{part} ragt über den Platinenrand, aber {body} hat dort keine Öffnung',
     },
     board: 'Die Platine',
+    items: {
+      pad: 'Pad {name}',
+      track: 'Leiterbahn',
+      via: 'Via',
+      zone: 'Zone',
+      namedZone: 'Zone {name}',
+    },
+    sources: {
+      board: 'Mindestwerte der Platine',
+      netClass: 'Netzklasse {name}',
+      rule: 'Regel {name}',
+      pad: 'Pad-Abstand',
+      zone: 'Zonen-Abstand',
+    },
   },
   chooser: {
     title: 'Footprint platzieren',
