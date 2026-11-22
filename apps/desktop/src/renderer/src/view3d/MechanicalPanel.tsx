@@ -50,9 +50,9 @@ export function NumberField({
   };
   return (
     <input
-      type="number"
+      type="text"
+      inputMode="decimal"
       className="input mech__number"
-      step={step}
       value={draft ?? String(value)}
       aria-label={label}
       title={label}
@@ -66,6 +66,12 @@ export function NumberField({
           commit();
         } else if (event.key === 'Escape') {
           setDraft(null);
+        } else if (event.key === 'ArrowUp' || event.key === 'ArrowDown') {
+          // Steps like a number field, in the same format as every other field.
+          event.preventDefault();
+          const next = value + (event.key === 'ArrowUp' ? step : -step);
+          setDraft(null);
+          onCommit(Math.round(next * 1e6) / 1e6);
         }
       }}
     />

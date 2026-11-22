@@ -71,6 +71,13 @@ BTN`).
   `system_info` and `system_check` for AI agents.
 - [ADR-0019](docs/adr/0019-systems.md) records the decisions.
 
+### Changed
+
+- The number fields of the enclosure panel show numbers like every other
+  field of the app (they followed the operating system's language, so an
+  English app on a German system showed `12,54`); the arrow keys still step
+  the value.
+
 ## [0.18.0] - 2026-11-22
 
 The enclosure check: put the STEP files of the enclosure, lid, panels and

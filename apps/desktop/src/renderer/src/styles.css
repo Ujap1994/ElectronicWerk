@@ -6137,7 +6137,14 @@ textarea.field__control {
   top: calc(100% + 4px);
   right: 0;
   left: auto;
+  width: max-content;
   min-width: 260px;
+}
+
+.system__popover > .popover__item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
 }
 
 .system__tabs {
