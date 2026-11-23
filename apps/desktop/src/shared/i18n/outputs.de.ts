@@ -66,7 +66,7 @@ export const outputsDe: Messages['outputs'] = {
     ipc3: 'Klasse 3 (hohe Zuverlässigkeit)',
     notes: 'Weitere Hinweise',
     notesHint:
-      'Ein Hinweis pro Zeile; sie folgen den Hinweisen aus den Platinendaten. ${VARIABLEN} werden eingesetzt.',
+      'Ein Hinweis pro Zeile; sie folgen den Hinweisen aus den Platinendaten. Textvariablen werden eingesetzt.',
   },
   drawing: {
     format: 'Format',

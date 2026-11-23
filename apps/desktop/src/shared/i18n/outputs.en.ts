@@ -64,7 +64,7 @@ export const outputsEn = {
     ipc3: 'Class 3 (high reliability)',
     notes: 'Further notes',
     notesHint:
-      'One note per line; they follow the notes from the board data. ${VARIABLES} are filled in.',
+      'One note per line; they follow the notes from the board data. Text variables are filled in.',
   },
   drawing: {
     format: 'Format',
