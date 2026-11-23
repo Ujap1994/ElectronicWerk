@@ -6,6 +6,66 @@ project uses [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.22.0] - 2026-11-23
+
+Layout construction: the aids of professional layout tools for building a
+board — dimensions and a fabrication drawing, rooms, creepage for high
+voltages, padstacks and via filling, and design blocks that carry a circuit
+with its layout into other projects.
+
+### Added
+
+- **Dimensions and leaders** on the board (<kbd>Shift</kbd>+<kbd>D</kbd>):
+  aligned, horizontal, vertical, radius and diameter dimensions that measure
+  themselves, and leaders with a note; text with `{value}`, units, decimals,
+  text size and layer in the properties. Imported from and exported to KiCad.
+  See [Dimensions and leaders](docs/guide/dimensions.md).
+- **Fabrication drawing** as an output (in the default fabrication job): the
+  board outline with holes and dimensions at a fitting scale, the drill
+  table, the layer stack-up and numbered notes from the board data (size,
+  material, copper, finish, colours, smallest features, tolerances, IPC
+  class) plus your own, as PDF or SVG. See
+  [Fabrication drawing](docs/guide/fabrication-drawing.md).
+- **Rooms** (<kbd>Shift</kbd>+<kbd>O</kbd>): named areas on the board. Place
+  selected parts into a room in one step, make a room for the parts of each
+  schematic sheet, move a room with its parts, and match rooms in custom
+  rules with `A.inRoom('name')`. See [Rooms](docs/guide/rooms.md).
+- **Creepage check** for high voltages: a custom rule asks for a creepage
+  distance (from IEC 60664-1, IEC 62368-1, UL 840 …), and the design rules
+  check measures the shortest path along the board surface, around slots,
+  cut-outs and non-plated holes. See
+  [Creepage for high voltages](docs/guide/creepage.md).
+- **Padstacks:** through-hole pads can have another shape and size on the
+  inner layers and on the back, set in the footprint editor; the checks,
+  zone filling, the router, the screen and every output use the copper of
+  each layer.
+- **Via filling and covering** after IPC-4761 (types I to VII, from tented
+  to filled and capped) per via: covered vias get no mask opening, the drill
+  table counts every fill apart, the fabrication drawing adds notes, and a
+  new check `via-in-pad` warns about vias in SMD pads that are not filled
+  and capped. Padstacks and via protection are exchanged with KiCad 9. See
+  [Padstacks and via filling](docs/guide/padstacks-and-via-filling.md).
+- **Design blocks** (**Design blocks** in the schematic editor's tool bar):
+  save a selection of a sheet with its library parts and its routed layout,
+  and place it in any project — the schematic in a free area with new
+  designators, missing library items added, the footprints with the
+  schematic's nets at the block's positions and the tracks and vias copied,
+  as one group below the board, in one undo step. See
+  [Design blocks](docs/guide/design-blocks.md).
+- Engine methods `pcb.addDimension`, `pcb.addRoom`, `pcb.placeInRoom`,
+  `pcb.roomsFromSheets`, `block.list`, `block.save`, `block.place`,
+  `block.delete`; the rule constraint `creepage` and the function `inRoom`;
+  the output kind `fabricationDrawing`; the pad field `stack` and the via
+  field `fill` in the file format.
+- [ADR-0022](docs/adr/0022-layout-construction.md) records the decisions.
+
+### Changed
+
+- The default fabrication job has ten outputs: the fabrication drawing
+  follows the drill map.
+- Units of one part pasted together keep one designator also when it was
+  free in the target.
+
 ## [0.21.0] - 2026-11-23
 
 Everyday editing: the tools of Altium Designer and KiCad that save time
