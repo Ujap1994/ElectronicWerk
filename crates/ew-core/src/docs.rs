@@ -579,6 +579,18 @@ pub const SUMMARIES: &[(&str, &str)] = &[
         "`{\"doc\", \"paths\": [\"…\"]}` → `{\"files\": [{\"path\", \"name\", \"kind\": gerber | drill, \"function\", \"objects\", \"bounds\", \"layer\"}]}`: what Gerber and Excellon files hold, with a free user layer suggested for each.",
     ),
     (
+        "pcb.addImage",
+        "`{\"doc\", \"layer\", \"rows\": [\"#..#\" …], \"pixel\", \"center\": [x, y], \"invert\"?}` (`add-image`) → `{\"select\", \"shapes\", \"group\", \"width\", \"height\"}`: a black-and-white picture (rows from the top, `#`/`1` set, `.`/`0` clear) as filled polygons on a layer, one per region with holes joined by cuts, grouped. The app turns images and logos into rows.",
+    ),
+    (
+        "pcb.addQrCode",
+        "`{\"doc\", \"layer\", \"text\", \"size\", \"center\", \"ecc\"?: low | medium | quartile | high, \"invert\"?, \"quiet\"?}` (`add-qr-code`): a QR code of the text as filled polygons, `size` wide including `quiet` modules around it. `invert` draws the light modules and the quiet zone, so a silkscreen print reads as a dark code on a light ground.",
+    ),
+    (
+        "pcb.qrCode",
+        "`{\"text\", \"ecc\"?, \"invert\"?, \"quiet\"?}` → `{\"rows\", \"modules\"}`: the modules of a QR code as rows (`#` set, `.` clear) without changing the board, for a preview.",
+    ),
+    (
         "pcb.importDxf",
         "`pcb.dxfPreview {\"path\", \"scale\"?}` → `{\"layers\", \"units\", \"count\", \"bounds\", \"skipped\"}`. `pcb.importDxf {\"doc\", \"path\", \"layer\", \"layers\"?, \"replace\"?, \"scale\"?, \"origin\"?, \"width\"?}` (`import-dxf`) imports the shapes of the chosen DXF layers onto a board layer (`outline`, `mech.1`, …); `scale` is nanometres per draw…",
     ),

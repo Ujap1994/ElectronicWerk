@@ -141,6 +141,43 @@ export const boardDe: Messages['board'] = {
     buried: 'Vergrabenes Via',
     micro: 'Mikrovia',
   },
+  picture: {
+    open: 'Logo oder QR-Code',
+    openTip:
+      'Ein Logo, Bild oder einen QR-Code auf Bestückungsdruck, Kupfer oder Lötstopplack bringen',
+    title: 'Logo, Bild oder QR-Code',
+    tabs: { image: 'Logo oder Bild', qr: 'QR-Code' },
+    imageHint:
+      'PNG, JPEG, GIF, BMP, WebP oder SVG. Dunkle Stellen werden gedruckt; die Schwelle legt fest, was als dunkel gilt.',
+    choose: 'Bild wählen …',
+    unreadable: '{name} konnte nicht als Bild gelesen werden.',
+    threshold: 'Schwelle: {value}',
+    invert: 'Umkehren (helle Stellen werden gedruckt)',
+    detail: 'Feinheit',
+    details: {
+      fine: 'Fein ({size} Pixel)',
+      normal: 'Normal ({size} Pixel)',
+      coarse: 'Grob ({size} Pixel)',
+    },
+    qrHint:
+      'Eine Webadresse, eine Seriennummer oder beliebiger Text. Mehr Fehlerkorrektur macht den Code größer, aber auch teilweise abgenutzt noch lesbar.',
+    text: 'Text',
+    ecc: 'Fehlerkorrektur',
+    eccs: {
+      low: 'Gering (7 %)',
+      medium: 'Mittel (15 %)',
+      quartile: 'Hoch (25 %)',
+      high: 'Sehr hoch (30 %)',
+    },
+    light: 'Helle Module und einen Rand drucken (auf dem Bestückungsdruck ein dunkler Code)',
+    layer: 'Lage',
+    width: 'Breite',
+    mirrored: 'Unterseite: Das Bild wird gespiegelt, damit es von unten richtig lesbar ist.',
+    noImage: 'Ein Bild wählen, um es hier zu sehen.',
+    noText: 'Einen Text eingeben.',
+    size: '{size} · {columns} × {rows} Pixel',
+    add: 'Auf die Platine bringen',
+  },
   groups: {
     group: 'Gruppieren',
     groupTip:

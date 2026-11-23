@@ -13,6 +13,7 @@ publish = false
 ew-model.workspace = true
 ew-schematic.workspace = true
 i_overlay.workspace = true
+qrcodegen.workspace = true
 rayon.workspace = true
 rstar.workspace = true
 serde.workspace = true

@@ -1227,6 +1227,12 @@ export class ViewerController {
     }
   };
 
+  /** The middle of the view (absolute nm). */
+  viewCenter(): [number, number] {
+    const [x, y] = this.absolute(this.camera.width / 2, this.camera.height / 2);
+    return [Math.round(x), Math.round(y)];
+  }
+
   private absolute(x: number, y: number): [number, number] {
     const [sx, sy] = this.camera.toScene(x, y);
     const [ox, oy] = this.scene?.meta.origin ?? [0, 0];

@@ -41,6 +41,10 @@ pub mod labels {
     pub const PRESET: &str = "board-preset";
     /// `pcb.importDxf`.
     pub const DXF: &str = "import-dxf";
+    /// `pcb.addImage`.
+    pub const IMAGE: &str = "add-image";
+    /// `pcb.addQrCode`.
+    pub const QR_CODE: &str = "add-qr-code";
     /// `pcb.importSession`.
     pub const SESSION: &str = "import-session";
     /// `pcb.importGerbers`.
@@ -533,6 +537,116 @@ struct DxfPreviewParams {
     path: String,
     #[serde(default)]
     scale: Option<f64>,
+}
+
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct ImageParams {
+    doc: Id,
+    /// Board layer, for example `silk.top` or `cu.top`.
+    layer: ew_model::layer::Layer,
+    /// The picture from the top: `#` or `1` set, `.` or `0` clear.
+    rows: Vec<String>,
+    /// Size of one pixel.
+    pixel: ew_model::units::Nm,
+    /// Middle of the picture.
+    center: ew_model::units::Point,
+    /// Draw the clear pixels instead.
+    #[serde(default)]
+    invert: bool,
+}
+
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct QrParams {
+    doc: Id,
+    layer: ew_model::layer::Layer,
+    /// What the code says (a web address, a serial number …).
+    text: String,
+    /// Width of the whole code, quiet zone included.
+    size: ew_model::units::Nm,
+    center: ew_model::units::Point,
+    #[serde(default)]
+    ecc: ew_pcb::bitmap::QrEcc,
+    /// Draw the light modules (and the quiet zone): a dark code on a light
+    /// print, as on silkscreen.
+    #[serde(default)]
+    invert: bool,
+    /// Modules of quiet zone around the code.
+    #[serde(default)]
+    quiet: usize,
+}
+
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct QrPreviewParams {
+    text: String,
+    #[serde(default)]
+    ecc: ew_pcb::bitmap::QrEcc,
+    #[serde(default)]
+    invert: bool,
+    #[serde(default)]
+    quiet: usize,
+}
+
+/// Filled polygons of a picture, one undo step, grouped so that they move
+/// together.
+fn picture_outcome(
+    label: &'static str,
+    doc: Id,
+    layer: ew_model::layer::Layer,
+    bitmap: &ew_pcb::bitmap::Bitmap,
+    pixel: ew_model::units::Nm,
+    center: ew_model::units::Point,
+) -> Result<Outcome, EngineError> {
+    if pixel < 1_000 {
+        return Err(EngineError::invalid_params("`pixel` must be at least 1 µm"));
+    }
+    let polygons = ew_pcb::bitmap::polygons(bitmap, pixel, center);
+    if polygons.is_empty() {
+        return Err(EngineError::invalid_params("the picture has no set pixels"));
+    }
+    let mut requests = Vec::new();
+    let mut select = Vec::new();
+    for points in polygons {
+        let shape = ew_model::pcb::BoardShape {
+            id: Id::random(),
+            layer,
+            geometry: ew_model::shape::Geometry::Polygon { points },
+            width: 0,
+            filled: true,
+        };
+        select.push(shape.id);
+        requests.push(Request::Insert {
+            doc,
+            object: Object::BoardShape(shape),
+        });
+    }
+    let group = (select.len() > 1).then(|| {
+        let group = ew_model::pcb::Group {
+            id: Id::random(),
+            name: String::new(),
+            members: select.clone(),
+        };
+        let id = group.id;
+        requests.push(Request::Insert {
+            doc,
+            object: Object::Group(group),
+        });
+        id
+    });
+    let pixels = |n: usize| i64::try_from(n).unwrap_or(0) * pixel;
+    Ok(Outcome::Commit {
+        label,
+        requests,
+        reply: json!({
+            "select": select,
+            "shapes": select.len(),
+            "group": group,
+            "width": pixels(bitmap.width()),
+            "height": pixels(bitmap.height()),
+        }),
+    })
 }
 
 #[derive(Deserialize)]
@@ -1755,6 +1869,75 @@ pub fn call(
                 &params.path,
                 params.scale,
             )?)?))
+        }
+        "pcb.addImage" => {
+            let params: ImageParams = parse(params)?;
+            board(project, params.doc)?;
+            let bitmap = ew_pcb::bitmap::Bitmap::from_rows(&params.rows)
+                .map_err(|e| EngineError::invalid_params(e.to_string()))?;
+            let bitmap = if params.invert {
+                bitmap.inverted()
+            } else {
+                bitmap
+            };
+            picture_outcome(
+                labels::IMAGE,
+                params.doc,
+                params.layer,
+                &bitmap,
+                params.pixel,
+                params.center,
+            )
+        }
+        "pcb.qrCode" => {
+            let params: QrPreviewParams = parse(params)?;
+            if params.text.is_empty() {
+                return Err(EngineError::invalid_params("the text is empty"));
+            }
+            let bitmap = ew_pcb::bitmap::Bitmap::qr(&params.text, params.ecc, params.quiet.min(10))
+                .map_err(|e| EngineError::invalid_params(e.to_string()))?;
+            let bitmap = if params.invert {
+                bitmap.inverted()
+            } else {
+                bitmap
+            };
+            let rows: Vec<String> = (0..bitmap.height())
+                .map(|y| {
+                    (0..bitmap.width())
+                        .map(|x| {
+                            let (x, y) =
+                                (i64::try_from(x).unwrap_or(0), i64::try_from(y).unwrap_or(0));
+                            if bitmap.get(x, y) { '#' } else { '.' }
+                        })
+                        .collect()
+                })
+                .collect();
+            Ok(Outcome::Read(
+                json!({"rows": rows, "modules": bitmap.width()}),
+            ))
+        }
+        "pcb.addQrCode" => {
+            let params: QrParams = parse(params)?;
+            board(project, params.doc)?;
+            if params.text.is_empty() {
+                return Err(EngineError::invalid_params("the text is empty"));
+            }
+            let bitmap = ew_pcb::bitmap::Bitmap::qr(&params.text, params.ecc, params.quiet.min(10))
+                .map_err(|e| EngineError::invalid_params(e.to_string()))?;
+            let bitmap = if params.invert {
+                bitmap.inverted()
+            } else {
+                bitmap
+            };
+            let modules = i64::try_from(bitmap.width()).unwrap_or(1).max(1);
+            picture_outcome(
+                labels::QR_CODE,
+                params.doc,
+                params.layer,
+                &bitmap,
+                params.size / modules,
+                params.center,
+            )
         }
         "pcb.importDxf" => {
             let params: DxfParams = parse(params)?;

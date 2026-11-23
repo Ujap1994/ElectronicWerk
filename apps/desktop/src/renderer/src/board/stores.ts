@@ -178,6 +178,8 @@ export interface BoardCommands {
   readonly teardrops: () => void;
   readonly stitch: () => void;
   readonly channels: () => void;
+  readonly picture: () => void;
+  readonly qrCode: () => void;
 }
 
 export const activeBoard = new Store<BoardCommands | null>(null);

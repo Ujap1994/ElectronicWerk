@@ -782,6 +782,72 @@ test('editor keys can be changed in the settings', async () => {
   await expect(route).toHaveAttribute('title', /\(X\)/u);
 });
 
+test('puts a logo and a QR code onto the silkscreen', async () => {
+  launched = await launchApp();
+  const { page, projectsDir } = launched;
+  await page.setViewportSize({ width: 1280, height: 800 });
+  await importAs(launched, 'Logo');
+  await openBoard(page, 'Logo');
+  const before = (readBoard(join(projectsDir, 'Logo')).shapes ?? []).length;
+  // A ring with a bar: one region with a hole.
+  const folder = mkdtempSync(join(tmpdir(), 'ew-logo-'));
+  const logo = join(folder, 'logo.svg');
+  writeFileSync(
+    logo,
+    '<svg xmlns="http://www.w3.org/2000/svg" width="200" height="100" viewBox="0 0 200 100">' +
+      '<rect width="200" height="100" fill="white"/>' +
+      '<circle cx="50" cy="50" r="40" fill="none" stroke="black" stroke-width="16"/>' +
+      '<rect x="110" y="20" width="80" height="60" fill="black"/></svg>',
+  );
+
+  await page.getByTestId('board-picture').click();
+  const dialog = page.getByTestId('picture-dialog');
+  await expect(dialog).toBeVisible();
+  await expect(dialog.getByTestId('picture-add')).toBeDisabled();
+  await dialog.getByTestId('picture-file').setInputFiles(logo);
+  const preview = dialog.getByTestId('picture-preview');
+  await expect(preview).toBeVisible();
+  // 15 mm at 0.05 mm per pixel: 300 × 150 pixels.
+  await expect(preview).toHaveAttribute('data-columns', '300');
+  await expect(preview).toHaveAttribute('data-rows', '150');
+  await expect(dialog.getByTestId('picture-size')).toContainText('15 × 7.5 mm');
+  await dialog.getByTestId('picture-layer').selectOption('silk.bottom');
+  await expect(dialog.getByText(/mirrored/u)).toBeVisible();
+  await dialog.getByTestId('picture-layer').selectOption('silk.top');
+  if (process.env['EW_LOOK'] !== undefined) {
+    await page.screenshot({ path: process.env['EW_LOOK'] });
+  }
+  await dialog.getByTestId('picture-add').click();
+  await expect(dialog).toBeHidden();
+  await expect(page.getByTestId('toolbar-undo')).toHaveAttribute('title', /Add picture/u);
+
+  // A QR code next to it.
+  await page.getByTestId('board-picture').click();
+  await dialog.getByTestId('picture-tab-qr').click();
+  await dialog.getByTestId('picture-text').fill('https://example.com/board');
+  await expect(preview).toBeVisible();
+  await dialog.getByTestId('picture-width').fill('10');
+  const shown = String(await viewerCanvas(page).getAttribute('data-version'));
+  await dialog.getByTestId('picture-add').click();
+  await expect(viewerCanvas(page)).not.toHaveAttribute('data-version', shown);
+  await expect(page.getByTestId('toolbar-undo')).toHaveAttribute('title', /Add QR code/u);
+  if (process.env['EW_LOOK'] !== undefined) {
+    await page.screenshot({ path: process.env['EW_LOOK'].replace('.png', '-board.png') });
+  }
+  await save(page);
+  const after = readBoard(join(projectsDir, 'Logo')) as unknown as {
+    shapes: { layer: string; filled?: boolean }[];
+    groups?: { members: string[] }[];
+  };
+  const added = after.shapes.length - before;
+  // The logo is two regions (ring, bar); the QR code many.
+  expect(added).toBeGreaterThan(10);
+  expect(
+    after.shapes.filter((shape) => shape.layer === 'silk.top' && shape.filled === true).length,
+  ).toBe(added);
+  expect(after.groups?.length).toBe(2);
+});
+
 test('pushes a track of another net aside in push-and-shove mode', async () => {
   launched = await launchApp();
   const { page, projectsDir } = launched;

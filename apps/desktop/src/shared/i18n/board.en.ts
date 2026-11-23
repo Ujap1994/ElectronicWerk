@@ -134,6 +134,42 @@ export const boardEn = {
     buried: 'Buried via',
     micro: 'Microvia',
   },
+  picture: {
+    open: 'Logo or QR code',
+    openTip: 'Put a logo, a picture or a QR code onto silkscreen, copper or solder mask',
+    title: 'Logo, picture or QR code',
+    tabs: { image: 'Logo or picture', qr: 'QR code' },
+    imageHint:
+      'PNG, JPEG, GIF, BMP, WebP or SVG. Dark parts become the print; the threshold sets what counts as dark.',
+    choose: 'Choose a picture …',
+    unreadable: '{name} could not be read as a picture.',
+    threshold: 'Threshold: {value}',
+    invert: 'Invert (light parts become the print)',
+    detail: 'Detail',
+    details: {
+      fine: 'Fine ({size} pixels)',
+      normal: 'Normal ({size} pixels)',
+      coarse: 'Coarse ({size} pixels)',
+    },
+    qrHint:
+      'A web address, a serial number or any text. More error correction makes the code larger but readable when partly worn.',
+    text: 'Text',
+    ecc: 'Error correction',
+    eccs: {
+      low: 'Low (7 %)',
+      medium: 'Medium (15 %)',
+      quartile: 'Quartile (25 %)',
+      high: 'High (30 %)',
+    },
+    light: 'Print the light modules and a border (reads as a dark code on silkscreen)',
+    layer: 'Layer',
+    width: 'Width',
+    mirrored: 'Bottom layer: the picture is mirrored, so that it reads right from below.',
+    noImage: 'Choose a picture to see it here.',
+    noText: 'Enter a text.',
+    size: '{size} · {columns} × {rows} pixels',
+    add: 'Add to the board',
+  },
   groups: {
     group: 'Group',
     groupTip:

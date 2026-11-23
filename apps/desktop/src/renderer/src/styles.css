@@ -6981,3 +6981,75 @@ textarea.field__control {
     display: none;
   }
 }
+
+/* --- Logo, picture or QR code ------------------------------------------------ */
+
+.dialog.picture {
+  width: min(760px, calc(100vw - 32px));
+}
+
+.picture__body {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 300px);
+  gap: var(--space-4);
+  margin-top: var(--space-3);
+}
+
+.picture__controls {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  min-width: 0;
+}
+
+.picture__file {
+  position: relative;
+  overflow: hidden;
+  max-width: 100%;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.picture__input {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.picture__width {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.picture__side {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  align-items: center;
+}
+
+.picture__preview {
+  width: 100%;
+  max-height: 300px;
+  border: 1px solid var(--color-border);
+  object-fit: contain;
+  image-rendering: pixelated;
+}
+
+.picture__empty {
+  display: grid;
+  width: 100%;
+  min-height: 200px;
+  place-items: center;
+  border: 1px dashed var(--color-border);
+  border-radius: var(--radius-s);
+  color: var(--color-text-muted);
+}
+
+@media (width <= 640px) {
+  .picture__body {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

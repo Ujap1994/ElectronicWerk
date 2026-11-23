@@ -462,6 +462,13 @@ export function BoardActions({
         onClick={commands.importDxf}
       />
       <Button
+        icon="image"
+        label={t('board.picture.open')}
+        tip={t('board.picture.openTip')}
+        testId="board-picture"
+        onClick={commands.picture}
+      />
+      <Button
         icon="layers"
         label={t('board.actions.gerberRef')}
         tip={t('board.actions.gerberRefTip')}

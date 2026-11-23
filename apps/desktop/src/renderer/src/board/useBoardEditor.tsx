@@ -23,6 +23,7 @@ import { AutorouterDialog } from './AutorouterDialog';
 import { GerberReferenceDialog } from './GerberReferenceDialog';
 import { LengthsDialog } from './LengthsDialog';
 import { ChannelsDialog } from './ChannelsDialog';
+import { PictureDialog, type PictureTab } from './PictureDialog';
 import { StitchDialog } from './StitchDialog';
 import { TeardropDialog } from './TeardropDialog';
 import { runDrc, useDrcUpdates } from './DrcPanel';
@@ -51,6 +52,7 @@ type Dialog =
   | { kind: 'teardrops' }
   | { kind: 'channels' }
   | { kind: 'stitch'; zone: string | null; tracks: string[] }
+  | { kind: 'picture'; tab: PictureTab; center: [number, number] }
   | null;
 
 export interface BoardUi {
@@ -245,6 +247,12 @@ export function useBoardEditor({
       teardrops: () => {
         setDialog({ kind: 'teardrops' });
       },
+      picture: () => {
+        setDialog({ kind: 'picture', tab: 'image', center: controller.viewCenter() });
+      },
+      qrCode: () => {
+        setDialog({ kind: 'picture', tab: 'qr', center: controller.viewCenter() });
+      },
       lengths: () => {
         const tracks = selectedOfType(controller, 'track');
         setDialog({ kind: 'lengths', track: tracks.length === 1 ? (tracks[0] ?? null) : null });
@@ -314,6 +322,17 @@ export function useBoardEditor({
         units={units}
         zone={dialog.zone}
         tracks={dialog.tracks}
+        onClose={close}
+      />
+    ) : dialog.kind === 'picture' ? (
+      <PictureDialog
+        doc={doc}
+        units={units}
+        center={dialog.center}
+        tab={dialog.tab}
+        onAdded={(ids) => {
+          controller.selectAfterReload(ids);
+        }}
         onClose={close}
       />
     ) : dialog.kind === 'teardrops' ? (

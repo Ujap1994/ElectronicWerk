@@ -267,6 +267,8 @@ export function App(): ReactNode {
             { id: 'teardrops', label: 'commands.teardrops', run: boardCommands.teardrops },
             { id: 'stitch', label: 'commands.stitch', run: boardCommands.stitch },
             { id: 'channels', label: 'commands.channels', run: boardCommands.channels },
+            { id: 'picture', label: 'commands.picture', run: boardCommands.picture },
+            { id: 'qr-code', label: 'commands.qrCode', run: boardCommands.qrCode },
             {
               id: 'gerber-reference',
               label: 'commands.gerberReference',
