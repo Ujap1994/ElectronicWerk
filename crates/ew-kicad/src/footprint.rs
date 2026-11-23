@@ -10,7 +10,7 @@ use std::collections::BTreeMap;
 use ew_model::layer::{Layer, LayerSpec};
 use ew_model::pcb::{
     Drill, FootprintAttributes, FootprintText, FootprintTextKind, Graphic, Model3d, Mounting, Pad,
-    PadKind, PadShape, Scale3,
+    PadKind, PadLayerShape, PadShape, PadStackLayers, Scale3,
 };
 use ew_model::shape::Geometry;
 use ew_model::text::TextStyle;
@@ -322,7 +322,7 @@ fn pad(
         }
     }
     let margin = |name: &str| node.number(name).filter(|v| *v != 0.0).map(nm);
-    Pad {
+    let mut pad = Pad {
         id: ids.of(node, &[owner, "pad", &number]),
         number,
         net: None,
@@ -339,6 +339,101 @@ fn pad(
         clearance: margin("clearance"),
         mask_margin: margin("solder_mask_margin"),
         paste_margin: margin("solder_paste_margin"),
+        stack: Vec::new(),
+    };
+    padstack(node, local, &mut pad, report, file);
+    pad
+}
+
+/// The shape of a padstack entry: `(layer "Inner" (shape circle) (size 1 1))`.
+fn stack_entry(entry: &Sexp<'_>, report: &mut ImportReport, file: &str) -> (PadShape, Size) {
+    let size = entry.get("size");
+    let size = Size::new(
+        size.and_then(|s| s.num(0)).map_or(0, nm),
+        size.and_then(|s| s.num(1)).map_or(0, nm),
+    );
+    let shape = match entry.value("shape").unwrap_or("rect") {
+        "circle" => PadShape::Circle,
+        "oval" => PadShape::Oval,
+        "roundrect" => PadShape::RoundRect {
+            ratio: (entry
+                .number("roundrect_rratio")
+                .unwrap_or(0.25)
+                .clamp(0.0, 0.5)
+                * 1000.0)
+                .round() as u16,
+        },
+        "trapezoid" => {
+            let delta = entry.get("rect_delta");
+            PadShape::Trapezoid {
+                delta: Size::new(
+                    delta.and_then(|d| d.num(0)).map_or(0, nm),
+                    delta.and_then(|d| d.num(1)).map_or(0, nm),
+                ),
+            }
+        }
+        "rect" => PadShape::Rect,
+        _ => {
+            report.info(
+                "padstack-shape",
+                Some(file),
+                "custom shapes on single padstack layers are imported as rectangles",
+            );
+            PadShape::Rect
+        }
+    };
+    (shape, size)
+}
+
+/// A padstack (KiCad 9): other copper on the inner layers and the back.
+/// In a board file, a footprint on the bottom keeps the shape of the
+/// board's top in the pad itself, so its own front is the `B.Cu` entry.
+fn padstack(node: &Sexp<'_>, local: Local, pad: &mut Pad, report: &mut ImportReport, file: &str) {
+    let Some(stack) = node.get("padstack") else {
+        return;
+    };
+    let mut inner = None;
+    let mut back = None;
+    let mut more_inner = false;
+    for entry in stack.args().iter().filter(|e| e.is("layer")) {
+        match entry.arg(0) {
+            Some("B.Cu") => back = Some(stack_entry(entry, report, file)),
+            Some(name) if name == "Inner" || name.starts_with("In") => {
+                if inner.is_none() {
+                    inner = Some(stack_entry(entry, report, file));
+                } else {
+                    more_inner = true;
+                }
+            }
+            _ => {}
+        }
+    }
+    if more_inner {
+        report.info(
+            "padstack-inner",
+            Some(file),
+            "padstacks with a shape per inner layer are imported with the first inner shape",
+        );
+    }
+    if local.bottom
+        && let Some((shape, size)) = back.take()
+    {
+        back = Some((std::mem::replace(&mut pad.shape, shape), pad.size));
+        pad.size = size;
+    }
+    if let Some((shape, size)) = inner {
+        pad.stack.push(PadLayerShape {
+            layers: PadStackLayers::Inner,
+            shape,
+            size,
+        });
+    }
+    if let Some((shape, size)) = back {
+        pad.stack.push(PadLayerShape {
+            layers: PadStackLayers::Back,
+            shape,
+            size,
+        });
     }
 }
 

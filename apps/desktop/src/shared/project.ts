@@ -234,6 +234,8 @@ export const IMPORT_CODES: ReadonlySet<string> = new Set([
   'already-in-library',
   'chamfered-pad',
   'custom-pad',
+  'padstack-shape',
+  'padstack-inner',
   'custom-rules',
   'eagle-bus',
   'eagle-frame',

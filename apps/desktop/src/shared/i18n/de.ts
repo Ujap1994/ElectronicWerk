@@ -1209,6 +1209,8 @@ export const de: Messages = {
       'already-in-library': 'Bereits in der Bibliothek',
       'chamfered-pad': 'Angefaste Pads werden zu abgerundeten Rechtecken',
       'custom-pad': 'Eigene Pad-Formen werden vereinfacht',
+      'padstack-shape': 'Eigene Formen auf einzelnen Padstack-Lagen werden zu Rechtecken',
+      'padstack-inner': 'Padstacks mit einer Form je Innenlage behalten die erste Innenform',
       'custom-rules': 'Eigene Designregeln werden nicht übernommen',
       'erc-exclusions': 'Ausgeschlossene ERC-Meldungen werden neu geprüft',
       'external-library': 'Bibliothek außerhalb des Projekts',

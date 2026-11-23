@@ -1202,6 +1202,8 @@ export const en = {
       'already-in-library': 'Already in the library',
       'chamfered-pad': 'Chamfered pads become rounded rectangles',
       'custom-pad': 'Custom pad shapes are simplified',
+      'padstack-shape': 'Custom shapes on single padstack layers become rectangles',
+      'padstack-inner': 'Padstacks with a shape per inner layer keep the first inner shape',
       'custom-rules': 'Custom design rules are not imported',
       'erc-exclusions': 'Excluded ERC findings are checked again',
       'external-library': 'Library outside the project',

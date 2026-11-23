@@ -39,6 +39,17 @@ function number(value: unknown): number {
 
 const NO_LAYERS: readonly string[] = [];
 
+/** IPC-4761 via fills, type I to VII. */
+const VIA_FILLS = [
+  'tented',
+  'tentedCovered',
+  'plugged',
+  'pluggedCovered',
+  'filled',
+  'filledCovered',
+  'filledCapped',
+] as const;
+
 /** At most this many objects are edited together. */
 export const MAX_EDITED = 2000;
 
@@ -246,6 +257,18 @@ export function BoardProperties({
             {t('board.props.viaType')}:{' '}
             {t(`board.viaTypes.${viaTypeOf(viaFrom, viaTo, object['micro'] === true)}`)}
           </p>
+          <SelectInput
+            label={label(t('board.props.viaFill'), 'fill')}
+            value={text(object['fill'])}
+            testId="board-prop-via-fill"
+            options={[
+              ['', t('board.viaFills.board')],
+              ...VIA_FILLS.map((fill) => [fill, t(`board.viaFills.${fill}`)] as const),
+            ]}
+            onSave={(value) => {
+              patch({ fill: value === '' ? null : value });
+            }}
+          />
           {locked}
         </>
       )}

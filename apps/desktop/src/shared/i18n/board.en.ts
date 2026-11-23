@@ -132,6 +132,7 @@ export const boardEn = {
     to: 'Last layer',
     micro: 'Microvia (laser-drilled)',
     viaType: 'Type',
+    viaFill: 'Filling and covering (IPC-4761)',
   },
   routeModes: {
     walkaround: 'Walk around',
@@ -142,6 +143,16 @@ export const boardEn = {
     blind: 'Blind / buried via',
     buried: 'Buried via',
     micro: 'Microvia',
+  },
+  viaFills: {
+    board: 'As in the output settings',
+    tented: 'I – tented',
+    tentedCovered: 'II – tented and covered',
+    plugged: 'III – plugged',
+    pluggedCovered: 'IV – plugged and covered',
+    filled: 'V – filled',
+    filledCovered: 'VI – filled and covered',
+    filledCapped: 'VII – filled and capped (via in pad)',
   },
   picture: {
     open: 'Logo or QR code',
@@ -266,6 +277,7 @@ export const boardEn = {
       short: 'Short circuit between nets',
       clearance: 'Copper clearance',
       creepage: 'Creepage distance',
+      'via-in-pad': 'Via in pad not filled and capped',
       unrouted: 'Unrouted connection',
       'track-width': 'Track width',
       'via-diameter': 'Via diameter',
@@ -310,6 +322,8 @@ export const boardEn = {
       short: '{a} touches {b}: the nets are shorted',
       clearance: 'Clearance {actual} between {a} and {b} is less than {required} ({source})',
       creepage: 'Creepage {actual} between {a} and {b} is less than {required} ({source})',
+      'via-in-pad':
+        'Via in {pad}: fill and cap it (IPC-4761 type VII) so that no solder runs into the hole',
       unrouted: 'Net {net}: {a} is not connected to {b}',
       'copper-to-edge': '{item} is {actual} from the board edge, less than {required} ({source})',
       'outside-board': '{item} lies outside the board',

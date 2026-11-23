@@ -127,6 +127,7 @@ pub const LOCAL_CODES: &[&str] = &[
     "via-drill",
     "annular-ring",
     "via-type",
+    "via-in-pad",
     "via-layers",
     "impedance",
     "pair-gap",
@@ -425,6 +426,7 @@ pub fn check(pcb: &Pcb, rules: Option<&Rules>, options: &Options) -> Report {
     creepages(&mut ctx, &in_region);
     widths_and_holes(&mut ctx, &in_region);
     via_types(&mut ctx, &in_region);
+    vias_in_pads(&mut ctx, &in_region);
     impedances(&mut ctx, &in_region);
     pair_gaps(&mut ctx, &in_region);
     lengths(&mut ctx);
@@ -1070,6 +1072,52 @@ fn lengths(ctx: &mut Context<'_>) {
 
 /// Blind, buried and microvias: allowed by the design rules, on layers of
 /// the board, microvias between neighbouring layers only.
+/// Vias in SMD pads that are not filled and capped (IPC-4761 type VII):
+/// solder runs into the hole while the part is soldered.
+fn vias_in_pads(ctx: &mut Context<'_>, in_region: &Region<'_>) {
+    let mut found = Vec::new();
+    for via in &ctx.board.pcb.vias {
+        let at = V::of(via.at);
+        if !in_region(BBox::of(at)) || via.fill == Some(ew_model::pcb::ViaFill::FilledCapped) {
+            continue;
+        }
+        for j in ctx.board.copper_near(BBox::of(at)) {
+            let pad = &ctx.board.copper[j];
+            let ItemRef::Pad { footprint, index } = pad.item else {
+                continue;
+            };
+            let smd = ctx
+                .board
+                .footprint(footprint)
+                .and_then(|fp| fp.pads.get(index))
+                .is_some_and(|p| p.kind == PadKind::Smd);
+            if smd && pad.shape.contains(at) {
+                found.push((via.id, j, at));
+                break;
+            }
+        }
+    }
+    for (via, pad, at) in found {
+        let label = ctx.label(pad);
+        let targets = vec![
+            Target::of(ItemRef::Via { id: via }),
+            Target::of(ctx.board.copper[pad].item),
+        ];
+        ctx.report(
+            "via-in-pad",
+            format!(
+                "Via in {label}: fill and cap it (IPC-4761 type VII) so that no solder runs into the hole"
+            ),
+            at,
+            targets,
+            Detail {
+                args: vec![("pad", label)],
+                layer: None,
+            },
+        );
+    }
+}
+
 fn via_types(ctx: &mut Context<'_>, in_region: &Region<'_>) {
     let constraints = ctx.rules.constraints;
     let mut found = Vec::new();
@@ -1887,6 +1935,7 @@ mod tests {
             from: CopperLayer::Top,
             to: CopperLayer::Bottom,
             micro: false,
+            fill: None,
             locked: false,
         });
         pcb.zones.insert(Zone {
@@ -2068,5 +2117,78 @@ mod tests {
         });
         let report = check(&pcb, Some(&rules), &Options::default());
         assert!(codes(&report).contains(&"creepage"));
+    }
+
+    #[test]
+    fn vias_in_pads_must_be_filled_and_capped() {
+        let net = Id::random();
+        let mut pcb = board_with(vec![(Point::mm(5, 5), Some(net))]);
+        outline(&mut pcb, 30, 30);
+        // board_with places the pad at the footprint origin + (5, 5).
+        let fp = pcb
+            .footprints
+            .iter()
+            .next()
+            .map_or_else(|| panic!("a footprint"), |f| f.id);
+        let centre = pcb
+            .footprints
+            .get(fp)
+            .map(|f| f.at + f.pads[0].at)
+            .unwrap_or_default();
+        let via = Via {
+            id: Id::random(),
+            at: centre,
+            diameter: um(400),
+            drill: um(200),
+            net: Some(net),
+            from: CopperLayer::Top,
+            to: CopperLayer::Bottom,
+            micro: false,
+            fill: None,
+            locked: false,
+        };
+        let id = via.id;
+        pcb.vias.insert(via);
+        let report = check(&pcb, None, &Options::default());
+        let finding = report.findings.iter().find(|f| f.code == "via-in-pad");
+        assert!(finding.is_some(), "{:?}", codes(&report));
+        assert_eq!(finding.map(|f| f.severity), Some(ErcSeverity::Warning));
+        // Filled and capped: fine.
+        if let Some(via) = pcb.vias.get_mut(id) {
+            via.fill = Some(ew_model::pcb::ViaFill::FilledCapped);
+        }
+        let report = check(&pcb, None, &Options::default());
+        assert!(!codes(&report).contains(&"via-in-pad"));
+    }
+
+    #[test]
+    fn padstacks_give_each_layer_its_copper() {
+        use ew_model::pcb::{PadLayerShape, PadShape, PadStackLayers};
+        let mut pcb = board_with(vec![(Point::mm(0, 0), None)]);
+        let fp = pcb
+            .footprints
+            .iter()
+            .next()
+            .map_or_else(|| panic!("a footprint"), |f| f.id);
+        if let Some(f) = pcb.footprints.get_mut(fp) {
+            let pad = &mut f.pads[0];
+            pad.layers = vec![ew_model::layer::LayerSpec::AllCopper];
+            pad.size = ew_model::units::Size::new(um(2_000), um(2_000));
+            pad.stack = vec![PadLayerShape {
+                layers: PadStackLayers::Back,
+                shape: PadShape::Circle,
+                size: ew_model::units::Size::new(um(1_000), um(1_000)),
+            }];
+        }
+        let board = Board::new(&pcb);
+        let pads: Vec<&CopperItem> = board
+            .copper
+            .iter()
+            .filter(|c| matches!(c.item, ItemRef::Pad { .. }))
+            .collect();
+        assert_eq!(pads.len(), 2, "top and bottom");
+        let widths: Vec<f64> = pads.iter().map(|c| c.bbox.max.x - c.bbox.min.x).collect();
+        assert!(widths.iter().any(|w| (w - 2e6).abs() < 1.0), "{widths:?}");
+        assert!(widths.iter().any(|w| (w - 1e6).abs() < 1.0), "{widths:?}");
     }
 }

@@ -203,6 +203,22 @@ test('routes with a blind via once the design rules allow it', async () => {
   const vias = (readBoard(project).vias ?? []) as { from?: string; to?: string }[];
   const blind = vias.filter((v) => (v.from ?? 'cu.top') === 'cu.top' && v.to === 'cu.in1');
   expect(blind).toHaveLength(1);
+
+  // The via gets filled and capped (IPC-4761 type VII) in its properties.
+  await canvas.focus();
+  await page.keyboard.press('Escape');
+  await page.keyboard.press('Escape');
+  const [fx, fy] = await toScreen(canvas, [corner[0] - 2 * MM, corner[1] - 6 * MM]);
+  await page.mouse.click(fx, fy);
+  const [vx, vy] = await toScreen(canvas, [corner[0] - 0.15 * MM, corner[1] - 0.2 * MM]);
+  await page.mouse.click(vx, vy);
+  await expect(page.getByTestId('board-prop-via-type')).toContainText('Blind');
+  await expect(page.getByTestId('board-prop-via-fill')).toHaveValue('');
+  await page.getByTestId('board-prop-via-fill').selectOption('filledCapped');
+  await expect(page.getByTestId('board-prop-via-fill')).toHaveValue('filledCapped');
+  await save(page);
+  const filled = (readBoard(project).vias ?? []) as { to?: string; fill?: string }[];
+  expect(filled.find((v) => v.to === 'cu.in1')?.fill).toBe('filledCapped');
 });
 
 test('computes impedance sizes in the beginner mode and takes them by hand in the advanced mode', async () => {

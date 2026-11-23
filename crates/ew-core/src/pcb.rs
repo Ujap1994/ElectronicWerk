@@ -1731,6 +1731,7 @@ pub fn call(
                     from: stack[0],
                     to: stack[stack.len() - 1],
                     micro: false,
+                    fill: None,
                     locked: false,
                 })
                 .collect();
@@ -2051,6 +2052,7 @@ pub fn call(
                     from: via.from.unwrap_or(stack[0]),
                     to: via.to.unwrap_or(stack[stack.len() - 1]),
                     micro: via.micro,
+                    fill: None,
                     locked: false,
                 };
                 select.push(via.id);

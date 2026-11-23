@@ -360,6 +360,7 @@ pub fn read(
                             clearance: None,
                             mask_margin: None,
                             paste_margin: None,
+                            stack: Vec::new(),
                         }],
                         graphics: Vec::new(),
                         texts: Vec::new(),
@@ -435,6 +436,7 @@ pub fn read(
                             from: copper_of(from).unwrap_or(CopperLayer::Top),
                             to: copper_of(to).unwrap_or(CopperLayer::Bottom),
                             micro: false,
+                            fill: None,
                             locked: false,
                         });
                         vias += 1;

@@ -338,6 +338,7 @@ impl PartKind {
                 clearance: None,
                 mask_margin: None,
                 paste_margin: None,
+                stack: Vec::new(),
             })
             .collect();
         let bounds = ew_model::units::Rect::from_points(pads.iter().flat_map(|pad| {

@@ -52,6 +52,8 @@ pub struct Hole {
     pub kind: HoleKind,
     /// First and last copper layer (indices in the stack, top = 0).
     pub span: (usize, usize),
+    /// How a via is filled and covered (IPC-4761).
+    pub fill: Option<ew_model::pcb::ViaFill>,
 }
 
 /// Every hole of a board.
@@ -84,6 +86,7 @@ pub fn holes(pcb: &Pcb) -> Vec<Hole> {
                     HoleKind::Mechanical
                 },
                 span: (0, last),
+                fill: None,
             });
         }
     }
@@ -98,6 +101,7 @@ pub fn holes(pcb: &Pcb) -> Vec<Hole> {
             plated: true,
             kind: HoleKind::Via,
             span: (a.min(b), a.max(b)),
+            fill: via.fill,
         });
     }
     out
@@ -267,6 +271,7 @@ mod tests {
             plated: kind != HoleKind::Mechanical,
             kind,
             span: (0, 1),
+            fill: None,
         };
         let a = hole(2e6, 4e5, HoleKind::Via);
         let b = hole(1e6, 4e5, HoleKind::Via);

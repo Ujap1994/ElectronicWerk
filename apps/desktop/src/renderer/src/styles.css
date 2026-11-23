@@ -3805,6 +3805,16 @@ textarea.field__control {
   grid-column: 1 / -1;
 }
 
+.libedit-stack__row {
+  display: grid;
+  gap: var(--space-1);
+  padding-block: var(--space-1);
+}
+
+.libedit-stack__row + .libedit-stack__row {
+  border-top: 1px solid var(--color-border);
+}
+
 .libedit-checks__list {
   max-height: none;
   padding: var(--space-2);

@@ -301,6 +301,7 @@ fn mounting_hole(designator: &str, x: i64, y: i64) -> Value {
         clearance: None,
         mask_margin: None,
         paste_margin: None,
+        stack: Vec::new(),
     };
     let fp = FootprintInstance {
         id: Id::random(),

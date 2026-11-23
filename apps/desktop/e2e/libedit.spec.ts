@@ -172,6 +172,16 @@ test('edits symbols, footprints and components', async () => {
   await expect(page.getByTestId('pad-number-8')).toHaveValue('9');
   await page.keyboard.press('Escape');
 
+  // As a through-hole pad it gets a padstack: a round ring on the back.
+  await selectRow(page, 'pad-row-8');
+  await page.getByTestId('sel-pad-kind').selectOption('throughHole');
+  await expect(page.getByTestId('sel-pad-stack')).toBeVisible();
+  await page.getByTestId('sel-pad-stack-back').click();
+  await expect(page.getByTestId('sel-pad-stack-back')).toBeChecked();
+  await page.getByTestId('sel-pad-stack-back-shape').selectOption('circle');
+  await expect(page.getByTestId('sel-pad-stack-back-shape')).toHaveValue('circle');
+  await expect(page.getByTestId('sel-pad-stack-inner')).not.toBeChecked();
+
   // A component joins the symbol and the footprint.
   await page.getByTestId('libedit-kind-component').click();
   await page.getByTestId('libedit-new').click();

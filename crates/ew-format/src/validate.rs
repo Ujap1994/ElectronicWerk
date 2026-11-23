@@ -899,6 +899,7 @@ mod tests {
                 from: CopperLayer::Top,
                 to: CopperLayer::Bottom,
                 micro: false,
+                fill: None,
                 locked: false,
             }))
             .unwrap();

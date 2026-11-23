@@ -856,8 +856,8 @@ fn draw_pad(
     let place = |q: P| xf.apply(at.add(q.rotate(rotation)));
     let center = place(P::default());
     let angle = xf.shape_angle(rotation);
-    let half_w = pad.size.w as f64 / 2.0;
-    let half_h = pad.size.h as f64 / 2.0;
+    // The footprint is on the bottom when its top copper lands there.
+    let bottom = flip(Layer::Copper(CopperLayer::Top)) != Layer::Copper(CopperLayer::Top);
     let mut targets: Vec<(usize, Layer)> = Vec::new();
     for spec in &pad.layers {
         for target in layers.pad_layers(*spec, flip) {
@@ -867,13 +867,29 @@ fn draw_pad(
         }
     }
     for (layer, kind) in targets {
+        // A padstack: the shape of this layer (mask and paste follow the
+        // copper of their side).
+        let own = match kind {
+            Layer::Copper(copper) => pad.on_copper(copper, bottom),
+            Layer::SolderMask(side) | Layer::Paste(side) => pad.on_copper(
+                if side == Side::Top {
+                    CopperLayer::Top
+                } else {
+                    CopperLayer::Bottom
+                },
+                bottom,
+            ),
+            _ => std::borrow::Cow::Borrowed(pad),
+        };
+        let half_w = own.size.w as f64 / 2.0;
+        let half_h = own.size.h as f64 / 2.0;
         let margin = match kind {
             Layer::SolderMask(_) => pad.mask_margin.unwrap_or(0) as f64,
             Layer::Paste(_) => pad.paste_margin.unwrap_or(0) as f64,
             _ => 0.0,
         };
         let (w, h) = ((half_w + margin).max(0.0), (half_h + margin).max(0.0));
-        match &pad.shape {
+        match &own.shape {
             PadShape::Circle => b.circle(layer, obj, center, w, 0.0),
             PadShape::Rect => b.rect(layer, obj, center, w, h, angle, 0.0),
             PadShape::Oval => b.rect(layer, obj, center, w, h, angle, w.min(h)),

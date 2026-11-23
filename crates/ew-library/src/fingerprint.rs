@@ -527,6 +527,7 @@ mod tests {
             clearance: None,
             mask_margin: None,
             paste_margin: None,
+            stack: Vec::new(),
         }
     }
 

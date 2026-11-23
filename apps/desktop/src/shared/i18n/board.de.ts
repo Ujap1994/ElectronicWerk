@@ -127,6 +127,7 @@ export const boardDe: Messages['board'] = {
     to: 'Letzte Lage',
     micro: 'Mikrovia (lasergebohrt)',
     viaType: 'Typ',
+    viaFill: 'Füllung und Abdeckung (IPC-4761)',
     designator: 'Bezeichner',
     value: 'Wert',
     rotation: 'Drehung',
@@ -149,6 +150,16 @@ export const boardDe: Messages['board'] = {
     blind: 'Sackloch-/vergrabenes Via',
     buried: 'Vergrabenes Via',
     micro: 'Mikrovia',
+  },
+  viaFills: {
+    board: 'Wie in den Ausgabe-Einstellungen',
+    tented: 'I – abgedeckt (Trockenfilm)',
+    tentedCovered: 'II – abgedeckt und mit Lack überzogen',
+    plugged: 'III – verschlossen',
+    pluggedCovered: 'IV – verschlossen und mit Lack überzogen',
+    filled: 'V – gefüllt',
+    filledCovered: 'VI – gefüllt und mit Lack überzogen',
+    filledCapped: 'VII – gefüllt und überkupfert (Via im Pad)',
   },
   picture: {
     open: 'Logo oder QR-Code',
@@ -274,6 +285,7 @@ export const boardDe: Messages['board'] = {
       short: 'Kurzschluss zwischen Netzen',
       clearance: 'Kupferabstand',
       creepage: 'Kriechstrecke',
+      'via-in-pad': 'Via im Pad nicht gefüllt und überkupfert',
       unrouted: 'Offene Verbindung',
       'track-width': 'Leiterbahnbreite',
       'via-diameter': 'Via-Durchmesser',
@@ -318,6 +330,8 @@ export const boardDe: Messages['board'] = {
       short: '{a} berührt {b}: Die Netze sind kurzgeschlossen',
       clearance: 'Abstand {actual} zwischen {a} und {b} ist kleiner als {required} ({source})',
       creepage: 'Kriechstrecke {actual} zwischen {a} und {b} ist kleiner als {required} ({source})',
+      'via-in-pad':
+        'Via in {pad}: füllen und überkupfern (IPC-4761 Typ VII), damit kein Lot in die Bohrung läuft',
       unrouted: 'Netz {net}: {a} ist nicht mit {b} verbunden',
       'copper-to-edge':
         '{item} liegt {actual} vom Platinenrand entfernt, weniger als {required} ({source})',

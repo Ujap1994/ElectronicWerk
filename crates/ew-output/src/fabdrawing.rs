@@ -133,6 +133,39 @@ fn copper(thickness: f64) -> String {
     format!("{um:.0} µm ({oz} oz)")
 }
 
+/// Notes on the filled and covered vias, one per fill (IPC-4761).
+fn fill_notes(all: &[crate::drill::Hole], notes: &mut Vec<String>) {
+    // Filled and covered vias, by fill.
+    let mut fills: Vec<(ew_model::pcb::ViaFill, Vec<f64>)> = Vec::new();
+    for hole in all.iter().filter(|h| h.kind == HoleKind::Via) {
+        if let Some(fill) = hole.fill {
+            match fills.iter_mut().find(|(f, _)| *f == fill) {
+                Some((_, sizes)) => {
+                    if !sizes.iter().any(|d| (d - hole.diameter).abs() < 100.0) {
+                        sizes.push(hole.diameter);
+                    }
+                }
+                None => fills.push((fill, vec![hole.diameter])),
+            }
+        }
+    }
+    fills.sort_by_key(|(f, _)| *f);
+    for (fill, sizes) in fills {
+        let sizes: Vec<String> = sizes.iter().map(|d| format!("{} mm", mm(*d))).collect();
+        notes.push(format!(
+            "Vias {} as marked in the drill table: {}.",
+            sizes.join(", "),
+            crate::drillmap::fill_name(fill)
+        ));
+        if fill == ew_model::pcb::ViaFill::FilledCapped {
+            notes.push(
+                "Filled and capped vias lie in pads (via in pad): planarize and plate over them."
+                    .to_owned(),
+            );
+        }
+    }
+}
+
 /// The notes made from the board data.
 #[must_use]
 #[allow(clippy::cast_precision_loss, reason = "board lengths fit f64")]
@@ -219,6 +252,7 @@ pub fn generated_notes(pcb: &Pcb, ipc_class: u8) -> Vec<String> {
         notes.push(format!("Smallest features: {}.", small.join(", ")));
     }
     notes.push("Hole sizes are finished sizes (after plating).".to_owned());
+    fill_notes(&all, &mut notes);
     notes.push(
         "Tolerances unless noted: outline ±0.1 mm, plated holes ±0.075 mm, \
          non-plated holes ±0.05 mm."
@@ -514,6 +548,9 @@ pub fn fabrication_drawing(art: &BoardArt<'_>, labels: &Labels, options: &Option
         if tool.slots > 0 {
             let word = &drill_labels.slots[usize::from(tool.slots != 1)];
             kind = format!("{kind}, {} {word}", tool.slots);
+        }
+        if let Some(fill) = tool.fill {
+            kind = format!("{kind}, {}", crate::drillmap::fill_name(fill));
         }
         cell(&mut page, &kind, columns[3], y);
     }

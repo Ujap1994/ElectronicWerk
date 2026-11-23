@@ -69,3 +69,51 @@ fn generated_notes_follow_the_board() {
             .any(|n| n.contains("Surface finish"))
     );
 }
+
+#[test]
+fn via_fills_set_mask_openings_and_notes() {
+    use ew_model::layer::{Layer, Side};
+    use ew_model::pcb::ViaFill;
+    use ew_output::art::{Feature, Function};
+    let mut pcb = board();
+    let resolve = |text: &str| text.to_owned();
+    let via_flashes = |pcb: &Pcb| {
+        let art = BoardArt::new(pcb, ArtOptions::default(), &resolve);
+        art.features(Layer::SolderMask(Side::Top))
+            .iter()
+            .filter(|f| {
+                matches!(
+                    f,
+                    Feature::Flash {
+                        function: Function::Other,
+                        ..
+                    }
+                )
+            })
+            .count()
+    };
+    // Tented by default: no openings over the vias.
+    let tented = via_flashes(&pcb);
+    // Plugged vias (type III) are open.
+    let ids: Vec<_> = pcb.vias.iter().take(3).map(|v| v.id).collect();
+    for id in &ids {
+        if let Some(via) = pcb.vias.get_mut(*id) {
+            via.fill = Some(ViaFill::Plugged);
+        }
+    }
+    assert_eq!(via_flashes(&pcb), tented + 3);
+    let notes = generated_notes(&pcb, 2);
+    assert!(
+        notes.iter().any(|n| n.contains("plugged (IPC-4761 III)")),
+        "{notes:?}"
+    );
+    // The drill table counts them apart.
+    let art = BoardArt::new(&pcb, ArtOptions::default(), &resolve);
+    let doc = fabrication_doc(&art, &Labels::default(), &Options::default(), "0.0.0", "");
+    assert!(
+        doc.pages[0]
+            .labels
+            .iter()
+            .any(|l| l.text.contains("via, plugged (IPC-4761 III)"))
+    );
+}

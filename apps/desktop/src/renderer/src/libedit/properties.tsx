@@ -32,6 +32,8 @@ import {
   type FootprintText,
   type Geometry,
   type ItemRef,
+  type Pad,
+  type PadLayerShape,
   type Point,
   type SymbolDef,
   type SymbolGraphic,
@@ -1045,6 +1047,7 @@ export function FootprintSelection({
             />
           ))}
         </fieldset>
+        {pad.drill !== undefined && <PadStackFields pad={pad} units={units} patch={patch} />}
         <div className="field-grid field-grid--two">
           <LengthInput
             label={t('libedit.props.maskMargin')}
@@ -1213,4 +1216,76 @@ function LayerSelect({
     (layer) => [layer, layerName(t, layer)] as const,
   );
   return <SelectInput label={t('libedit.layer')} value={value} options={options} onSave={onSave} />;
+}
+
+/** Shapes a padstack layer can have. */
+const STACK_SHAPES = ['circle', 'rect', 'oval', 'roundRect'] as const;
+
+/**
+ * The padstack of a through-hole pad: an own shape and size on the inner
+ * layers and on the back (where none is set, the pad's shape is used).
+ */
+function PadStackFields({
+  pad,
+  units,
+  patch,
+}: {
+  readonly pad: Pad;
+  readonly units: Units;
+  readonly patch: (fields: Record<string, unknown>) => void;
+}): ReactNode {
+  const { t } = useAppState();
+  const stack = pad.stack ?? [];
+  const save = (layers: PadLayerShape['layers'], entry: PadLayerShape | undefined): void => {
+    const rest = stack.filter((e) => e.layers !== layers);
+    const next = entry === undefined ? rest : [...rest, entry];
+    next.sort((a, b) => (a.layers === b.layers ? 0 : a.layers === 'inner' ? -1 : 1));
+    patch({ stack: next });
+  };
+  return (
+    <fieldset className="field--group" data-testid="sel-pad-stack">
+      <legend>{t('libedit.props.padstack')}</legend>
+      <p className="field__hint">{t('libedit.props.padstackHint')}</p>
+      {(['inner', 'back'] as const).map((layers) => {
+        const entry = stack.find((e) => e.layers === layers);
+        return (
+          <div key={layers} className="libedit-stack__row">
+            <CheckInput
+              label={t(layers === 'inner' ? 'libedit.props.stackInner' : 'libedit.props.stackBack')}
+              checked={entry !== undefined}
+              testId={`sel-pad-stack-${layers}`}
+              onSave={(on) => {
+                save(layers, on ? { layers, shape: pad.shape, size: pad.size } : undefined);
+              }}
+            />
+            {entry !== undefined && (
+              <>
+                <SelectInput
+                  label={t('libedit.props.shape')}
+                  value={shapeKey(entry.shape)}
+                  options={STACK_SHAPES.map(
+                    (key) => [key, t(`libedit.padShapes.${key}` as MessageKey)] as const,
+                  )}
+                  testId={`sel-pad-stack-${layers}-shape`}
+                  onSave={(key) => {
+                    save(layers, { ...entry, shape: shapeOf(key, entry.size) });
+                  }}
+                />
+                <LengthTuple
+                  label={t('libedit.table.size')}
+                  values={entry.size}
+                  units={units}
+                  min={1}
+                  testId={`sel-pad-stack-${layers}-size`}
+                  onSave={([w = 1, h = 1]) => {
+                    save(layers, { ...entry, size: [w, h] });
+                  }}
+                />
+              </>
+            )}
+          </div>
+        );
+      })}
+    </fieldset>
+  );
 }

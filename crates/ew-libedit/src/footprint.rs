@@ -38,6 +38,8 @@ pub struct PadPatch {
     pub mask_margin: Option<Option<Nm>>,
     /// Paste margin.
     pub paste_margin: Option<Option<Nm>>,
+    /// Padstack: the copper of the inner layers and the back.
+    pub stack: Option<Vec<ew_model::pcb::PadLayerShape>>,
 }
 
 /// One footprint edit.
@@ -435,6 +437,7 @@ pub fn apply(def: &FootprintDef, edit: &FootprintEdit, grid: Nm) -> Result<Edite
                         }
                         PadKind::Smd | PadKind::Connector => {
                             pad.drill = None;
+                            pad.stack.clear();
                             pad.layers = vec![
                                 LayerSpec::Layer(Layer::Copper(ew_model::layer::CopperLayer::Top)),
                                 LayerSpec::Layer(Layer::SolderMask(Side::Top)),
@@ -469,6 +472,12 @@ pub fn apply(def: &FootprintDef, edit: &FootprintEdit, grid: Nm) -> Result<Edite
                 }
                 if let Some(v) = patch.paste_margin {
                     pad.paste_margin = v;
+                }
+                if let Some(v) = &patch.stack {
+                    pad.stack.clone_from(v);
+                    for entry in &mut pad.stack {
+                        entry.size = Size::new(entry.size.w.max(1), entry.size.h.max(1));
+                    }
                 }
                 select.push(ItemRef::new(ItemKind::Pad, i));
             }

@@ -8,7 +8,7 @@ use ew_model::layer::{CopperLayer, Layer, Side};
 use ew_model::library::FootprintDef;
 use ew_model::pcb::{
     BoardShape, BoardText, DielectricKind, FilledArea, FootprintInstance, Keepout, Net, Pcb,
-    Stackup, StackupLayer, Track, Via, Zone, ZoneFill,
+    Stackup, StackupLayer, Track, Via, ViaFill, Zone, ZoneFill,
 };
 use ew_model::text::TextStyle;
 use ew_model::units::{Nm, Point, mm};
@@ -159,6 +159,38 @@ impl Nets {
                 .entry(name.clone())
                 .or_insert_with(|| derived_id(&["net", &name])),
         )
+    }
+}
+
+/// The IPC-4761 protection of a via (KiCad 9: `tenting`, `covering`,
+/// `plugging`, `filling`, `capping`). `None`: as the board says.
+fn via_fill(item: &Sexp<'_>) -> Option<ViaFill> {
+    let sides = |name: &str| {
+        item.get(name)
+            .is_some_and(|n| n.flag("front") || n.flag("back"))
+    };
+    let yes = |name: &str| item.value(name) == Some("yes");
+    let covered = sides("covering");
+    if yes("capping") {
+        Some(ViaFill::FilledCapped)
+    } else if yes("filling") {
+        Some(if covered {
+            ViaFill::FilledCovered
+        } else {
+            ViaFill::Filled
+        })
+    } else if sides("plugging") {
+        Some(if covered {
+            ViaFill::PluggedCovered
+        } else {
+            ViaFill::Plugged
+        })
+    } else if covered {
+        Some(ViaFill::TentedCovered)
+    } else if sides("tenting") {
+        Some(ViaFill::Tented)
+    } else {
+        None
     }
 }
 
@@ -447,6 +479,7 @@ pub fn board(
                     from: layers.first().copied().unwrap_or(CopperLayer::Top),
                     to: layers.last().copied().unwrap_or(CopperLayer::Bottom),
                     micro: item.has_word("micro"),
+                    fill: via_fill(item),
                     locked: item.flag("locked"),
                 });
             }

@@ -27,6 +27,7 @@ fn via(at: Point, from: CopperLayer, to: CopperLayer, micro: bool, size: (Nm, Nm
         from,
         to,
         micro,
+        fill: None,
         locked: false,
     }
 }

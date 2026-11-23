@@ -1047,6 +1047,7 @@ pub fn plan_session(pcb: &Pcb, rules: &RuleSet, session: &Session) -> SessionPla
                 from: layer(stack.from),
                 to: layer(stack.to),
                 micro: stack.micro,
+                fill: None,
                 locked: false,
             });
         }

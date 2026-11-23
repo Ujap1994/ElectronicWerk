@@ -285,6 +285,7 @@ pub(crate) mod tests {
             clearance: None,
             mask_margin: None,
             paste_margin: None,
+            stack: Vec::new(),
         }
     }
 
@@ -387,6 +388,7 @@ pub(crate) mod tests {
             from: CopperLayer::Top,
             to: CopperLayer::Bottom,
             micro: false,
+            fill: None,
             locked: false,
         });
         pcb.tracks.insert(track(

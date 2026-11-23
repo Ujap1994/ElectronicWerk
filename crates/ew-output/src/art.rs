@@ -7,7 +7,7 @@ use std::f64::consts::TAU;
 
 use ew_model::id::Id;
 use ew_model::layer::{CopperLayer, Layer, LayerSpec, Side};
-use ew_model::pcb::{FootprintInstance, FootprintTextKind, Pad, PadKind, Pcb};
+use ew_model::pcb::{FootprintInstance, FootprintTextKind, Pad, PadKind, Pcb, ViaFill};
 use ew_model::project::Units;
 use ew_model::shape::Geometry;
 use ew_model::text::{HAlign, TextStyle, VAlign};
@@ -375,9 +375,8 @@ impl<'a> BoardArt<'a> {
         if let Layer::Copper(copper) = layer {
             self.tracks(copper, &mut out);
             self.vias(Some(copper), &mut out);
-        } else if let Layer::SolderMask(_) = layer
-            && !self.options.tent_vias
-        {
+        } else if let Layer::SolderMask(_) = layer {
+            // Mask openings of the vias that are not tented or covered.
             self.vias(None, &mut out);
         }
         self.texts(layer, &mut out);
@@ -476,6 +475,9 @@ impl<'a> BoardArt<'a> {
     fn vias(&self, copper: Option<CopperLayer>, out: &mut Vec<Feature>) {
         let index = |layer: CopperLayer| self.stack.iter().position(|own| *own == layer);
         for via in &self.pcb.vias {
+            if copper.is_none() && via.fill.map_or(self.options.tent_vias, ViaFill::covered) {
+                continue;
+            }
             if let Some(copper) = copper {
                 let (Some(here), Some(a), Some(b)) =
                     (index(copper), index(via.from), index(via.to))
@@ -588,6 +590,21 @@ impl<'a> BoardArt<'a> {
         if !pad_on(fp, pad, layer, self.copper_count) {
             return;
         }
+        // A padstack: the copper (and its mask and paste) of this layer.
+        let bottom = fp.side == Side::Bottom;
+        let own = match layer {
+            Layer::Copper(copper) => pad.on_copper(copper, bottom),
+            Layer::SolderMask(side) | Layer::Paste(side) => pad.on_copper(
+                if side == Side::Top {
+                    CopperLayer::Top
+                } else {
+                    CopperLayer::Bottom
+                },
+                bottom,
+            ),
+            _ => std::borrow::Cow::Borrowed(pad),
+        };
+        let pad: &Pad = &own;
         let margin = match layer {
             Layer::Copper(_) => {
                 if pad.kind == PadKind::NpThroughHole

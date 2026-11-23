@@ -237,6 +237,7 @@ fn blind_buried_and_micro_vias_keep_their_layers() {
             from,
             to,
             micro,
+            fill: None,
             locked: false,
         });
     }
@@ -324,5 +325,77 @@ fn dimensions_survive_the_round_trip() {
             assert_eq!(found.offset, offset, "{kind:?}");
         }
         assert_eq!(found.text, text, "{kind:?}");
+    }
+}
+
+#[test]
+fn padstacks_and_via_fills_survive_the_round_trip() {
+    use ew_model::layer::Side;
+    use ew_model::pcb::{PadLayerShape, PadShape, PadStackLayers, ViaFill};
+    use ew_model::units::{Size, um};
+    let mut pcb = imported_board();
+    let stack = vec![
+        PadLayerShape {
+            layers: PadStackLayers::Inner,
+            shape: PadShape::Circle,
+            size: Size::new(um(700), um(700)),
+        },
+        PadLayerShape {
+            layers: PadStackLayers::Back,
+            shape: PadShape::RoundRect { ratio: 250 },
+            size: Size::new(um(1_100), um(900)),
+        },
+    ];
+    let mut changed = Vec::new();
+    for side in [Side::Top, Side::Bottom] {
+        let id = pcb
+            .footprints
+            .iter()
+            .find(|f| f.side == side)
+            .map(|f| f.id)
+            .unwrap();
+        let fp = pcb.footprints.get_mut(id).unwrap();
+        fp.pads[0].stack.clone_from(&stack);
+        changed.push((id, fp.pads[0].clone()));
+    }
+    let fills = [
+        ViaFill::Tented,
+        ViaFill::TentedCovered,
+        ViaFill::Plugged,
+        ViaFill::PluggedCovered,
+        ViaFill::Filled,
+        ViaFill::FilledCovered,
+        ViaFill::FilledCapped,
+    ];
+    let first = pcb.vias.iter().next().cloned().unwrap();
+    let mut vias = Vec::new();
+    for index in 0..fills.len() {
+        let mut via = first.clone();
+        via.id = ew_model::id::Id::random();
+        via.at = ew_model::units::Point::mm(150 + i64::try_from(index).unwrap(), 150);
+        vias.push(via.id);
+        pcb.vias.insert(via);
+    }
+    for (id, fill) in vias.iter().zip(fills) {
+        pcb.vias.get_mut(*id).unwrap().fill = Some(fill);
+    }
+    let (back, text, _) = round_trip(&pcb);
+    assert_eq!(text.matches("(padstack").count(), 2);
+    if let Some(path) = std::env::var_os("EW_PADSTACK_OUT") {
+        std::fs::write(path, &text).unwrap();
+    }
+    for (id, pad) in changed {
+        let fp = back.footprints.get(id).unwrap();
+        let again = &fp.pads[0];
+        assert_eq!(
+            (&again.shape, again.size),
+            (&pad.shape, pad.size),
+            "{:?}",
+            fp.side
+        );
+        assert_eq!(again.stack, pad.stack, "{:?}", fp.side);
+    }
+    for (id, fill) in vias.iter().zip(fills) {
+        assert_eq!(back.vias.get(*id).unwrap().fill, Some(fill));
     }
 }

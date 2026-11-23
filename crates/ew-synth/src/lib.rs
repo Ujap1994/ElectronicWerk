@@ -577,6 +577,7 @@ impl<'a> Generator<'a> {
                             from: CopperLayer::Top,
                             to: CopperLayer::Bottom,
                             micro: false,
+                            fill: None,
                             locked: false,
                         });
                     }

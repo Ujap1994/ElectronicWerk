@@ -336,6 +336,45 @@ impl<'a> Board<'a> {
         }
     }
 
+    /// The copper of a pad: one item, or one per layer for a padstack.
+    fn add_pad_copper(
+        &mut self,
+        item: ItemRef,
+        pad: &Pad,
+        (xf, bottom): (&Xform, bool),
+        layers: u64,
+        shape: Shape,
+        center: V,
+    ) {
+        if pad.stack.is_empty() {
+            self.copper.push(CopperItem {
+                item,
+                net: pad.net,
+                layers,
+                bbox: shape.bbox(),
+                shape,
+                anchors: vec![center],
+            });
+            return;
+        }
+        let stack = self.stack.clone();
+        for (index, layer) in stack.into_iter().enumerate() {
+            let bit = 1_u64 << index.min(63);
+            if layers & bit == 0 {
+                continue;
+            }
+            let own = pad_shape(&pad.on_copper(layer, bottom), xf, 0.0);
+            self.copper.push(CopperItem {
+                item,
+                net: pad.net,
+                layers: bit,
+                bbox: own.bbox(),
+                shape: own,
+                anchors: vec![center],
+            });
+        }
+    }
+
     fn add_footprint(&mut self, fp: &FootprintInstance) {
         let bottom = fp.side == Side::Bottom;
         let copper_count = self.pcb.stackup.copper_count();
@@ -372,14 +411,7 @@ impl<'a> Board<'a> {
                 for side in mask_sides {
                     self.exposed.push((side, self.copper.len()));
                 }
-                self.copper.push(CopperItem {
-                    item,
-                    net: pad.net,
-                    layers,
-                    bbox: shape.bbox(),
-                    shape,
-                    anchors: vec![center],
-                });
+                self.add_pad_copper(item, pad, (&xf, bottom), layers, shape, center);
             }
             if let Some(hole) = pad_hole(pad, &xf) {
                 self.holes.push(Hole {
@@ -892,6 +924,7 @@ mod tests {
             clearance: None,
             mask_margin: None,
             paste_margin: None,
+            stack: Vec::new(),
         }
     }
 

@@ -371,6 +371,7 @@ impl Builder {
             clearance: None,
             mask_margin: None,
             paste_margin: None,
+            stack: Vec::new(),
         });
         self.include(Bounds {
             min_x: x - w / 2.0,
@@ -399,6 +400,7 @@ impl Builder {
             clearance: None,
             mask_margin: None,
             paste_margin: None,
+            stack: Vec::new(),
         });
         self.include(Bounds::centred(pad / 2.0, pad / 2.0).shifted(x, y));
     }

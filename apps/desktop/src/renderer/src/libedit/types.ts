@@ -166,6 +166,15 @@ export interface Pad {
   readonly layers: readonly string[];
   readonly maskMargin?: number;
   readonly pasteMargin?: number;
+  /** Padstack: other copper on the inner layers and the back. */
+  readonly stack?: readonly PadLayerShape[];
+}
+
+/** The copper of a pad on some layers (a padstack entry). */
+export interface PadLayerShape {
+  readonly layers: 'inner' | 'back';
+  readonly shape: PadShape;
+  readonly size: Point;
 }
 
 export interface BoardGraphic {

@@ -247,6 +247,11 @@ export const libeditDe: Messages['libedit'] = {
     pasteMargin: 'Pasten-Rand',
     slot: 'Langlochlänge',
     ratio: 'Eckenradius (% der kurzen Seite)',
+    padstack: 'Padstack',
+    padstackHint:
+      'Anderes Kupfer auf den Innenlagen oder der Rückseite, zum Beispiel kleinere Ringe innen.',
+    stackInner: 'Eigene Form auf den Innenlagen',
+    stackBack: 'Eigene Form auf der Rückseite',
     courtyard: 'Sperrfläche',
     courtyardMargin: 'Abstand',
     makeCourtyard: 'Sperrfläche um Pads und Körper zeichnen',

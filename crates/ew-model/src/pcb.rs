@@ -271,6 +271,74 @@ pub struct Drill {
     pub offset: Point,
 }
 
+/// The copper layers a padstack entry is for, seen from the footprint's
+/// own side (the front is the pad's shape itself).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub enum PadStackLayers {
+    /// Every inner layer.
+    Inner,
+    /// The back (the bottom for a part on the top).
+    Back,
+}
+
+/// The copper of a pad on some layers, where it differs from the pad.
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct PadLayerShape {
+    /// Which layers.
+    pub layers: PadStackLayers,
+    /// Shape.
+    pub shape: PadShape,
+    /// Size.
+    pub size: Size,
+}
+
+/// How a via is filled and covered (IPC-4761 types I to VII).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub enum ViaFill {
+    /// Type I: tented with a dry film mask.
+    Tented,
+    /// Type II: tented and covered with liquid mask.
+    TentedCovered,
+    /// Type III: plugged.
+    Plugged,
+    /// Type IV: plugged and covered.
+    PluggedCovered,
+    /// Type V: filled (non-conductive or conductive paste).
+    Filled,
+    /// Type VI: filled and covered with mask.
+    FilledCovered,
+    /// Type VII: filled and capped with plated copper (via in pad).
+    FilledCapped,
+}
+
+impl ViaFill {
+    /// The IPC-4761 type number (1 to 7).
+    #[must_use]
+    pub const fn ipc_type(self) -> u8 {
+        match self {
+            Self::Tented => 1,
+            Self::TentedCovered => 2,
+            Self::Plugged => 3,
+            Self::PluggedCovered => 4,
+            Self::Filled => 5,
+            Self::FilledCovered => 6,
+            Self::FilledCapped => 7,
+        }
+    }
+
+    /// `true` if solder mask covers the via (no mask opening).
+    #[must_use]
+    pub const fn covered(self) -> bool {
+        matches!(
+            self,
+            Self::Tented | Self::TentedCovered | Self::PluggedCovered | Self::FilledCovered
+        )
+    }
+}
+
 /// A footprint pad. Coordinates are relative to the footprint origin, as seen
 /// from the top.
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
@@ -306,6 +374,11 @@ pub struct Pad {
     /// Solder mask expansion override.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub mask_margin: Option<Nm>,
+    /// Other copper on some layers (a padstack): a shape and size for the
+    /// inner layers and for the back of a through-hole pad. Empty: the
+    /// pad's shape on every layer.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub stack: Vec<PadLayerShape>,
     /// Solder paste margin override (negative shrinks).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub paste_margin: Option<Nm>,
@@ -577,9 +650,42 @@ pub struct Via {
     /// Laser-drilled microvia.
     #[serde(default, skip_serializing_if = "is_default")]
     pub micro: bool,
+    /// Filling and covering (IPC-4761); none: as the output settings say.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub fill: Option<ViaFill>,
     /// Locked.
     #[serde(default, skip_serializing_if = "is_default")]
     pub locked: bool,
+}
+
+impl Pad {
+    /// The pad as it is on a board copper layer: the shape of the padstack
+    /// entry for that layer (`bottom`: the footprint is on the bottom side,
+    /// so the board's top is the pad's back).
+    #[must_use]
+    pub fn on_copper(&self, layer: CopperLayer, bottom: bool) -> std::borrow::Cow<'_, Self> {
+        if self.stack.is_empty() {
+            return std::borrow::Cow::Borrowed(self);
+        }
+        let back = matches!(
+            (layer, bottom),
+            (CopperLayer::Bottom, false) | (CopperLayer::Top, true)
+        );
+        let inner = matches!(layer, CopperLayer::Inner(_));
+        let entry = self.stack.iter().find(|e| match e.layers {
+            PadStackLayers::Inner => inner,
+            PadStackLayers::Back => back,
+        });
+        match entry {
+            Some(e) => std::borrow::Cow::Owned(Self {
+                shape: e.shape.clone(),
+                size: e.size,
+                stack: Vec::new(),
+                ..self.clone()
+            }),
+            None => std::borrow::Cow::Borrowed(self),
+        }
+    }
 }
 
 /// The kind of a via by the layers it connects.
@@ -1147,6 +1253,7 @@ mod tests {
             from: CopperLayer::Top,
             to: CopperLayer::Bottom,
             micro: false,
+            fill: None,
             locked: false,
         };
         let json = serde_json::to_string(&via).unwrap();

@@ -166,6 +166,7 @@ fn pad(kind: PadKind, size: Nm, drill: Option<Nm>, layers: Vec<LayerSpec>) -> Pa
         clearance: None,
         mask_margin: None,
         paste_margin: None,
+        stack: Vec::new(),
     }
 }
 

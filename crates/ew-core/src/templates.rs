@@ -391,6 +391,7 @@ fn mounting_hole() -> FootprintDef {
             clearance: None,
             mask_margin: None,
             paste_margin: None,
+            stack: Vec::new(),
         }],
         graphics: vec![Graphic {
             layer: Layer::Courtyard(ew_model::layer::Side::Top),

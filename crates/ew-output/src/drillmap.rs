@@ -36,17 +36,21 @@ pub struct Tool {
     pub count: usize,
     /// Number of slots among them.
     pub slots: usize,
+    /// How the vias of this drill are filled (IPC-4761).
+    pub fill: Option<ew_model::pcb::ViaFill>,
 }
 
 /// The drills of a board, by size.
 #[must_use]
 pub fn tools(holes: &[Hole]) -> Vec<Tool> {
-    let mut map: BTreeMap<(i64, bool, HoleKind), Tool> = BTreeMap::new();
+    let mut map: BTreeMap<(i64, bool, HoleKind, Option<ew_model::pcb::ViaFill>), Tool> =
+        BTreeMap::new();
     for hole in holes {
         let key = (
             (hole.diameter / 100.0).round() as i64,
             hole.plated,
             hole.kind,
+            hole.fill,
         );
         let tool = map.entry(key).or_insert(Tool {
             diameter: hole.diameter,
@@ -54,11 +58,29 @@ pub fn tools(holes: &[Hole]) -> Vec<Tool> {
             kind: hole.kind,
             count: 0,
             slots: 0,
+            fill: hole.fill,
         });
         tool.count += 1;
         tool.slots += usize::from(hole.end.is_some());
     }
     map.into_values().collect()
+}
+
+/// An IPC-4761 via fill in words, with its type (`filled and capped
+/// (IPC-4761 VII)`).
+#[must_use]
+pub fn fill_name(fill: ew_model::pcb::ViaFill) -> String {
+    use ew_model::pcb::ViaFill;
+    let (words, roman) = match fill {
+        ViaFill::Tented => ("tented", "I"),
+        ViaFill::TentedCovered => ("tented and covered", "II"),
+        ViaFill::Plugged => ("plugged", "III"),
+        ViaFill::PluggedCovered => ("plugged and covered", "IV"),
+        ViaFill::Filled => ("filled", "V"),
+        ViaFill::FilledCovered => ("filled and covered", "VI"),
+        ViaFill::FilledCapped => ("filled and capped", "VII"),
+    };
+    format!("{words} (IPC-4761 {roman})")
 }
 
 /// Draws symbol `index` of size `s` around `c`.
@@ -338,6 +360,9 @@ pub fn drill_map(art: &BoardArt<'_>, labels: &Labels) -> Page {
             let word = &labels.slots[usize::from(tool.slots != 1)];
             kind = format!("{kind}, {} {word}", tool.slots);
         }
+        if let Some(fill) = tool.fill {
+            kind = format!("{kind}, {}", fill_name(fill));
+        }
         page.text(
             &text(&kind, columns[3], y, TEXT),
             Color::BLACK,
@@ -372,6 +397,7 @@ mod tests {
             plated: kind != HoleKind::Mechanical,
             kind,
             span: (0, 1),
+            fill: None,
         };
         let list = tools(&[
             hole(4e5, false, HoleKind::Via),

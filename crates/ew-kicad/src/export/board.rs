@@ -9,8 +9,8 @@ use ew_model::layer::{CopperLayer, Layer, LayerSpec, Side};
 use ew_model::library::FootprintDef;
 use ew_model::pcb::{
     BoardShape, DielectricKind, FootprintAttributes, FootprintInstance, FootprintText,
-    FootprintTextKind, Graphic, Model3d, Mounting, Pad, PadKind, PadShape, Pcb, StackupLayer,
-    ViaType, Zone,
+    FootprintTextKind, Graphic, Model3d, Mounting, Pad, PadKind, PadLayerShape, PadShape,
+    PadStackLayers, Pcb, StackupLayer, ViaFill, ViaType, Zone,
 };
 use ew_model::shape::Geometry;
 use ew_model::text::{HAlign, TextStyle, VAlign};
@@ -541,6 +541,7 @@ fn pad_sx(
     context: &FootprintContext<'_>,
     report: &mut ExportReport,
 ) -> Sx {
+    let pad = &*kicad_sides(pad, local.bottom);
     let kind = match pad.kind {
         PadKind::Smd => "smd",
         PadKind::ThroughHole => "thru_hole",
@@ -624,6 +625,84 @@ fn pad_sx(
     }
     if let Some(margin) = pad.paste_margin {
         node = node.child(Sx::list("solder_paste_margin").mm(margin));
+    }
+    if !pad.stack.is_empty() {
+        node = node.child(padstack_sx(pad, report));
+    }
+    node
+}
+
+/// On the bottom, KiCad keeps the shape of the board's top in the pad
+/// itself and the footprint's own front in the `B.Cu` padstack entry.
+fn kicad_sides(pad: &Pad, bottom: bool) -> std::borrow::Cow<'_, Pad> {
+    let Some(back) = pad
+        .stack
+        .iter()
+        .find(|e| e.layers == PadStackLayers::Back)
+        .filter(|_| bottom)
+    else {
+        return std::borrow::Cow::Borrowed(pad);
+    };
+    let mut stack: Vec<PadLayerShape> = pad
+        .stack
+        .iter()
+        .filter(|e| e.layers != PadStackLayers::Back)
+        .cloned()
+        .collect();
+    stack.push(PadLayerShape {
+        layers: PadStackLayers::Back,
+        shape: pad.shape.clone(),
+        size: pad.size,
+    });
+    std::borrow::Cow::Owned(Pad {
+        shape: back.shape.clone(),
+        size: back.size,
+        stack,
+        ..pad.clone()
+    })
+}
+
+/// A padstack as KiCad 9 writes it: `front_inner_back` mode with an entry
+/// for the inner layers and one for the back (the pad's own shape where
+/// the stack has none).
+fn padstack_sx(pad: &Pad, report: &mut ExportReport) -> Sx {
+    let mut node = Sx::list("padstack").child(Sx::pair("mode", "front_inner_back"));
+    for (layers, name) in [
+        (PadStackLayers::Inner, "Inner"),
+        (PadStackLayers::Back, "B.Cu"),
+    ] {
+        let (shape, size) = pad
+            .stack
+            .iter()
+            .find(|e| e.layers == layers)
+            .map_or((&pad.shape, pad.size), |e| (&e.shape, e.size));
+        let word = match shape {
+            PadShape::Circle => "circle",
+            PadShape::Oval => "oval",
+            PadShape::RoundRect { .. } => "roundrect",
+            PadShape::Trapezoid { .. } => "trapezoid",
+            PadShape::Rect => "rect",
+            PadShape::Custom { .. } => {
+                report.note(
+                    "padstack",
+                    "a custom shape on one padstack layer was written as a rectangle".to_owned(),
+                );
+                "rect"
+            }
+        };
+        let mut entry = Sx::named("layer", name)
+            .child(Sx::pair("shape", word))
+            .child(Sx::list("size").mm(size.w).mm(size.h));
+        match shape {
+            PadShape::RoundRect { ratio } => {
+                entry = entry.child(Sx::list("roundrect_rratio").num(f64::from(*ratio) / 1000.0));
+            }
+            PadShape::Trapezoid { delta } => {
+                entry = entry.child(Sx::list("rect_delta").mm(delta.w).mm(delta.h));
+            }
+            _ => {}
+        }
+        node = node.child(entry);
     }
     node
 }
@@ -1072,23 +1151,56 @@ pub fn board_file(
         if via.locked {
             node = node.child(Sx::flag("locked", true));
         }
-        root = root.child(
-            node.child(page.at(via.at, None))
-                .child(Sx::list("size").mm(via.diameter))
-                .child(Sx::list("drill").mm(via.drill))
-                .child(
-                    Sx::list("layers")
-                        .text(copper_name(via.from))
-                        .text(copper_name(via.to)),
-                )
-                .child(net_of(via.net))
-                .child(uuid(via.id)),
-        );
+        node = node
+            .child(page.at(via.at, None))
+            .child(Sx::list("size").mm(via.diameter))
+            .child(Sx::list("drill").mm(via.drill))
+            .child(
+                Sx::list("layers")
+                    .text(copper_name(via.from))
+                    .text(copper_name(via.to)),
+            );
+        if let Some(fill) = via.fill {
+            node = via_fill_sx(node, fill);
+        }
+        root = root.child(node.child(net_of(via.net)).child(uuid(via.id)));
     }
     for zone in &pcb.zones {
         root = root.child(zone_sx(zone, page, &nets));
     }
     root.render()
+}
+
+/// The IPC-4761 protection of a via as KiCad 9 writes it (checked with
+/// KiCad's own writer).
+fn via_fill_sx(mut node: Sx, fill: ViaFill) -> Sx {
+    let sides = |head: &str| {
+        Sx::list(head)
+            .child(Sx::flag("front", true))
+            .child(Sx::flag("back", true))
+    };
+    if matches!(fill, ViaFill::Tented | ViaFill::TentedCovered) {
+        node = node.child(sides("tenting"));
+    }
+    if matches!(
+        fill,
+        ViaFill::TentedCovered | ViaFill::PluggedCovered | ViaFill::FilledCovered
+    ) {
+        node = node.child(sides("covering"));
+    }
+    if matches!(fill, ViaFill::Plugged | ViaFill::PluggedCovered) {
+        node = node.child(sides("plugging"));
+    }
+    if fill == ViaFill::FilledCapped {
+        node = node.child(Sx::flag("capping", true));
+    }
+    if matches!(
+        fill,
+        ViaFill::Filled | ViaFill::FilledCovered | ViaFill::FilledCapped
+    ) {
+        node = node.child(Sx::flag("filling", true));
+    }
+    node
 }
 
 /// The box around every position of a board (for the page size).

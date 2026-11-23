@@ -145,6 +145,7 @@ fn test_board() -> Pcb {
         from: CopperLayer::Top,
         to: CopperLayer::Bottom,
         micro: false,
+        fill: None,
         locked: false,
     });
     let zone = Zone {
