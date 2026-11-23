@@ -78,17 +78,17 @@ tree under **Other files**.
 
 ## What is imported
 
-| KiCad                                            | ElectronicWerk                                                                                                                                                                                                       |
-| ------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Project file (`.kicad_pro`)                      | Project name, text variables (such as `${AUTHOR}`), net classes, net class assignments by pattern and the board constraints. These go into the **Design rules** document.                                            |
-| Schematic hierarchy                              | One schematic document per sheet file, linked by sheet symbols, with the top sheet set as the project's top sheet. A sheet file used by several sheet symbols is imported once.                                      |
-| Sheets                                           | Placed symbols with all fields, units and mirroring; wires, buses and bus entries; junctions; no-connect flags; local, global and hierarchical labels; texts and graphics; title block.                              |
-| Symbols                                          | The symbols the design uses (from the schematic's symbol cache) and the symbols of the project's own libraries, with units, pins, pin names and numbers, and derived symbols resolved.                               |
-| Board (`.kicad_pcb`)                             | Layer stackup (copper layers, dielectrics, board thickness, surface finish), footprints, tracks and arc tracks, vias, zones with their filled areas and keep-out areas, board graphics, texts and the board outline. |
-| Footprints                                       | Pads of every shape (round, oval, rectangle, rounded rectangle, trapezoid, custom), drills and slots, pad clearances, graphics, texts, attributes, properties and 3D model references.                               |
-| Library tables (`sym-lib-table`, `fp-lib-table`) | Libraries inside the project folder (`${KIPRJMOD}`) are imported into the project library. Libraries outside the project are not copied; the symbols and footprints the design uses come from the design itself.     |
-| Components                                       | A placed symbol and its footprint are linked as one component, so you can find a part on the sheet and on the board.                                                                                                 |
-| Nets                                             | All net names of the board, from every KiCad version (names in KiCad 10, net codes before).                                                                                                                          |
+| KiCad                                            | ElectronicWerk                                                                                                                                                                                                                                                                                         |
+| ------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Project file (`.kicad_pro`)                      | Project name, text variables (such as `${AUTHOR}`), net classes, net class assignments by pattern and the board constraints. These go into the **Design rules** document.                                                                                                                              |
+| Schematic hierarchy                              | One schematic document per sheet file, linked by sheet symbols, with the top sheet set as the project's top sheet. A sheet file used by several sheet symbols is imported once.                                                                                                                        |
+| Sheets                                           | Placed symbols with all fields, units and mirroring; wires, buses and bus entries; junctions; no-connect flags; local, global and hierarchical labels; texts and graphics; title block.                                                                                                                |
+| Symbols                                          | The symbols the design uses (from the schematic's symbol cache) and the symbols of the project's own libraries, with units, pins, pin names and numbers, and derived symbols resolved.                                                                                                                 |
+| Board (`.kicad_pcb`)                             | Layer stackup (copper layers, dielectrics, board thickness, surface finish), footprints, tracks and arc tracks, vias with their filling and covering (KiCad 9), zones with their filled areas and keep-out areas, [dimensions and leaders](./dimensions), board graphics, texts and the board outline. |
+| Footprints                                       | Pads of every shape (round, oval, rectangle, rounded rectangle, trapezoid, custom), [padstacks](./padstacks-and-via-filling) (KiCad 9), drills and slots, pad clearances, graphics, texts, attributes, properties and 3D model references.                                                             |
+| Library tables (`sym-lib-table`, `fp-lib-table`) | Libraries inside the project folder (`${KIPRJMOD}`) are imported into the project library. Libraries outside the project are not copied; the symbols and footprints the design uses come from the design itself.                                                                                       |
+| Components                                       | A placed symbol and its footprint are linked as one component, so you can find a part on the sheet and on the board.                                                                                                                                                                                   |
+| Nets                                             | All net names of the board, from every KiCad version (names in KiCad 10, net codes before).                                                                                                                                                                                                            |
 
 Footprints on the bottom side are stored as seen from the top and flipped
 when they are drawn, as in every ElectronicWerk board. Coordinates are
@@ -100,18 +100,19 @@ and a `.gitignore`, as a [new project](./projects) does.
 
 ## What is not imported (yet)
 
-| KiCad                                          | What happens                                                                                                                          |
-| ---------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
-| Custom design rules (`.kicad_dru`)             | Not imported; the report counts them (`custom-rules`). Write them again as [custom rules](./design-rules#custom-rules).               |
-| Dimensions, text boxes, images, tables         | Not imported; the report names each kind (`unsupported-item`).                                                                        |
-| Alternate body styles (De Morgan)              | Only the standard body style is imported (`alternate-body-style`).                                                                    |
-| Custom pads made of several shapes             | Simplified to their first polygon (`custom-pad`).                                                                                     |
-| Chamfered pads                                 | Imported as rounded rectangles (`chamfered-pad`).                                                                                     |
-| Zones inside footprints                        | Not imported (`footprint-zone`).                                                                                                      |
-| Libraries outside the project folder           | Not copied (`external-library`); use [Importing KiCad libraries](#importing-kicad-libraries) to add symbols and footprints from them. |
-| Dashed and dotted lines                        | Imported, but drawn as solid lines for now.                                                                                           |
-| Page frame reference zones                     | The title block is imported; the letters and numbers along the page frame are not drawn yet.                                          |
-| Simulation models, ERC settings, plot settings | Not imported.                                                                                                                         |
+| KiCad                                          | What happens                                                                                                                                 |
+| ---------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
+| Custom design rules (`.kicad_dru`)             | Not imported; the report counts them (`custom-rules`). Write them again as [custom rules](./design-rules#custom-rules).                      |
+| Text boxes, images, tables                     | Not imported; the report names each kind (`unsupported-item`).                                                                               |
+| Padstacks with a shape per inner layer         | The first inner shape is used for every inner layer (`padstack-inner`); custom shapes on single layers become rectangles (`padstack-shape`). |
+| Alternate body styles (De Morgan)              | Only the standard body style is imported (`alternate-body-style`).                                                                           |
+| Custom pads made of several shapes             | Simplified to their first polygon (`custom-pad`).                                                                                            |
+| Chamfered pads                                 | Imported as rounded rectangles (`chamfered-pad`).                                                                                            |
+| Zones inside footprints                        | Not imported (`footprint-zone`).                                                                                                             |
+| Libraries outside the project folder           | Not copied (`external-library`); use [Importing KiCad libraries](#importing-kicad-libraries) to add symbols and footprints from them.        |
+| Dashed and dotted lines                        | Imported, but drawn as solid lines for now.                                                                                                  |
+| Page frame reference zones                     | The title block is imported; the letters and numbers along the page frame are not drawn yet.                                                 |
+| Simulation models, ERC settings, plot settings | Not imported.                                                                                                                                |
 
 ## Report codes
 
@@ -125,10 +126,12 @@ and a `.gitignore`, as a [new project](./projects) does.
 | `missing-parent`       | warning            | A derived symbol (`extends`) refers to a symbol that is not in its library.                                                                       |
 | `missing-symbol`       | warning            | A placed symbol is missing from the schematic's symbol cache.                                                                                     |
 | `unknown-layer`        | warning            | A track or graphic is on a layer that ElectronicWerk does not know; it was left out.                                                              |
-| `unsupported-item`     | note/warning       | An item kind that is not imported yet (dimensions, text boxes, images and so on).                                                                 |
+| `unsupported-item`     | note/warning       | An item kind that is not imported yet (text boxes, images and so on).                                                                             |
 | `alternate-body-style` | note               | Alternate body styles of a symbol are not imported.                                                                                               |
 | `already-in-library`   | note               | A library import skipped symbols or footprints that the library already has.                                                                      |
 | `chamfered-pad`        | note               | A chamfered pad was imported as a rounded rectangle.                                                                                              |
+| `padstack-inner`       | note               | A padstack with a shape per inner layer was imported with its first inner shape.                                                                  |
+| `padstack-shape`       | note               | A custom shape on one padstack layer was imported as a rectangle.                                                                                 |
 | `external-library`     | note               | A library table entry points outside the project; it was not copied.                                                                              |
 | `no-board`             | note               | The KiCad project has no board.                                                                                                                   |
 | `no-designator`        | note               | A footprint on the board has no designator.                                                                                                       |

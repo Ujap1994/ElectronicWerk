@@ -46,6 +46,12 @@ Everything links up in KiCad:
   are written as KiCad's `blind` vias, microvias as `micro` vias, and the
   [design rules](./vias#allowing-them) that allow them as KiCad's board
   settings.
+- **Dimensions and leaders** become KiCad dimensions (aligned, orthogonal,
+  radial, leader; a diameter becomes an aligned dimension across the circle).
+- **Padstacks and via fillings** are written with KiCad 9's padstack and via
+  protection (tenting, covering, plugging, filling, capping). KiCad 10
+  reads them back with the same shapes and fills; KiCad 8 cannot open a
+  board that uses them.
 
 The files are written in the **KiCad 8 format** (board `20240108`,
 schematic `20231120`). KiCad 9 and 10 open them and save them in their own

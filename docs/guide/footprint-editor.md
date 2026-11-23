@@ -124,6 +124,8 @@ Select one pad to edit all of its properties in the side panel:
   solder paste: useful for pads you solder by hand.
 - **Solder mask margin** and **paste margin**: positive values enlarge the
   opening, negative values shrink it (`0` uses the board's rules).
+- **Padstack** (through-hole pads): another shape and size on the inner
+  layers and on the back — see [padstacks](./padstacks-and-via-filling#padstacks).
 
 ## Texts
 

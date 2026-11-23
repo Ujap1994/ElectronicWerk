@@ -187,6 +187,12 @@ its centre at the cursor. Pasted symbols keep their designator if it is still
 free; otherwise they get the next free number. Pasted parts are new parts:
 they are not linked to the footprints of the originals.
 
+### Design blocks
+
+A circuit you use again — with its layout — can be saved as a
+[design block](./design-blocks) and placed in any project: select it and
+click **Design blocks** in the tool bar.
+
 ## Editing properties
 
 Select one symbol, label, power port, text or sheet: the **Properties** panel

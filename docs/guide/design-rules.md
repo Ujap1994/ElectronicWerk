@@ -119,16 +119,17 @@ their values. Rules apply in order, and **later rules win** over earlier
 ones for the same constraint. Switch a rule off with **On** to try a design
 without it.
 
-| Constraint               | Applies to                              |
-| ------------------------ | --------------------------------------- |
-| Clearance                | Pairs of copper items of different nets |
-| Min. / max. track width  | Tracks                                  |
-| Track width for routing  | New tracks drawn with the router        |
-| Min. via diameter, drill | Vias                                    |
-| Min. annular ring        | Vias and plated pads                    |
-| Min. hole                | Pad holes                               |
-| Min. hole to hole        | Pairs of holes                          |
-| Copper to edge           | Copper items near the board edge        |
+| Constraint               | Applies to                                                                                     |
+| ------------------------ | ---------------------------------------------------------------------------------------------- |
+| Clearance                | Pairs of copper items of different nets                                                        |
+| Min. / max. track width  | Tracks                                                                                         |
+| Track width for routing  | New tracks drawn with the router                                                               |
+| Min. via diameter, drill | Vias                                                                                           |
+| Min. annular ring        | Vias and plated pads                                                                           |
+| Min. hole                | Pad holes                                                                                      |
+| Min. hole to hole        | Pairs of holes                                                                                 |
+| Copper to edge           | Copper items near the board edge                                                               |
+| Min. creepage            | Pairs of copper items on the outer layers: the path along the surface ([creepage](./creepage)) |
 
 The condition is checked as you type: a mistake shows the position and what
 is wrong, and the rule is skipped until it is fixed (the DRC also reports it
@@ -164,6 +165,7 @@ other item. A pairwise rule matches in both directions, so
 | `'text'` or `"text"`               | Text values                                                  |
 | `0.2mm`, `8mil`, `200um`, `0.01in` | Numbers with units (mm without a unit)                       |
 | `A.insideZone('RF')`               | True for items inside the zone (or keep-out area) named `RF` |
+| `A.inRoom('Power')`                | True for items inside the [room](./rooms) named `Power`      |
 | `true`, `false`                    | Constants; an empty condition matches everything             |
 
 Examples:
@@ -175,6 +177,7 @@ Examples:
 | `A.type == 'via' && A.layer == 'cu.top'`   | Via sizes (vias are checked on their top layer) |
 | `A.designator == 'U3' && A.type == 'pad'`  | Smaller clearance at a fine-pitch part          |
 | `A.insideZone('Antenna')`                  | Different rules in a named area                 |
+| `A.inRoom('Mains') && !B.inRoom('Mains')`  | [Creepage](./creepage) out of a room            |
 | `A.width < 0.3mm`                          | Narrow tracks only                              |
 | `A.viaType == 'micro'`                     | Microvias only                                  |
 

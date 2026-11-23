@@ -42,7 +42,8 @@ Untick **Fabrication layers** in its settings to choose the layers yourself.
 - **Solder mask** openings follow each pad's mask expansion; **solder paste**
   follows its paste margin (parts marked _do not place_ get no paste).
 - **Vias** are covered by solder mask ("tented") unless you untick **Cover vias
-  with solder mask**.
+  with solder mask**. A via with its own [filling and covering](./padstacks-and-via-filling#via-filling-and-covering-ipc-4761)
+  (IPC-4761) follows its own setting instead.
 
 ### X2 attributes
 

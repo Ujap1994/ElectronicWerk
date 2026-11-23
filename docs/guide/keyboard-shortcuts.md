@@ -149,6 +149,8 @@ In the [layout editor](./layout-editor) (click the board first):
 | <kbd>O</kbd>                                               | Board outline                                            |
 | <kbd>T</kbd>                                               | Text                                                     |
 | <kbd>N</kbd>                                               | Highlight net tool                                       |
+| <kbd>Shift</kbd>+<kbd>D</kbd>                              | [Dimension](./dimensions) tool                           |
+| <kbd>Shift</kbd>+<kbd>O</kbd>                              | [Room](./rooms) tool                                     |
 | <kbd>`</kbd>                                               | Highlight the net under the cursor                       |
 | <kbd>Page Up</kbd> / <kbd>Page Down</kbd>                  | Previous / next copper layer (while routing: with a via) |
 | <kbd>R</kbd> / <kbd>Shift</kbd>+<kbd>R</kbd>               | Turn the selection by 90° (or the next footprint)        |

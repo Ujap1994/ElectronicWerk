@@ -71,11 +71,12 @@ layer, or when no via fits at the end of the route.
 
 Select a via to see and change its layers in the properties panel:
 
-| Field                    | Meaning                                                                                           |
-| ------------------------ | ------------------------------------------------------------------------------------------------- |
-| First layer, last layer  | The copper layers the via connects (every layer between them too).                                |
-| Microvia (laser-drilled) | Marks a microvia: it is measured against the microvia minimums and must join neighbouring layers. |
-| Type                     | Through, blind / buried or microvia, from the layers and the microvia mark.                       |
+| Field                    | Meaning                                                                                                                                    |
+| ------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------ |
+| First layer, last layer  | The copper layers the via connects (every layer between them too).                                                                         |
+| Microvia (laser-drilled) | Marks a microvia: it is measured against the microvia minimums and must join neighbouring layers.                                          |
+| Type                     | Through, blind / buried or microvia, from the layers and the microvia mark.                                                                |
+| Filling and covering     | Tented, plugged, filled or filled and capped (IPC-4761); see [via filling](./padstacks-and-via-filling#via-filling-and-covering-ipc-4761). |
 
 ![A blind via in the properties panel](/screenshots/vias-properties.png)
 

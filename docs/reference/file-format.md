@@ -151,15 +151,23 @@ is relative to the project folder, uses `/` and must not leave the folder.
 | `nets`            | `name` and net `class`                                                                                                                                                                                                                                                                                                                                                                       |
 | `footprints`      | Placed footprints with their own copy of pads, graphics, texts and 3D models (as seen from the top; `side: "bottom"` mirrors them), `component`, `designator`, `value`, `at`, `rotation`, `locked`, `attributes`                                                                                                                                                                             |
 | `tracks`          | `layer`, `net`, `width`, `start`, `end`, and `mid` for arcs                                                                                                                                                                                                                                                                                                                                  |
-| `vias`            | `at`, `diameter`, `drill`, `net`, `from`/`to` layers (default through), `micro`                                                                                                                                                                                                                                                                                                              |
+| `vias`            | `at`, `diameter`, `drill`, `net`, `from`/`to` layers (default through), `micro`, `fill` (IPC-4761: `tented`, `tentedCovered`, `plugged`, `pluggedCovered`, `filled`, `filledCovered`, `filledCapped`; missing: as the output settings say)                                                                                                                                                   |
 | `zones`           | Copper pours and keep-outs: `name`, `net`, `layers`, `outline`, `holes`, `priority`, `keepout` (`tracks`, `vias`, `pads`, `pours`, `footprints`, and `maxHeight` in nm for [height areas](../guide/enclosure#keep-out-and-height-areas)), `fill` settings, `filled` (the computed copper per layer: `layer`, `points`, `holes`), and `teardrop` (`true` for [teardrops](../guide/teardrops)) |
 | `texts`, `shapes` | Free text and graphics; the board outline is drawn on the `outline` layer                                                                                                                                                                                                                                                                                                                    |
 | `mechanical`      | [Mechanical bodies](#mechanical-bodies) of the 3D assembly (optional)                                                                                                                                                                                                                                                                                                                        |
 | `drcExclusions`   | Keys of [accepted DRC findings](../guide/drc#accepting-findings) (optional)                                                                                                                                                                                                                                                                                                                  |
 | `groups`          | [Groups](../guide/selecting-and-editing#groups): `id`, `name` (optional), `members` (ids of footprints, tracks, vias, zones, texts and shapes; each object in at most one group) (optional)                                                                                                                                                                                                  |
+| `dimensions`      | [Dimensions and leaders](../guide/dimensions): `layer`, `kind` (`aligned`, `horizontal`, `vertical`, `radial`, `diameter`, `leader`), `start`, `end`, `offset`, `text` (default `"{value}"`), `units`, `precision`, `hideUnits`, `style`, `width`, `locked` (optional)                                                                                                                       |
+| `rooms`           | [Rooms](../guide/rooms): `name`, `outline` (corner points), `locked` (optional)                                                                                                                                                                                                                                                                                                              |
 
 The zone filler stores openings of a fill as `holes`; fills imported from
 KiCad cut them in with slits instead. Both read the same way.
+
+A pad (in a footprint of a board or a library) may have a `stack`: the
+[padstack](../guide/padstacks-and-via-filling), a list of
+`{"layers": "inner" | "back", "shape", "size"}` with the copper on the inner
+layers and on the back of the footprint where it differs from the pad's own
+`shape` and `size`.
 
 ### Mechanical bodies
 
@@ -338,21 +346,22 @@ Every output has an `id`, a `name`, a `kind` and optionally `enabled`
 `options`. Options that are missing take their defaults, so an empty
 `options` object is left out:
 
-| `kind`          | Options (default)                                                                                                                                                                                                        |
-| --------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `gerber`        | `layers` (`[]` = fabrication layers), `protelExtensions` (`true`), `x2` (`true`), `jobFile` (`true`), `tentVias` (`true`), `silkValues` (`true`), `folder` (`"gerber"`)                                                  |
-| `drill`         | `merge` (`false`), `folder` (`"gerber"`)                                                                                                                                                                                 |
-| `drillMap`      | `format`: `pdf` or `svg` (`pdf`), `folder` (`"gerber"`)                                                                                                                                                                  |
-| `bom`           | `columns` (`[{"field", "label"?}]`), `groupBy` (field names), `includeDnp` (`true`), `separator` (`","`), `format`: `csv`, `xlsx`, `html` (`csv`), `folder` (`"assembly"`)                                               |
-| `pickAndPlace`  | `style`: `generic`, `jlcpcb`, `kicad`; `unit`: `mm`, `inch`; `boardOrigin` (`true`), `includeDnp` (`false`), `splitSides` (`false`), `mirrorBottomX` (`false`), `folder` (`"assembly"`)                                  |
-| `pdf`, `svg`    | `content`: `schematic`, `board`, `assembly`; `layers` (`["cu.top", "silk.top"]`), `pagePerLayer`, `mirror`, `color`: `color`, `monochrome`; `paper`: `fit`, `a4`, `a3`, `letter`; `values`; `folder` (`"documentation"`) |
-| `ipc356`        | `tentVias` (`true`), `folder` (`"netlists"`)                                                                                                                                                                             |
-| `ipc2581`       | `folder` (`""`)                                                                                                                                                                                                          |
-| `netlist`       | `format`: `kicad`, `csv` (`kicad`), `folder` (`"netlists"`)                                                                                                                                                              |
-| `archive`       | `include` (output kinds, `["gerber", "drill"]`), `file` (`"{board}-fabrication.zip"`)                                                                                                                                    |
-| `step`          | `format`: `step`, `glb`, `vrml` (`step`); `origin`: `drill`, `center`, `absolute` (`drill`); `includeDnp` (`false`); `units`: `mm`, `m`, `inch` (`mm`, VRML only); `folder` (`"3d"`)                                     |
-| `documentation` | `schematic`, `board`, `assembly`, `stackup`, `bom`, `drills`, `statistics` (all `true`: the sections), `folder` (`"documentation"`)                                                                                      |
-| `dxf`           | `layers` (`[]`: the outline and every mechanical and user layer with drawings), `units`: `mm`, `inch`; `separate` (`false`: one file); `folder` (`"mechanical"`)                                                         |
+| `kind`               | Options (default)                                                                                                                                                                                                        |
+| -------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `gerber`             | `layers` (`[]` = fabrication layers), `protelExtensions` (`true`), `x2` (`true`), `jobFile` (`true`), `tentVias` (`true`), `silkValues` (`true`), `folder` (`"gerber"`)                                                  |
+| `drill`              | `merge` (`false`), `folder` (`"gerber"`)                                                                                                                                                                                 |
+| `drillMap`           | `format`: `pdf` or `svg` (`pdf`), `folder` (`"gerber"`)                                                                                                                                                                  |
+| `fabricationDrawing` | `format`: `pdf` or `svg` (`pdf`), `generatedNotes` (`true`), `ipcClass`: 0 (not named) to 3 (`2`), `notes` (`[]`, one string per note), `folder` (`"gerber"`)                                                            |
+| `bom`                | `columns` (`[{"field", "label"?}]`), `groupBy` (field names), `includeDnp` (`true`), `separator` (`","`), `format`: `csv`, `xlsx`, `html` (`csv`), `folder` (`"assembly"`)                                               |
+| `pickAndPlace`       | `style`: `generic`, `jlcpcb`, `kicad`; `unit`: `mm`, `inch`; `boardOrigin` (`true`), `includeDnp` (`false`), `splitSides` (`false`), `mirrorBottomX` (`false`), `folder` (`"assembly"`)                                  |
+| `pdf`, `svg`         | `content`: `schematic`, `board`, `assembly`; `layers` (`["cu.top", "silk.top"]`), `pagePerLayer`, `mirror`, `color`: `color`, `monochrome`; `paper`: `fit`, `a4`, `a3`, `letter`; `values`; `folder` (`"documentation"`) |
+| `ipc356`             | `tentVias` (`true`), `folder` (`"netlists"`)                                                                                                                                                                             |
+| `ipc2581`            | `folder` (`""`)                                                                                                                                                                                                          |
+| `netlist`            | `format`: `kicad`, `csv` (`kicad`), `folder` (`"netlists"`)                                                                                                                                                              |
+| `archive`            | `include` (output kinds, `["gerber", "drill"]`), `file` (`"{board}-fabrication.zip"`)                                                                                                                                    |
+| `step`               | `format`: `step`, `glb`, `vrml` (`step`); `origin`: `drill`, `center`, `absolute` (`drill`); `includeDnp` (`false`); `units`: `mm`, `m`, `inch` (`mm`, VRML only); `folder` (`"3d"`)                                     |
+| `documentation`      | `schematic`, `board`, `assembly`, `stackup`, `bom`, `drills`, `statistics` (all `true`: the sections), `folder` (`"documentation"`)                                                                                      |
+| `dxf`                | `layers` (`[]`: the outline and every mechanical and user layer with drawings), `units`: `mm`, `inch`; `separate` (`false`: one file); `folder` (`"mechanical"`)                                                         |
 
 Layers are written as in boards (`cu.top`, `cu.in1`, `mask.bottom`,
 `outline`, …). Unknown options are ignored, so newer files open in older
@@ -443,6 +452,39 @@ changes):
 (sorted) and the number of finished boards. The file is optional; a missing
 or unreadable file means nothing is placed yet. Whether to commit it to
 source control is up to you: it shares the state of a build with others.
+
+## Design blocks
+
+A [design block](../guide/design-blocks) is a JSON file `<name>.ewblock` in
+the block folder (`blocks` beside the base library):
+
+```json
+{
+  "format": "electronicwerk-block",
+  "version": 1,
+  "name": "USB input",
+  "description": "USB-C receptacle with ESD protection",
+  "origin": [25400000, 177800000],
+  "schematic": [{ "type": "symbol", "id": "…", "symbol": "USB_C_Receptacle", "…": "…" }],
+  "library": { "symbols": ["…"], "footprints": ["…"] },
+  "board": {
+    "origin": [100000000, 60000000],
+    "footprints": ["…"],
+    "tracks": ["…"],
+    "vias": ["…"]
+  }
+}
+```
+
+| Field       | Content                                                                                                         |
+| ----------- | --------------------------------------------------------------------------------------------------------------- |
+| `origin`    | The top-left corner of the schematic part, on the grid of the sheet it came from                                |
+| `schematic` | Objects as in a sheet (with their `type`): symbols, wires, buses, junctions, labels, power ports, texts, shapes |
+| `library`   | The `symbols` and `footprints` the parts use, as in a library                                                   |
+| `board`     | Optional: `origin` (the top-left footprint position), `footprints`, `tracks` and `vias` as in a board           |
+
+Placing a block gives everything new ids; the ids in the file only tie its
+objects together.
 
 ## Part drafts
 

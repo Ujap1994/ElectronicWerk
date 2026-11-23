@@ -91,6 +91,13 @@ full CLI.
   divider, regulator resistors, E series, track and via current after
   IPC-2152, fusing current) and **logos, pictures and QR codes** on
   silkscreen, copper or mask
+- **Layout construction:** **dimensions** and leaders on the board, a
+  **fabrication drawing** for the board maker (outline, drill table,
+  stack-up and notes), **rooms** that hold the parts of a circuit block and
+  scope design rules, a **creepage check** that follows the surface around
+  slots and holes, **padstacks** per layer, **via filling** after IPC-4761
+  with a via-in-pad check, and **design blocks** that carry a circuit with
+  its routed layout into other projects
 - **Systems of several boards:** a shield on a carrier, a main board with a
   front panel, boards of other projects or reference designs from KiCad and
   Eagle, joined by mating connectors or **cables**; a **connection check

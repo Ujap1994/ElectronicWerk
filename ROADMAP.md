@@ -1,7 +1,7 @@
 # ElectronicWerk Roadmap
 
-> **Status:** v0.34 (2026-11-23). M0 to M20 are complete (releases v0.1.0 to
-> v0.21.0; M0, M1 and M3 accepted by the maintainer). Next: M21–M23 further
+> **Status:** v0.35 (2026-11-23). M0 to M21 are complete (releases v0.1.0 to
+> v0.22.0; M0, M1 and M3 accepted by the maintainer). Next: M22–M23 further
 > features chosen by the maintainer, then M24 (v1.0).
 > The GitHub integration (M11) is switched off since v0.14.1 until the
 > maintainer decides to offer it (ADR-0014).
@@ -259,7 +259,7 @@ own work only. Maintainer test cycles and feedback come on top. Status values:
 | M18 | Multi-board design                                    | v0.19.0 | F15               | 8–12 S          | ✅     |
 | M19 | Part catalog                                          | v0.20.0 | F16               | 5–8 S           | ✅     |
 | M20 | Everyday editing                                      | v0.21.0 | F17               | 8–12 S          | ✅     |
-| M21 | Layout construction                                   | v0.22.0 | F18               | 10–15 S         | ⬜     |
+| M21 | Layout construction                                   | v0.22.0 | F18               | 10–15 S         | ✅     |
 | M22 | Layout routing                                        | v0.23.0 | F19               | 12–20 S         | ⬜     |
 | M23 | Exchange: ODB++, Gerber to board, version comparison  | v0.24.0 | F20               | 8–12 S          | ⬜     |
 | M24 | Hardening, UX audit, final docs and videos            | v1.0.0  | T3–T5, D1         | 6–10 S          | ⬜     |
@@ -1082,7 +1082,7 @@ logos and pictures traced into filled polygons with holes joined by cuts,
 QR codes (`pcb.addImage`, `pcb.addQrCode`, `pcb.qrCode`); drawn copper now
 counts in the DRC, the zone filler and the router. See ADR-0021.
 
-### M21 — Layout construction (v0.22.0, 10–15 S)
+### M21 — Layout construction (v0.22.0, 10–15 S) ✅
 
 - **Dimensions** (linear, aligned, radial, leader) and a **fabrication
   drawing**: board outline with dimensions, stack-up table, drill table and
@@ -1094,6 +1094,22 @@ counts in the DRC, the zone filler and the router. See ADR-0021.
 - **Creepage and clearance check** for high voltages (IEC 60664 tables).
 - **Padstacks per layer** and **via-in-pad** with filling and capping
   (IPC-4761) in the outputs.
+
+**Done (v0.22.0):** dimensions and leaders that measure themselves
+(`pcb.addDimension`, KiCad exchange with the sign of KiCad's dimension line
+measured with `kicad-cli`); the fabrication drawing as an output with the
+board, its holes and dimensions, drill table, stack-up and notes from the
+board data; rooms with placing parts, rooms from sheets, moving with their
+parts and `inRoom` in rules (`pcb.addRoom`, `pcb.placeInRoom`,
+`pcb.roomsFromSheets`); creepage as a rule constraint, measured along the
+surface around slots, cut-outs and non-plated holes on a visibility graph —
+the IEC 60664 tables are not shipped (copyright, and the right line is the
+designer's choice), the distances come from the user's standard; padstacks
+for the inner layers and the back; via filling after IPC-4761 types I–VII
+in the mask, the drill table and the fabrication notes, with a `via-in-pad`
+check; KiCad 9 padstacks and via protection checked against KiCad 10; design
+blocks with their layout as files beside the base library (`block.*`). See
+ADR-0022.
 
 ### M22 — Layout routing (v0.23.0, 12–20 S)
 
@@ -1262,4 +1278,5 @@ counts in the DRC, the zone filler and the router. See ADR-0021.
 | 2026-11-22 | v0.32      | New milestones chosen by the maintainer from a comparison with Altium Designer, DipTrace and KiCad: M19 part catalog, M20 everyday editing, M21 layout construction, M22 layout routing, M23 exchange (ODB++, Gerber to board, version comparison); hardening and v1.0 move to M24. The other candidates follow after v1.0.                                                                                                                                |
 | 2026-11-22 | v0.33      | M19 complete: v0.20.0 with the part catalog — categories, complete parts, packages of basic parts, add and place with the package (ADR-0020).                                                                                                                                                                                                                                                                                                              |
 | 2026-11-23 | v0.34      | M20 complete: v0.21.0 with the everyday editing tools — selection filter, select similar and multi-edit, net inspector, net colours, groups, custom shortcuts, calculators, logos and QR codes (ADR-0021).                                                                                                                                                                                                                                                 |
+| 2026-11-23 | v0.35      | M21 complete: v0.22.0 with layout construction — dimensions, fabrication drawing, rooms, creepage check, padstacks, via filling after IPC-4761, design blocks (ADR-0022).                                                                                                                                                                                                                                                                                  |
 | 2026-11-16 | v0.27      | M15 complete: v0.16.0 with blind, buried and microvias, push and shove, the impedance calculator with the working modes, differential pairs, length matching, teardrops, stitching vias, channels and assembly variants. Back drilling deferred (ADR-0016).                                                                                                                                                                                                |

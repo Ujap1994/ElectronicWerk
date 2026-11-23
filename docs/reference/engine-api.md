@@ -636,6 +636,42 @@ return `{"text"}`: a KiCad netlist (version E), a CSV netlist
 (`Net,Designator,Pin`) or the bill of materials as CSV. See
 [Schematic exports](../guide/schematic-exports).
 
+## Design blocks
+
+[Design blocks](../guide/design-blocks) are `.ewblock` files in the block
+folder: `blocks` beside the base library, `EW_BLOCKS_DIR`, or the `folder`
+every method takes. `block.list` and `block.delete` need no project.
+
+`block.list {"folder"?}` → `[{"name", "description", "file", "parts",
+"designators", "layout", "footprints", "tracks", "vias"}]`, by name.
+
+`block.save {"doc", "ids", "name", "description"?, "board"?, "folder"?}` →
+the saved block as `block.list` describes it. `ids` are objects of the
+schematic sheet `doc` (parts, wires, buses, junctions, labels, power ports,
+no-connect flags, texts, drawings; at least one part). The block takes the
+library symbols and footprints of the parts and, from `board` (default: the
+project's first board), their footprints, the tracks and vias of nets only
+they use, and the tracks and vias of their other nets within 1 mm of their
+pads. A block of the same name is replaced.
+
+`block.place {"name" | "file", "doc", "at"?, "board"?, "boardAt"?,
+"folder"?}` (`place-block`) → `{"name", "select", "parts", "designators":
+{old: new}, "library": {"added", "existing"}, "board": {"doc", "select",
+"group", "footprints", "tracks", "vias", "skipped"} | null}`. `at` is where
+the block's top-left corner goes on the sheet (default: a free area);
+`boardAt` where the top-left footprint goes (default: 10 mm below the
+board). See the [guide](../guide/design-blocks#placing-a-block) for what
+happens; it is one undo step.
+
+`block.delete {"name", "folder"?}` → `{"deleted"}`.
+
+```json
+{
+  "method": "block.place",
+  "params": { "name": "USB input", "doc": "…", "at": [25400000, 152400000] }
+}
+```
+
 ## View
 
 The methods behind the [2D view](../guide/viewer). They only read the
@@ -1120,6 +1156,39 @@ the modules of the code without changing anything; it needs no project.
 
 Shapes on copper layers count as copper without a net: the design rules
 check, the zone filler and the router keep their clearance to them.
+
+### Dimensions and rooms
+
+[Dimensions and leaders](../guide/dimensions) and [rooms](../guide/rooms);
+each call is one undo step.
+
+`pcb.addDimension {"doc", "kind", "start", "end", "offset"?, "layer"?,
+"text"?}` (`add-dimension`) → `{"id", "select"}`: `kind` is `aligned`,
+`horizontal`, `vertical`, `radial`, `diameter` or `leader`. `offset` places
+the dimension line: to the left of start → end for aligned ones, up for
+horizontal, right for vertical ones; beyond the circle for a radius or
+diameter (`start` is the centre, `end` a point on the circle). `layer`
+defaults to `user.1`. `text` may contain `{value}`; for a leader it is the
+note (`start` is the tip of the arrow, `end` where the note goes).
+
+`pcb.addRoom {"doc", "name", "outline": [[x, y], …]}` (`add-room`) →
+`{"id", "select"}`: a room with a unique name.
+
+`pcb.placeInRoom {"doc", "room", "ids", "gap"?}` (`place-in-room`) →
+`{"placed", "noRoom", "select"}`: packs the unlocked footprints of `ids`
+into the room in rows, in designator order, `gap` apart (default 1 mm),
+below the room's name. `placed` and `noRoom` are designators; parts in
+`noRoom` did not fit and stay where they were.
+
+`pcb.roomsFromSheets {"doc", "gap"?}` (`rooms-from-sheets`) → `{"rooms":
+[{"name", "id", "placed", "noRoom"}], "select"}`: one room per schematic
+sheet for the parts that are neither on the board nor in a room yet; new
+rooms go in a row 10 mm below the board, an existing room of the sheet's
+name gets the new parts.
+
+Custom rules use rooms with `A.inRoom('name')`; the constraint `creepage`
+(nanometres) of a custom rule asks for a [creepage distance](../guide/creepage)
+along the board surface, reported by `pcb.drc` with the code `creepage`.
 
 ### `pcb.exportSpecctra`
 
@@ -1908,15 +1977,15 @@ returns `{"select"}`. Besides `move`, `duplicate`, `delete`, `orient`,
 `addGraphic`, `addText`, `updateGraphic`, `updateText` and `renumber`
 (pads), which work as for symbols:
 
-| `op`          | Fields                                                | Effect                                                                                                                                                             |
-| ------------- | ----------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `addPad`      | `pad`                                                 | An empty number gets the next free one                                                                                                                             |
-| `addPadArray` | `pad`, `columns`, `rows`, `pitchX`, `pitchY`, `start` | A grid of pads like `pad`, numbered row by row from `start`                                                                                                        |
-| `updatePad`   | `index`, `pad`                                        | Replaces one pad                                                                                                                                                   |
-| `setPads`     | `indices`, `patch`                                    | Sets `number`, `kind`, `shape`, `size`, `drill`, `layers`, `rotation`, `at`, `maskMargin`, `pasteMargin` of several pads; a new `kind` also fixes layers and drill |
-| `addModel`    | `model`                                               | A 3D model (`path`, `offset`, `rotation`, `scale`, `hidden`)                                                                                                       |
-| `updateModel` | `index`, `model`                                      | Replaces one model                                                                                                                                                 |
-| `courtyard`   | `margin`                                              | Replaces the top courtyard by a rectangle around pads and fabrication outline                                                                                      |
+| `op`          | Fields                                                | Effect                                                                                                                                                                                                                           |
+| ------------- | ----------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `addPad`      | `pad`                                                 | An empty number gets the next free one                                                                                                                                                                                           |
+| `addPadArray` | `pad`, `columns`, `rows`, `pitchX`, `pitchY`, `start` | A grid of pads like `pad`, numbered row by row from `start`                                                                                                                                                                      |
+| `updatePad`   | `index`, `pad`                                        | Replaces one pad                                                                                                                                                                                                                 |
+| `setPads`     | `indices`, `patch`                                    | Sets `number`, `kind`, `shape`, `size`, `drill`, `layers`, `rotation`, `at`, `maskMargin`, `pasteMargin`, `stack` (the [padstack](../guide/padstacks-and-via-filling)) of several pads; a new `kind` also fixes layers and drill |
+| `addModel`    | `model`                                               | A 3D model (`path`, `offset`, `rotation`, `scale`, `hidden`)                                                                                                                                                                     |
+| `updateModel` | `index`, `model`                                      | Replaces one model                                                                                                                                                                                                               |
+| `courtyard`   | `margin`                                              | Replaces the top courtyard by a rectangle around pads and fabrication outline                                                                                                                                                    |
 
 Items are `{"kind": "pad" | "graphic" | "text" | "model", "index"}`.
 

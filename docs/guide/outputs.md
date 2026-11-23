@@ -49,6 +49,7 @@ tabs and fiducials.
 | **Gerber X2**                    | One file per layer (`.gtl`, `.gbl`, `.gts`, …) and a Gerber job file                               | [Gerber and drill files](./gerber-drill#gerber-files)                    |
 | **Excellon drill**               | `-PTH.drl`, `-NPTH.drl`, one file per blind or buried layer pair                                   | [Drill files](./gerber-drill#drill-files)                                |
 | **Drill map**                    | A drawing of every hole with a symbol per drill size (PDF or SVG)                                  | [Drill map](./gerber-drill#drill-map)                                    |
+| **Fabrication drawing**          | Outline, holes, dimensions, drill table, stack-up and notes for the board maker (PDF or SVG)       | [Fabrication drawing](./fabrication-drawing)                             |
 | **Bill of materials**            | CSV, Excel workbook or HTML page                                                                   | [Bill of materials](./bom-placement#bill-of-materials)                   |
 | **Pick and place**               | Positions and rotations of the parts (CSV)                                                         | [Placement files](./bom-placement#pick-and-place)                        |
 | **PDF**, **SVG**                 | Schematic sheets, board layers or assembly drawings                                                | [Prints and drawings](./prints)                                          |

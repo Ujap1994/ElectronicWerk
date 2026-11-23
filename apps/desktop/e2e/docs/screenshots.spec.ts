@@ -1672,6 +1672,257 @@ test('everyday editing', async () => {
   await close();
 });
 
+/** The box of every point in a board's outline shapes: [minX, minY, maxX, maxY]. */
+function outlineBox(board: { shapes?: { layer: string; geometry: unknown }[] }): number[] {
+  const xs: number[] = [];
+  const ys: number[] = [];
+  const walk = (value: unknown): void => {
+    if (Array.isArray(value)) {
+      if (value.length === 2 && value.every((v) => typeof v === 'number')) {
+        const [x, y] = value as [number, number];
+        xs.push(x);
+        ys.push(y);
+      } else {
+        value.forEach(walk);
+      }
+    } else if (value !== null && typeof value === 'object') {
+      Object.values(value).forEach(walk);
+    }
+  };
+  for (const shape of board.shapes ?? []) {
+    if (shape.layer === 'outline') {
+      walk(shape.geometry);
+    }
+  }
+  return [Math.min(...xs), Math.min(...ys), Math.max(...xs), Math.max(...ys)];
+}
+
+async function importBlinky(app: LaunchedApp['app'], page: Page): Promise<void> {
+  const kicad = '/tmp/ElectronicWerk/KiCad/blinky';
+  rmSync(kicad, { recursive: true, force: true });
+  cpSync(KICAD_FIXTURE, kicad, { recursive: true });
+  await queueDialogAnswer(app, join(kicad, 'blinky.kicad_pro'));
+  await page.getByTestId('import-kicad').click();
+  await page.getByTestId('kicad-import-name').fill('Blinky');
+  await page.getByTestId('kicad-import-start').click();
+  await page
+    .getByTestId('import-report')
+    .getByRole('button', { name: 'Close', exact: true })
+    .last()
+    .click();
+}
+
+test('layout construction', async () => {
+  test.setTimeout(300_000);
+  freshProjects();
+  const { app, page, close } = await start({ settings: { theme: 'light' } });
+  await page.setViewportSize({ width: 1500, height: 900 });
+  await importBlinky(app, page);
+  const board = readBoardJson('Blinky') as BoardJson & {
+    shapes: { layer: string; geometry: unknown }[];
+    vias: { at: Point }[];
+  };
+  const part = (name: string): Point =>
+    board.footprints.find((f) => f.designator === name)?.at ?? [0, 0];
+  await page
+    .locator('[data-testid^="tree-doc:"]')
+    .filter({ hasText: /^Blinky$/u })
+    .dblclick();
+  await settle(page);
+  await expect(page.getByTestId('viewer')).toHaveAttribute('data-kind', 'pcb');
+  const [x0, y0, , y1] = outlineBox(board) as [number, number, number, number];
+
+  // Dimensions (the board's width comes with Blinky): its height left of
+  // it, the distance of R1 and D1 above it, and a leader.
+  const canvas = viewerCanvas(page);
+  const dimension = async (kind: string, a: Point, b: Point, line: Point): Promise<void> => {
+    await page.getByTestId('board-dimension-kind').selectOption(kind);
+    await clickPoint(page, a);
+    await clickPoint(page, b);
+    const [px, py] = await pointAt(page, line);
+    await page.mouse.move(px, py, { steps: 4 });
+    await expect(page.getByTestId('dimension-preview')).toBeVisible();
+    await page.mouse.click(px, py);
+    await edited(page, /Add dimension/u);
+  };
+  // Room around the board for the dimension lines.
+  const view = await canvas.boundingBox();
+  await page.mouse.move(
+    (view?.x ?? 0) + (view?.width ?? 0) / 2,
+    (view?.y ?? 0) + (view?.height ?? 0) / 2,
+  );
+  await page.mouse.wheel(0, 400);
+  await settle(page);
+  await page.getByTestId('board-tool-dimension').click();
+  await dimension('vertical', [x0, y0], [x0, y1], [x0 - 4 * MM, y1]);
+  await dimension('horizontal', part('R1'), part('D1'), [part('D1')[0], y1 + 4 * MM]);
+  await page.getByTestId('board-dimension-kind').selectOption('leader');
+  await clickPoint(page, part('U1'));
+  await clickPoint(page, [part('U1')[0] - 2 * MM, part('U1')[1] - 9 * MM]);
+  await page.getByTestId('board-prompt-input').fill('Timer IC');
+  await page.getByTestId('board-prompt-input').press('Enter');
+  await edited(page, /Add dimension/u);
+  await canvas.focus();
+  await page.keyboard.press('Escape');
+  await page.getByTestId('viewer-fit').click();
+  await settle(page);
+  await page.mouse.move(
+    (view?.x ?? 0) + (view?.width ?? 0) / 2,
+    (view?.y ?? 0) + (view?.height ?? 0) / 2,
+  );
+  await page.mouse.wheel(0, 160);
+  await settle(page);
+  await page.mouse.move(10, 10);
+  await shoot(page, 'dimensions');
+  await clickPoint(page, [x0 - 4 * MM, (y0 + y1) / 2]);
+  await expect(page.getByTestId('inspector-title')).toContainText('30.00 mm');
+  await page.mouse.move(10, 10);
+  await shoot(page.getByTestId('inspector'), 'dimension-properties');
+  await page.keyboard.press('Escape');
+
+  // A room for the output stage; U1 goes in.
+  const c2 = part('C2');
+  const d1 = part('D1');
+  await page.getByTestId('board-tool-room').click();
+  await clickPoint(page, [c2[0] - 3 * MM, c2[1] - 3 * MM]);
+  await clickPoint(page, [d1[0] + 3 * MM, part('R3')[1] - 3 * MM]);
+  await page.getByTestId('board-prompt-input').fill('Output');
+  await page.getByTestId('board-prompt-input').press('Enter');
+  await edited(page, /Add room/u);
+  await page.mouse.move(10, 10);
+  await shoot(page.getByTestId('inspector'), 'room-properties');
+  // Beside the leader, which starts in the middle of U1.
+  await page.keyboard.down('Shift');
+  await clickPoint(page, [part('U1')[0] + 1 * MM, part('U1')[1] + 1.5 * MM]);
+  await page.keyboard.up('Shift');
+  await page.getByTestId('room-place').click();
+  await edited(page, /Place in room/u);
+  await page.mouse.move(10, 10);
+  await shoot(page, 'rooms');
+  await page.keyboard.press('Escape');
+
+  // Creepage: 8 mm between VCC and GND.
+  await page.getByTestId('board-rules').click();
+  const rules = page.getByTestId('rules-dialog');
+  await page.getByTestId('rules-tab-custom').click();
+  await page.getByTestId('rule-add').click();
+  await page.getByTestId('rule-name-0').fill('Mains creepage');
+  await page.getByTestId('rule-name-0').press('Enter');
+  await page.getByTestId('rule-condition-0').fill("A.net == 'VCC' && B.net == 'GND'");
+  await page.getByTestId('rule-condition-0').press('Enter');
+  await page.getByTestId('rule-creepage-0').check();
+  await page.getByTestId('rule-value-creepage-0').fill('8');
+  await page.getByTestId('rule-value-creepage-0').press('Enter');
+  await page.mouse.move(10, 10);
+  await shoot(rules, 'creepage-rule');
+  await page.getByTestId('rules-save').click();
+  await expect(rules).toBeHidden();
+  await page.getByTestId('board-drc').click();
+  await expect(page.getByTestId('drc-finding-creepage').first()).toBeVisible();
+  await page.mouse.move(10, 10);
+  await shoot(page.getByTestId('drc-panel'), 'creepage-findings');
+
+  // A via filled and capped (IPC-4761 type VII).
+  const via = board.vias[0];
+  if (via !== undefined) {
+    await viewerCanvas(page).focus();
+    await page.keyboard.press('Escape');
+    await clickPoint(page, via.at);
+    await expect(page.getByTestId('board-prop-via-fill')).toBeVisible();
+    await page.getByTestId('board-prop-via-fill').selectOption('filledCapped');
+    await expect(page.getByTestId('board-prop-via-fill')).toHaveValue('filledCapped');
+    await settle(page);
+    await page.mouse.move(10, 10);
+    await shoot(page.getByTestId('inspector'), 'via-fill');
+  }
+  await close();
+});
+
+test('padstacks', async () => {
+  test.setTimeout(180_000);
+  freshProjects();
+  const { page, close } = await start({ settings: { theme: 'light' } });
+  await page.setViewportSize({ width: 1600, height: 940 });
+  await createDemo(page, 'Level Shifter', 'board-2l');
+  await page.locator('[data-testid^="tree-doc:"]', { hasText: 'Project library' }).dblclick();
+  await expect(page.getByTestId('library-editor')).toBeVisible();
+  await page.getByTestId('libedit-kind-footprint').click();
+  await page.getByTestId('libedit-wizard').click();
+  await page.getByTestId('fpwizard-preset').selectOption('DIP-8');
+  await page.getByTestId('fpwizard-create').click();
+  await expect(page.getByTestId('fpwizard-dialog')).toBeHidden();
+  await settleItem(page);
+  const row = page.getByTestId('pad-row-0').locator('td').first();
+  const rowBox = await row.boundingBox();
+  await row.click({ position: { x: 1, y: (rowBox?.height ?? 20) / 2 } });
+  await expect(page.getByTestId('sel-pad-stack')).toBeVisible();
+  await page.getByTestId('sel-pad-stack-inner').click();
+  await expect(page.getByTestId('sel-pad-stack-inner')).toBeChecked();
+  await page.getByTestId('sel-pad-stack-inner-shape').selectOption('circle');
+  await page.getByTestId('sel-pad-stack-back').click();
+  await expect(page.getByTestId('sel-pad-stack-back')).toBeChecked();
+  await page.getByTestId('sel-pad-stack-back-shape').selectOption('roundRect');
+  await expect(page.getByTestId('sel-pad-stack-back-shape')).toHaveValue('roundRect');
+  await page.mouse.move(10, 10);
+  await shoot(page, 'padstack-editor');
+  await page.getByTestId('sel-pad-stack').scrollIntoViewIfNeeded();
+  await shoot(page.getByTestId('sel-pad-stack'), 'padstack');
+  await close();
+});
+
+test('design blocks', async () => {
+  test.setTimeout(240_000);
+  freshProjects();
+  const { app, page, close } = await start({ settings: { theme: 'light' } });
+  await page.setViewportSize({ width: 1500, height: 900 });
+  await importBlinky(app, page);
+  await page.locator('[data-testid^="tree-doc:"]').filter({ hasText: 'Top sheet' }).dblclick();
+  await settle(page);
+  await expect(page.getByTestId('viewer')).toHaveAttribute('data-kind', 'schematic');
+  await viewerCanvas(page).focus();
+  await page.keyboard.press('ControlOrMeta+a');
+  await page.getByTestId('action-blocks').click();
+  const dialog = page.getByTestId('blocks-dialog');
+  await page.getByTestId('block-name').fill('Blinky core');
+  await page.getByTestId('block-description').fill('555 timer with LED output and supply');
+  await page.getByTestId('block-save').click();
+  await expect(page.getByTestId('block-item-0')).toContainText('with layout');
+  await page.getByTestId('block-name').fill('LED driver');
+  await page.mouse.move(10, 10);
+  await shoot(dialog, 'design-blocks');
+  await page.getByTestId('block-name').fill('');
+  await page.getByTestId('block-place-0').click();
+  await expect(dialog).toBeHidden();
+  await settle(page);
+  await closeToasts(page);
+  await page.getByTestId('viewer-fit').click();
+  await settle(page);
+  await page.mouse.move(10, 10);
+  await shoot(page, 'design-block-schematic');
+  await page
+    .locator('[data-testid^="tree-doc:"]')
+    .filter({ hasText: /^Blinky/u, hasNotText: 'Top sheet' })
+    .dblclick();
+  await settle(page);
+  await expect(page.getByTestId('viewer')).toHaveAttribute('data-kind', 'pcb');
+  // The board and the group below it.
+  await page.getByTestId('viewer-fit').click();
+  await settle(page);
+  const view = await viewerCanvas(page).boundingBox();
+  await page.mouse.move(
+    (view?.x ?? 0) + (view?.width ?? 0) / 2,
+    (view?.y ?? 0) + (view?.height ?? 0) * 0.25,
+  );
+  for (let step = 0; step < 4; step += 1) {
+    await page.mouse.wheel(0, 300);
+    await page.waitForTimeout(100);
+  }
+  await settle(page);
+  await page.mouse.move(10, 10);
+  await shoot(page, 'design-block-board');
+  await close();
+});
+
 test('blind and micro vias', async () => {
   test.setTimeout(180_000);
   freshProjects();
@@ -2420,7 +2671,7 @@ test('manufacturing outputs', async () => {
   // Generate everything.
   await page.getByTestId('outputs-generate').click();
   const list = page.getByTestId('outputs-list');
-  await expect(list.locator('[data-status="done"]')).toHaveCount(9, { timeout: 60_000 });
+  await expect(list.locator('[data-status="done"]')).toHaveCount(10, { timeout: 60_000 });
   await page.locator('.toast__close').first().click();
   await page.mouse.move(10, 10);
   await shoot(page, 'outputs-generated');
@@ -2429,12 +2680,15 @@ test('manufacturing outputs', async () => {
   // Settings of the bill of materials, the placement file and a print.
   const settings = page.locator('.outputs__settings');
   await page.getByTestId('output-3').getByRole('button').click();
+  await expect(page.getByTestId('output-notes')).toBeVisible();
+  await shoot(settings, 'outputs-fabrication-drawing');
+  await page.getByTestId('output-4').getByRole('button').click();
   await expect(page.getByTestId('output-bom-preview').locator('tbody tr').first()).toBeVisible();
   await shoot(settings, 'outputs-bom');
-  await page.getByTestId('output-4').getByRole('button').click();
+  await page.getByTestId('output-5').getByRole('button').click();
   await expect(page.getByTestId('output-placement-style')).toBeVisible();
   await shoot(settings, 'outputs-placement');
-  await page.getByTestId('output-7').getByRole('button').click();
+  await page.getByTestId('output-8').getByRole('button').click();
   await expect(page.getByTestId('output-content')).toHaveValue('assembly');
   await shoot(settings, 'outputs-print');
 
@@ -2467,6 +2721,10 @@ test('manufacturing outputs', async () => {
   await page.getByTestId('output-format').selectOption('svg');
   await page.getByTestId('output-generate-one').click();
   await expect(page.getByTestId('output-2').locator('[data-status="done"]')).toBeVisible();
+  await page.getByTestId('output-3').getByRole('button').click();
+  await page.getByTestId('output-format').selectOption('svg');
+  await page.getByTestId('output-generate-one').click();
+  await expect(page.getByTestId('output-3').locator('[data-status="done"]')).toBeVisible();
   const add = async (content: string): Promise<void> => {
     await page.getByTestId('outputs-add').selectOption('svg');
     await page.getByTestId('output-content').selectOption(content);
@@ -2485,6 +2743,7 @@ test('manufacturing outputs', async () => {
     return join(generated, found);
   };
   await shootSvg(page, pick(/drill-map\.svg$/u), 'output-drill-map');
+  await shootSvg(page, pick(/fabrication-drawing\.svg$/u), 'output-fabrication-drawing');
   await shootSvg(page, pick(/schematic-1\.svg$/u), 'output-schematic');
   await shootSvg(page, pick(/assembly-1\.svg$/u), 'output-assembly-top');
   await shootSvg(page, pick(/assembly-2\.svg$/u), 'output-assembly-bottom');
