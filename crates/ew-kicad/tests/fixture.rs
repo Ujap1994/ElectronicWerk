@@ -57,7 +57,7 @@ fn imports_the_demo_project() {
         .documents
         .values()
         .map(|doc| match doc {
-            ew_model::document::Document::Pcb(pcb) => pcb.dimensions.len(),
+            Document::Pcb(pcb) => pcb.dimensions.len(),
             _ => 0,
         })
         .sum();
