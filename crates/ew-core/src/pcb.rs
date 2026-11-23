@@ -589,6 +589,33 @@ struct QrPreviewParams {
     quiet: usize,
 }
 
+/// `pcb.qrCode`: the modules of a QR code as rows, for a preview (no
+/// project needed).
+pub(crate) fn qr_preview(params: &Value) -> Result<Value, EngineError> {
+    let params: QrPreviewParams = parse(params)?;
+    if params.text.is_empty() {
+        return Err(EngineError::invalid_params("the text is empty"));
+    }
+    let bitmap = ew_pcb::bitmap::Bitmap::qr(&params.text, params.ecc, params.quiet.min(10))
+        .map_err(|e| EngineError::invalid_params(e.to_string()))?;
+    let bitmap = if params.invert {
+        bitmap.inverted()
+    } else {
+        bitmap
+    };
+    let rows: Vec<String> = (0..bitmap.height())
+        .map(|y| {
+            (0..bitmap.width())
+                .map(|x| {
+                    let (x, y) = (i64::try_from(x).unwrap_or(0), i64::try_from(y).unwrap_or(0));
+                    if bitmap.get(x, y) { '#' } else { '.' }
+                })
+                .collect()
+        })
+        .collect();
+    Ok(json!({"rows": rows, "modules": bitmap.width()}))
+}
+
 /// Filled polygons of a picture, one undo step, grouped so that they move
 /// together.
 fn picture_outcome(
@@ -1888,33 +1915,6 @@ pub fn call(
                 params.pixel,
                 params.center,
             )
-        }
-        "pcb.qrCode" => {
-            let params: QrPreviewParams = parse(params)?;
-            if params.text.is_empty() {
-                return Err(EngineError::invalid_params("the text is empty"));
-            }
-            let bitmap = ew_pcb::bitmap::Bitmap::qr(&params.text, params.ecc, params.quiet.min(10))
-                .map_err(|e| EngineError::invalid_params(e.to_string()))?;
-            let bitmap = if params.invert {
-                bitmap.inverted()
-            } else {
-                bitmap
-            };
-            let rows: Vec<String> = (0..bitmap.height())
-                .map(|y| {
-                    (0..bitmap.width())
-                        .map(|x| {
-                            let (x, y) =
-                                (i64::try_from(x).unwrap_or(0), i64::try_from(y).unwrap_or(0));
-                            if bitmap.get(x, y) { '#' } else { '.' }
-                        })
-                        .collect()
-                })
-                .collect();
-            Ok(Outcome::Read(
-                json!({"rows": rows, "modules": bitmap.width()}),
-            ))
         }
         "pcb.addQrCode" => {
             let params: QrParams = parse(params)?;

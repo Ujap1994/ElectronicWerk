@@ -775,6 +775,7 @@ impl Engine {
             "engine.ping" => Ok(json!({"pong": true, "echo": params})),
             "project.statistics" => Ok(ew_output::statistics::statistics(self.open()?.project())),
             _ if method.starts_with("calc.") => crate::calc::call(method, params),
+            "pcb.qrCode" => crate::pcb::qr_preview(params),
             _ if method.starts_with("project.") => self.call_project(method, params),
             _ if method.starts_with("document.") => self.call_document(method, params),
             _ if method.starts_with("edit.") => self.call_edit(method, params),

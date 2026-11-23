@@ -117,8 +117,8 @@ export const de: Messages = {
     openLibrary: 'Bibliothek öffnen',
     calculators:
       'Rechner: Spannungsteiler, Regler, E-Reihen, Strom von Bahnen und Vias, Schmelzstrom',
-    picture: 'Logo oder Bild auf die Platine bringen',
-    qrCode: 'QR-Code auf die Platine bringen',
+    picture: 'Platine: Logo oder Bild einfügen',
+    qrCode: 'Platine: QR-Code einfügen',
     importNetlist: 'Netzliste in die Platine importieren',
     saveProject: 'Projekt speichern',
     saveProjectAs: 'Projekt speichern unter',
