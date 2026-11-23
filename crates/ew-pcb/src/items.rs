@@ -44,6 +44,12 @@ pub enum ItemRef {
         /// Index of the filled area.
         area: usize,
     },
+    /// A drawn shape on a copper layer (a logo, a QR code): copper of no
+    /// net.
+    Shape {
+        /// The board shape.
+        id: Id,
+    },
 }
 
 impl ItemRef {
@@ -52,7 +58,9 @@ impl ItemRef {
     pub const fn object(self) -> Id {
         match self {
             Self::Pad { footprint, .. } => footprint,
-            Self::Track { id } | Self::Via { id } | Self::Zone { id, .. } => id,
+            Self::Track { id } | Self::Via { id } | Self::Zone { id, .. } | Self::Shape { id } => {
+                id
+            }
         }
     }
 
@@ -64,6 +72,7 @@ impl ItemRef {
             Self::Track { .. } => "track",
             Self::Via { .. } => "via",
             Self::Zone { .. } => "zone",
+            Self::Shape { .. } => "shape",
         }
     }
 }
@@ -238,6 +247,7 @@ impl<'a> Board<'a> {
             board.add_footprint(fp);
         }
         board.add_tracks_and_vias();
+        board.add_copper_shapes();
         board.add_zones();
         board.add_board_silk();
         board.tree = RTree::bulk_load(
@@ -531,6 +541,35 @@ impl<'a> Board<'a> {
                     layers: bit,
                     bbox: shape.bbox(),
                     shape,
+                    anchors: Vec::new(),
+                });
+            }
+        }
+    }
+
+    /// Shapes drawn on copper layers: copper without a net, so that the
+    /// checks, the zone filler and the router keep their distance.
+    fn add_copper_shapes(&mut self) {
+        for shape in &self.pcb.shapes {
+            let Layer::Copper(copper) = shape.layer else {
+                continue;
+            };
+            let Some(bit) = self.layer_bit(copper) else {
+                continue;
+            };
+            let item = ItemRef::Shape { id: shape.id };
+            for stroke in strokes(
+                &shape.geometry,
+                &Xform::IDENTITY,
+                shape.width as f64,
+                shape.filled,
+            ) {
+                self.copper.push(CopperItem {
+                    item,
+                    net: None,
+                    layers: bit,
+                    bbox: stroke.bbox(),
+                    shape: stroke,
                     anchors: Vec::new(),
                 });
             }

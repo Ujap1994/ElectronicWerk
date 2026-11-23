@@ -218,7 +218,7 @@ pub(crate) fn item_props<'a>(
                 props.via_type = via.via_type().as_str();
             }
         }
-        ItemRef::Zone { .. } => {}
+        ItemRef::Zone { .. } | ItemRef::Shape { .. } => {}
     }
     props
 }
@@ -310,6 +310,7 @@ impl Context<'_> {
                     format!("zone {name}")
                 }
             }
+            ItemRef::Shape { .. } => "copper shape".to_owned(),
         }
     }
 
@@ -1165,7 +1166,7 @@ fn widths_and_holes(ctx: &mut Context<'_>, in_region: &Region<'_>) {
                     }
                 }
             }
-            ItemRef::Zone { .. } => {}
+            ItemRef::Zone { .. } | ItemRef::Shape { .. } => {}
         }
     }
     for (code, message, at, item, detail) in found {
@@ -1367,6 +1368,7 @@ fn keepouts(ctx: &mut Context<'_>, in_region: &Region<'_>) {
                 ItemRef::Via { .. } => area.rules.vias,
                 ItemRef::Pad { .. } => area.rules.pads || area.rules.footprints,
                 ItemRef::Zone { id, .. } => area.rules.pours && id != area.zone,
+                ItemRef::Shape { .. } => area.rules.pours,
             };
             if forbidden && area.shape.gap(&item.shape, 0.0).is_some() {
                 found.push((area.zone, area.name.clone(), j));

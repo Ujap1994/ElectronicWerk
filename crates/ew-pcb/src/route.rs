@@ -309,6 +309,8 @@ impl<'a> Router<'a> {
                     }
                 }
                 ItemRef::Zone { .. } => (at, 2, None),
+                // A logo or other drawn copper is no place to start from.
+                ItemRef::Shape { .. } => continue,
             };
             if found.as_ref().is_none_or(|(_, _, best, _)| rank < *best) {
                 found = Some((point, item.net, rank, direction));

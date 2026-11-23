@@ -223,7 +223,7 @@ impl Filler<'_> {
                         }
                     },
                     ItemRef::Track { .. } | ItemRef::Via { .. } => anchors.push(index),
-                    ItemRef::Zone { .. } => {}
+                    ItemRef::Zone { .. } | ItemRef::Shape { .. } => {}
                 }
                 continue;
             }

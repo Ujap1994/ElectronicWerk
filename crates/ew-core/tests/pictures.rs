@@ -174,3 +174,67 @@ fn a_qr_code_is_one_undo_step() {
             .contains("too long")
     );
 }
+
+#[test]
+fn copper_pictures_keep_their_clearance() {
+    let (mut engine, doc, _dir) = open();
+    let board = call(&mut engine, "document.get", json!({"doc": doc}));
+    let track = board["tracks"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|t| t["layer"] == "cu.top")
+        .unwrap()
+        .clone();
+    let middle = [
+        i64::midpoint(
+            track["start"][0].as_i64().unwrap(),
+            track["end"][0].as_i64().unwrap(),
+        ),
+        i64::midpoint(
+            track["start"][1].as_i64().unwrap(),
+            track["end"][1].as_i64().unwrap(),
+        ),
+    ];
+    let before = call(&mut engine, "pcb.drc", json!({"doc": doc}));
+    let count = |report: &Value, code: &str| {
+        report["findings"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .filter(|f| {
+                f["code"] == code && f["message"].as_str().unwrap_or("").contains("copper shape")
+            })
+            .count()
+    };
+    assert_eq!(count(&before, "clearance") + count(&before, "short"), 0);
+    // A copper square right on the track: copper of no net touches it.
+    call(
+        &mut engine,
+        "pcb.addImage",
+        json!({"doc": doc, "layer": "cu.top", "rows": ["##", "##"], "pixel": 500_000, "center": middle}),
+    );
+    let after = call(&mut engine, "pcb.drc", json!({"doc": doc}));
+    let found = after["findings"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .filter(|f| f["message"].as_str().unwrap_or("").contains("copper shape"))
+        .count();
+    assert!(found > 0, "{after}");
+    // The same square on the silkscreen is no copper.
+    call(&mut engine, "edit.undo", Value::Null);
+    call(
+        &mut engine,
+        "pcb.addImage",
+        json!({"doc": doc, "layer": "silk.top", "rows": ["##", "##"], "pixel": 500_000, "center": middle}),
+    );
+    let silk = call(&mut engine, "pcb.drc", json!({"doc": doc}));
+    let copper = silk["findings"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .filter(|f| f["message"].as_str().unwrap_or("").contains("copper shape"))
+        .count();
+    assert_eq!(copper, 0);
+}
