@@ -159,20 +159,20 @@ fn edit_failed(error: impl std::fmt::Display) -> EngineError {
 
 /// Changes applied to a copy of the project, so the next step sees the
 /// earlier ones; committed together as one undo step.
-struct Stage {
-    project: Project,
+pub(crate) struct Stage {
+    pub(crate) project: Project,
     requests: Vec<Request>,
 }
 
 impl Stage {
-    fn new(project: &Project) -> Self {
+    pub(crate) fn new(project: &Project) -> Self {
         Self {
             project: project.clone(),
             requests: Vec::new(),
         }
     }
 
-    fn push(&mut self, requests: Vec<Request>) -> Result<(), EngineError> {
+    pub(crate) fn push(&mut self, requests: Vec<Request>) -> Result<(), EngineError> {
         for request in requests {
             let changes: Vec<Change> = request.clone().resolve(&self.project)?;
             for change in changes {
@@ -183,11 +183,11 @@ impl Stage {
         Ok(())
     }
 
-    fn push_edit(&mut self, edit: &sch::Edit) -> Result<(), EngineError> {
+    pub(crate) fn push_edit(&mut self, edit: &sch::Edit) -> Result<(), EngineError> {
         self.push(crate::schematic::requests(edit))
     }
 
-    fn commit(self, label: &'static str, reply: Value) -> Outcome {
+    pub(crate) fn commit(self, label: &'static str, reply: Value) -> Outcome {
         if self.requests.is_empty() {
             return Outcome::Read(reply);
         }
@@ -403,7 +403,7 @@ fn schematic_doc(project: &Project, sheet: Option<&str>) -> Result<Id, EngineErr
     }
 }
 
-fn first_library(project: &Project) -> Result<Id, EngineError> {
+pub(crate) fn first_library(project: &Project) -> Result<Id, EngineError> {
     project
         .documents_of(DocumentKind::Library)
         .next()
@@ -522,7 +522,7 @@ fn free_spot(sheet: &Schematic) -> Point {
 /// Snaps a symbol position to the sheet's grid (as the editor does: the
 /// grid runs through the top-left corner of the page), so its pins and the
 /// wires drawn to them are on the grid too.
-fn on_sheet_grid(project: &Project, doc: Id, at: Point) -> Point {
+pub(crate) fn on_sheet_grid(project: &Project, doc: Id, at: Point) -> Point {
     let Some(Document::Schematic(sheet)) = project.document(doc) else {
         return at;
     };

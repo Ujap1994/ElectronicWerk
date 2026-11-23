@@ -70,6 +70,8 @@ export interface EditorCommands {
   readonly exportMenu: () => void;
   readonly grid: () => void;
   readonly guide: () => void;
+  /** Opens the design blocks (save the selection, place a block). */
+  readonly blocks: () => void;
   /** Starts placing a symbol of the project libraries (with a component). */
   readonly place: (symbol: string, component: string | null) => void;
 }
@@ -195,6 +197,13 @@ export function EditActions({
         tip={`${t('schematic.actions.find')} (${mod}F)`}
         testId="action-find"
         onClick={commands.find}
+      />
+      <Button
+        icon="block"
+        label={t('schematic.actions.blocks')}
+        tip={t('schematic.actions.blocksTip')}
+        testId="action-blocks"
+        onClick={commands.blocks}
       />
       <Button
         icon="output"

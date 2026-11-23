@@ -24,6 +24,7 @@ import { SchematicEditor, type Point } from '../schematic/editor';
 import { EditActions, ToolPalette, type EditorCommands } from '../schematic/EditorToolbar';
 import { EditorOverlay } from '../schematic/EditorOverlay';
 import { ErcPanel, ErcSettingsDialog, runErc, useErcUpdates } from '../schematic/ErcPanel';
+import { BlocksDialog } from '../schematic/BlocksDialog';
 import { AnnotateDialog, FindPanel } from '../schematic/FindPanel';
 import { ExportMenu, Guide, GridAssistant } from '../schematic/Panels';
 import { NetNavigator } from '../schematic/NetNavigator';
@@ -332,6 +333,8 @@ export function DocumentViewer({
   const [chooser, setChooser] = useState(false);
   const [finding, setFinding] = useState(false);
   const [annotating, setAnnotating] = useState(false);
+  // The design blocks dialog, with the selection it was opened with.
+  const [blocks, setBlocks] = useState<readonly string[] | null>(null);
   const [ercSettings, setErcSettings] = useState(false);
   const [popover, setPopover] = useState<'export' | 'grid' | null>(null);
   const empty = (document.stats.symbols ?? 0) === 0 && (document.stats.wires ?? 0) === 0;
@@ -416,6 +419,7 @@ export function DocumentViewer({
       exportMenu: call('exportMenu'),
       grid: call('grid'),
       guide: call('guide'),
+      blocks: call('blocks'),
     });
     return () => {
       activeSheet.set(null);
@@ -460,6 +464,9 @@ export function DocumentViewer({
     guide: () => {
       guideDismissed.delete(doc);
       setGuide(!guide);
+    },
+    blocks: () => {
+      setBlocks(controller.selectedIds());
     },
     place: (symbol, component) => {
       if (editor !== null) {
@@ -805,6 +812,19 @@ export function DocumentViewer({
           }}
           onClose={() => {
             setChooser(false);
+          }}
+        />
+      )}
+      {blocks !== null && (
+        <BlocksDialog
+          doc={doc}
+          selection={blocks}
+          onPlaced={(ids) => {
+            controller.selectAfterReload(ids);
+          }}
+          onClose={() => {
+            setBlocks(null);
+            canvasRef.current?.focus();
           }}
         />
       )}

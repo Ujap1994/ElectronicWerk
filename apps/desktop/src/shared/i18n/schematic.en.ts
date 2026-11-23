@@ -48,6 +48,8 @@ export const schematicEn = {
     export: 'Export',
     guide: 'Guide',
     grid: 'Grid and snapping',
+    blocks: 'Design blocks',
+    blocksTip: 'Design blocks: save the selection with its board layout, or place a saved block',
   },
   hints: {
     select:
@@ -272,6 +274,29 @@ export const schematicEn = {
       text: 'Text',
       sheet: 'Sheet',
     },
+  },
+  blocks: {
+    title: 'Design blocks',
+    saveHeading: 'Save the selection as a block',
+    selected:
+      '{count} objects selected. The parts take their footprints, tracks and vias from the board along.',
+    nothingSelected: 'Select the parts, wires and labels of the block on the sheet first.',
+    name: 'Name',
+    description: 'Description',
+    save: 'Save block',
+    replace: 'Replace block',
+    listHeading: 'Saved blocks',
+    empty: 'No design blocks yet.',
+    counts: '{parts} parts, schematic only',
+    countsLayout: '{parts} parts with layout: {tracks} tracks, {vias} vias',
+    place: 'Place',
+    delete: 'Delete',
+    deleteConfirm: 'Really delete?',
+    saved: 'Saved the design block {name} ({parts} parts)',
+    savedLayout: 'Saved the design block {name} ({parts} parts with {tracks} tracks)',
+    placed: 'Placed {name}: {parts} parts',
+    placedBoard:
+      'Placed {name}: {parts} parts; on the board {footprints} footprints, {tracks} tracks and {vias} vias as one group below the board',
   },
   annotate: {
     title: 'Annotate',

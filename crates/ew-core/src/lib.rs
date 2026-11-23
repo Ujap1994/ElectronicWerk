@@ -17,6 +17,7 @@
 //! - [`libedit`]: the symbol, footprint and component editors.
 
 pub mod assembly;
+pub mod blocks;
 pub mod board3d;
 pub mod calc;
 pub mod change;

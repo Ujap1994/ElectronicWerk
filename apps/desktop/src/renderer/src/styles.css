@@ -7093,3 +7093,57 @@ textarea.field__control {
   font: inherit;
   resize: vertical;
 }
+
+/* Design blocks: saving the selection, then the list of blocks. */
+.blocks__save,
+.blocks__library {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.blocks__save .button {
+  justify-self: start;
+}
+
+.blocks__heading {
+  margin: 0;
+  font-size: 1em;
+}
+
+.blocks__list {
+  display: grid;
+  gap: var(--space-2);
+  max-height: 320px;
+  margin: 0;
+  padding: 0;
+  overflow: auto;
+  list-style: none;
+}
+
+.blocks__item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-s);
+}
+
+.blocks__text {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.blocks__description,
+.blocks__counts {
+  color: var(--color-text-muted);
+  font-size: 0.9em;
+}
+
+.blocks__actions {
+  display: flex;
+  flex-shrink: 0;
+  gap: var(--space-2);
+}

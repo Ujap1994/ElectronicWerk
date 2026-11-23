@@ -18,6 +18,7 @@ const PATHS = {
   board: 'M4 4h16v16H4zM8 8h3v3H8zM14 13h2v3h-2zM11 9.5h5V13',
   library: 'M4 4h4v16H4zM10 4h4v16h-4zM16 5l3.5-1 2.5 15.5-3.5 1z',
   room: 'M4 4h16v16H4zM4 4h6v3H4M7 12h5M14 12h3',
+  block: 'M3 3h8v8H3zM13 13h8v8h-8zM7 11v4h6M17 13V9h-6',
   dimension: 'M4 7v10M20 7v10M4 12h16M4 12l3.5-2.5M4 12l3.5 2.5M20 12l-3.5-2.5M20 12l-3.5 2.5',
   image: 'M4 5h16v14H4zM4 16l5-5 4 4 3-3 4 4M15.5 9h.01',
   calculator:

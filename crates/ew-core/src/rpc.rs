@@ -76,6 +76,10 @@ pub const METHODS: &[&str] = &[
     "assembly.mark",
     "assembly.plan",
     "assembly.reset",
+    "block.delete",
+    "block.list",
+    "block.place",
+    "block.save",
     "board3d.export",
     "board3d.parts",
     "board3d.resolve",
@@ -789,6 +793,7 @@ impl Engine {
             _ if method.starts_with("pcb.") => self.call_pcb(method, params),
             _ if method.starts_with("outputs.") => self.call_outputs(method, params),
             _ if method.starts_with("design.") => self.call_design(method, params),
+            _ if method.starts_with("block.") => self.call_block(method, params),
             _ if method.starts_with("assembly.") => self.call_assembly(method, params),
             _ if method.starts_with("datasheet.") => {
                 crate::datasheet::call_datasheet(&mut self.datasheets, method, params)
@@ -1785,6 +1790,25 @@ impl Engine {
                         .map_err(|e| EngineError::internal(format!("{}: {e}", path.display())))?;
                 }
                 let change_set = self.commit(crate::datasheet::GENERATE, requests)?;
+                let mut out = json!({"seq": change_set.seq, "history": change_set.history});
+                if let (Some(out), Value::Object(extra)) = (out.as_object_mut(), reply) {
+                    out.extend(extra);
+                }
+                Ok(out)
+            }
+        }
+    }
+
+    fn call_block(&mut self, method: &str, params: &Value) -> Result<Value, EngineError> {
+        let project = self.session.as_ref().map(Session::project);
+        match crate::blocks::call(project, method, params)? {
+            crate::design::Outcome::Read(value) => Ok(value),
+            crate::design::Outcome::Commit {
+                label,
+                requests,
+                reply,
+            } => {
+                let change_set = self.commit(label, requests)?;
                 let mut out = json!({"seq": change_set.seq, "history": change_set.history});
                 if let (Some(out), Value::Object(extra)) = (out.as_object_mut(), reply) {
                     out.extend(extra);

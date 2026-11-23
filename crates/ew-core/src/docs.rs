@@ -90,6 +90,22 @@ pub const SUMMARIES: &[(&str, &str)] = &[
         "{\"board\"?, \"completed\"?}. Starts the build again (with completed: the build is finished and counted).",
     ),
     (
+        "block.delete",
+        "`{\"name\", \"folder\"?}` → `{\"deleted\"}`: removes a design block from the block folder (no project needed).",
+    ),
+    (
+        "block.list",
+        "`{\"folder\"?}` → `[{\"name\", \"description\", \"file\", \"parts\", \"designators\", \"layout\", \"footprints\", \"tracks\", \"vias\"}]`: the design blocks of the block folder (`blocks` beside the base library, `EW_BLOCKS_DIR`, or `folder`), by name. No project needed.",
+    ),
+    (
+        "block.place",
+        "`{\"name\" | \"file\", \"doc\", \"at\"?, \"board\"?, \"boardAt\"?, \"folder\"?}` (`place-block`) → `{\"select\", \"parts\", \"designators\", \"library\": {\"added\", \"existing\"}, \"board\": {\"doc\", \"select\", \"group\", \"footprints\", \"tracks\", \"vias\", \"skipped\"} | null}`: places a design block on the sheet `doc` with its top-left corner at `at` (default: beside the sheet's content). Parts whose designators are taken are numbered on; library items the project lacks are added to its first library (the project's own items of the same name are kept). If the block has a layout and the project a board, its footprints are added as the board update would add them (with the schematic's nets), at the block's positions with the top-left one at `boardAt` (default: 10 mm below the board), with the block's tracks and vias on the new nets, all in one group named after the block. One undo step.",
+    ),
+    (
+        "block.save",
+        "`{\"doc\", \"ids\", \"name\", \"description\"?, \"board\"?, \"folder\"?}` → the block as in `block.list`: saves the objects `ids` of the sheet `doc` (parts, wires, labels, ports, texts, drawings) as a design block, with the library symbols and footprints they use and, from `board` (default: the first board), their footprints with the tracks and vias of nets only they use and of their other nets what lies within 1 mm of their pads. A block of the same name is replaced.",
+    ),
+    (
         "board3d.export",
         "`board3d.export {\"doc\", \"path\", \"format\"?, \"origin\"?, \"includeDnp\"?, \"units\"?}` writes the board as a 3D model to `path` (absolute): `format` `step` (default), `glb` or `vrml`; `origin` `drill` (default), `center` or `absolute`; `units` (VRML) `mm` (default), `m` or `inch`. The reply:",
     ),

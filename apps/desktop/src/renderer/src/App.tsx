@@ -251,6 +251,7 @@ export function App(): ReactNode {
             { id: 'find-replace', label: 'commands.findReplace', run: sheet.find },
             { id: 'export-schematic', label: 'commands.exportSchematic', run: sheet.exportMenu },
             { id: 'grid-assistant', label: 'commands.gridAssistant', run: sheet.grid },
+            { id: 'design-blocks', label: 'commands.designBlocks', run: sheet.blocks },
             { id: 'schematic-guide', label: 'commands.schematicGuide', run: sheet.guide },
           ] satisfies Command[])),
       ...(boardCommands === null

@@ -52,6 +52,9 @@ export const schematicDe: Messages['schematic'] = {
     export: 'Exportieren',
     guide: 'Anleitung',
     grid: 'Raster und Fang',
+    blocks: 'Design-Blöcke',
+    blocksTip:
+      'Design-Blöcke: die Auswahl samt Platinen-Layout speichern oder einen gespeicherten Block einsetzen',
   },
   hints: {
     select:
@@ -280,6 +283,29 @@ export const schematicDe: Messages['schematic'] = {
       text: 'Text',
       sheet: 'Unterplan',
     },
+  },
+  blocks: {
+    title: 'Design-Blöcke',
+    saveHeading: 'Die Auswahl als Block speichern',
+    selected:
+      '{count} Objekte ausgewählt. Die Bauteile nehmen ihre Footprints, Leiterbahnen und Vias von der Platine mit.',
+    nothingSelected: 'Wählen Sie zuerst die Bauteile, Leitungen und Labels des Blocks im Plan aus.',
+    name: 'Name',
+    description: 'Beschreibung',
+    save: 'Block speichern',
+    replace: 'Block ersetzen',
+    listHeading: 'Gespeicherte Blöcke',
+    empty: 'Noch keine Design-Blöcke.',
+    counts: '{parts} Bauteile, nur Schaltplan',
+    countsLayout: '{parts} Bauteile mit Layout: {tracks} Leiterbahnen, {vias} Vias',
+    place: 'Einsetzen',
+    delete: 'Löschen',
+    deleteConfirm: 'Wirklich löschen?',
+    saved: 'Design-Block {name} gespeichert ({parts} Bauteile)',
+    savedLayout: 'Design-Block {name} gespeichert ({parts} Bauteile mit {tracks} Leiterbahnen)',
+    placed: '{name} eingesetzt: {parts} Bauteile',
+    placedBoard:
+      '{name} eingesetzt: {parts} Bauteile; auf der Platine {footprints} Footprints, {tracks} Leiterbahnen und {vias} Vias als eine Gruppe unterhalb der Platine',
   },
   annotate: {
     title: 'Annotieren',

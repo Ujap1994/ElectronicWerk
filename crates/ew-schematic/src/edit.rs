@@ -1108,6 +1108,23 @@ pub fn paste(
     offset: Point,
     annotate: bool,
 ) -> Result<Edit, EditError> {
+    paste_renamed(project, doc, objects, offset, annotate).map(|(edit, _)| edit)
+}
+
+/// As [`paste`], and also the designator of every pasted part (old → new;
+/// unchanged ones too).
+///
+/// # Errors
+///
+/// As [`paste`].
+pub fn paste_renamed(
+    project: &Project,
+    doc: Id,
+    objects: &[Object],
+    offset: Point,
+    annotate: bool,
+) -> Result<(Edit, BTreeMap<String, String>), EditError> {
+    let mut designators: BTreeMap<String, String> = BTreeMap::new();
     let mut work = Work::new(project, doc)?;
     let mut used = used_designators(project);
     // Units of one copied part stay one part.
@@ -1119,12 +1136,17 @@ pub fn paste(
         let id = Id::random();
         match &mut object {
             Object::Symbol(s) => {
+                let old = s.designator.clone();
                 s.id = id;
                 s.instances.clear();
                 s.component = s
                     .component
                     .map(|c| *components.entry(c).or_insert_with(Id::random));
-                if s.designator.starts_with('#') || used.contains(&s.designator) {
+                // Another unit of a part pasted just now: the same designator.
+                let earlier = designators.get(&old).filter(|_| !old.starts_with('#'));
+                if let Some(earlier) = earlier {
+                    s.designator.clone_from(earlier);
+                } else if s.designator.starts_with('#') || used.contains(&s.designator) {
                     let new = renumbered.get(&s.designator).cloned().unwrap_or_else(|| {
                         let def = symbol_def(project, &s.symbol);
                         let prefix = def.map_or_else(
@@ -1146,6 +1168,7 @@ pub fn paste(
                     s.designator = new;
                 }
                 used.insert(s.designator.clone());
+                designators.insert(old, s.designator.clone());
             }
             Object::Wire(o) => o.id = id,
             Object::Bus(o) => o.id = id,
@@ -1173,7 +1196,7 @@ pub fn paste(
         work.insert(object);
         work.select.push(id);
     }
-    Ok(work.finish(true))
+    Ok((work.finish(true), designators))
 }
 
 /// Gives a sheet symbol a pin for every hierarchical label of its sheet

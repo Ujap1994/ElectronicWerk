@@ -33,6 +33,7 @@ const HISTORY_LABELS: Readonly<Record<string, MessageKey>> = {
   'add-room': 'history.addRoom',
   'place-in-room': 'history.placeInRoom',
   'rooms-from-sheets': 'history.roomsFromSheets',
+  'place-block': 'history.placeBlock',
   group: 'history.group',
   ungroup: 'history.ungroup',
   drag: 'history.drag',
