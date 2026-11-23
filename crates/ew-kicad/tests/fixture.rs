@@ -51,7 +51,17 @@ fn imports_the_demo_project() {
     let codes: BTreeSet<&str> = report.findings.iter().map(|f| f.code.as_str()).collect();
     assert!(codes.contains("custom-rules"));
     assert!(codes.contains("external-library"));
-    assert!(codes.contains("unsupported-item"), "the dimension");
+    // The board's dimension is imported now, not reported.
+    assert!(!codes.contains("unsupported-item"), "{codes:?}");
+    let dimensions: usize = project
+        .documents
+        .values()
+        .map(|doc| match doc {
+            ew_model::document::Document::Pcb(pcb) => pcb.dimensions.len(),
+            _ => 0,
+        })
+        .sum();
+    assert_eq!(dimensions, 1);
 
     // Two sheets, linked by the sheet symbol.
     let sheets: Vec<_> = project
