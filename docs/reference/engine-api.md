@@ -238,7 +238,9 @@ Returns the snapshot of the open project.
 
 Changes project properties with a JSON merge patch: `name`, `revision`,
 `description`, `variables` (`null` removes a variable), `rootSchematic`,
-`settings` (`units`, `schematicGrid`, `boardGrid`), `variants` (the whole
+`settings` (`units`, `schematicGrid`, `boardGrid`, `netColors`: net name →
+`#rrggbb`, `null` removes a [net colour](../guide/nets#net-colours)),
+`variants` (the whole
 list of [assembly variants](../guide/variants): `[{"name", "description"?,
 "parts"?: {"R1": {"fitted"?, "value"?, "properties"?}}}]`). One undo step.
 Returns the history state.
@@ -398,6 +400,17 @@ same form as `edit.apply` takes it. Unknown objects fail with `notFound`.
 
 `{"doc": "…"}`. Returns the complete document, as in its file, plus `path`.
 
+### `document.similar`
+
+[Select similar](../guide/selecting-and-editing#select-similar).
+`{"doc", "id"}` lists the properties the object can be compared by:
+`{"type": "track", "fields": [{"key": "width", "value": 250000, "length":
+true}, {"key": "net", "value": "…", "text": "GND"}, …]}` — simple top-level
+fields only, without ids, designators and positions; `length` marks
+nanometre values, `text` gives the name of a net. With `"keys": ["layer",
+"width"]` it returns `{"type", "ids"}`: every object of the same type whose
+values of these keys equal the object's (the object included).
+
 ## Editing
 
 ### `edit.apply`
@@ -505,6 +518,14 @@ sorted by sheet instance (top sheet first), then names before pins. Each has
 `sheetPin` or `pin`), `id` (the object; the placed symbol for pins), `at` and
 `text` (`SDA`, `Power: VIN`, `U1.5`); pins also have `designator`, `pin` and
 `name`. Wires and junctions are left out.
+
+### `schematic.netColors`
+
+`{"doc"}` → `{"nets": [{"name", "color", "items": [ids]}]}`: the nets with a
+[colour](../guide/nets#net-colours) (project setting `netColors`) that run
+on this sheet, with their wires, buses, junctions, labels and power ports
+there. The schematic view draws these objects in the colour; boards need no
+such call, their scene carries the net of every object.
 
 ### `schematic.symbols` / `schematic.symbol`
 
@@ -787,6 +808,15 @@ stored in the board.
 `{"doc"}` → `{"airwires": [...], "unrouted": 3}`: the unrouted connections
 without running the checks.
 
+### `pcb.nets`
+
+`{"doc"}` → `{"nets": [{"id", "name", "class", "length", "tracks", "vias",
+"pads", "unrouted"}]}`: the rows of the
+[net inspector](../guide/nets#the-net-inspector). `class` is the net class in
+effect (custom rules included), `length` the routed length of the tracks in
+nanometres, `unrouted` the number of open connections. The class of a net is
+changed with `edit.apply` (`patch` of the net object, field `class`).
+
 ### `pcb.fillZones` / `pcb.unfillZones`
 
 `{"doc", "zones"?: ["…"]}` (`fill-zones` / `unfill-zones`). Fills (or
@@ -835,19 +865,21 @@ placed symbols and the placed symbols (with their sheets) of footprints.
 
 `{"doc", "op", …}`. Operations (label in brackets):
 
-| `op`         | Parameters                | What it does                                                                                                                             |
-| ------------ | ------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
-| `move`       | `ids`, `offset`           | Moves objects (`move`); locked ones stay.                                                                                                |
-| `rotate`     | `ids`, `angle`, `center`? | Turns objects (`rotate`) around the centre of the selection.                                                                             |
-| `flip`       | `ids`, `centerX`?         | Puts objects on the other side (`flip`).                                                                                                 |
-| `delete`     | `ids`                     | Deletes unlocked objects (`delete`).                                                                                                     |
-| `lock`       | `ids`, `locked`           | Locks or unlocks (`lock`).                                                                                                               |
-| `align`      | `ids`, `mode`             | `left`, `right`, `top`, `bottom`, `centerX`, `centerY` (`align`).                                                                        |
-| `distribute` | `ids`, `axis`             | `x` or `y`, equal gaps (`distribute`).                                                                                                   |
-| `setLayer`   | `ids`, `layer`            | Tracks to a copper layer (`set-layer`).                                                                                                  |
-| `setWidth`   | `ids`, `width`            | Track width (`set-width`).                                                                                                               |
-| `setNet`     | `ids`, `net`?             | Net of tracks, vias and zones (`set-net`).                                                                                               |
-| `dragTrack`  | `id`, `offset`            | Moves a straight segment sideways; its neighbours keep their directions, ends at pads, vias or branches get a 45° joiner (`drag-track`). |
+| `op`         | Parameters                | What it does                                                                                                                                                                              |
+| ------------ | ------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `move`       | `ids`, `offset`           | Moves objects (`move`); locked ones stay.                                                                                                                                                 |
+| `rotate`     | `ids`, `angle`, `center`? | Turns objects (`rotate`) around the centre of the selection.                                                                                                                              |
+| `flip`       | `ids`, `centerX`?         | Puts objects on the other side (`flip`).                                                                                                                                                  |
+| `delete`     | `ids`                     | Deletes unlocked objects (`delete`).                                                                                                                                                      |
+| `lock`       | `ids`, `locked`           | Locks or unlocks (`lock`).                                                                                                                                                                |
+| `align`      | `ids`, `mode`             | `left`, `right`, `top`, `bottom`, `centerX`, `centerY` (`align`).                                                                                                                         |
+| `distribute` | `ids`, `axis`             | `x` or `y`, equal gaps (`distribute`).                                                                                                                                                    |
+| `setLayer`   | `ids`, `layer`            | Tracks to a copper layer (`set-layer`).                                                                                                                                                   |
+| `setWidth`   | `ids`, `width`            | Track width (`set-width`).                                                                                                                                                                |
+| `setNet`     | `ids`, `net`?             | Net of tracks, vias and zones (`set-net`).                                                                                                                                                |
+| `dragTrack`  | `id`, `offset`            | Moves a straight segment sideways; its neighbours keep their directions, ends at pads, vias or branches get a 45° joiner (`drag-track`).                                                  |
+| `group`      | `ids`, `name`?            | Makes footprints, tracks, vias, zones, texts and shapes one [group](../guide/selecting-and-editing#groups) (`group`); they leave the groups they were in, groups left with one member go. |
+| `ungroup`    | `ids`                     | Dissolves the groups of the objects, or the groups with these ids (`ungroup`).                                                                                                            |
 
 The reply has `select` and `changes`.
 
@@ -1047,6 +1079,48 @@ stack-up of the board and the minimums and `Default` class of the rules.
 chosen DXF layers onto a board layer (`outline`, `mech.1`, …); `scale` is
 nanometres per drawing unit, `origin` moves the lower left corner there.
 
+### Logos and QR codes
+
+[Pictures and QR codes](../guide/logos-and-qr-codes) as filled polygons on a
+board layer; the polygons of one call form a group, and each call is one
+undo step.
+
+`pcb.addImage {"doc", "layer", "rows", "pixel", "center", "invert"?}`
+(`add-image`): `rows` is the picture from the top, one string per row with
+`#` or `1` for a set pixel and `.` or `0` for a clear one (at most 4,000,000
+pixels); `pixel` the size of a pixel and `center` the middle of the picture
+on the board (nanometres); `invert` draws the clear pixels. Every region of
+set pixels becomes one polygon, holes are joined to it by cuts of zero width.
+Returns `{"select", "shapes", "group", "width", "height"}`.
+
+`pcb.addQrCode {"doc", "layer", "text", "size", "center", "ecc"?, "invert"?,
+"quiet"?}` (`add-qr-code`): a QR code of the text, `size` wide including
+`quiet` modules of border (0 to 10); `ecc` is `low`, `medium` (default),
+`quartile` or `high`. `invert` draws the light modules and the border — a
+dark code on a light print, as on silkscreen. Texts too long for a QR code
+fail with `invalidParams`.
+
+`pcb.qrCode {"text", "ecc"?, "invert"?, "quiet"?}` → `{"rows", "modules"}`:
+the modules of the code without changing anything; it needs no project.
+
+```json
+{
+  "method": "pcb.addQrCode",
+  "params": {
+    "doc": "…",
+    "layer": "silk.top",
+    "text": "https://example.com/b/42",
+    "size": 9000000,
+    "center": [20000000, 15000000],
+    "invert": true,
+    "quiet": 2
+  }
+}
+```
+
+Shapes on copper layers count as copper without a net: the design rules
+check, the zone filler and the router keep their clearance to them.
+
 ### `pcb.exportSpecctra`
 
 `{"doc"}` → `{"file", "text"}`: the board as a Specctra DSN file for an
@@ -1078,6 +1152,49 @@ filled areas on board layers (a reference for tracing or comparing):
 dark shapes united, clear shapes cut out. `origin` moves the lower left
 corner of all files there; `replace` removes the shapes already on the
 target layers. See [Gerber files as a reference](../guide/gerber-reference).
+
+## Calculators
+
+The [calculators](../guide/calculators); they need no project and change
+nothing. Lengths are nanometres, currents amperes, voltages volts,
+resistances ohms, temperatures °C, times seconds and areas mm².
+
+| Method           | Parameters (defaults)                                                                                                                                                                  | Reply                                                                                    |
+| ---------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------- |
+| `calc.eSeries`   | `value`, `series` (`E24`; `E3` … `E192`)                                                                                                                                               | `nearest`, `below`, `above`, `error` (%), `tolerance` (%)                                |
+| `calc.divider`   | `vin`, `vout`, `series`, `minTotal` (1 kΩ), `maxTotal` (1 MΩ), `count` (8)                                                                                                             | `ratio`, `pairs`: `r1` (top), `r2`, `vout`, `error`, `current`, `power`                  |
+| `calc.regulator` | `vref`, `vout`, `iadj` (0), `series`, `minLower` (100 Ω), `maxLower` (1 MΩ), `count`                                                                                                   | `pairs`: `upper`, `lower`, `vout`, `error`, `current` (through `lower`)                  |
+| `calc.track`     | `current` or `width`, `thickness` (35 µm), `rise` (10 °C), `ambient` (25 °C), `length` (10 mm), `standard` (`ipc2152`, `ipc2221`), `placement` (`external`, `internal`; IPC-2221 only) | `current`, `width`, `area`, `resistance`, `voltageDrop`, `power`, `temperature`, `notes` |
+| `calc.via`       | `drill`, `plating` (25 µm), `length` (1.6 mm), `rise`, `ambient`, `standard`                                                                                                           | `current`, `area`, `resistance`, `voltageDrop`, `power`, `notes`                         |
+| `calc.fusing`    | `width` (with `thickness`) or `drill` (with `plating`), `time` (1 s), `ambient`                                                                                                        | `current`, `area`, `notes`                                                               |
+
+Divider and regulator pairs come best first: by error, then by how near the
+total resistance is to the middle of the range; pairs of the same ratio in
+other decades are left out. `notes` name limits of a formula:
+`riseOutsideFit` (IPC-2152 fit: 2 °C to 100 °C), `currentOutsideFit` (above
+30 A, or 35 A for IPC-2221), `longPulse` (fusing current for more than
+10 s). Wrong values fail with `invalidParams`.
+
+```json
+{ "method": "calc.track", "params": { "current": 2, "rise": 10 } }
+```
+
+The reply (rounded here):
+
+```json
+{
+  "result": {
+    "area": 0.035192,
+    "current": 2.0,
+    "notes": [],
+    "power": 0.02075,
+    "resistance": 0.005188,
+    "temperature": 35.0,
+    "voltageDrop": 0.010375,
+    "width": 1005488.45
+  }
+}
+```
 
 ## Output jobs
 

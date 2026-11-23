@@ -113,17 +113,17 @@ Example (`pcb/board.ewpcb`, shortened):
 
 ## The manifest (`.ewproj`)
 
-| Field           | Type   | Meaning                                                                                                                              |
-| --------------- | ------ | ------------------------------------------------------------------------------------------------------------------------------------ |
-| `id`            | UUID   | Project id                                                                                                                           |
-| `name`          | string | Project name                                                                                                                         |
-| `revision`      | string | Revision (optional)                                                                                                                  |
-| `description`   | string | Description (optional)                                                                                                               |
-| `variables`     | object | User text variables, `{"AUTHOR": "Lab"}` (optional)                                                                                  |
-| `documents`     | array  | `{"id", "kind", "path"}` per document, in tree order                                                                                 |
-| `rootSchematic` | UUID   | The top sheet (optional)                                                                                                             |
-| `settings`      | object | `units` (`mm`, `mil`, `inch`), `schematicGrid`, `boardGrid`                                                                          |
-| `variants`      | array  | [Assembly variants](../guide/variants): `name`, `description`, `parts` by designator with `fitted`, `value`, `properties` (optional) |
+| Field           | Type   | Meaning                                                                                                                                             |
+| --------------- | ------ | --------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `id`            | UUID   | Project id                                                                                                                                          |
+| `name`          | string | Project name                                                                                                                                        |
+| `revision`      | string | Revision (optional)                                                                                                                                 |
+| `description`   | string | Description (optional)                                                                                                                              |
+| `variables`     | object | User text variables, `{"AUTHOR": "Lab"}` (optional)                                                                                                 |
+| `documents`     | array  | `{"id", "kind", "path"}` per document, in tree order                                                                                                |
+| `rootSchematic` | UUID   | The top sheet (optional)                                                                                                                            |
+| `settings`      | object | `units` (`mm`, `mil`, `inch`), `schematicGrid`, `boardGrid`, `netColors` ([net colours](../guide/nets#net-colours): net name → `#rrggbb`, optional) |
+| `variants`      | array  | [Assembly variants](../guide/variants): `name`, `description`, `parts` by designator with `fitted`, `value`, `properties` (optional)                |
 
 `kind` is one of `schematic`, `pcb`, `library`, `rules`, `outputJob`. `path`
 is relative to the project folder, uses `/` and must not leave the folder.
@@ -156,6 +156,7 @@ is relative to the project folder, uses `/` and must not leave the folder.
 | `texts`, `shapes` | Free text and graphics; the board outline is drawn on the `outline` layer                                                                                                                                                                                                                                                                                                                    |
 | `mechanical`      | [Mechanical bodies](#mechanical-bodies) of the 3D assembly (optional)                                                                                                                                                                                                                                                                                                                        |
 | `drcExclusions`   | Keys of [accepted DRC findings](../guide/drc#accepting-findings) (optional)                                                                                                                                                                                                                                                                                                                  |
+| `groups`          | [Groups](../guide/selecting-and-editing#groups): `id`, `name` (optional), `members` (ids of footprints, tracks, vias, zones, texts and shapes; each object in at most one group) (optional)                                                                                                                                                                                                  |
 
 The zone filler stores openings of a fill as `holes`; fills imported from
 KiCad cut them in with slits instead. Both read the same way.

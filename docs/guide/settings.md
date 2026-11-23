@@ -70,6 +70,12 @@ that send a notch in several small parts zoom one step in total, and a fast
 turn never runs far ahead of the picture. Trackpads are not affected: two
 fingers pan, a pinch zooms (see [Navigating](./viewer#navigating)).
 
+## Keyboard shortcuts
+
+**Keyboard shortcuts** lists every command of the layout and schematic
+editors with its key; click a key and press the new one. See
+[your own keys](./keyboard-shortcuts#your-own-keys) for the rules.
+
 ## Updates
 
 | Option                               | Effect                                                                           |
@@ -133,12 +139,15 @@ Example content:
   "theme": "dark",
   "workMode": "beginner",
   "wheelZoom": "normal",
+  "shortcuts": { "board.route": "w" },
   "updates": {
     "checkOnStartup": true,
     "skippedVersion": null
   }
 }
 ```
+
+`shortcuts` holds only the keys you changed (command id → key).
 
 ElectronicWerk validates the file every time it loads it. Unknown or invalid
 values are replaced with the defaults, so a damaged file never prevents the

@@ -96,6 +96,12 @@ turning it moves or turns its footprint.
 Every edit is one undo step, with a name in the **Undo** button (`move`,
 `rotate`, `flip`, `route`, …).
 
+For many objects at once — the [selection filter](./selecting-and-editing#the-selection-filter),
+[select similar](./selecting-and-editing#select-similar),
+[editing many objects](./selecting-and-editing#editing-many-objects-at-once)
+and [groups](./selecting-and-editing#groups) (<kbd>Ctrl</kbd>/<kbd>⌘</kbd>+<kbd>G</kbd>) —
+see [Selecting and editing many objects](./selecting-and-editing).
+
 ### Editing in the properties panel
 
 With one footprint, track, via or board text selected, the properties panel
@@ -110,6 +116,11 @@ shows fields to change it:
 | Via       | Diameter, drill, first and last layer, microvia, locked (see [vias](./vias)) |
 | Text      | Text                                                                         |
 | Zone      | Double-click the zone to open its [settings](./zones#zone-settings)          |
+
+With several objects of one kind selected, the panel edits all of them in
+one step (see [editing many objects](./selecting-and-editing#editing-many-objects-at-once)).
+The panel also shows the [colour of the net](./nets#net-colours) of a track,
+via, zone or pad.
 
 Changes apply when you press **Enter** or leave the field. Designators and
 values changed here can go back to the schematic with
@@ -144,21 +155,23 @@ in the toolbar switches it off.
 
 ## Board commands
 
-| Command                                | Toolbar button            | Command palette                                            |
-| -------------------------------------- | ------------------------- | ---------------------------------------------------------- |
-| Update from the schematic              | Update from the schematic | Board: update from the schematic                           |
-| Fill all zones (Shift+B)               | Fill all zones            | Board: fill all zones                                      |
-| Design rules check                     | Design rules check        | Board: run the design rules check                          |
-| Board setup                            | Board setup               | Board: set up the board                                    |
-| Design rules                           | Design rules              | Board: design rules and net classes                        |
-| Import a DXF drawing                   | Import a DXF drawing      | Board: import a DXF drawing                                |
-| [Gerber reference](./gerber-reference) | Gerber reference          | Board: import Gerber files as a reference drawing          |
-| [External autorouter](./autorouter)    | Autorouter                | Board: external autorouter (Specctra DSN/SES, Freerouting) |
-| [Lengths](./lengths)                   | Lengths                   | Board: lengths and length matching                         |
-| [Teardrops](./teardrops)               | Teardrops                 | Board: add or remove teardrops                             |
-| [Stitching vias](./stitching)          | Stitching vias            | Board: stitching vias and via fences                       |
-| [Channels](./channels)                 | Channels                  | Board: copy the layout of a channel                        |
-| Place a footprint                      | Place footprint (tool)    | Board: place a footprint                                   |
+| Command                                 | Toolbar button            | Command palette                                            |
+| --------------------------------------- | ------------------------- | ---------------------------------------------------------- |
+| Update from the schematic               | Update from the schematic | Board: update from the schematic                           |
+| Fill all zones (Shift+B)                | Fill all zones            | Board: fill all zones                                      |
+| Design rules check                      | Design rules check        | Board: run the design rules check                          |
+| Board setup                             | Board setup               | Board: set up the board                                    |
+| Design rules                            | Design rules              | Board: design rules and net classes                        |
+| Import a DXF drawing                    | Import a DXF drawing      | Board: import a DXF drawing                                |
+| [Gerber reference](./gerber-reference)  | Gerber reference          | Board: import Gerber files as a reference drawing          |
+| [External autorouter](./autorouter)     | Autorouter                | Board: external autorouter (Specctra DSN/SES, Freerouting) |
+| [Lengths](./lengths)                    | Lengths                   | Board: lengths and length matching                         |
+| [Teardrops](./teardrops)                | Teardrops                 | Board: add or remove teardrops                             |
+| [Stitching vias](./stitching)           | Stitching vias            | Board: stitching vias and via fences                       |
+| [Channels](./channels)                  | Channels                  | Board: copy the layout of a channel                        |
+| Place a footprint                       | Place footprint (tool)    | Board: place a footprint                                   |
+| [Net inspector](./nets)                 | Nets                      |                                                            |
+| [Logo or QR code](./logos-and-qr-codes) | Logo or QR code           | Board: add a logo or picture / Board: add a QR code        |
 
 The [keyboard shortcuts](./keyboard-shortcuts#layout-editor) page lists all
 keys of the layout editor.

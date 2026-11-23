@@ -1461,6 +1461,217 @@ async function previewReaches(page: Page, x: number, y: number): Promise<void> {
     .toBe(true);
 }
 
+/** A made-up logo: a ring, a bolt and a word. */
+const LOGO_SVG =
+  '<svg xmlns="http://www.w3.org/2000/svg" width="480" height="160" viewBox="0 0 480 160">' +
+  '<rect width="480" height="160" fill="white"/>' +
+  '<circle cx="80" cy="80" r="62" fill="none" stroke="black" stroke-width="18"/>' +
+  '<path d="M92 30 L58 88 H80 L68 132 L104 70 H82 Z" fill="black"/>' +
+  '<text x="160" y="104" font-family="Helvetica, Arial, sans-serif" font-size="64" ' +
+  'font-weight="700" fill="black">VOLTA</text></svg>';
+
+test('everyday editing', async () => {
+  test.setTimeout(300_000);
+  freshProjects();
+  const kicad = '/tmp/ElectronicWerk/KiCad/blinky';
+  rmSync(kicad, { recursive: true, force: true });
+  cpSync(KICAD_FIXTURE, kicad, { recursive: true });
+  const { app, page, close } = await start({ settings: { theme: 'light' } });
+  await page.setViewportSize({ width: 1500, height: 900 });
+  await queueDialogAnswer(app, join(kicad, 'blinky.kicad_pro'));
+  await page.getByTestId('import-kicad').click();
+  await page.getByTestId('kicad-import-name').fill('Blinky');
+  await page.getByTestId('kicad-import-start').click();
+  await page
+    .getByTestId('import-report')
+    .getByRole('button', { name: 'Close', exact: true })
+    .last()
+    .click();
+  const board = readBoardJson('Blinky') as BoardJson & {
+    tracks: { layer: string; start: Point; end: Point }[];
+  };
+  const part = (name: string): Point =>
+    board.footprints.find((f) => f.designator === name)?.at ?? [0, 0];
+  await page
+    .locator('[data-testid^="tree-doc:"]')
+    .filter({ hasText: /^Blinky$/u })
+    .dblclick();
+  await settle(page);
+  await expect(page.getByTestId('viewer')).toHaveAttribute('data-kind', 'pcb');
+  const canvas = viewerCanvas(page);
+  const box = await canvas.boundingBox();
+  const empty = async (): Promise<void> => {
+    await page.mouse.click((box?.x ?? 0) + (box?.width ?? 0) - 14, (box?.y ?? 0) + 14);
+  };
+
+  // The selection filter: tracks and vias cannot be picked.
+  await page.getByTestId('selection-filter-toggle').click();
+  await page.getByTestId('selection-filter-tracks').click();
+  await page.getByTestId('selection-filter-vias').click();
+  await shoot(page.getByTestId('selection-filter'), 'selection-filter');
+  await page.getByTestId('selection-filter-all').click();
+  await page.getByTestId('selection-filter-toggle').click();
+
+  // Select similar: the longest top track, then all of its width.
+  const length = (t: { start: Point; end: Point }): number =>
+    Math.hypot(t.end[0] - t.start[0], t.end[1] - t.start[1]);
+  const track = board.tracks
+    .filter((t) => t.layer === 'cu.top')
+    .sort((x, y) => length(y) - length(x))[0];
+  if (track !== undefined) {
+    await clickPoint(page, [
+      (track.start[0] + track.end[0]) / 2,
+      (track.start[1] + track.end[1]) / 2,
+    ]);
+    await expect(page.getByTestId('inspector-title')).toContainText('Track');
+    await page.getByTestId('select-similar').click();
+    await page.mouse.move(10, 10);
+    await shoot(page.getByTestId('inspector'), 'select-similar');
+    await page.getByTestId('similar-select').click();
+    await expect(page.getByTestId('inspector-title')).toContainText('objects selected');
+    await settle(page);
+    await page.mouse.move(10, 10);
+    await shoot(page, 'multi-edit');
+    await shoot(page.getByTestId('inspector'), 'multi-edit-panel');
+    await empty();
+  }
+
+  // Net inspector: sorted by length, VCC and /OUT coloured.
+  await page.getByTestId('board-nets').click();
+  await page.getByTestId('net-sort-length').click();
+  const row = (name: string): Locator =>
+    page.locator(`[data-testid="net-row"][data-name="${name}"]`);
+  await row('VCC').locator('input[type="checkbox"]').check();
+  await page.getByTestId('net-tick-color-1e88e5').click();
+  await edited(page, /Change project properties/u);
+  await row('VCC').locator('input[type="checkbox"]').uncheck();
+  await row('/OUT').locator('input[type="checkbox"]').check();
+  await page.getByTestId('net-tick-color-fb8c00').click();
+  await edited(page, /Change project properties/u);
+  await row('/OUT').locator('input[type="checkbox"]').uncheck();
+  await row('GND').locator('input[type="checkbox"]').check();
+  await settle(page);
+  await page.mouse.move(10, 10);
+  await shoot(page, 'net-inspector');
+  await shoot(page.getByTestId('net-inspector'), 'net-inspector-panel');
+  await page.getByTestId('net-inspector-close').click();
+
+  // The colour of a net in the properties of a track.
+  if (track !== undefined) {
+    await clickPoint(page, [
+      (track.start[0] + track.end[0]) / 2,
+      (track.start[1] + track.end[1]) / 2,
+    ]);
+    await expect(page.getByTestId('net-color')).toBeVisible();
+    await page.mouse.move(10, 10);
+    await shoot(page.getByTestId('inspector'), 'net-color-picker');
+    await empty();
+  }
+
+  // Groups: two resistors, grouped.
+  await clickPoint(page, part('R1'));
+  await page.keyboard.down('Shift');
+  await clickPoint(page, part('R2'));
+  await page.keyboard.up('Shift');
+  await expect(page.getByTestId('board-group')).toBeVisible();
+  await page.mouse.move(10, 10);
+  await shoot(page.getByTestId('inspector'), 'group-actions');
+  await page.getByTestId('board-group').click();
+  await edited(page, /Group/u);
+  await empty();
+  await clickPoint(page, part('R1'));
+  await expect(page.getByTestId('board-ungroup')).toBeVisible();
+  await settle(page);
+  await page.mouse.move(10, 10);
+  await shoot(page, 'group-selected');
+  await empty();
+
+  // A logo below the timer, a QR code on the right.
+  const folder = mkdtempSync(join(tmpdir(), 'ew-logo-'));
+  const logo = join(folder, 'volta-logo.svg');
+  writeFileSync(logo, LOGO_SVG);
+  await centerOn(page, [(part('J1')[0] + part('U1')[0]) / 2 + 4_000_000, part('J1')[1]]);
+  await page.getByTestId('board-picture').click();
+  const dialog = page.getByTestId('picture-dialog');
+  await dialog.getByTestId('picture-file').setInputFiles(logo);
+  await dialog.getByTestId('picture-width').fill('14');
+  await expect(dialog.getByTestId('picture-preview')).toBeVisible();
+  await shoot(dialog, 'picture-logo');
+  await dialog.getByTestId('picture-add').click();
+  await edited(page, /Add picture/u);
+  await centerOn(page, [part('D1')[0] - 3_000_000, (part('D1')[1] + part('J1')[1]) / 2]);
+  await page.getByTestId('board-picture').click();
+  await dialog.getByTestId('picture-tab-qr').click();
+  await dialog.getByTestId('picture-text').fill('https://example.com/volta/rev-a');
+  await dialog.getByTestId('picture-width').fill('9');
+  await expect(dialog.getByTestId('picture-preview')).toBeVisible();
+  await shoot(dialog, 'picture-qr');
+  await dialog.getByTestId('picture-add').click();
+  await edited(page, /Add QR code/u);
+  await empty();
+  await page.getByTestId('viewer-fit').click();
+  await settle(page);
+  await page.mouse.move(10, 10);
+  await shoot(page, 'picture-board');
+
+  // Net colours on the sheet too.
+  await page.locator('[data-testid^="tree-doc:"]').filter({ hasText: 'Top sheet' }).dblclick();
+  await settle(page);
+  const sheetDir = join(PROJECTS, 'Blinky', 'schematics');
+  const sheetFile = readdirSync(sheetDir).find((name) => name.endsWith('.ewsch')) ?? '';
+  const sheet = JSON.parse(readFileSync(join(sheetDir, sheetFile), 'utf8')) as {
+    symbols: { designator: string; at: Point }[];
+  };
+  const timer = sheet.symbols.find((entry) => entry.designator === 'U1')?.at ?? [0, 0];
+  await page.getByTestId('viewer-fit').click();
+  await settle(page);
+  await zoomAt(page, timer, 4);
+  await empty();
+  await page.mouse.move(10, 10);
+  await shoot(page, 'net-colors-sheet');
+
+  // Keyboard shortcuts: one key changed.
+  await page.getByTestId('open-settings').click();
+  await page.getByTestId('shortcut-settings').locator('summary').click();
+  const key = page.getByTestId('shortcut-key-board.route');
+  await key.click();
+  await page.keyboard.press('w');
+  await expect(key).toHaveText('W');
+  await page.getByTestId('shortcut-key-board.pair').click();
+  await page.keyboard.press('v');
+  await expect(page.getByTestId('shortcut-message')).toBeVisible();
+  await page.getByTestId('shortcut-board.select').scrollIntoViewIfNeeded();
+  await shoot(page.getByTestId('settings-dialog'), 'shortcut-settings');
+  await page.getByTestId('shortcuts-reset-all').click();
+  await page.keyboard.press('Escape');
+
+  // The calculators.
+  await page.getByTestId('toolbar-calculators').click();
+  const calculators = page.getByTestId('calculators');
+  await expect(calculators.getByTestId('calc-pair').first()).toBeVisible();
+  await shoot(calculators, 'calculator-divider');
+  await calculators.getByTestId('calc-tab-regulator').click();
+  await calculators.getByTestId('calc-iadj').fill('50u');
+  await expect(calculators.getByTestId('calc-pair').first()).toBeVisible();
+  await shoot(calculators, 'calculator-regulator');
+  await calculators.getByTestId('calc-tab-series').click();
+  await expect(calculators.getByTestId('calc-pair')).toHaveCount(7);
+  await shoot(calculators, 'calculator-series');
+  await calculators.getByTestId('calc-tab-track').click();
+  await calculators.getByTestId('calc-current-in').fill('2');
+  await expect(calculators.getByTestId('calc-width')).toBeVisible();
+  await shoot(calculators, 'calculator-track');
+  await calculators.getByTestId('calc-tab-via').click();
+  await expect(calculators.getByTestId('calc-current')).toBeVisible();
+  await shoot(calculators, 'calculator-via');
+  await calculators.getByTestId('calc-tab-fusing').click();
+  await expect(calculators.getByTestId('calc-current')).toBeVisible();
+  await shoot(calculators, 'calculator-fusing');
+  await calculators.getByTestId('calc-tab-divider').click();
+  await page.keyboard.press('Escape');
+  await close();
+});
+
 test('blind and micro vias', async () => {
   test.setTimeout(180_000);
   freshProjects();

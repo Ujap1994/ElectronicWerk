@@ -242,6 +242,11 @@ highlights the net under the cursor.
 
 ![The highlighted net LED_CTRL](/screenshots/schematic-net.png)
 
+To mark a net for good, give it a colour: select a wire or label and pick a
+colour under **Colour of net …** in the properties panel. The colour is kept
+in the project and shows on the board too (see
+[net colours](./nets#net-colours)).
+
 ## Following a net across sheets
 
 Where else does `SDA` go? Hold <kbd>Ctrl</kbd> (<kbd>⌘</kbd> on macOS) and

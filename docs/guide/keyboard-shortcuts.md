@@ -1,5 +1,9 @@
 # Keyboard shortcuts
 
+The keys of the schematic and layout editors can be changed: see
+[your own keys](#your-own-keys) at the end of this page. The tables show the
+default keys.
+
 | Action                        | macOS                                                   | Windows / Linux                                            |
 | ----------------------------- | ------------------------------------------------------- | ---------------------------------------------------------- |
 | Command palette               | <kbd>⌘</kbd>+<kbd>K</kbd>                               | <kbd>Ctrl</kbd>+<kbd>K</kbd>                               |
@@ -133,29 +137,31 @@ In the pin and pad tables, <kbd>Ctrl</kbd>/<kbd>⌘</kbd>-click and
 
 In the [layout editor](./layout-editor) (click the board first):
 
-| Key                                          | Action                                                   |
-| -------------------------------------------- | -------------------------------------------------------- |
-| <kbd>S</kbd>                                 | Select tool                                              |
-| <kbd>A</kbd>                                 | Place a footprint (opens the chooser)                    |
-| <kbd>X</kbd>                                 | Route tracks                                             |
-| <kbd>6</kbd>                                 | Route a differential pair                                |
-| <kbd>V</kbd>                                 | Place vias; while routing: via and layer change          |
-| <kbd>Z</kbd>                                 | Copper zone                                              |
-| <kbd>K</kbd>                                 | Keep-out area                                            |
-| <kbd>O</kbd>                                 | Board outline                                            |
-| <kbd>T</kbd>                                 | Text                                                     |
-| <kbd>N</kbd>                                 | Highlight net tool                                       |
-| <kbd>`</kbd>                                 | Highlight the net under the cursor                       |
-| <kbd>Page Up</kbd> / <kbd>Page Down</kbd>    | Previous / next copper layer (while routing: with a via) |
-| <kbd>R</kbd> / <kbd>Shift</kbd>+<kbd>R</kbd> | Turn the selection by 90° (or the next footprint)        |
-| <kbd>Shift</kbd>+<kbd>F</kbd>                | Flip the selection to the other side of the board        |
-| <kbd>M</kbd>                                 | Move the selection with the cursor (click to drop)       |
-| <kbd>D</kbd>                                 | Drag a track with its neighbours (click to drop)         |
-| <kbd>L</kbd> / <kbd>Shift</kbd>+<kbd>L</kbd> | Lock / unlock the selection                              |
-| <kbd>Shift</kbd>+<kbd>B</kbd>                | Fill all zones                                           |
-| <kbd>B</kbd>                                 | View from the bottom (as in the viewer)                  |
-| <kbd>Delete</kbd>, <kbd>Backspace</kbd>      | Delete the selection                                     |
-| <kbd>Esc</kbd>                               | End what is in progress, then back to the select tool    |
+| Key                                                        | Action                                                   |
+| ---------------------------------------------------------- | -------------------------------------------------------- |
+| <kbd>S</kbd>                                               | Select tool                                              |
+| <kbd>A</kbd>                                               | Place a footprint (opens the chooser)                    |
+| <kbd>X</kbd>                                               | Route tracks                                             |
+| <kbd>6</kbd>                                               | Route a differential pair                                |
+| <kbd>V</kbd>                                               | Place vias; while routing: via and layer change          |
+| <kbd>Z</kbd>                                               | Copper zone                                              |
+| <kbd>K</kbd>                                               | Keep-out area                                            |
+| <kbd>O</kbd>                                               | Board outline                                            |
+| <kbd>T</kbd>                                               | Text                                                     |
+| <kbd>N</kbd>                                               | Highlight net tool                                       |
+| <kbd>`</kbd>                                               | Highlight the net under the cursor                       |
+| <kbd>Page Up</kbd> / <kbd>Page Down</kbd>                  | Previous / next copper layer (while routing: with a via) |
+| <kbd>R</kbd> / <kbd>Shift</kbd>+<kbd>R</kbd>               | Turn the selection by 90° (or the next footprint)        |
+| <kbd>Shift</kbd>+<kbd>F</kbd>                              | Flip the selection to the other side of the board        |
+| <kbd>M</kbd>                                               | Move the selection with the cursor (click to drop)       |
+| <kbd>D</kbd>                                               | Drag a track with its neighbours (click to drop)         |
+| <kbd>L</kbd> / <kbd>Shift</kbd>+<kbd>L</kbd>               | Lock / unlock the selection                              |
+| <kbd>Ctrl</kbd>/<kbd>⌘</kbd>+<kbd>G</kbd>                  | [Group](./selecting-and-editing#groups) the selection    |
+| <kbd>Ctrl</kbd>/<kbd>⌘</kbd>+<kbd>Shift</kbd>+<kbd>G</kbd> | Dissolve the groups of the selection                     |
+| <kbd>Shift</kbd>+<kbd>B</kbd>                              | Fill all zones                                           |
+| <kbd>B</kbd>                                               | View from the bottom (as in the viewer)                  |
+| <kbd>Delete</kbd>, <kbd>Backspace</kbd>                    | Delete the selection                                     |
+| <kbd>Esc</kbd>                                             | End what is in progress, then back to the select tool    |
 
 While routing:
 
@@ -186,3 +192,36 @@ In the [3D view](./view-3d) (click the view first):
 | Click                                               | Select a part (also in the layout editor) |
 | <kbd>Shift</kbd>/<kbd>Ctrl</kbd>/<kbd>⌘</kbd>+click | Add a part to the selection or remove it  |
 | <kbd>Esc</kbd>                                      | Stop measuring, close a menu              |
+
+## Your own keys
+
+Every command of the schematic and layout editors that a single key starts
+can get another key: open the [settings](./settings#keyboard-shortcuts),
+expand **Keyboard shortcuts**, click the key of a command and press the new
+one.
+
+![Keyboard shortcuts in the settings: Route tracks on W](/screenshots/shortcut-settings.png)
+
+- <kbd>Shift</kbd> and <kbd>Ctrl</kbd>/<kbd>⌘</kbd> may be part of a key
+  (<kbd>Shift</kbd>+<kbd>R</kbd>, <kbd>Ctrl</kbd>+<kbd>G</kbd>); so may
+  <kbd>F1</kbd> to <kbd>F12</kbd>, <kbd>Page Up</kbd>, <kbd>Page Down</kbd>,
+  <kbd>Home</kbd>, <kbd>End</kbd> and <kbd>Insert</kbd>. <kbd>Esc</kbd>
+  cancels.
+- A key that another command of the same editor uses is refused, with the
+  name of that command: give that command another key first. The two
+  editors are separate — <kbd>W</kbd> can draw wires in the schematic and
+  route tracks on the board.
+- Reserved keys keep their meaning: <kbd>Esc</kbd>, <kbd>Enter</kbd>,
+  <kbd>Delete</kbd>, <kbd>Backspace</kbd>, <kbd>Tab</kbd>, <kbd>Space</kbd>
+  and the <kbd>Ctrl</kbd>/<kbd>⌘</kbd> keys of the clipboard, undo, saving,
+  finding and the other menu commands.
+- Signs that need <kbd>Shift</kbd> on some keyboards and not on others (the
+  `/` is <kbd>Shift</kbd>+<kbd>7</kbd> on a German keyboard) work either
+  way.
+- Changed keys are marked; **Default** gives one command its default key
+  back, **All keys back to their defaults** all of them.
+
+The tool palettes show the keys in use in their tooltips. The keys are
+saved in the settings of your user account (see
+[where the settings are stored](./settings#where-the-settings-are-stored)),
+not in the project.
