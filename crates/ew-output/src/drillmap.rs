@@ -62,7 +62,7 @@ pub fn tools(holes: &[Hole]) -> Vec<Tool> {
 }
 
 /// Draws symbol `index` of size `s` around `c`.
-fn symbol(index: usize, c: V, s: f64) -> Path {
+pub(crate) fn symbol(index: usize, c: V, s: f64) -> Path {
     let r = s / 2.0;
     let p = |x: f64, y: f64| V::new(c.x + x * r, c.y + y * r);
     let mut path = Path::default();
@@ -131,6 +131,44 @@ fn text(text: &str, x: f64, y: f64, size: f64) -> TextSpec<'_> {
         v: -1,
         mirror: false,
         italic: false,
+    }
+}
+
+/// A line or arc feature with another pen width (outlines in an even pen).
+#[must_use]
+pub(crate) fn thin(feature: &crate::art::Feature, pen: f64) -> crate::art::Feature {
+    match feature.clone() {
+        crate::art::Feature::Line {
+            a,
+            b,
+            function,
+            attributes,
+            ..
+        } => crate::art::Feature::Line {
+            a,
+            b,
+            width: pen,
+            function,
+            attributes,
+        },
+        crate::art::Feature::Arc {
+            start,
+            end,
+            center,
+            ccw,
+            function,
+            attributes,
+            ..
+        } => crate::art::Feature::Arc {
+            start,
+            end,
+            center,
+            ccw,
+            width: pen,
+            function,
+            attributes,
+        },
+        other => other,
     }
 }
 
@@ -210,41 +248,7 @@ pub fn drill_map(art: &BoardArt<'_>, labels: &Labels) -> Page {
         width,
     };
     for feature in &outline {
-        // Outlines in a fine, even pen.
-        let thin = match feature.clone() {
-            crate::art::Feature::Line {
-                a,
-                b,
-                function,
-                attributes,
-                ..
-            } => crate::art::Feature::Line {
-                a,
-                b,
-                width: PEN,
-                function,
-                attributes,
-            },
-            crate::art::Feature::Arc {
-                start,
-                end,
-                center,
-                ccw,
-                function,
-                attributes,
-                ..
-            } => crate::art::Feature::Arc {
-                start,
-                end,
-                center,
-                ccw,
-                width: PEN,
-                function,
-                attributes,
-            },
-            other => other,
-        };
-        page.feature(&thin, &view, Color::BLACK);
+        page.feature(&thin(feature, PEN), &view, Color::BLACK);
     }
     let symbol_size = |d: f64| (d * 1.2).clamp(0.8 * MM, 2.5 * MM);
     let index_of = |hole: &Hole| {

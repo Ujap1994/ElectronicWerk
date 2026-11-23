@@ -37,6 +37,7 @@ pub mod documentation;
 pub mod drill;
 pub mod drillmap;
 pub mod dxf;
+pub mod fabdrawing;
 pub mod font;
 pub mod fracture;
 pub mod gerber;

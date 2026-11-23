@@ -18,6 +18,9 @@ pub enum OutputKind {
     Drill,
     /// Drill map drawing.
     DrillMap,
+    /// Fabrication drawing: outline, dimensions, drill table, stack-up and
+    /// notes for the board maker.
+    FabricationDrawing,
     /// Bill of materials.
     Bom,
     /// Pick-and-place (component placement) file.
@@ -203,6 +206,11 @@ impl OutputJob {
             ("Drill", OutputKind::Drill, BTreeMap::new()),
             ("Drill map", OutputKind::DrillMap, BTreeMap::new()),
             (
+                "Fabrication drawing",
+                OutputKind::FabricationDrawing,
+                BTreeMap::new(),
+            ),
+            (
                 "Bill of materials",
                 OutputKind::Bom,
                 option("format", "xlsx"),
@@ -265,7 +273,7 @@ mod tests {
     #[test]
     fn fabrication_job() {
         let job = OutputJob::fabrication(Id::random(), "Fabrication", Id::random);
-        assert_eq!(job.outputs.len(), 9);
+        assert_eq!(job.outputs.len(), 10);
         assert_eq!(job.directory, DEFAULT_OUTPUT_DIRECTORY);
         let json = serde_json::to_string(&job).unwrap();
         assert_eq!(serde_json::from_str::<OutputJob>(&json).unwrap(), job);

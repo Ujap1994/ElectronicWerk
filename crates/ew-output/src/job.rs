@@ -259,6 +259,34 @@ pub struct DrillMapJob {
     pub folder: String,
 }
 
+/// Options of a fabrication drawing.
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
+#[serde(rename_all = "camelCase", default, deny_unknown_fields)]
+pub struct FabricationJob {
+    /// Format.
+    pub format: DrawingFormat,
+    /// Subfolder.
+    pub folder: String,
+    /// Notes made from the board data first.
+    pub generated_notes: bool,
+    /// IPC-6012 class (1–3; 0: not named).
+    pub ipc_class: u8,
+    /// Further notes.
+    pub notes: Vec<String>,
+}
+
+impl Default for FabricationJob {
+    fn default() -> Self {
+        Self {
+            format: DrawingFormat::Pdf,
+            folder: "gerber".to_owned(),
+            generated_notes: true,
+            ipc_class: 2,
+            notes: Vec::new(),
+        }
+    }
+}
+
 impl Default for DrillMapJob {
     fn default() -> Self {
         Self {
@@ -610,6 +638,41 @@ fn run_one(
                 o.format,
                 &o.folder,
                 &format!("{stem}-drill-map"),
+            ))
+        }
+        OutputKind::FabricationDrawing => {
+            let o: FabricationJob = options(spec)?;
+            let pcb = board(project, spec.source)?;
+            let resolve = |t: &str| (ctx.resolve)(t, Some(pcb.id));
+            let art = BoardArt::new(
+                pcb,
+                ArtOptions {
+                    units: project.manifest.settings.units,
+                    ..ArtOptions::default()
+                },
+                &resolve,
+            );
+            let doc = crate::fabdrawing::fabrication_doc(
+                &art,
+                &crate::fabdrawing::Labels::default(),
+                &crate::fabdrawing::Options {
+                    generated_notes: o.generated_notes,
+                    ipc_class: o.ipc_class.min(3),
+                    notes: o
+                        .notes
+                        .iter()
+                        .map(|n| (ctx.resolve)(n, Some(pcb.id)))
+                        .collect(),
+                },
+                &ctx.version,
+                &ctx.created,
+            );
+            let stem = sanitize(&pcb.name);
+            Ok(drawing(
+                &doc,
+                o.format,
+                &o.folder,
+                &format!("{stem}-fabrication-drawing"),
             ))
         }
         OutputKind::Bom => {
@@ -1074,6 +1137,11 @@ pub fn presets() -> Vec<Preset> {
         o("Drill", OutputKind::Drill, json!({})),
         o("Drill map", OutputKind::DrillMap, json!({})),
         o(
+            "Fabrication drawing",
+            OutputKind::FabricationDrawing,
+            json!({}),
+        ),
+        o(
             "Bill of materials",
             OutputKind::Bom,
             json!({"format": "xlsx"}),
@@ -1249,6 +1317,7 @@ mod tests {
                     OutputKind::Gerber => options::<GerberJob>(&spec).is_ok(),
                     OutputKind::Drill => options::<DrillJob>(&spec).is_ok(),
                     OutputKind::DrillMap => options::<DrillMapJob>(&spec).is_ok(),
+                    OutputKind::FabricationDrawing => options::<FabricationJob>(&spec).is_ok(),
                     OutputKind::Bom => options::<BomJob>(&spec).is_ok(),
                     OutputKind::PickAndPlace => options::<PlacementJob>(&spec).is_ok(),
                     OutputKind::Pdf | OutputKind::Svg => options::<PrintJob>(&spec).is_ok(),

@@ -43,14 +43,14 @@ test('generates the outputs of a job and shows the Gerbers', async () => {
   const editor = page.getByTestId('output-job');
   await expect(editor).toBeVisible();
   const list = page.getByTestId('outputs-list');
-  await expect(list.locator('li')).toHaveCount(9);
+  await expect(list.locator('li')).toHaveCount(10);
   await expect(page.getByTestId('output-0')).toHaveAttribute('data-kind', 'gerber');
 
   // Generate everything.
   await page.getByTestId('outputs-generate').click();
   const results = page.getByTestId('outputs-results');
   await expect(results.locator('[data-status="done"]').first()).toBeVisible({ timeout: 60_000 });
-  await expect(list.locator('[data-status="done"]')).toHaveCount(9);
+  await expect(list.locator('[data-status="done"]')).toHaveCount(10);
   await expect(list.locator('[data-status="failed"]')).toHaveCount(0);
   const generated = join(projectsDir, 'Output Demo', 'outputs', 'generated');
   const files = listFiles(generated);
@@ -58,6 +58,7 @@ test('generates the outputs of a job and shows the Gerbers', async () => {
     'gerber/Output_Demo-Copper_Top.gtl',
     'gerber/Output_Demo-PTH.drl',
     'gerber/Output_Demo-drill-map.pdf',
+    'gerber/Output_Demo-fabrication-drawing.pdf',
     'assembly/Output_Demo-bom.xlsx',
     'assembly/Output_Demo-placement.csv',
     'documentation/Output_Demo-schematic.pdf',
@@ -80,7 +81,13 @@ test('generates the outputs of a job and shows the Gerbers', async () => {
 
   // Back to the job: the BOM settings with a preview.
   await page.locator('[data-testid^="tab-"]', { hasText: 'Fabrication' }).first().click();
+  // The fabrication drawing: IPC class 3 and a note of our own.
   await page.getByTestId('output-3').getByRole('button').click();
+  await expect(page.getByTestId('output-3')).toHaveAttribute('data-kind', 'fabricationDrawing');
+  await page.getByTestId('output-ipc-class').selectOption('3');
+  await page.getByTestId('output-notes').fill('Electrical test 100 %');
+  await page.getByTestId('output-notes').blur();
+  await page.getByTestId('output-4').getByRole('button').click();
   await expect(page.getByTestId('output-settings')).toBeVisible();
   const preview = page.getByTestId('output-bom-preview');
   await expect(preview.locator('tbody tr').first()).toBeVisible();
@@ -101,7 +108,7 @@ test('generates the outputs of a job and shows the Gerbers', async () => {
   await expect(list.locator('li')).toHaveCount(5);
   await expect(list).toContainText('CPL (JLCPCB)');
   await page.getByTestId('toolbar-undo').click();
-  await expect(list.locator('li')).toHaveCount(9);
+  await expect(list.locator('li')).toHaveCount(10);
 });
 
 test('makes a panel, the documentation and the design statistics', async () => {
@@ -160,7 +167,7 @@ test('makes a panel, the documentation and the design statistics', async () => {
 
   await page.getByTestId('outputs-generate').click();
   const list = page.getByTestId('outputs-list');
-  await expect(list.locator('[data-status="done"]')).toHaveCount(11, { timeout: 90_000 });
+  await expect(list.locator('[data-status="done"]')).toHaveCount(12, { timeout: 90_000 });
   const generated = join(projectsDir, 'Panel Demo', 'outputs', 'generated');
   const files = listFiles(generated);
   expect(files).toContain('gerber/Panel_Demo_panel-User_1.gbr');

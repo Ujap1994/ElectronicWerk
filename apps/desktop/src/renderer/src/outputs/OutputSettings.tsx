@@ -20,6 +20,51 @@ import {
 type Change = (spec: OutputSpec) => void;
 
 /** A text field that commits on Enter or blur. */
+/** Notes, one per line. */
+function NotesOption({
+  label,
+  hint,
+  value,
+  onCommit,
+}: {
+  readonly label: string;
+  readonly hint: string;
+  readonly value: readonly string[];
+  readonly onCommit: (value: string[]) => void;
+}): ReactNode {
+  const joined = value.join('\n');
+  const [draft, setDraft] = useState(joined);
+  const [shown, setShown] = useState(joined);
+  if (shown !== joined) {
+    setShown(joined);
+    setDraft(joined);
+  }
+  return (
+    <label className="field">
+      <span className="field__label">{label}</span>
+      <textarea
+        className="field__control outputs__notes"
+        rows={5}
+        value={draft}
+        data-testid="output-notes"
+        onChange={(event) => {
+          setDraft(event.target.value);
+        }}
+        onBlur={() => {
+          const notes = draft
+            .split('\n')
+            .map((line) => line.trim())
+            .filter((line) => line !== '');
+          if (notes.join('\n') !== joined) {
+            onCommit(notes);
+          }
+        }}
+      />
+      <span className="field__hint">{hint}</span>
+    </label>
+  );
+}
+
 export function TextOption({
   label,
   value,
@@ -414,6 +459,7 @@ const KIND_LABELS: Readonly<Record<OutputKind, MessageKey>> = {
   gerber: 'outputKinds.gerber',
   drill: 'outputKinds.drill',
   drillMap: 'outputKinds.drillMap',
+  fabricationDrawing: 'outputKinds.fabricationDrawing',
   bom: 'outputKinds.bom',
   pickAndPlace: 'outputKinds.pickAndPlace',
   pdf: 'outputKinds.pdf',
@@ -535,6 +581,45 @@ export function OutputSettings({
             set('format', value);
           }}
         />
+      )}
+      {spec.kind === 'fabricationDrawing' && (
+        <>
+          <Choice
+            label={t('outputs.drawing.format')}
+            value={option<string>(spec, 'format')}
+            options={[
+              ['pdf', t('outputs.drawing.pdf')],
+              ['svg', t('outputs.drawing.svg')],
+            ]}
+            testId="output-format"
+            onChange={(value) => {
+              set('format', value);
+            }}
+          />
+          {check('generatedNotes', 'outputs.fabrication.generatedNotes')}
+          <Choice
+            label={t('outputs.fabrication.ipcClass')}
+            value={String(option<number>(spec, 'ipcClass'))}
+            options={[
+              ['0', t('outputs.fabrication.ipcNone')],
+              ['1', t('outputs.fabrication.ipc1')],
+              ['2', t('outputs.fabrication.ipc2')],
+              ['3', t('outputs.fabrication.ipc3')],
+            ]}
+            testId="output-ipc-class"
+            onChange={(value) => {
+              set('ipcClass', Number(value));
+            }}
+          />
+          <NotesOption
+            label={t('outputs.fabrication.notes')}
+            hint={t('outputs.fabrication.notesHint')}
+            value={option<string[]>(spec, 'notes')}
+            onCommit={(notes) => {
+              set('notes', notes);
+            }}
+          />
+        </>
       )}
       {spec.kind === 'bom' && <BomSettings spec={spec} onChange={onChange} />}
       {spec.kind === 'pickAndPlace' && (

@@ -56,6 +56,18 @@ export const outputsDe: Messages['outputs'] = {
   drill: {
     merge: 'Durchkontaktierte und nicht durchkontaktierte Bohrungen in einer Datei',
   },
+  fabrication: {
+    generatedNotes:
+      'Hinweise aus den Platinendaten (Größe, Material, Kupfer, Oberfläche, Farben, kleinste Strukturen, Toleranzen)',
+    ipcClass: 'IPC-Klasse',
+    ipcNone: 'Nicht genannt',
+    ipc1: 'Klasse 1 (allgemeine Elektronik)',
+    ipc2: 'Klasse 2 (Geräte mit Dauerbetrieb)',
+    ipc3: 'Klasse 3 (hohe Zuverlässigkeit)',
+    notes: 'Weitere Hinweise',
+    notesHint:
+      'Ein Hinweis pro Zeile; sie folgen den Hinweisen aus den Platinendaten. ${VARIABLEN} werden eingesetzt.',
+  },
   drawing: {
     format: 'Format',
     pdf: 'PDF (alle Seiten in einer Datei)',

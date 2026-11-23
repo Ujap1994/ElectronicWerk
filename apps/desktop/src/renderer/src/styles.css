@@ -7071,3 +7071,9 @@ textarea.field__control {
   stroke-width: 3px;
   text-anchor: middle;
 }
+
+.outputs__notes {
+  min-height: 6em;
+  font: inherit;
+  resize: vertical;
+}

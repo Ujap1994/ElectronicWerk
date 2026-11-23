@@ -54,6 +54,18 @@ export const outputsEn = {
   drill: {
     merge: 'Plated and non-plated holes in one file',
   },
+  fabrication: {
+    generatedNotes:
+      'Notes from the board data (size, material, copper, finish, colours, smallest features, tolerances)',
+    ipcClass: 'IPC class',
+    ipcNone: 'Not named',
+    ipc1: 'Class 1 (general electronics)',
+    ipc2: 'Class 2 (dedicated service)',
+    ipc3: 'Class 3 (high reliability)',
+    notes: 'Further notes',
+    notesHint:
+      'One note per line; they follow the notes from the board data. ${VARIABLES} are filled in.',
+  },
   drawing: {
     format: 'Format',
     pdf: 'PDF (all pages in one file)',

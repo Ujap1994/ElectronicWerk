@@ -852,6 +852,7 @@ const OUTPUT_KINDS: Readonly<Record<string, MessageKey>> = {
   gerber: 'outputKinds.gerber',
   drill: 'outputKinds.drill',
   drillMap: 'outputKinds.drillMap',
+  fabricationDrawing: 'outputKinds.fabricationDrawing',
   bom: 'outputKinds.bom',
   pickAndPlace: 'outputKinds.pickAndPlace',
   pdf: 'outputKinds.pdf',

@@ -8,6 +8,7 @@ export type OutputKind =
   | 'gerber'
   | 'drill'
   | 'drillMap'
+  | 'fabricationDrawing'
   | 'bom'
   | 'pickAndPlace'
   | 'pdf'
@@ -25,6 +26,7 @@ export const OUTPUT_KINDS: readonly OutputKind[] = [
   'gerber',
   'drill',
   'drillMap',
+  'fabricationDrawing',
   'bom',
   'pickAndPlace',
   'pdf',
@@ -146,6 +148,7 @@ const FOLDERS: Readonly<Record<OutputKind, string>> = {
   gerber: 'gerber',
   drill: 'gerber',
   drillMap: 'gerber',
+  fabricationDrawing: 'gerber',
   bom: 'assembly',
   pickAndPlace: 'assembly',
   pdf: 'documentation',
@@ -172,6 +175,13 @@ export const DEFAULTS: Readonly<Record<OutputKind, Readonly<Record<string, unkno
   },
   drill: { merge: false, folder: FOLDERS.drill },
   drillMap: { format: 'pdf', folder: FOLDERS.drillMap },
+  fabricationDrawing: {
+    format: 'pdf',
+    folder: FOLDERS.fabricationDrawing,
+    generatedNotes: true,
+    ipcClass: 2,
+    notes: [],
+  },
   bom: {
     columns: [
       'item',
