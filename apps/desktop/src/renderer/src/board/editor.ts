@@ -27,7 +27,8 @@ export type BoardTool =
   | 'text'
   | 'footprint'
   | 'highlight'
-  | 'dimension';
+  | 'dimension'
+  | 'room';
 
 /** The via type the router places when it changes layers. */
 export type ViaChoice = 'through' | 'blind' | 'micro';
@@ -225,6 +226,7 @@ const HINTS: Readonly<Record<BoardTool, MessageKey>> = {
   footprint: 'board.hints.footprint',
   highlight: 'board.hints.highlight',
   dimension: 'board.hints.dimension',
+  room: 'board.hints.room',
 };
 
 /** The hint of a tool (a leader asks for other clicks than a dimension). */
@@ -320,6 +322,7 @@ const TOOL_COMMANDS: ReadonlyMap<string, BoardTool> = new Map<string, BoardTool>
   ['board.text', 'text'],
   ['board.highlight', 'highlight'],
   ['board.dimension', 'dimension'],
+  ['board.room', 'room'],
 ]);
 
 export class BoardEditor implements Interaction {
@@ -1144,6 +1147,16 @@ export class BoardEditor implements Interaction {
   private closePolygon(): void {
     const points = this.state.polygon;
     const tool = this.state.tool;
+    if (tool === 'room') {
+      // A room asks for its name before it is made.
+      const last = points[points.length - 1];
+      if (points.length >= 3 && last !== undefined) {
+        this.update({ prompt: { at: last, value: '' } });
+      } else {
+        this.update({ polygon: [] });
+      }
+      return;
+    }
     this.update({ polygon: [] });
     if (tool === 'outline') {
       if (points.length >= 3) {
@@ -1179,6 +1192,16 @@ export class BoardEditor implements Interaction {
     const prompt = this.state.prompt;
     this.update({ prompt: null });
     const value = text.trim();
+    if (this.state.tool === 'room') {
+      const outline = this.state.polygon;
+      this.update({ polygon: [] });
+      if (value !== '' && outline.length >= 3) {
+        this.run('pcb.addRoom', { name: value, outline });
+        // Next: select parts (Shift+click) and place them into the room.
+        this.update({ tool: 'select', hint: HINTS.select });
+      }
+      return;
+    }
     if (this.state.tool === 'dimension') {
       // The note of a leader.
       const [tip, elbow] = this.state.polygon;
@@ -1213,10 +1236,8 @@ export class BoardEditor implements Interaction {
   }
 
   cancelPrompt(): void {
-    this.update({
-      prompt: null,
-      polygon: this.state.tool === 'dimension' ? [] : this.state.polygon,
-    });
+    const drop = this.state.tool === 'dimension' || this.state.tool === 'room';
+    this.update({ prompt: null, polygon: drop ? [] : this.state.polygon });
   }
 
   // --- Interaction ----------------------------------------------------------
@@ -1308,6 +1329,24 @@ export class BoardEditor implements Interaction {
       case 'keepout':
         this.update({ polygon: [...this.state.polygon, p] });
         return true;
+      case 'room': {
+        const polygon = this.state.polygon;
+        if (this.state.outlineShape === 'rect') {
+          const first = polygon[0];
+          if (first === undefined) {
+            this.update({ polygon: [p] });
+          } else if (first[0] !== p[0] && first[1] !== p[1]) {
+            // The four corners, then the name.
+            this.update({
+              polygon: [first, [p[0], first[1]], p, [first[0], p[1]]],
+              prompt: { at: p, value: '' },
+            });
+          }
+        } else {
+          this.update({ polygon: [...polygon, p] });
+        }
+        return true;
+      }
       case 'outline': {
         const polygon = this.state.polygon;
         if (this.state.outlineShape === 'rect') {
@@ -1406,6 +1445,7 @@ export class BoardEditor implements Interaction {
       case 'zone':
       case 'keepout':
       case 'outline':
+      case 'room':
         // The double click added the last point twice.
         this.update({ polygon: dedupe(this.state.polygon) });
         this.closePolygon();
@@ -1490,7 +1530,7 @@ export class BoardEditor implements Interaction {
         this.stepLayer(1);
         return true;
       case 'board.bend':
-        if (this.state.tool === 'outline') {
+        if (this.state.tool === 'outline' || this.state.tool === 'room') {
           this.setOutlineShape(this.state.outlineShape === 'rect' ? 'polygon' : 'rect');
         } else {
           this.update({ diagonal: !this.state.diagonal });

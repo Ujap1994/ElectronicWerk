@@ -7,7 +7,7 @@ use std::collections::{BTreeMap, HashMap};
 use ew_model::document::{Document, DocumentKind};
 use ew_model::id::Id;
 use ew_model::object::Object;
-use ew_model::pcb::Pcb;
+use ew_model::pcb::{FootprintInstance, Pcb};
 use ew_model::project::Project;
 use ew_model::rules::{DRC_CHECKS, DrcSettings, ErcSeverity, Rules, RulesProps};
 use ew_pcb::drc::{self, Report};
@@ -45,6 +45,12 @@ pub mod labels {
     pub const IMAGE: &str = "add-image";
     /// `pcb.addDimension`.
     pub const DIMENSION: &str = "add-dimension";
+    /// `pcb.addRoom`.
+    pub const ROOM: &str = "add-room";
+    /// `pcb.placeInRoom`.
+    pub const PLACE_IN_ROOM: &str = "place-in-room";
+    /// `pcb.roomsFromSheets`.
+    pub const ROOMS_FROM_SHEETS: &str = "rooms-from-sheets";
     /// `pcb.addQrCode`.
     pub const QR_CODE: &str = "add-qr-code";
     /// `pcb.importSession`.
@@ -539,6 +545,202 @@ struct DxfPreviewParams {
     path: String,
     #[serde(default)]
     scale: Option<f64>,
+}
+
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct RoomParams {
+    doc: Id,
+    name: String,
+    outline: Vec<ew_model::units::Point>,
+}
+
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct PlaceInRoomParams {
+    doc: Id,
+    room: Id,
+    ids: Vec<Id>,
+    /// Gap between parts (default 1 mm).
+    #[serde(default)]
+    gap: Option<ew_model::units::Nm>,
+}
+
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct RoomsFromSheetsParams {
+    doc: Id,
+    #[serde(default)]
+    gap: Option<ew_model::units::Nm>,
+}
+
+/// Footprints in designator order (`R2` before `R10`).
+fn by_designator(mut list: Vec<&FootprintInstance>) -> Vec<&FootprintInstance> {
+    list.sort_by(|a, b| ew_schematic::connectivity::natural_cmp(&a.designator, &b.designator));
+    list
+}
+
+/// Requests that move footprints to new origins.
+fn moves(doc: Id, pcb: &Pcb, placed: &[(Id, ew_model::units::Point)]) -> Vec<Request> {
+    placed
+        .iter()
+        .filter_map(|(id, at)| {
+            let fp = pcb.footprints.get(*id)?;
+            (fp.at != *at).then(|| Request::Update {
+                doc,
+                object: Object::Footprint(FootprintInstance {
+                    at: *at,
+                    ..fp.clone()
+                }),
+            })
+        })
+        .collect()
+}
+
+/// One room per schematic sheet for the parts that are neither on the board
+/// (inside its outline) nor in a room yet, each packed into its room; the new rooms go
+/// in a row below the board. A room named like a sheet is used as it is.
+#[allow(
+    clippy::too_many_lines,
+    clippy::cast_precision_loss,
+    clippy::cast_possible_truncation,
+    reason = "grouping, sizing and placing in one pass"
+)]
+fn rooms_from_sheets(
+    project: &Project,
+    params: &RoomsFromSheetsParams,
+) -> Result<Outcome, EngineError> {
+    let pcb = board(project, params.doc)?;
+    let gap = params.gap.unwrap_or(1_000_000).max(0) as f64;
+    let margin = 1_500_000.0;
+    // The sheet of every part.
+    let mut sheet_of: HashMap<Id, String> = HashMap::new();
+    for doc in project.documents.values() {
+        if let Document::Schematic(sheet) = doc {
+            for symbol in &sheet.symbols {
+                if let Some(component) = symbol.component {
+                    sheet_of
+                        .entry(component)
+                        .or_insert_with(|| sheet.name.clone());
+                }
+            }
+        }
+    }
+    let outline = pcb.outline_bounds();
+    let on_board = |fp: &FootprintInstance| {
+        outline.is_some_and(|r| {
+            fp.at.x >= r.min.x && fp.at.x <= r.max.x && fp.at.y >= r.min.y && fp.at.y <= r.max.y
+        })
+    };
+    let mut groups: BTreeMap<String, Vec<&FootprintInstance>> = BTreeMap::new();
+    let in_room = |fp: &FootprintInstance| {
+        pcb.rooms
+            .iter()
+            .any(|room| ew_pcb::edit::inside_polygon(&room.outline, fp.at))
+    };
+    for fp in &pcb.footprints {
+        if fp.locked || on_board(fp) || in_room(fp) {
+            continue;
+        }
+        let Some(sheet) = fp.component.and_then(|c| sheet_of.get(&c)) else {
+            continue;
+        };
+        groups.entry(sheet.clone()).or_default().push(fp);
+    }
+    if groups.is_empty() {
+        return Err(EngineError::invalid_params(
+            "no parts to place: every part is on the board or in a room already",
+        ));
+    }
+    let mut requests = Vec::new();
+    let mut reply_rooms = Vec::new();
+    let mut select = Vec::new();
+    // New rooms start at the left edge of the board, 10 mm below it.
+    let (mut x, top) = outline.map_or((0.0, 0.0), |r| {
+        (r.min.x as f64, r.min.y as f64 - 10_000_000.0)
+    });
+    for (name, parts) in groups {
+        let parts = by_designator(parts);
+        let existing = pcb.rooms.iter().find(|r| r.name == name);
+        let (placed, overflow, room_id) = if let Some(room) = existing {
+            let r = ew_model::units::Rect::from_points(room.outline.iter().copied())
+                .ok_or_else(|| EngineError::invalid_params("the room has no area"))?;
+            let (placed, overflow) = ew_pcb::edit::pack(
+                &parts,
+                (V::of(r.min), V::of(r.max)),
+                Some(&room.outline),
+                gap,
+                margin / 3.0,
+            );
+            (placed, overflow, room.id)
+        } else {
+            // A room about as wide as it is high that holds the parts.
+            let boxes: Vec<_> = parts
+                .iter()
+                .map(|fp| ew_pcb::edit::footprint_box(fp))
+                .collect();
+            let area: f64 = boxes
+                .iter()
+                .map(|b| (b.max.x - b.min.x + gap) * (b.max.y - b.min.y + gap))
+                .sum();
+            let widest = boxes.iter().map(|b| b.max.x - b.min.x).fold(0.0, f64::max);
+            let width = (area.sqrt() * 1.3).max(widest) + 2.0 * margin;
+            let (placed, _) = ew_pcb::edit::pack(
+                &parts,
+                (V::new(x, top - 1e12), V::new(x + width, top)),
+                None,
+                gap,
+                margin,
+            );
+            // The bottom of the lowest part, for the room's height.
+            let mut bottom = top;
+            for (id, at) in &placed {
+                if let Some(fp) = pcb.footprints.get(*id) {
+                    let b = ew_pcb::edit::footprint_box(fp);
+                    let shift = at.y as f64 - fp.at.y as f64;
+                    bottom = bottom.min(b.min.y + shift);
+                }
+            }
+            let bottom = bottom - margin;
+            let room = ew_model::pcb::Room {
+                id: Id::random(),
+                name: name.clone(),
+                outline: vec![
+                    ew_model::units::Point::new(x.round() as i64, top.round() as i64),
+                    ew_model::units::Point::new((x + width).round() as i64, top.round() as i64),
+                    ew_model::units::Point::new((x + width).round() as i64, bottom.round() as i64),
+                    ew_model::units::Point::new(x.round() as i64, bottom.round() as i64),
+                ],
+                locked: false,
+            };
+            let id = room.id;
+            requests.push(Request::Insert {
+                doc: params.doc,
+                object: Object::Room(room),
+            });
+            x += width + 5_000_000.0;
+            (placed, Vec::new(), id)
+        };
+        select.push(room_id);
+        requests.extend(moves(params.doc, pcb, &placed));
+        let designators = |ids: &[Id]| -> Vec<String> {
+            ids.iter()
+                .filter_map(|id| pcb.footprints.get(*id).map(|fp| fp.designator.clone()))
+                .collect()
+        };
+        let placed_ids: Vec<Id> = placed.iter().map(|(id, _)| *id).collect();
+        reply_rooms.push(json!({
+            "name": name,
+            "id": room_id,
+            "placed": designators(&placed_ids),
+            "noRoom": designators(&overflow),
+        }));
+    }
+    Ok(Outcome::Commit {
+        label: labels::ROOMS_FROM_SHEETS,
+        requests,
+        reply: json!({"rooms": reply_rooms, "select": select}),
+    })
 }
 
 #[derive(Deserialize)]
@@ -1915,6 +2117,87 @@ pub fn call(
                 params.scale,
             )?)?))
         }
+        "pcb.addRoom" => {
+            let params: RoomParams = parse(params)?;
+            let pcb = board(project, params.doc)?;
+            let name = params.name.trim().to_owned();
+            if name.is_empty() {
+                return Err(EngineError::invalid_params("a room needs a name"));
+            }
+            if pcb.rooms.iter().any(|r| r.name == name) {
+                return Err(EngineError::conflict(format!(
+                    "there is a room named {name} already"
+                )));
+            }
+            if params.outline.len() < 3 {
+                return Err(EngineError::invalid_params(
+                    "a room needs at least three corners",
+                ));
+            }
+            let room = ew_model::pcb::Room {
+                id: Id::random(),
+                name,
+                outline: params.outline,
+                locked: false,
+            };
+            let id = room.id;
+            Ok(Outcome::Commit {
+                label: labels::ROOM,
+                requests: vec![Request::Insert {
+                    doc: params.doc,
+                    object: Object::Room(room),
+                }],
+                reply: json!({"select": [id], "id": id}),
+            })
+        }
+        "pcb.placeInRoom" => {
+            let params: PlaceInRoomParams = parse(params)?;
+            let pcb = board(project, params.doc)?;
+            let room = pcb
+                .rooms
+                .get(params.room)
+                .ok_or_else(|| EngineError::not_found(format!("no room {}", params.room)))?;
+            let r = ew_model::units::Rect::from_points(room.outline.iter().copied())
+                .ok_or_else(|| EngineError::invalid_params("the room has no area"))?;
+            let parts = by_designator(
+                params
+                    .ids
+                    .iter()
+                    .filter_map(|id| pcb.footprints.get(*id))
+                    .filter(|fp| !fp.locked)
+                    .collect(),
+            );
+            if parts.is_empty() {
+                return Err(EngineError::invalid_params(
+                    "select the parts to place (unlocked footprints)",
+                ));
+            }
+            #[allow(clippy::cast_precision_loss, reason = "board lengths fit f64")]
+            let gap = params.gap.unwrap_or(1_000_000).max(0) as f64;
+            let (placed, overflow) = ew_pcb::edit::pack(
+                &parts,
+                (V::of(r.min), V::of(r.max)),
+                Some(&room.outline),
+                gap,
+                500_000.0,
+            );
+            let names = |ids: Vec<Id>| -> Vec<String> {
+                ids.iter()
+                    .filter_map(|id| pcb.footprints.get(*id).map(|fp| fp.designator.clone()))
+                    .collect()
+            };
+            let placed_ids: Vec<Id> = placed.iter().map(|(id, _)| *id).collect();
+            Ok(Outcome::Commit {
+                label: labels::PLACE_IN_ROOM,
+                requests: moves(params.doc, pcb, &placed),
+                reply: json!({
+                    "placed": names(placed_ids.clone()),
+                    "noRoom": names(overflow),
+                    "select": placed_ids,
+                }),
+            })
+        }
+        "pcb.roomsFromSheets" => rooms_from_sheets(project, &parse(params)?),
         "pcb.addDimension" => {
             let params: DimensionParams = parse(params)?;
             board(project, params.doc)?;

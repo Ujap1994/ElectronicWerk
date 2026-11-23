@@ -892,6 +892,22 @@ const fn is_true(value: &bool) -> bool {
     *value
 }
 
+/// A room: a named area of the board for placing parts and for rules
+/// (`A.inRoom('name')`). Moving a room moves the parts inside it.
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Room {
+    /// Object id.
+    pub id: Id,
+    /// Name (unique on the board).
+    pub name: String,
+    /// The area.
+    pub outline: Vec<Point>,
+    /// Locked: it stays where it is.
+    #[serde(default, skip_serializing_if = "is_default")]
+    pub locked: bool,
+}
+
 /// Board objects that belong together: a click selects them all, they move
 /// and turn together (Altium's unions, KiCad's groups).
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
@@ -917,7 +933,8 @@ impl_keyed!(
     BoardShape,
     MechanicalBody,
     Group,
-    Dimension
+    Dimension,
+    Room
 );
 
 /// A board (`.ewpcb`).
@@ -963,6 +980,9 @@ pub struct Pcb {
     /// Dimensions and leaders.
     #[serde(default, skip_serializing_if = "Collection::is_empty")]
     pub dimensions: Collection<Dimension>,
+    /// Rooms.
+    #[serde(default, skip_serializing_if = "Collection::is_empty")]
+    pub rooms: Collection<Room>,
     /// Design rules check findings marked as accepted (their keys).
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub drc_exclusions: Vec<String>,
@@ -1003,6 +1023,7 @@ impl Pcb {
             mechanical: Collection::new(),
             groups: Collection::new(),
             dimensions: Collection::new(),
+            rooms: Collection::new(),
             drc_exclusions: Vec::new(),
         }
     }

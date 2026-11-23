@@ -298,15 +298,23 @@ impl Parser {
                 };
                 if self.peek() == Some(&Token::Open) {
                     self.pos += 1;
-                    if !prop.eq_ignore_ascii_case("insideZone") {
+                    let room = prop.eq_ignore_ascii_case("inRoom");
+                    if !room && !prop.eq_ignore_ascii_case("insideZone") {
                         return Err((format!("unknown function `{prop}`"), at));
                     }
                     let arg_at = self.at();
-                    let Some(Token::Str(zone)) = self.next() else {
-                        return Err(("expected a zone name in quotes".into(), arg_at));
+                    let Some(Token::Str(name)) = self.next() else {
+                        let what = if room { "a room" } else { "a zone" };
+                        return Err((format!("expected {what} name in quotes"), arg_at));
                     };
                     self.expect(&Token::Close, "`)`")?;
-                    return Ok(Expr::InsideZone(who, zone));
+                    // Rooms and zones share one lookup; rooms by a prefix.
+                    let name = if room {
+                        format!("{ROOM_PREFIX}{name}")
+                    } else {
+                        name
+                    };
+                    return Ok(Expr::InsideZone(who, name));
                 }
                 let property =
                     Prop::parse(&prop).ok_or_else(|| (format!("unknown property `{prop}`"), at))?;
@@ -423,7 +431,11 @@ pub struct Props<'a> {
     pub at: V,
 }
 
-/// Answers `insideZone` for the rules.
+/// Rooms in the area lookup of [`ZoneTest`]: `inRoom('Power')` asks for
+/// `room:Power`.
+pub const ROOM_PREFIX: &str = "room:";
+
+/// Answers `insideZone` and `inRoom` for the rules.
 pub trait ZoneTest {
     /// `true` if `p` lies inside the zone named `name`.
     fn inside(&self, name: &str, p: V) -> bool;

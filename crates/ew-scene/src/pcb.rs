@@ -274,6 +274,7 @@ fn groups_of(pcb: &Pcb) -> Vec<Vec<Id>> {
             || pcb.texts.contains(*id)
             || pcb.shapes.contains(*id)
             || pcb.dimensions.contains(*id)
+            || pcb.rooms.contains(*id)
     };
     pcb.groups
         .iter()
@@ -338,6 +339,10 @@ fn draw_board(
 
     graphics(&mut b, &layers, pcb, origin_p, options);
     dimensions(&mut b, &layers, pcb, origin_p, units);
+    // Rooms are a help for placing, never printed.
+    if !record {
+        rooms(&mut b, pcb, origin_p);
+    }
 
     for fp in &pcb.footprints {
         let pads = footprint(
@@ -609,6 +614,57 @@ fn graphics(
             item.flags |= text::MIRROR;
         }
         b.text(layer, obj, item);
+    }
+}
+
+/// Rooms: their outline and name on a layer of their own.
+fn rooms(builder: &mut SceneBuilder, pcb: &Pcb, origin: P) {
+    if pcb.rooms.is_empty() {
+        return;
+    }
+    let layer = builder.layer(LayerDef {
+        key: "rooms".to_owned(),
+        group: "rooms",
+        side: None,
+        name: None,
+        z: 1050,
+        visible: true,
+    });
+    for room in &pcb.rooms {
+        if room.outline.len() < 2 {
+            continue;
+        }
+        let obj = builder.object(ObjType::Room, room.id, None, None);
+        let corners = room.outline.len();
+        for index in 0..corners {
+            let from = P::of(room.outline[index]).sub(origin);
+            let to = P::of(room.outline[(index + 1) % corners]).sub(origin);
+            builder.segment(layer, obj, from, to, 150_000.0);
+        }
+        // The name inside the top left corner, as large as the room allows.
+        let Some(area) = Rect::from_points(room.outline.iter().copied()) else {
+            continue;
+        };
+        #[allow(clippy::cast_precision_loss, reason = "board lengths fit f64")]
+        let (w, h) = (
+            (area.max.x - area.min.x) as f64,
+            (area.max.y - area.min.y) as f64,
+        );
+        let size = (h / 12.0).clamp(500_000.0, 2_000_000.0).min(w / 4.0);
+        let style = ew_model::text::TextStyle {
+            size: size.round() as i64,
+            thickness: (size / 8.0).round() as i64,
+            ..ew_model::text::TextStyle::board()
+        }
+        .aligned(ew_model::text::HAlign::Left, ew_model::text::VAlign::Top);
+        let at = P::of(Point::new(area.min.x, area.max.y))
+            .sub(origin)
+            .add(P::new(size * 0.5, -size * 0.5));
+        builder.text(
+            layer,
+            obj,
+            TextItem::styled(room.name.clone(), at, 0.0, &style, obj),
+        );
     }
 }
 

@@ -36,6 +36,7 @@ const TYPE_GROUP: Readonly<Record<string, FilterGroup>> = {
   track: 'tracks',
   via: 'vias',
   zone: 'zones',
+  room: 'zones',
   boardText: 'texts',
   boardShape: 'graphics',
   dimension: 'graphics',

@@ -23,6 +23,7 @@ export const boardEn = {
     text: 'Text',
     highlight: 'Highlight net',
     dimension: 'Dimension',
+    room: 'Room',
   },
   tips: {
     select: 'Click to select, drag to move. Dragging a track keeps its connections.',
@@ -38,6 +39,7 @@ export const boardEn = {
     highlight: 'Click copper to highlight its net.',
     dimension:
       'Measure a distance, radius or diameter, or point at something with a note. Choose the kind in the tool bar.',
+    room: 'Draw a room: a named area for placing parts and for rules. Two clicks draw a rectangle; / switches to a polygon.',
   },
   hints: {
     select: 'R turns, Shift+F flips to the other side, D drags a track, Del deletes',
@@ -53,6 +55,7 @@ export const boardEn = {
     dimension:
       'Click the first point, the second point, then where the dimension line goes (radius and diameter: the centre, a point on the circle, then the label) · Backspace back · Esc ends',
     leader: 'Click the tip of the arrow, then where the note goes, and type the note',
+    room: 'Click two corners (rectangle) or the corners of a polygon (/ switches), then type the name of the room',
     pair: 'Click fixes the pair · on a pad of the pair it ends there · / corner first · Backspace back · Enter, double-click or Esc ends',
     noPartner:
       'No differential pair here: start on a pad of a net named like USB_DP / USB_DN, TX+ / TX- or CANH / CANL, with its partner within 10 mm',
@@ -175,6 +178,14 @@ export const boardEn = {
     noText: 'Enter a text.',
     size: '{size} · {columns} × {rows} pixels',
     add: 'Add to the board',
+  },
+  rooms: {
+    name: 'Name',
+    nameHint:
+      "Custom rules match the room with A.inRoom('name'). Moving the room moves the parts inside it.",
+    place: 'Place the {count} selected parts in the room',
+    noRoom: 'No room left for {parts}: make the room larger.',
+    fromSheetsDone: '{count} rooms with the parts of their sheets',
   },
   dimensions: {
     kind: 'Dimension',

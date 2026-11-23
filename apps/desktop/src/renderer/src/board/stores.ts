@@ -180,6 +180,7 @@ export interface BoardCommands {
   readonly channels: () => void;
   readonly picture: () => void;
   readonly qrCode: () => void;
+  readonly roomsFromSheets: () => void;
 }
 
 export const activeBoard = new Store<BoardCommands | null>(null);

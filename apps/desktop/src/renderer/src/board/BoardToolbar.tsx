@@ -97,6 +97,7 @@ const TOOLS: readonly ToolSpec[] = [
   { tool: 'outline', icon: 'outline' },
   { tool: 'text', icon: 'text' },
   { tool: 'dimension', icon: 'dimension' },
+  { tool: 'room', icon: 'room' },
   { tool: 'highlight', icon: 'highlight' },
 ];
 

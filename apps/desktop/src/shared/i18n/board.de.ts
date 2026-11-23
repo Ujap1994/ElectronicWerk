@@ -26,6 +26,7 @@ export const boardDe: Messages['board'] = {
     text: 'Text',
     highlight: 'Netz hervorheben',
     dimension: 'Bemaßung',
+    room: 'Raum',
   },
   tips: {
     select:
@@ -42,6 +43,7 @@ export const boardDe: Messages['board'] = {
     highlight: 'Klicke auf Kupfer, um sein Netz hervorzuheben.',
     dimension:
       'Miss einen Abstand, Radius oder Durchmesser, oder zeige mit einer Notiz auf etwas. Die Art wählst du in der Werkzeugleiste.',
+    room: 'Zeichne einen Raum: einen benannten Bereich zum Platzieren und für Regeln. Zwei Klicks zeichnen ein Rechteck; / wechselt zum Polygon.',
   },
   hints: {
     select: 'R dreht, Umschalt+F wechselt die Seite, D zieht eine Leiterbahn, Entf löscht',
@@ -58,6 +60,7 @@ export const boardDe: Messages['board'] = {
     dimension:
       'Klicke den ersten Punkt, den zweiten Punkt, dann wo die Maßlinie liegt (Radius und Durchmesser: Mittelpunkt, Punkt auf dem Kreis, dann die Beschriftung) · Rücktaste zurück · Esc beendet',
     leader: 'Klicke die Pfeilspitze, dann wo die Notiz hin soll, und tippe die Notiz',
+    room: 'Klicke zwei Ecken (Rechteck) oder die Ecken eines Polygons (/ wechselt), dann tippe den Namen des Raums',
     pair: 'Klick legt das Paar fest · auf einem Pad des Paars endet es dort · / Ecke zuerst · Rücktaste zurück · Enter, Doppelklick oder Esc beendet',
     noPartner:
       'Hier beginnt kein differenzielles Paar: Starte auf einem Pad eines Netzes wie USB_DP / USB_DN, TX+ / TX- oder CANH / CANL, dessen Partner höchstens 10 mm entfernt ist',
@@ -183,6 +186,14 @@ export const boardDe: Messages['board'] = {
     noText: 'Einen Text eingeben.',
     size: '{size} · {columns} × {rows} Pixel',
     add: 'Auf die Platine bringen',
+  },
+  rooms: {
+    name: 'Name',
+    nameHint:
+      "Eigene Regeln treffen den Raum mit A.inRoom('Name'). Wird der Raum verschoben, wandern die Bauteile darin mit.",
+    place: 'Die {count} ausgewählten Bauteile in den Raum setzen',
+    noRoom: 'Kein Platz mehr für {parts}: Vergrößere den Raum.',
+    fromSheetsDone: '{count} Räume mit den Bauteilen ihrer Blätter',
   },
   dimensions: {
     kind: 'Bemaßung',

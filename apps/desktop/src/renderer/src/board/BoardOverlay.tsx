@@ -251,8 +251,9 @@ export function BoardOverlay({
   } else if (state.polygon.length > 0) {
     const first = state.polygon[0];
     if (
-      state.tool === 'outline' &&
+      (state.tool === 'outline' || state.tool === 'room') &&
       state.outlineShape === 'rect' &&
+      state.polygon.length === 1 &&
       first !== undefined &&
       cursor !== null
     ) {
@@ -261,7 +262,7 @@ export function BoardOverlay({
       elements.push(
         <rect
           key="outline-rect"
-          className="board-polygon board-polygon--outline"
+          className={`board-polygon board-polygon--${state.tool}`}
           x={Math.min(x0, x1)}
           y={Math.min(y0, y1)}
           width={Math.abs(x1 - x0)}

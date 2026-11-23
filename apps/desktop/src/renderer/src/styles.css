@@ -4098,6 +4098,12 @@ textarea.field__control {
   stroke: #d9c320;
 }
 
+.board-overlay .board-polygon--room {
+  fill: rgb(125 216 125 / 10%);
+  stroke: #7dd87d;
+  stroke-dasharray: 6 3;
+}
+
 .board-overlay .board-ghost {
   fill: none;
   stroke: var(--color-accent);

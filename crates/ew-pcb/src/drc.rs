@@ -225,22 +225,32 @@ pub(crate) fn item_props<'a>(
 
 struct Zones<'a> {
     pcb: &'a Pcb,
-    shapes: HashMap<&'a str, Vec<Shape>>,
+    shapes: HashMap<String, Vec<Shape>>,
 }
 
 impl<'a> Zones<'a> {
     fn new(pcb: &'a Pcb) -> Self {
-        let mut shapes: HashMap<&str, Vec<Shape>> = HashMap::new();
+        let mut shapes: HashMap<String, Vec<Shape>> = HashMap::new();
         for zone in pcb
             .zones
             .iter()
             .filter(|z| !z.name.is_empty() && z.outline.len() >= 3)
         {
             shapes
-                .entry(zone.name.as_str())
+                .entry(zone.name.clone())
                 .or_default()
                 .push(Shape::polygon(
                     zone.outline.iter().map(|p| V::of(*p)).collect(),
+                    Vec::new(),
+                    0.0,
+                ));
+        }
+        for room in pcb.rooms.iter().filter(|r| r.outline.len() >= 3) {
+            shapes
+                .entry(format!("{}{}", crate::rules::ROOM_PREFIX, room.name))
+                .or_default()
+                .push(Shape::polygon(
+                    room.outline.iter().map(|p| V::of(*p)).collect(),
                     Vec::new(),
                     0.0,
                 ));

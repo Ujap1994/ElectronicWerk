@@ -12,7 +12,7 @@ use ew_model::dimension::{Dimension, DimensionKind};
 use ew_model::id::Id;
 use ew_model::layer::{CopperLayer, Layer, LayerSpec, Side};
 use ew_model::object::Object;
-use ew_model::pcb::{BoardShape, BoardText, FootprintInstance, Pcb, Track, Via, Zone};
+use ew_model::pcb::{BoardShape, BoardText, FootprintInstance, Pcb, Room, Track, Via, Zone};
 use ew_model::shape::Geometry;
 use ew_model::units::{Angle, Nm, Point};
 use ew_schematic::edit::{Change, Edit};
@@ -292,6 +292,7 @@ enum Item {
     Text(BoardText),
     Shape(BoardShape),
     Dimension(Dimension),
+    Room(Room),
 }
 
 impl Item {
@@ -306,6 +307,7 @@ impl Item {
             .or_else(|| pcb.texts.get(id).cloned().map(Self::Text))
             .or_else(|| pcb.shapes.get(id).cloned().map(Self::Shape))
             .or_else(|| pcb.dimensions.get(id).cloned().map(Self::Dimension))
+            .or_else(|| pcb.rooms.get(id).cloned().map(Self::Room))
     }
 
     fn object(self) -> Object {
@@ -317,6 +319,7 @@ impl Item {
             Self::Text(o) => Object::BoardText(o),
             Self::Shape(o) => Object::BoardShape(o),
             Self::Dimension(o) => Object::Dimension(o),
+            Self::Room(o) => Object::Room(o),
         }
     }
 
@@ -326,6 +329,7 @@ impl Item {
             Self::Track(o) => o.locked,
             Self::Via(o) => o.locked,
             Self::Dimension(o) => o.locked,
+            Self::Room(o) => o.locked,
             _ => false,
         }
     }
@@ -336,6 +340,7 @@ impl Item {
             Self::Track(o) => o.locked = locked,
             Self::Via(o) => o.locked = locked,
             Self::Dimension(o) => o.locked = locked,
+            Self::Room(o) => o.locked = locked,
             _ => {}
         }
     }
@@ -351,6 +356,7 @@ impl Item {
             Self::Text(o) => vec![o.at],
             Self::Shape(o) => o.geometry.points(),
             Self::Dimension(o) => vec![o.start, o.end],
+            Self::Room(o) => o.outline.clone(),
         }
     }
 
@@ -386,6 +392,11 @@ impl Item {
             Self::Text(o) => o.at = map.point(o.at),
             Self::Shape(o) => o.geometry = map_geometry(&o.geometry, map, keep_rect),
             Self::Dimension(o) => map_dimension(o, map),
+            Self::Room(o) => {
+                for p in &mut o.outline {
+                    *p = map.point(*p);
+                }
+            }
         }
     }
 }
@@ -432,7 +443,113 @@ fn object_id(item: &Item) -> Id {
         Item::Text(o) => o.id,
         Item::Shape(o) => o.id,
         Item::Dimension(o) => o.id,
+        Item::Room(o) => o.id,
     }
+}
+
+/// Where footprints go when they are packed into an area: in rows from the
+/// top left, in the order given, `gap` apart and `margin` from the edge.
+/// Footprints that do not fit come back in the second list. With an
+/// `outline` (a polygon area), every footprint box must lie inside it.
+#[must_use]
+#[allow(
+    clippy::cast_possible_truncation,
+    reason = "rounded board coordinates fit i64"
+)]
+pub fn pack(
+    footprints: &[&FootprintInstance],
+    area: (V, V),
+    outline: Option<&[Point]>,
+    gap: f64,
+    margin: f64,
+) -> (Vec<(Id, Point)>, Vec<Id>) {
+    let (min, max) = area;
+    let fits = |x0: f64, y0: f64, x1: f64, y1: f64| {
+        outline.is_none_or(|poly| {
+            [(x0, y0), (x1, y0), (x1, y1), (x0, y1)]
+                .iter()
+                .all(|(x, y)| inside_polygon(poly, Point::new(x.round() as i64, y.round() as i64)))
+        })
+    };
+    let mut placed = Vec::new();
+    let mut overflow = Vec::new();
+    let mut x = min.x + margin;
+    let mut y = max.y - margin;
+    let mut row_height = 0.0_f64;
+    for fp in footprints {
+        let bbox = footprint_box(fp);
+        let (w, h) = (bbox.max.x - bbox.min.x, bbox.max.y - bbox.min.y);
+        let mut spot = None;
+        // Along the row, then the next rows, until it fits.
+        while y - h >= min.y + margin {
+            if x + w > max.x - margin {
+                if x <= min.x + margin {
+                    break;
+                }
+                x = min.x + margin;
+                // At least a little lower, so that the search ends.
+                y -= (row_height + gap).max(100_000.0);
+                row_height = 0.0;
+                continue;
+            }
+            if fits(x, y - h, x + w, y) {
+                spot = Some((x, y));
+                break;
+            }
+            x += gap.max(w / 4.0).max(100_000.0);
+        }
+        let Some((left, top)) = spot else {
+            overflow.push(fp.id);
+            continue;
+        };
+        // The footprint's origin relative to its box.
+        let at = Point::new(
+            (left + (V::of(fp.at).x - bbox.min.x)).round() as i64,
+            (top + (V::of(fp.at).y - bbox.max.y)).round() as i64,
+        );
+        placed.push((fp.id, at));
+        x = left + w + gap;
+        row_height = row_height.max(h);
+    }
+    (placed, overflow)
+}
+
+/// `true` if `p` lies inside the polygon (even-odd rule).
+#[must_use]
+#[allow(clippy::cast_precision_loss, reason = "board coordinates fit f64")]
+pub fn inside_polygon(points: &[Point], point: Point) -> bool {
+    let (px, py) = (point.x as f64, point.y as f64);
+    let mut odd = false;
+    let count = points.len();
+    for index in 0..count {
+        let (cur, prev) = (points[index], points[(index + count - 1) % count]);
+        let (ax, ay, bx, by) = (cur.x as f64, cur.y as f64, prev.x as f64, prev.y as f64);
+        if (ay > py) != (by > py) && px < (bx - ax) * (py - ay) / (by - ay) + ax {
+            odd = !odd;
+        }
+    }
+    odd
+}
+
+/// The footprints a moved room takes along: unlocked ones whose origin
+/// lies inside it and that are not moved themselves.
+fn riders(pcb: &Pcb, items: &[Item], ids: &[Id]) -> Vec<Item> {
+    let mut out = Vec::new();
+    for item in items {
+        let Item::Room(room) = item else {
+            continue;
+        };
+        for fp in &pcb.footprints {
+            if !fp.locked
+                && !ids.contains(&fp.id)
+                && inside_polygon(&room.outline, fp.at)
+                && !out.iter().any(|o: &Item| object_id(o) == fp.id)
+            {
+                out.push(Item::Footprint(fp.clone()));
+            }
+        }
+    }
+    out
 }
 
 /// Moves, turns or mirrors a dimension. The dimension line stays on the
@@ -567,6 +684,9 @@ pub fn apply(doc: Id, pcb: &Pcb, edit: &BoardEdit) -> Result<Edit, EditError> {
         BoardEdit::Move { ids, offset } => {
             let mut items = collect(pcb, ids)?;
             items.retain(|item| !item.locked());
+            // A room takes the parts inside it along.
+            let along = riders(pcb, &items, ids);
+            items.extend(along);
             for item in &mut items {
                 item.map(&Shift(*offset), true);
             }
@@ -640,6 +760,7 @@ pub fn apply(doc: Id, pcb: &Pcb, edit: &BoardEdit) -> Result<Edit, EditError> {
                     }
                     Item::Shape(shape) => shape.layer = shape.layer.flipped(copper_count),
                     Item::Dimension(dim) => dim.layer = dim.layer.flipped(copper_count),
+                    Item::Room(_) => {}
                 }
             }
             Ok(updates(doc, pcb, items, ids.clone()))

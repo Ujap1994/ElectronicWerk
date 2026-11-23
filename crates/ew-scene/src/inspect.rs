@@ -311,6 +311,23 @@ fn board(pcb: &Pcb, units: ew_model::project::Units, target: &ObjectRef) -> Opti
             ],
         ));
     }
+    if let Some(room) = pcb.rooms.get(target.id) {
+        let parts = pcb
+            .footprints
+            .iter()
+            .filter(|fp| inside(&room.outline, fp.at))
+            .count();
+        return Some(info(
+            ObjType::Room,
+            room.name.clone(),
+            vec![
+                row("name", room.name.clone(), "text"),
+                row("parts", parts, "count"),
+                row("corners", room.outline.len(), "count"),
+                row("locked", room.locked, "bool"),
+            ],
+        ));
+    }
     if let Some(dim) = pcb.dimensions.get(target.id) {
         let drawing = ew_model::dimension::draw(dim, units);
         #[allow(
@@ -562,4 +579,20 @@ fn schematic(project: &Project, sheet: &Schematic, target: &ObjectRef) -> Option
         ));
     }
     None
+}
+
+/// `true` if `p` lies inside the polygon (even-odd rule).
+#[allow(clippy::cast_precision_loss, reason = "board coordinates fit f64")]
+fn inside(points: &[Point], point: Point) -> bool {
+    let (px, py) = (point.x as f64, point.y as f64);
+    let mut odd = false;
+    let count = points.len();
+    for index in 0..count {
+        let (cur, prev) = (points[index], points[(index + count - 1) % count]);
+        let (ax, ay, bx, by) = (cur.x as f64, cur.y as f64, prev.x as f64, prev.y as f64);
+        if (ay > py) != (by > py) && px < (bx - ax) * (py - ay) / (by - ay) + ax {
+            odd = !odd;
+        }
+    }
+    odd
 }

@@ -13,6 +13,7 @@ const FIXED_LAYERS: Readonly<Record<string, MessageKey>> = {
   'silk.top': 'layerNames.silkTop',
   'silk.bottom': 'layerNames.silkBottom',
   'names.top': 'layerNames.namesTop',
+  rooms: 'layerNames.rooms',
   'names.bottom': 'layerNames.namesBottom',
   'cu.*': 'layerNames.copperAll',
   'mask.top': 'layerNames.maskTop',

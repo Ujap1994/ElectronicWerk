@@ -5,6 +5,7 @@ import type { Units } from '@shared/project';
 import { BOARD_EDITABLE, BoardProperties, MAX_EDITED } from '../board/BoardProperties';
 import { SelectSimilar } from './SelectSimilar';
 import { GroupActions } from '../board/GroupActions';
+import { RoomActions } from '../board/RoomActions';
 import { NetColor } from './NetColor';
 import { EDITABLE_TYPES, PropertyEditor } from '../schematic/PropertyEditor';
 import { useAppState } from '../state';
@@ -103,6 +104,9 @@ export function Inspector({
             </div>
           ))}
         </dl>
+        {boardLayers !== null && (
+          <RoomActions doc={doc} selection={selection} controller={controller} />
+        )}
         {boardLayers !== null && (
           <GroupActions
             doc={doc}

@@ -119,6 +119,7 @@ export const de: Messages = {
       'Rechner: Spannungsteiler, Regler, E-Reihen, Strom von Bahnen und Vias, Schmelzstrom',
     picture: 'Platine: Logo oder Bild einfügen',
     qrCode: 'Platine: QR-Code einfügen',
+    roomsFromSheets: 'Platine: ein Raum für die Bauteile jedes Schaltplanblatts',
     importNetlist: 'Netzliste in die Platine importieren',
     saveProject: 'Projekt speichern',
     saveProjectAs: 'Projekt speichern unter',
@@ -220,6 +221,9 @@ export const de: Messages = {
     addImage: 'Bild einfügen',
     addQrCode: 'QR-Code einfügen',
     addDimension: 'Bemaßung setzen',
+    addRoom: 'Raum anlegen',
+    placeInRoom: 'In Raum setzen',
+    roomsFromSheets: 'Räume aus Blättern',
     group: 'Gruppieren',
     ungroup: 'Gruppe auflösen',
     drag: 'Ziehen',
@@ -792,6 +796,7 @@ export const de: Messages = {
     copperBottom: 'Kupfer unten',
     copperInner: 'Innenlage {n}',
     copperAll: 'Alle Kupferlagen',
+    rooms: 'Räume',
     namesTop: 'Pad- und Netznamen (oben)',
     namesBottom: 'Pad- und Netznamen (unten)',
     silkTop: 'Bestückungsdruck oben',
@@ -926,6 +931,7 @@ export const de: Messages = {
     usedBy: '{key} ist schon mit „{command}“ belegt. Gib diesem Befehl zuerst eine andere Taste.',
     commands: {
       board: {
+        room: 'Raum zeichnen',
         dimension: 'Bemaßung setzen',
         select: 'Auswählen',
         footprint: 'Footprint platzieren',
@@ -1001,6 +1007,7 @@ export const de: Messages = {
     yes: 'Ja',
     no: 'Nein',
     types: {
+      room: 'Raum',
       dimension: 'Bemaßung',
       track: 'Leiterbahn',
       via: 'Via',
@@ -1026,6 +1033,7 @@ export const de: Messages = {
       shape: 'Grafik',
     },
     fields: {
+      parts: 'Bauteile',
       dimensionKind: 'Art',
       designator: 'Bezeichner',
       value: 'Wert',

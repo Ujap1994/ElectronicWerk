@@ -120,6 +120,7 @@ export const en = {
     calculators: 'Calculators: divider, regulator, E series, track and via current, fusing',
     picture: 'Board: add a logo or picture',
     qrCode: 'Board: add a QR code',
+    roomsFromSheets: 'Board: a room for the parts of each schematic sheet',
     importNetlist: 'Import netlist into the board',
     saveProject: 'Save project',
     saveProjectAs: 'Save project as',
@@ -221,6 +222,9 @@ export const en = {
     addImage: 'Add picture',
     addQrCode: 'Add QR code',
     addDimension: 'Add dimension',
+    addRoom: 'Add room',
+    placeInRoom: 'Place in room',
+    roomsFromSheets: 'Rooms from sheets',
     group: 'Group',
     ungroup: 'Ungroup',
     drag: 'Drag',
@@ -785,6 +789,7 @@ export const en = {
     copperBottom: 'Bottom copper',
     copperInner: 'Inner layer {n}',
     copperAll: 'All copper layers',
+    rooms: 'Rooms',
     namesTop: 'Pad and net names (top)',
     namesBottom: 'Pad and net names (bottom)',
     silkTop: 'Top silkscreen',
@@ -920,6 +925,7 @@ export const en = {
     usedBy: '{key} is already used by “{command}”. Give that command another key first.',
     commands: {
       board: {
+        room: 'Draw a room',
         dimension: 'Dimension',
         select: 'Select',
         footprint: 'Place a footprint',
@@ -994,6 +1000,7 @@ export const en = {
     yes: 'Yes',
     no: 'No',
     types: {
+      room: 'Room',
       dimension: 'Dimension',
       track: 'Track',
       via: 'Via',
@@ -1019,6 +1026,7 @@ export const en = {
       shape: 'Graphic',
     },
     fields: {
+      parts: 'Parts',
       dimensionKind: 'Kind',
       designator: 'Designator',
       value: 'Value',

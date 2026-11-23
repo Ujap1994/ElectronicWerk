@@ -41,6 +41,7 @@ export const SHORTCUT_COMMANDS: readonly ShortcutCommand[] = [
   board('outline', 'o'),
   board('text', 't'),
   board('dimension', 'shift+d'),
+  board('room', 'shift+o'),
   board('highlight', 'n'),
   board('rotate', 'r'),
   board('rotateBack', 'shift+r'),

@@ -83,6 +83,7 @@ const BOARD_COLORS: Readonly<Record<string, string>> = {
   holes: '#05070a',
   'names.top': '#ffffff',
   'names.bottom': '#dce6ff',
+  rooms: '#7dd87d',
 };
 
 const SHEET_COLORS: Readonly<Record<CanvasTheme, Readonly<Record<string, string>>>> = {
@@ -157,6 +158,7 @@ const GROUP_OPACITY: Readonly<Record<LayerGroup, number>> = {
   user: 0.9,
   holes: 1,
   names: 0.95,
+  rooms: 0.8,
   schematic: 1,
 };
 

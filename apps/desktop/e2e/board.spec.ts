@@ -903,6 +903,60 @@ test('measures the board with dimensions and a leader', async () => {
   expect(saved.dimensions.find((d) => d.kind === 'leader')?.text).toBe('Timer');
 });
 
+test('draws a room and places parts into it', async () => {
+  launched = await launchApp();
+  const { page, projectsDir } = launched;
+  await page.setViewportSize({ width: 1280, height: 800 });
+  await importAs(launched, 'Roomy');
+  await openBoard(page, 'Roomy');
+  const board = readBoard(join(projectsDir, 'Roomy'));
+  const at = (name: string): Point => {
+    const found = board.footprints.find((fp) => fp.designator === name);
+    if (found === undefined) {
+      throw new Error(`no part ${name}`);
+    }
+    return found.at;
+  };
+  const canvas = viewerCanvas(page);
+  const click = async (point: Point): Promise<void> => {
+    const [x, y] = await toScreen(canvas, point);
+    await page.mouse.move(x, y);
+    await page.mouse.click(x, y);
+  };
+  // A room between C2 and D1, below R3.
+  const corner1: Point = [at('C2')[0] - 3 * MM, at('C2')[1] - 3 * MM];
+  const corner2: Point = [at('D1')[0] + 3 * MM, at('R3')[1] - 3 * MM];
+  await page.getByTestId('board-tool-room').click();
+  await click(corner1);
+  await click(corner2);
+  await page.getByTestId('board-prompt-input').fill('Output');
+  await page.getByTestId('board-prompt-input').press('Enter');
+  await expect(page.getByTestId('toolbar-undo')).toHaveAttribute('title', /Add room/u);
+  await expect(page.getByTestId('inspector-title')).toContainText('Output');
+
+  // The room and U1 together: U1 goes into the room.
+  await expect(page.getByTestId('board-tool-select')).toHaveAttribute('aria-pressed', 'true');
+  await page.keyboard.down('Shift');
+  await click(at('U1'));
+  await page.keyboard.up('Shift');
+  await page.getByTestId('room-place').click();
+  await expect(page.getByTestId('toolbar-undo')).toHaveAttribute('title', /Place in room/u);
+  await save(page);
+  const saved = readBoard(join(projectsDir, 'Roomy')) as unknown as {
+    rooms: { name: string; outline: Point[] }[];
+    footprints: { designator: string; at: Point }[];
+  };
+  const room = saved.rooms.find((r) => r.name === 'Output');
+  expect(room?.outline).toHaveLength(4);
+  const u1 = saved.footprints.find((fp) => fp.designator === 'U1')?.at ?? [0, 0];
+  const xs = (room?.outline ?? []).map((p) => p[0]);
+  const ys = (room?.outline ?? []).map((p) => p[1]);
+  expect(u1[0]).toBeGreaterThan(Math.min(...xs));
+  expect(u1[0]).toBeLessThan(Math.max(...xs));
+  expect(u1[1]).toBeGreaterThan(Math.min(...ys));
+  expect(u1[1]).toBeLessThan(Math.max(...ys));
+});
+
 test('pushes a track of another net aside in push-and-shove mode', async () => {
   launched = await launchApp();
   const { page, projectsDir } = launched;

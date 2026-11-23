@@ -18,7 +18,14 @@ import { layerName } from './BoardToolbar';
 import { viaTypeOf } from './editor';
 
 /** Object types with editable properties. */
-export const BOARD_EDITABLE = new Set(['footprint', 'track', 'via', 'boardText', 'dimension']);
+export const BOARD_EDITABLE = new Set([
+  'footprint',
+  'track',
+  'via',
+  'boardText',
+  'dimension',
+  'room',
+]);
 
 type Json = Record<string, unknown>;
 
@@ -239,6 +246,22 @@ export function BoardProperties({
             {t('board.props.viaType')}:{' '}
             {t(`board.viaTypes.${viaTypeOf(viaFrom, viaTo, object['micro'] === true)}`)}
           </p>
+          {locked}
+        </>
+      )}
+      {type === 'room' && (
+        <>
+          <TextInput
+            label={label(t('board.rooms.name'), 'name')}
+            value={text(object['name'])}
+            testId="board-prop-room-name"
+            onSave={(value) => {
+              if (value.trim() !== '') {
+                patch({ name: value.trim() });
+              }
+            }}
+          />
+          <p className="field__hint">{t('board.rooms.nameHint')}</p>
           {locked}
         </>
       )}

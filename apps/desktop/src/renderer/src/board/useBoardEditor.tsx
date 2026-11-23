@@ -253,12 +253,28 @@ export function useBoardEditor({
       qrCode: () => {
         setDialog({ kind: 'picture', tab: 'qr', center: controller.viewCenter() });
       },
+      roomsFromSheets: () => {
+        engine
+          .call<{ rooms: { name: string; placed: string[] }[]; select: string[] }>(
+            'pcb.roomsFromSheets',
+            { doc },
+          )
+          .then(
+            (reply) => {
+              controller.selectAfterReload(reply.select);
+              notify(t('board.rooms.fromSheetsDone', { count: reply.rooms.length }), 'info');
+            },
+            (error: unknown) => {
+              notify(errorMessage(t, error), 'error');
+            },
+          );
+      },
       lengths: () => {
         const tracks = selectedOfType(controller, 'track');
         setDialog({ kind: 'lengths', track: tracks.length === 1 ? (tracks[0] ?? null) : null });
       },
     }),
-    [controller, doc, editor, engine],
+    [controller, doc, editor, engine, notify, t],
   );
 
   // The command palette offers the commands of the shown board.

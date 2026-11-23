@@ -583,6 +583,18 @@ pub const SUMMARIES: &[(&str, &str)] = &[
         "`{\"doc\", \"kind\": aligned | horizontal | vertical | radial | diameter | leader, \"start\", \"end\", \"offset\"?, \"layer\"? (user.1), \"text\"?}` (`add-dimension`) → `{\"id\", \"select\"}`: a dimension or leader on the board. `offset` places the dimension line (aligned: to the left of start → end, horizontal: up, vertical: right; radius and diameter: beyond the circle); `text` may contain `{value}` and is the note of a leader.",
     ),
     (
+        "pcb.addRoom",
+        "`{\"doc\", \"name\", \"outline\": [[x, y], …]}` (`add-room`) → `{\"id\", \"select\"}`: a room, a named area for placing parts and for rules (`A.inRoom('name')`). Names are unique on a board; moving a room moves the unlocked parts inside it.",
+    ),
+    (
+        "pcb.placeInRoom",
+        "`{\"doc\", \"room\", \"ids\", \"gap\"?}` (`place-in-room`) → `{\"placed\", \"noRoom\", \"select\"}`: packs the given footprints (unlocked ones, in designator order) in rows into the room, `gap` apart (1 mm); `noRoom` lists the designators that do not fit.",
+    ),
+    (
+        "pcb.roomsFromSheets",
+        "`{\"doc\", \"gap\"?}` (`rooms-from-sheets`) → `{\"rooms\": [{name, id, placed, noRoom}], \"select\"}`: one room per schematic sheet for the parts that are neither on the board nor in a room yet, in a row below the board, each with its parts packed inside; a room named like a sheet is used as it is.",
+    ),
+    (
         "pcb.addImage",
         "`{\"doc\", \"layer\", \"rows\": [\"#..#\" …], \"pixel\", \"center\": [x, y], \"invert\"?}` (`add-image`) → `{\"select\", \"shapes\", \"group\", \"width\", \"height\"}`: a black-and-white picture (rows from the top, `#`/`1` set, `.`/`0` clear) as filled polygons on a layer, one per region with holes joined by cuts, grouped. The app turns images and logos into rows.",
     ),

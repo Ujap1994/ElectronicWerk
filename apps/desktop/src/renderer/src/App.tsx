@@ -270,6 +270,11 @@ export function App(): ReactNode {
             { id: 'picture', label: 'commands.picture', run: boardCommands.picture },
             { id: 'qr-code', label: 'commands.qrCode', run: boardCommands.qrCode },
             {
+              id: 'rooms-from-sheets',
+              label: 'commands.roomsFromSheets',
+              run: boardCommands.roomsFromSheets,
+            },
+            {
               id: 'gerber-reference',
               label: 'commands.gerberReference',
               run: boardCommands.gerberReference,
