@@ -71,6 +71,7 @@ const RULE_FIELDS: readonly (keyof RuleConstraints)[] = [
   'holeMin',
   'holeToHoleMin',
   'edgeClearance',
+  'creepage',
 ];
 
 /** A condition field that checks its syntax with the engine. */

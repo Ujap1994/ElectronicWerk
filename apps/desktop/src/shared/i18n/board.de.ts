@@ -273,6 +273,7 @@ export const boardDe: Messages['board'] = {
     checks: {
       short: 'Kurzschluss zwischen Netzen',
       clearance: 'Kupferabstand',
+      creepage: 'Kriechstrecke',
       unrouted: 'Offene Verbindung',
       'track-width': 'Leiterbahnbreite',
       'via-diameter': 'Via-Durchmesser',
@@ -316,6 +317,7 @@ export const boardDe: Messages['board'] = {
     messages: {
       short: '{a} berührt {b}: Die Netze sind kurzgeschlossen',
       clearance: 'Abstand {actual} zwischen {a} und {b} ist kleiner als {required} ({source})',
+      creepage: 'Kriechstrecke {actual} zwischen {a} und {b} ist kleiner als {required} ({source})',
       unrouted: 'Netz {net}: {a} ist nicht mit {b} verbunden',
       'copper-to-edge':
         '{item} liegt {actual} vom Platinenrand entfernt, weniger als {required} ({source})',
@@ -570,6 +572,7 @@ export const boardDe: Messages['board'] = {
       holeMin: 'Min. Bohrung',
       holeToHoleMin: 'Min. Bohrungsabstand',
       edgeClearance: 'Kupfer zum Rand',
+      creepage: 'Min. Kriechstrecke (Außenlagen, um Schlitze herum)',
     },
     impedance: {
       beginnerHint:

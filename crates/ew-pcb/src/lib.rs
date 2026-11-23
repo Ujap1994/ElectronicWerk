@@ -24,6 +24,7 @@
 pub mod bitmap;
 pub mod channels;
 pub mod connectivity;
+pub mod creepage;
 pub mod drc;
 pub mod dxf;
 pub mod edit;

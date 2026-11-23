@@ -749,6 +749,29 @@ impl RuleSet {
         f(classes.max(custom).max(self.constraints.min_clearance))
     }
 
+    /// The largest creepage distance of any custom rule (0: no creepage
+    /// rules, the check is skipped).
+    #[must_use]
+    pub fn max_creepage(&self) -> f64 {
+        f(self
+            .custom
+            .iter()
+            .filter_map(|c| c.rule.constraints.creepage)
+            .max()
+            .unwrap_or(0))
+    }
+
+    /// The creepage distance required between two items, if a custom rule
+    /// sets one for them.
+    #[must_use]
+    pub fn creepage(&self, a: &Props<'_>, b: &Props<'_>, zones: &dyn ZoneTest) -> Option<Limit> {
+        self.rule_for(a, Some(b), zones, |r| r.constraints.creepage)
+            .map(|(value, name)| Limit {
+                value: f(value),
+                source: Source::Rule(name.to_owned()),
+            })
+    }
+
     /// The last matching custom rule that sets a constraint, tried as (a, b)
     /// and (b, a).
     fn rule_for<T>(

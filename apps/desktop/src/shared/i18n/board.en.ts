@@ -265,6 +265,7 @@ export const boardEn = {
     checks: {
       short: 'Short circuit between nets',
       clearance: 'Copper clearance',
+      creepage: 'Creepage distance',
       unrouted: 'Unrouted connection',
       'track-width': 'Track width',
       'via-diameter': 'Via diameter',
@@ -308,6 +309,7 @@ export const boardEn = {
     messages: {
       short: '{a} touches {b}: the nets are shorted',
       clearance: 'Clearance {actual} between {a} and {b} is less than {required} ({source})',
+      creepage: 'Creepage {actual} between {a} and {b} is less than {required} ({source})',
       unrouted: 'Net {net}: {a} is not connected to {b}',
       'copper-to-edge': '{item} is {actual} from the board edge, less than {required} ({source})',
       'outside-board': '{item} lies outside the board',
@@ -560,6 +562,7 @@ export const boardEn = {
       holeMin: 'Min. hole',
       holeToHoleMin: 'Min. hole to hole',
       edgeClearance: 'Copper to edge',
+      creepage: 'Min. creepage (outer layers, around slots)',
     },
     impedance: {
       beginnerHint:

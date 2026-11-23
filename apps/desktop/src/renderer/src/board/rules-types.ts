@@ -62,6 +62,7 @@ export type RuleConstraints = Partial<{
   holeMin: number;
   holeToHoleMin: number;
   edgeClearance: number;
+  creepage: number;
 }>;
 
 export interface CustomRule {

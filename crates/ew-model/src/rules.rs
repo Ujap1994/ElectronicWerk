@@ -416,6 +416,7 @@ impl ErcSettings {
 pub const DRC_CHECKS: &[(&str, ErcSeverity)] = &[
     ("short", ErcSeverity::Error),
     ("clearance", ErcSeverity::Error),
+    ("creepage", ErcSeverity::Error),
     ("unrouted", ErcSeverity::Error),
     ("track-width", ErcSeverity::Error),
     ("via-diameter", ErcSeverity::Error),
@@ -526,6 +527,11 @@ pub struct RuleConstraints {
     /// Minimum copper distance to the board edge.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub edge_clearance: Option<Nm>,
+    /// Minimum creepage distance: the shortest path along the surface of an
+    /// outer layer between the two items, around slots, cut-outs and
+    /// non-plated holes (high voltage insulation, IEC 60664-1).
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub creepage: Option<Nm>,
 }
 
 /// A custom design rule: constraints for the items that match a condition

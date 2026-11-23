@@ -121,6 +121,7 @@ pub struct Report {
 pub const LOCAL_CODES: &[&str] = &[
     "short",
     "clearance",
+    "creepage",
     "track-width",
     "via-diameter",
     "via-drill",
@@ -414,11 +415,14 @@ pub fn check(pcb: &Pcb, rules: Option<&Rules>, options: &Options) -> Report {
             class: ew_model::rules::DEFAULT_NET_CLASS.to_owned(),
         },
     };
-    let region = options.region.map(|r| r.grow(ctx.rules.max_clearance()));
+    let region = options
+        .region
+        .map(|r| r.grow(ctx.rules.max_clearance().max(ctx.rules.max_creepage())));
     let in_region = move |bbox: BBox| region.is_none_or(|r| r.intersects(bbox));
     let conn = connectivity::analyze(&ctx.board);
 
     copper_clearance(&mut ctx, &in_region);
+    creepages(&mut ctx, &in_region);
     widths_and_holes(&mut ctx, &in_region);
     via_types(&mut ctx, &in_region);
     impedances(&mut ctx, &in_region);
@@ -671,6 +675,122 @@ fn report_clearance(ctx: &mut Context<'_>, hits: Vec<(usize, usize, f64, Limit, 
                 },
             );
         }
+    }
+}
+
+/// Creepage on the outer layers: for the pairs a custom rule asks it of,
+/// the path along the surface around cut-outs, slots and non-plated holes.
+#[allow(
+    clippy::many_single_char_names,
+    clippy::too_many_lines,
+    reason = "a, b, i, j: the pair"
+)]
+fn creepages(ctx: &mut Context<'_>, in_region: &Region<'_>) {
+    let reach = ctx.rules.max_creepage();
+    if reach <= 0.0 {
+        return;
+    }
+    let ring_area = |ring: &[V]| {
+        let n = ring.len();
+        (0..n)
+            .map(|i| ring[i].cross(ring[(i + 1) % n]))
+            .sum::<f64>()
+            .abs()
+    };
+    let rings = &ctx.board.outline.rings;
+    let largest =
+        (0..rings.len()).max_by(|x, y| ring_area(&rings[*x]).total_cmp(&ring_area(&rings[*y])));
+    let mut obstacles: Vec<crate::creepage::Obstacle> = rings
+        .iter()
+        .enumerate()
+        .map(|(i, ring)| crate::creepage::Obstacle {
+            ring: ring.clone(),
+            outline: Some(i) == largest,
+        })
+        .collect();
+    for hole in ctx.board.holes.iter().filter(|h| !h.plated) {
+        for outline in hole.shape.outlines(1_000.0, 5_000.0) {
+            if let Some(ring) = outline.into_iter().next() {
+                obstacles.push(crate::creepage::Obstacle {
+                    ring,
+                    outline: false,
+                });
+            }
+        }
+    }
+    let outer = [CopperLayer::Top, CopperLayer::Bottom]
+        .into_iter()
+        .filter_map(|layer| ctx.board.layer_bit(layer))
+        .fold(0_u64, |bits, bit| bits | bit);
+    let mut hits = Vec::new();
+    for i in 0..ctx.board.copper.len() {
+        let a = &ctx.board.copper[i];
+        if !in_region(a.bbox) || a.layers & outer == 0 {
+            continue;
+        }
+        for j in ctx.board.copper_near(a.bbox.grow(reach)) {
+            let b = &ctx.board.copper[j];
+            if j == i || (j < i && in_region(b.bbox)) || a.item == b.item {
+                continue;
+            }
+            if matches!((a.net, b.net), (Some(x), Some(y)) if x == y) {
+                continue;
+            }
+            let shared = a.layers & b.layers & outer;
+            let Some(layer) = ctx.first_layer(shared) else {
+                continue;
+            };
+            let (pa, pb) = (ctx.props(a, Some(layer)), ctx.props(b, Some(layer)));
+            let Some(limit) = ctx.rules.creepage(&pa, &pb, &ctx.zones) else {
+                continue;
+            };
+            // At least as long as the straight distance: far apart is fine;
+            // touching is a clearance problem.
+            let Some(gap) = a.shape.gap(&b.shape, limit.value - EPSILON) else {
+                continue;
+            };
+            if gap <= 0.0 {
+                continue;
+            }
+            if let Some(path) = crate::creepage::creepage(
+                &a.shape,
+                &b.shape,
+                gap,
+                &obstacles,
+                limit.value - EPSILON,
+            ) {
+                let bit = ctx.board.layer_bit(layer).unwrap_or(shared);
+                hits.push((i, j, path, limit, bit));
+            }
+        }
+    }
+    for (i, j, path, limit, bit) in hits {
+        let (a, b) = (&ctx.board.copper[i], &ctx.board.copper[j]);
+        let at = meeting_point(a.bbox, b.bbox);
+        let layer = ctx.first_layer(bit);
+        let (la, lb) = (ctx.label(i), ctx.label(j));
+        let targets = vec![Target::of(a.item), Target::of(b.item)];
+        ctx.report(
+            "creepage",
+            format!(
+                "Creepage {} between {la} and {lb} is less than {} ({})",
+                mm(path),
+                mm(limit.value),
+                limit.source
+            ),
+            at,
+            targets,
+            Detail {
+                args: vec![
+                    ("a", la),
+                    ("b", lb),
+                    ("actual", mm(path)),
+                    ("required", mm(limit.value)),
+                    ("source", limit.source.to_string()),
+                ],
+                layer,
+            },
+        );
     }
 }
 
@@ -1873,5 +1993,80 @@ mod tests {
         );
         let merged = merge(&full, fresh, region, 200_000.0);
         assert!(!merged.findings.iter().any(|f| f.code == "clearance"));
+    }
+
+    #[test]
+    fn creepage_goes_around_a_slot() {
+        let mut pcb = board_with(vec![]);
+        outline(&mut pcb, 40, 40);
+        let (gnd, vcc) = nets(&mut pcb);
+        // Two tracks 3 mm apart (centre to centre).
+        pcb.tracks.insert(track(
+            gnd,
+            Point::mm(10, 10),
+            Point::mm(10, 30),
+            CopperLayer::Top,
+        ));
+        pcb.tracks.insert(track(
+            vcc,
+            Point::mm(13, 10),
+            Point::mm(13, 30),
+            CopperLayer::Top,
+        ));
+        let mut rules = Rules::new(Id::random(), "Rules");
+        rules.custom.push(ew_model::rules::CustomRule {
+            name: "mains".into(),
+            enabled: true,
+            condition: String::new(),
+            constraints: ew_model::rules::RuleConstraints {
+                creepage: Some(um(6_000)),
+                ..ew_model::rules::RuleConstraints::default()
+            },
+        });
+        let report = check(&pcb, Some(&rules), &Options::default());
+        let creepage = report
+            .findings
+            .iter()
+            .find(|f| f.code == "creepage")
+            .unwrap_or_else(|| panic!("{:?}", codes(&report)));
+        assert_eq!(creepage.args["required"], "6 mm");
+        assert!(creepage.message.contains("mains"));
+        // A milled slot between them, longer than the tracks: the path goes
+        // around its ends and is long enough.
+        pcb.shapes.insert(BoardShape {
+            id: Id::random(),
+            layer: Layer::Outline,
+            geometry: Geometry::Rect {
+                start: Point::new(um(11_200), um(4_000)),
+                end: Point::new(um(11_800), um(36_000)),
+            },
+            width: um(100),
+            filled: false,
+        });
+        let report = check(&pcb, Some(&rules), &Options::default());
+        assert!(
+            !codes(&report).contains(&"creepage"),
+            "{:?}",
+            codes(&report)
+        );
+        // A short slot does not help enough.
+        let slot = pcb
+            .shapes
+            .iter()
+            .find(|s| matches!(s.geometry, Geometry::Rect { start, .. } if start.x == um(11_200)))
+            .map_or_else(|| panic!("the slot"), |s| s.id);
+        pcb.shapes.remove(slot);
+        pcb.shapes.insert(BoardShape {
+            id: Id::random(),
+            layer: Layer::Outline,
+            geometry: Geometry::Rect {
+                start: Point::new(um(11_200), um(18_000)),
+                end: Point::new(um(11_800), um(22_000)),
+            },
+            width: um(100),
+            filled: false,
+        });
+        let report = check(&pcb, Some(&rules), &Options::default());
+        assert!(codes(&report).contains(&"creepage"));
     }
 }

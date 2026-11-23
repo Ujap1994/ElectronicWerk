@@ -1055,7 +1055,8 @@ pub fn call(
                             extra,
                         },
                     );
-                    let reach = ew_pcb::rules::RuleSet::new(rules).max_clearance();
+                    let set = ew_pcb::rules::RuleSet::new(rules);
+                    let reach = set.max_clearance().max(set.max_creepage());
                     drc::merge(previous, fresh, region, reach)
                 }
                 _ => drc::check(
