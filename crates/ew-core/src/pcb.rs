@@ -597,6 +597,15 @@ fn moves(doc: Id, pcb: &Pcb, placed: &[(Id, ew_model::units::Point)]) -> Vec<Req
         .collect()
 }
 
+/// The area of a room parts go into: below the band of its name, with room
+/// for the designators above the parts (board y up).
+#[allow(clippy::cast_precision_loss, reason = "board lengths fit f64")]
+fn below_label(room: &ew_model::pcb::Room, r: ew_model::units::Rect) -> (V, V) {
+    let band = room.label_size() * 3.0;
+    let top = (r.max.y as f64 - band).max(r.min.y as f64);
+    (V::of(r.min), V::new(r.max.x as f64, top))
+}
+
 /// One room per schematic sheet for the parts that are neither on the board
 /// (inside its outline) nor in a room yet, each packed into its room; the new rooms go
 /// in a row below the board. A room named like a sheet is used as it is.
@@ -667,7 +676,7 @@ fn rooms_from_sheets(
                 .ok_or_else(|| EngineError::invalid_params("the room has no area"))?;
             let (placed, overflow) = ew_pcb::edit::pack(
                 &parts,
-                (V::of(r.min), V::of(r.max)),
+                below_label(room, r),
                 Some(&room.outline),
                 gap,
                 margin / 3.0,
@@ -2179,7 +2188,7 @@ pub fn call(
             let gap = params.gap.unwrap_or(1_000_000).max(0) as f64;
             let (placed, overflow) = ew_pcb::edit::pack(
                 &parts,
-                (V::of(r.min), V::of(r.max)),
+                below_label(room, r),
                 Some(&room.outline),
                 gap,
                 500_000.0,

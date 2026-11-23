@@ -645,12 +645,7 @@ fn rooms(builder: &mut SceneBuilder, pcb: &Pcb, origin: P) {
         let Some(area) = Rect::from_points(room.outline.iter().copied()) else {
             continue;
         };
-        #[allow(clippy::cast_precision_loss, reason = "board lengths fit f64")]
-        let (w, h) = (
-            (area.max.x - area.min.x) as f64,
-            (area.max.y - area.min.y) as f64,
-        );
-        let size = (h / 12.0).clamp(500_000.0, 2_000_000.0).min(w / 4.0);
+        let size = room.label_size();
         let style = ew_model::text::TextStyle {
             size: size.round() as i64,
             thickness: (size / 8.0).round() as i64,

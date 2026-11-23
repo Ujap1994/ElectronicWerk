@@ -1014,6 +1014,24 @@ pub struct Room {
     pub locked: bool,
 }
 
+impl Room {
+    /// The text size of the room's name, which is drawn inside its top-left
+    /// corner: a twelfth of its height, 0.5 to 2 mm, at most a quarter of
+    /// its width.
+    #[must_use]
+    #[allow(clippy::cast_precision_loss, reason = "board lengths fit f64")]
+    pub fn label_size(&self) -> f64 {
+        let Some(area) = Rect::from_points(self.outline.iter().copied()) else {
+            return 0.0;
+        };
+        let (w, h) = (
+            (area.max.x - area.min.x) as f64,
+            (area.max.y - area.min.y) as f64,
+        );
+        (h / 12.0).clamp(500_000.0, 2_000_000.0).min(w / 4.0)
+    }
+}
+
 /// Board objects that belong together: a click selects them all, they move
 /// and turn together (Altium's unions, KiCad's groups).
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]

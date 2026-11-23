@@ -486,8 +486,14 @@ fn layout(pcb: &Pcb, parts: &BTreeSet<String>) -> Option<BlockBoard> {
     })
 }
 
-/// A free place for a block on a sheet: right of the content, or below it
-/// when the block does not fit beside it.
+/// The title block in the bottom-right corner of a page, which a placed
+/// block keeps clear of (a little larger than the drawn one).
+const TITLE_BLOCK: Point = Point::new(125_000_000, 45_000_000);
+
+/// A free place for a block on a sheet (its top-left corner): the first
+/// spot from the top left, row by row, where the block keeps a few grid
+/// steps from everything on the sheet and from the title block. Right of
+/// the content when the page has no room left.
 fn free_place(sheet: &Schematic, block: &Block) -> Point {
     let mut taken: Vec<Point> = sheet.symbols.iter().map(|s| s.at).collect();
     taken.extend(sheet.wires.iter().flat_map(|w| [w.start, w.end]));
@@ -498,15 +504,32 @@ fn free_place(sheet: &Schematic, block: &Block) -> Point {
     let page = sheet.page.dimensions();
     let points: Vec<Point> = block.schematic.iter().flat_map(anchors).collect();
     let (_, size) = corner(&points).unwrap_or_default();
-    let margin = 12 * SHEET_GRID;
-    let Some((content, extent)) = corner(&taken) else {
-        return Point::new(margin, page.h - margin);
-    };
-    let right = Point::new(content.x + extent.x + 10 * SHEET_GRID, content.y);
-    if right.x + size.x <= page.w - margin {
-        return right;
+    // Inside the frame, with room for texts above their anchors.
+    let margin = 6 * SHEET_GRID;
+    // Symbol bodies reach beyond their anchors.
+    let pad = 5 * SHEET_GRID;
+    let step = 2 * SHEET_GRID;
+    let title_left = page.w - TITLE_BLOCK.x;
+    let mut y = page.h - margin;
+    while y - size.y >= margin {
+        let mut x = margin;
+        while x + size.x <= page.w - margin {
+            let (left, right, top, bottom) = (x - pad, x + size.x + pad, y + pad, y - size.y - pad);
+            let free = taken
+                .iter()
+                .all(|p| p.x < left || p.x > right || p.y > top || p.y < bottom);
+            let clear_of_title = x + size.x < title_left || y - size.y > TITLE_BLOCK.y;
+            if free && clear_of_title {
+                return Point::new(x, y);
+            }
+            x += step;
+        }
+        y -= step;
     }
-    Point::new(content.x, content.y - extent.y - 10 * SHEET_GRID)
+    match corner(&taken) {
+        Some((content, extent)) => Point::new(content.x + extent.x + 10 * SHEET_GRID, content.y),
+        None => Point::new(margin, page.h - margin),
+    }
 }
 
 /// Places a block: library, schematic and layout as one undo step.
