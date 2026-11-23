@@ -29,6 +29,7 @@ const HISTORY_LABELS: Readonly<Record<string, MessageKey>> = {
   move: 'history.move',
   'add-image': 'history.addImage',
   'add-qr-code': 'history.addQrCode',
+  'add-dimension': 'history.addDimension',
   group: 'history.group',
   ungroup: 'history.ungroup',
   drag: 'history.drag',

@@ -543,6 +543,7 @@ fn run_one(
                 ArtOptions {
                     tent_vias: o.tent_vias,
                     silk_values: o.silk_values,
+                    units: project.manifest.settings.units,
                     ..ArtOptions::default()
                 },
                 &resolve,
@@ -589,7 +590,14 @@ fn run_one(
             let pcb = panel_board(project, spec.source, panel)?;
             let pcb: &Pcb = &pcb;
             let resolve = |t: &str| (ctx.resolve)(t, Some(pcb.id));
-            let art = BoardArt::new(pcb, ArtOptions::default(), &resolve);
+            let art = BoardArt::new(
+                pcb,
+                ArtOptions {
+                    units: project.manifest.settings.units,
+                    ..ArtOptions::default()
+                },
+                &resolve,
+            );
             let doc = crate::drillmap::drill_map_doc(
                 &art,
                 &crate::drillmap::Labels::default(),
@@ -691,7 +699,14 @@ fn run_one(
                 PrintContent::Board => {
                     let pcb = board(project, spec.source)?;
                     let resolve = |t: &str| (ctx.resolve)(t, Some(pcb.id));
-                    let art = BoardArt::new(pcb, ArtOptions::default(), &resolve);
+                    let art = BoardArt::new(
+                        pcb,
+                        ArtOptions {
+                            units: project.manifest.settings.units,
+                            ..ArtOptions::default()
+                        },
+                        &resolve,
+                    );
                     let pages = print::board_pages(
                         &art,
                         &BoardPrint {
@@ -711,7 +726,14 @@ fn run_one(
                 PrintContent::Assembly => {
                     let pcb = board(project, spec.source)?;
                     let resolve = |t: &str| (ctx.resolve)(t, Some(pcb.id));
-                    let art = BoardArt::new(pcb, ArtOptions::default(), &resolve);
+                    let art = BoardArt::new(
+                        pcb,
+                        ArtOptions {
+                            units: project.manifest.settings.units,
+                            ..ArtOptions::default()
+                        },
+                        &resolve,
+                    );
                     let pages = print::assembly_pages(
                         &art,
                         &AssemblyPrint {
@@ -748,7 +770,14 @@ fn run_one(
             let o: NetlistJob = options(spec)?;
             let pcb = board(project, spec.source)?;
             let resolve = |t: &str| (ctx.resolve)(t, Some(pcb.id));
-            let art = BoardArt::new(pcb, ArtOptions::default(), &resolve);
+            let art = BoardArt::new(
+                pcb,
+                ArtOptions {
+                    units: project.manifest.settings.units,
+                    ..ArtOptions::default()
+                },
+                &resolve,
+            );
             let folder_name = if spec.options.contains_key("folder") {
                 o.folder
             } else {

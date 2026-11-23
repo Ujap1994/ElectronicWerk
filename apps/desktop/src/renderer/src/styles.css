@@ -7053,3 +7053,21 @@ textarea.field__control {
     grid-template-columns: minmax(0, 1fr);
   }
 }
+
+/* --- Dimensions being placed -------------------------------------------- */
+
+.board-dimension {
+  stroke: #f5d76e;
+  stroke-width: 1.5;
+  stroke-dasharray: 5 3;
+}
+
+.board-dimension__value {
+  fill: #f5d76e;
+  font-size: 13px;
+  font-weight: 600;
+  paint-order: stroke;
+  stroke: rgb(0 0 0 / 70%);
+  stroke-width: 3px;
+  text-anchor: middle;
+}

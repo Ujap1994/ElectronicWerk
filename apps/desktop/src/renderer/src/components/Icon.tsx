@@ -17,6 +17,7 @@ const PATHS = {
   schematic: 'M3 12h4l2-5 4 10 2-5h6',
   board: 'M4 4h16v16H4zM8 8h3v3H8zM14 13h2v3h-2zM11 9.5h5V13',
   library: 'M4 4h4v16H4zM10 4h4v16h-4zM16 5l3.5-1 2.5 15.5-3.5 1z',
+  dimension: 'M4 7v10M20 7v10M4 12h16M4 12l3.5-2.5M4 12l3.5 2.5M20 12l-3.5-2.5M20 12l-3.5 2.5',
   image: 'M4 5h16v14H4zM4 16l5-5 4 4 3-3 4 4M15.5 9h.01',
   calculator:
     'M6 2.5h12a1 1 0 0 1 1 1v17a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1v-17a1 1 0 0 1 1-1zM8 5.5h8v3.5H8zM8.5 12.5h1M11.5 12.5h1M14.5 12.5h1M8.5 15.5h1M11.5 15.5h1M14.5 15.5h1M8.5 18.5h1M11.5 18.5h4',

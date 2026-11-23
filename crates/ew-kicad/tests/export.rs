@@ -258,3 +258,71 @@ fn blind_buried_and_micro_vias_keep_their_layers() {
     assert_eq!(kinds, expected);
     assert_eq!(kinds.len(), 3);
 }
+
+#[test]
+fn dimensions_survive_the_round_trip() {
+    use ew_model::dimension::{DimensionKind, new_dimension};
+    use ew_model::id::Id;
+    use ew_model::layer::Layer;
+    use ew_model::units::{Point, mm};
+    let mut pcb = imported_board();
+    // The fixture has a dimension of its own: only ours here.
+    pcb.dimensions = ew_model::collection::Collection::new();
+    let made = [
+        (
+            DimensionKind::Horizontal,
+            Point::mm(0, 0),
+            Point::mm(30, 4),
+            mm(5),
+            "",
+        ),
+        (
+            DimensionKind::Vertical,
+            Point::mm(0, 0),
+            Point::mm(6, 20),
+            mm(-4),
+            "{value} max",
+        ),
+        (
+            DimensionKind::Aligned,
+            Point::mm(0, 0),
+            Point::mm(10, 10),
+            mm(3),
+            "",
+        ),
+        (
+            DimensionKind::Radial,
+            Point::mm(40, 40),
+            Point::mm(43, 40),
+            mm(2),
+            "",
+        ),
+        (
+            DimensionKind::Leader,
+            Point::mm(50, 50),
+            Point::mm(55, 55),
+            0,
+            "Gold fingers",
+        ),
+    ];
+    for (kind, start, end, offset, text) in made {
+        let mut dim = new_dimension(Id::random(), Layer::User(1), kind, start, end, offset);
+        dim.text = text.to_owned();
+        pcb.dimensions.insert(dim);
+    }
+    let (back, file, _report) = round_trip(&pcb);
+    assert!(file.contains("(dimension"));
+    for (kind, start, end, offset, text) in made {
+        let found = back
+            .dimensions
+            .iter()
+            .find(|d| d.kind == kind)
+            .unwrap_or_else(|| panic!("{kind:?} is missing"));
+        // Positions move with the page; the size and the side stay.
+        assert_eq!(found.end - found.start, end - start, "{kind:?}");
+        if kind != DimensionKind::Leader {
+            assert_eq!(found.offset, offset, "{kind:?}");
+        }
+        assert_eq!(found.text, text, "{kind:?}");
+    }
+}

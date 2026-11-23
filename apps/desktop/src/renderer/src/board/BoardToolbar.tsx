@@ -18,6 +18,7 @@ import {
   type BoardCommands,
 } from './stores';
 import { shortcutLabel } from '../shortcuts';
+import { DIMENSION_KINDS } from './dimension';
 
 const VIA_CHOICES: readonly ViaChoice[] = ['through', 'blind', 'micro'];
 const ROUTE_MODES: readonly RouteMode[] = ['walkaround', 'shove'];
@@ -95,6 +96,7 @@ const TOOLS: readonly ToolSpec[] = [
   { tool: 'keepout', icon: 'keepout' },
   { tool: 'outline', icon: 'outline' },
   { tool: 'text', icon: 'text' },
+  { tool: 'dimension', icon: 'dimension' },
   { tool: 'highlight', icon: 'highlight' },
 ];
 
@@ -172,6 +174,37 @@ export function BoardToolPalette({
         );
       })}
     </div>
+  );
+}
+
+/** The kind of the next dimension (shown while the dimension tool is on). */
+function DimensionSelect({ editor }: { readonly editor: BoardEditor }): ReactNode {
+  const { t } = useAppState();
+  const state = useSyncExternalStore(editor.subscribe, editor.snapshot);
+  if (state.tool !== 'dimension') {
+    return null;
+  }
+  return (
+    <label className="board-layer" title={t('board.dimensions.kindTip')}>
+      <span className="board-layer__label">{t('board.dimensions.kind')}</span>
+      <select
+        aria-label={t('board.dimensions.kind')}
+        value={state.dimension}
+        data-testid="board-dimension-kind"
+        onChange={(event) => {
+          const kind = DIMENSION_KINDS.find((k) => k === event.target.value);
+          if (kind !== undefined) {
+            editor.setDimensionKind(kind);
+          }
+        }}
+      >
+        {DIMENSION_KINDS.map((kind) => (
+          <option key={kind} value={kind}>
+            {t(`board.dimensions.kinds.${kind}`)}
+          </option>
+        ))}
+      </select>
+    </label>
   );
 }
 
@@ -312,6 +345,7 @@ export function BoardActions({
   return (
     <>
       <span className="viewer-tool__separator" />
+      <DimensionSelect editor={editor} />
       <LayerSelect editor={editor} />
       <Button
         icon="corner90"

@@ -219,6 +219,7 @@ export const de: Messages = {
     move: 'Verschieben',
     addImage: 'Bild einfügen',
     addQrCode: 'QR-Code einfügen',
+    addDimension: 'Bemaßung setzen',
     group: 'Gruppieren',
     ungroup: 'Gruppe auflösen',
     drag: 'Ziehen',
@@ -923,6 +924,7 @@ export const de: Messages = {
     usedBy: '{key} ist schon mit „{command}“ belegt. Gib diesem Befehl zuerst eine andere Taste.',
     commands: {
       board: {
+        dimension: 'Bemaßung setzen',
         select: 'Auswählen',
         footprint: 'Footprint platzieren',
         route: 'Leiterbahnen verlegen',
@@ -997,6 +999,7 @@ export const de: Messages = {
     yes: 'Ja',
     no: 'Nein',
     types: {
+      dimension: 'Bemaßung',
       track: 'Leiterbahn',
       via: 'Via',
       footprint: 'Footprint',
@@ -1021,6 +1024,7 @@ export const de: Messages = {
       shape: 'Grafik',
     },
     fields: {
+      dimensionKind: 'Art',
       designator: 'Bezeichner',
       value: 'Wert',
       footprint: 'Footprint',
@@ -1078,6 +1082,12 @@ export const de: Messages = {
       fill: 'Füllung',
     },
     values: {
+      diameter: 'Durchmesser',
+      aligned: 'Ausgerichtet',
+      horizontal: 'Waagerecht',
+      vertical: 'Senkrecht',
+      radial: 'Radius',
+      leader: 'Hinweislinie',
       top: 'Oben',
       bottom: 'Unten',
       smd: 'SMD',

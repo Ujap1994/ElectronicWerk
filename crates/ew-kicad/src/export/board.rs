@@ -1023,6 +1023,16 @@ pub fn board_file(
                 .child(effects(&text.style, false, text.mirrored)),
         );
     }
+    for dim in &pcb.dimensions {
+        let Some(layer) = layer_name(dim.layer) else {
+            report.note(
+                "layer",
+                format!("a dimension on the layer {} was left out", dim.layer),
+            );
+            continue;
+        };
+        root = root.child(dimension_sx(dim, &layer, page));
+    }
     let net_of = |net: Option<Id>| -> Sx {
         let code = net
             .and_then(|id| nets.get(&id))
@@ -1082,6 +1092,94 @@ pub fn board_file(
 }
 
 /// The box around every position of a board (for the page size).
+/// A dimension as KiCad writes it (KiCad 8). KiCad's `height` puts the
+/// dimension line on the side of the rotated direction in its y-down page:
+/// measured with kicad-cli, a positive height moves a horizontal or aligned
+/// dimension line down and a vertical one to the right.
+fn dimension_sx(dim: &ew_model::dimension::Dimension, layer: &str, page: Page) -> Sx {
+    use ew_model::dimension::DimensionKind;
+    use ew_model::project::Units;
+    let drawing = ew_model::dimension::draw(dim, dim.units.unwrap_or(Units::Mm));
+    let mut start = dim.start;
+    let kind = match dim.kind {
+        DimensionKind::Aligned | DimensionKind::Diameter => "aligned",
+        DimensionKind::Horizontal | DimensionKind::Vertical => "orthogonal",
+        DimensionKind::Radial => "radial",
+        DimensionKind::Leader => "leader",
+    };
+    if dim.kind == DimensionKind::Diameter {
+        // KiCad has no diameter dimension: an aligned one across the circle.
+        start = dim.start - (dim.end - dim.start);
+    }
+    let mut node = Sx::list("dimension")
+        .child(Sx::list("type").word(kind))
+        .child(Sx::named("layer", layer))
+        .child(uuid(dim.id))
+        .child(
+            Sx::list("pts")
+                .child(page.xy(start))
+                .child(page.xy(dim.end)),
+        );
+    match dim.kind {
+        DimensionKind::Aligned | DimensionKind::Horizontal => {
+            node = node.child(Sx::list("height").mm(-dim.offset));
+        }
+        DimensionKind::Vertical => node = node.child(Sx::list("height").mm(dim.offset)),
+        DimensionKind::Radial => node = node.child(Sx::list("leader_length").mm(dim.offset)),
+        DimensionKind::Diameter | DimensionKind::Leader => {}
+    }
+    if dim.kind == DimensionKind::Horizontal {
+        node = node.child(Sx::list("orientation").word("0"));
+    } else if dim.kind == DimensionKind::Vertical {
+        node = node.child(Sx::list("orientation").word("1"));
+    }
+    node = node.child(
+        Sx::list("gr_text")
+            .text(drawing.text.clone())
+            .child(page.at(drawing.at, Some(drawing.rotation)))
+            .child(Sx::named("layer", layer))
+            .child(effects(&dim.style, false, false)),
+    );
+    // The text: `{value}` splits into prefix and suffix; a text without it
+    // overrides the value.
+    let (prefix, suffix, fixed) = match dim.text.split_once("{value}") {
+        Some((before, after)) => (before.to_owned(), after.to_owned(), None),
+        None if dim.text.is_empty() => (String::new(), String::new(), None),
+        None => (String::new(), String::new(), Some(dim.text.clone())),
+    };
+    let prefix = if dim.kind == DimensionKind::Diameter {
+        format!("Ø{prefix}")
+    } else {
+        prefix
+    };
+    let units = match dim.units {
+        Some(Units::Inch) => "0",
+        Some(Units::Mil) => "1",
+        Some(Units::Mm) => "2",
+        None => "3",
+    };
+    let mut format = Sx::list("format")
+        .child(Sx::list("prefix").text(prefix))
+        .child(Sx::list("suffix").text(suffix))
+        .child(Sx::list("units").word(units))
+        .child(Sx::list("units_format").word(if dim.hide_units { "0" } else { "1" }))
+        .child(Sx::list("precision").word(dim.precision.unwrap_or(2).to_string()));
+    if let Some(fixed) = fixed
+        && dim.kind != DimensionKind::Leader
+    {
+        format = format.child(Sx::list("override_value").text(fixed));
+    }
+    node.child(format).child(
+        Sx::list("style")
+            .child(Sx::list("thickness").mm(dim.width))
+            .child(Sx::list("arrow_length").mm(dim.style.size))
+            .child(Sx::list("text_position_mode").word("0"))
+            .child(Sx::list("extension_height").mm(dim.style.size / 2))
+            .child(Sx::list("extension_offset").mm(dim.style.size * 2 / 5))
+            .word("keep_text_aligned"),
+    )
+}
+
 fn board_bounds(pcb: &Pcb) -> Option<(Point, Point)> {
     let points = pcb
         .shapes

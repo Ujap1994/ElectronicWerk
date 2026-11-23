@@ -22,6 +22,7 @@ export const boardEn = {
     outline: 'Board outline',
     text: 'Text',
     highlight: 'Highlight net',
+    dimension: 'Dimension',
   },
   tips: {
     select: 'Click to select, drag to move. Dragging a track keeps its connections.',
@@ -35,6 +36,8 @@ export const boardEn = {
     outline: 'Two clicks draw a rectangular board outline; / switches to a polygon.',
     text: 'Click to place a text on the silkscreen.',
     highlight: 'Click copper to highlight its net.',
+    dimension:
+      'Measure a distance, radius or diameter, or point at something with a note. Choose the kind in the tool bar.',
   },
   hints: {
     select: 'R turns, Shift+F flips to the other side, D drags a track, Del deletes',
@@ -47,6 +50,9 @@ export const boardEn = {
     text: 'Click where the text goes',
     footprint: 'Click places the footprint · R turns it',
     highlight: 'Click copper to highlight its net',
+    dimension:
+      'Click the first point, the second point, then where the dimension line goes (radius and diameter: the centre, a point on the circle, then the label) · Backspace back · Esc ends',
+    leader: 'Click the tip of the arrow, then where the note goes, and type the note',
     pair: 'Click fixes the pair · on a pad of the pair it ends there · / corner first · Backspace back · Enter, double-click or Esc ends',
     noPartner:
       'No differential pair here: start on a pad of a net named like USB_DP / USB_DN, TX+ / TX- or CANH / CANL, with its partner within 10 mm',
@@ -169,6 +175,29 @@ export const boardEn = {
     noText: 'Enter a text.',
     size: '{size} · {columns} × {rows} pixels',
     add: 'Add to the board',
+  },
+  dimensions: {
+    kind: 'Dimension',
+    kindTip: 'What the next dimension measures',
+    kinds: {
+      aligned: 'Aligned',
+      horizontal: 'Horizontal',
+      vertical: 'Vertical',
+      radial: 'Radius',
+      diameter: 'Diameter',
+      leader: 'Leader with a note',
+    },
+    text: 'Text',
+    note: 'Note',
+    textHint: '{value} stands for the measured value; empty: the value alone.',
+    units: 'Units',
+    projectUnits: 'As the project',
+    precision: 'Decimals',
+    precisionAuto: 'Automatic',
+    hideUnits: 'Without the unit',
+    offset: 'Distance of the dimension line',
+    textSize: 'Text size',
+    lineWidth: 'Line width',
   },
   groups: {
     group: 'Group',

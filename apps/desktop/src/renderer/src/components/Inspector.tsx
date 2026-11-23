@@ -71,6 +71,10 @@ export function Inspector({
   }, [engine, doc, key, id, childKind, childIndex, version]);
 
   const ctx = { t, units, locale: settings.language };
+  // Layers that drawings and dimensions can go on.
+  const drawingLayers = (controller.currentScene?.meta.layers ?? [])
+    .map((layer) => layer.key)
+    .filter((key) => /^(user|mech|fab|silk)\./u.test(key));
   let body: ReactNode;
   if (selection.length === 0) {
     body = <p className="viewer-panel__hint">{t('inspector.empty')}</p>;
@@ -117,6 +121,7 @@ export function Inspector({
               version={version}
               units={units}
               layers={boardLayers}
+              drawingLayers={drawingLayers}
             />
           )}
       </>
@@ -145,6 +150,7 @@ export function Inspector({
             version={version}
             units={units}
             layers={boardLayers}
+            drawingLayers={drawingLayers}
           />
         )}
         {single.child === null && (

@@ -5,6 +5,7 @@ use std::collections::{BTreeSet, HashMap};
 use ew_model::id::Id;
 use ew_model::layer::{CopperLayer, Layer, LayerSpec, Side};
 use ew_model::pcb::{FootprintInstance, FootprintTextKind, Pad, PadShape, Pcb, StackupLayer};
+use ew_model::project::Units;
 use ew_model::units::{Point, Rect};
 
 use crate::Options;
@@ -207,14 +208,14 @@ fn resolve(options: &Options<'_>, text: &str) -> String {
 }
 
 /// Builds the scene of a board.
-pub fn build(pcb: &Pcb, grid: i64, options: &Options<'_>) -> Scene {
-    let (b, header) = draw_board(pcb, grid, options, false);
+pub fn build(pcb: &Pcb, grid: i64, units: Units, options: &Options<'_>) -> Scene {
+    let (b, header) = draw_board(pcb, grid, units, options, false);
     b.finish(header)
 }
 
 /// The vector drawing of a board as the viewer shows it.
-pub fn plot(pcb: &Pcb, options: &Options<'_>) -> crate::plot::Plot {
-    let (b, header) = draw_board(pcb, 0, options, true);
+pub fn plot(pcb: &Pcb, units: Units, options: &Options<'_>) -> crate::plot::Plot {
+    let (b, header) = draw_board(pcb, 0, units, options, true);
     b.plot(header)
 }
 
@@ -272,6 +273,7 @@ fn groups_of(pcb: &Pcb) -> Vec<Vec<Id>> {
             || pcb.zones.contains(*id)
             || pcb.texts.contains(*id)
             || pcb.shapes.contains(*id)
+            || pcb.dimensions.contains(*id)
     };
     pcb.groups
         .iter()
@@ -287,7 +289,13 @@ fn groups_of(pcb: &Pcb) -> Vec<Vec<Id>> {
         .collect()
 }
 
-fn draw_board(pcb: &Pcb, grid: i64, options: &Options<'_>, record: bool) -> (SceneBuilder, Header) {
+fn draw_board(
+    pcb: &Pcb,
+    grid: i64,
+    units: Units,
+    options: &Options<'_>,
+    record: bool,
+) -> (SceneBuilder, Header) {
     let outline = pcb.outline_bounds();
     let origin = outline.map_or(Point::ORIGIN, |r| {
         Point::new(r.min.x / 2 + r.max.x / 2, r.min.y / 2 + r.max.y / 2)
@@ -329,6 +337,7 @@ fn draw_board(pcb: &Pcb, grid: i64, options: &Options<'_>, record: bool) -> (Sce
     }
 
     graphics(&mut b, &layers, pcb, origin_p, options);
+    dimensions(&mut b, &layers, pcb, origin_p, units);
 
     for fp in &pcb.footprints {
         let pads = footprint(
@@ -603,6 +612,36 @@ fn graphics(
     }
 }
 
+/// Dimensions and leaders: their lines and text, as one object each.
+fn dimensions(b: &mut SceneBuilder, layers: &BoardLayers, pcb: &Pcb, origin: P, units: Units) {
+    for dim in &pcb.dimensions {
+        let Some(layer) = layers.get(dim.layer) else {
+            continue;
+        };
+        let obj = b.object(ObjType::Dimension, dim.id, None, None);
+        let drawing = ew_model::dimension::draw(dim, units);
+        #[allow(clippy::cast_precision_loss, reason = "line widths fit f64")]
+        let width = dim.width as f64;
+        for (from, to) in &drawing.lines {
+            b.segment(
+                layer,
+                obj,
+                P::of(*from).sub(origin),
+                P::of(*to).sub(origin),
+                width,
+            );
+        }
+        let item = TextItem::styled(
+            drawing.text,
+            P::of(drawing.at).sub(origin),
+            drawing.rotation,
+            &drawing.style,
+            obj,
+        );
+        b.text(layer, obj, item);
+    }
+}
+
 #[allow(
     clippy::too_many_arguments,
     reason = "internal helper with plain inputs"
@@ -834,7 +873,7 @@ mod tests {
                 _ => None,
             })
             .unwrap();
-        let scene = build(pcb, 1_270_000, &options());
+        let scene = build(pcb, 1_270_000, Units::Mm, &options());
         let meta = &scene.meta;
         assert_eq!(meta.kind, "pcb");
         let keys: Vec<&str> = meta.layers.iter().map(|l| l.key.as_str()).collect();
@@ -856,7 +895,7 @@ mod tests {
         let net = short_net(&pcb.nets.iter().find(|n| !n.name.is_empty()).unwrap().name);
         assert!(names.texts.iter().any(|t| t.text == net), "net names");
         // Not in prints.
-        let plotted = plot(pcb, &options());
+        let plotted = plot(pcb, Units::Mm, &options());
         assert!(plotted.layers.iter().all(|l| !l.key.starts_with("names.")));
         assert_eq!(meta.nets.len(), pcb.nets.len());
         let objects = pcb.tracks.len() + pcb.vias.len() + pcb.footprints.len();

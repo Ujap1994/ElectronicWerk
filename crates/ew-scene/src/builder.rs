@@ -64,11 +64,13 @@ pub enum ObjType {
     Text,
     /// Sheet: graphic shape.
     Shape,
+    /// Board: dimension or leader.
+    Dimension,
 }
 
 impl ObjType {
     /// Every type, indexed by its code.
-    pub const ALL: [Self; 22] = [
+    pub const ALL: [Self; 23] = [
         Self::Track,
         Self::Via,
         Self::Footprint,
@@ -91,6 +93,7 @@ impl ObjType {
         Self::SheetPin,
         Self::Text,
         Self::Shape,
+        Self::Dimension,
     ];
 
     /// Name used in the scene and the engine API.
@@ -105,6 +108,7 @@ impl ObjType {
             Self::Zone => "zone",
             Self::BoardText => "boardText",
             Self::BoardShape => "boardShape",
+            Self::Dimension => "dimension",
             Self::Symbol => "symbol",
             Self::Pin => "pin",
             Self::Field => "field",

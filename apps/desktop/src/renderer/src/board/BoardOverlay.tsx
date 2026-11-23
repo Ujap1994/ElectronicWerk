@@ -1,8 +1,11 @@
 import { useEffect, useRef, useState, useSyncExternalStore, type ReactNode } from 'react';
 
+import { formatLength, type Units } from '@shared/project';
+
 import { useAppState } from '../state';
 import type { ViewerController } from '../viewer/controller';
 import type { BoardEditor, BoardSnapshot, Point } from './editor';
+import { offsetOf, previewOf } from './dimension';
 import { drcState } from './stores';
 
 function layerClass(layer: string): string {
@@ -69,12 +72,15 @@ export function BoardOverlay({
   controller,
   editor,
   doc,
+  units,
 }: {
   readonly controller: ViewerController;
   readonly editor: BoardEditor;
   readonly doc: string;
+  readonly units: Units;
 }): ReactNode {
   const state = useSyncExternalStore(editor.subscribe, editor.snapshot);
+  const { snapshot } = useAppState();
   const view = useSyncExternalStore(controller.subscribeView, controller.view);
   const drc = useSyncExternalStore(drcState.subscribe, drcState.get);
   const scale = view.scale;
@@ -201,9 +207,48 @@ export function BoardOverlay({
     }
   }
 
-  // A polygon or outline being drawn.
+  // A dimension being placed: its lines so far and the measured value.
   const cursor = state.cursor;
-  if (state.polygon.length > 0) {
+  const [first, second] = state.polygon;
+  if (state.tool === 'dimension' && first !== undefined) {
+    const kind = state.dimension;
+    const end = second ?? cursor;
+    if (end !== null) {
+      const offset =
+        second !== undefined && cursor !== null && kind !== 'leader'
+          ? offsetOf(kind, first, second, cursor)
+          : 0;
+      const preview = previewOf(kind, first, end, offset);
+      preview.lines.forEach(([a, b], index) => {
+        const [x1, y1] = screen(a);
+        const [x2, y2] = screen(b);
+        elements.push(
+          <line
+            key={`dim-${index.toString()}`}
+            className="board-dimension"
+            x1={x1}
+            y1={y1}
+            x2={x2}
+            y2={y2}
+          />,
+        );
+      });
+      if (kind !== 'leader') {
+        const [x, y] = screen(preview.at);
+        elements.push(
+          <text
+            key="dim-value"
+            className="board-dimension__value"
+            x={x}
+            y={y - 6}
+            data-testid="dimension-preview"
+          >
+            {formatLength(Math.round(preview.value), units, snapshot.language)}
+          </text>,
+        );
+      }
+    }
+  } else if (state.polygon.length > 0) {
     const first = state.polygon[0];
     if (
       state.tool === 'outline' &&

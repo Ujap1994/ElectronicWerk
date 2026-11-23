@@ -100,7 +100,12 @@ pub enum SceneError {
 pub fn build(project: &Project, doc: Id, options: &Options<'_>) -> Result<Scene, SceneError> {
     let settings = &project.manifest.settings;
     match project.document(doc).ok_or(SceneError::NotFound(doc))? {
-        Document::Pcb(pcb) => Ok(pcb::build(pcb, settings.board_grid, options)),
+        Document::Pcb(pcb) => Ok(pcb::build(
+            pcb,
+            settings.board_grid,
+            settings.units,
+            options,
+        )),
         Document::Schematic(sheet) => Ok(schematic::build(
             project,
             sheet,
@@ -119,7 +124,7 @@ pub fn build(project: &Project, doc: Id, options: &Options<'_>) -> Result<Scene,
 /// Fails if the document does not exist or is not a sheet or board.
 pub fn plot(project: &Project, doc: Id, options: &Options<'_>) -> Result<plot::Plot, SceneError> {
     match project.document(doc).ok_or(SceneError::NotFound(doc))? {
-        Document::Pcb(pcb) => Ok(pcb::plot(pcb, options)),
+        Document::Pcb(pcb) => Ok(pcb::plot(pcb, project.manifest.settings.units, options)),
         Document::Schematic(sheet) => Ok(schematic::plot(project, sheet, options)),
         _ => Err(SceneError::NotViewable),
     }
@@ -177,7 +182,7 @@ pub fn footprint_preview(def: &ew_model::library::FootprintDef, options: &Option
         properties: std::collections::BTreeMap::new(),
         attributes: def.attributes,
     });
-    pcb::build(&pcb, 250_000, options)
+    pcb::build(&pcb, 250_000, ew_model::project::Units::Mm, options)
 }
 
 /// Encodes bytes as standard base64 (with padding), for JSON clients.

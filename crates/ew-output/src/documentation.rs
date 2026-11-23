@@ -341,7 +341,14 @@ pub fn html(project: &Project, inputs: &Inputs<'_>, sections: Sections) -> Strin
 
     if let Some(pcb) = pcb {
         let resolve = |t: &str| (inputs.resolve)(t, Some(pcb.id));
-        let art = BoardArt::new(pcb, ArtOptions::default(), &resolve);
+        let art = BoardArt::new(
+            pcb,
+            ArtOptions {
+                units: project.manifest.settings.units,
+                ..ArtOptions::default()
+            },
+            &resolve,
+        );
         let title = format!("{} – {}", project.manifest.name, pcb.name);
         if sections.board {
             out.push_str("<h2 id=\"board\">Board</h2>\n");

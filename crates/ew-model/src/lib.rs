@@ -15,6 +15,7 @@
 //!   always ordered by id, so saved files are deterministic.
 
 pub mod collection;
+pub mod dimension;
 pub mod document;
 pub mod error;
 pub mod id;

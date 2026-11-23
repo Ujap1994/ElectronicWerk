@@ -848,6 +848,61 @@ test('puts a logo and a QR code onto the silkscreen', async () => {
   expect(after.groups?.length).toBe(2);
 });
 
+test('measures the board with dimensions and a leader', async () => {
+  launched = await launchApp();
+  const { page, projectsDir } = launched;
+  await page.setViewportSize({ width: 1280, height: 800 });
+  await importAs(launched, 'Measured');
+  await openBoard(page, 'Measured');
+  const board = readBoard(join(projectsDir, 'Measured'));
+  const at = (name: string): Point => {
+    const found = board.footprints.find((fp) => fp.designator === name);
+    if (found === undefined) {
+      throw new Error(`no part ${name}`);
+    }
+    return found.at;
+  };
+  const canvas = viewerCanvas(page);
+  const click = async (point: Point): Promise<void> => {
+    const [x, y] = await toScreen(canvas, point);
+    await page.mouse.move(x, y);
+    await page.mouse.click(x, y);
+  };
+  // Horizontal: from R1 to D1, the line 5 mm above.
+  await page.getByTestId('board-tool-dimension').click();
+  await page.getByTestId('board-dimension-kind').selectOption('horizontal');
+  const r1 = at('R1');
+  const d1 = at('D1');
+  await click(r1);
+  await click(d1);
+  const [px, py] = await toScreen(canvas, [d1[0], r1[1] + 5 * MM]);
+  await page.mouse.move(px, py);
+  await expect(page.getByTestId('dimension-preview')).toBeVisible();
+  await page.mouse.click(px, py);
+  await expect(page.getByTestId('toolbar-undo')).toHaveAttribute('title', /Add dimension/u);
+
+  // A leader with a note.
+  await page.getByTestId('board-dimension-kind').selectOption('leader');
+  await click(at('U1'));
+  await click([at('U1')[0] + 6 * MM, at('U1')[1] + 6 * MM]);
+  await page.getByTestId('board-prompt-input').fill('Timer');
+  await page.getByTestId('board-prompt-input').press('Enter');
+  await expect(page.getByTestId('toolbar-undo')).toHaveAttribute('title', /Add dimension/u);
+  await page.keyboard.press('Escape');
+  await save(page);
+  const saved = readBoard(join(projectsDir, 'Measured')) as unknown as {
+    dimensions: { kind: string; text?: string; offset?: number; start: Point; end: Point }[];
+  };
+  // Blinky comes with one dimension of its own.
+  expect(saved.dimensions.filter((d) => d.kind === 'leader')).toHaveLength(1);
+  const horizontal = saved.dimensions.find(
+    (d) => d.kind === 'horizontal' && d.start[0] === r1[0] && d.start[1] === r1[1],
+  );
+  expect(horizontal?.start).toEqual(r1);
+  expect(Math.abs((horizontal?.offset ?? 0) - 5 * MM)).toBeLessThanOrEqual(MM);
+  expect(saved.dimensions.find((d) => d.kind === 'leader')?.text).toBe('Timer');
+});
+
 test('pushes a track of another net aside in push-and-shove mode', async () => {
   launched = await launchApp();
   const { page, projectsDir } = launched;

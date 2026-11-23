@@ -220,6 +220,7 @@ export const en = {
     move: 'Move',
     addImage: 'Add picture',
     addQrCode: 'Add QR code',
+    addDimension: 'Add dimension',
     group: 'Group',
     ungroup: 'Ungroup',
     drag: 'Drag',
@@ -917,6 +918,7 @@ export const en = {
     usedBy: '{key} is already used by “{command}”. Give that command another key first.',
     commands: {
       board: {
+        dimension: 'Dimension',
         select: 'Select',
         footprint: 'Place a footprint',
         route: 'Route tracks',
@@ -990,6 +992,7 @@ export const en = {
     yes: 'Yes',
     no: 'No',
     types: {
+      dimension: 'Dimension',
       track: 'Track',
       via: 'Via',
       footprint: 'Footprint',
@@ -1014,6 +1017,7 @@ export const en = {
       shape: 'Graphic',
     },
     fields: {
+      dimensionKind: 'Kind',
       designator: 'Designator',
       value: 'Value',
       footprint: 'Footprint',
@@ -1071,6 +1075,12 @@ export const en = {
       fill: 'Fill',
     },
     values: {
+      diameter: 'Diameter',
+      aligned: 'Aligned',
+      horizontal: 'Horizontal',
+      vertical: 'Vertical',
+      radial: 'Radius',
+      leader: 'Leader',
       top: 'Top',
       bottom: 'Bottom',
       smd: 'SMD',

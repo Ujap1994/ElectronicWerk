@@ -579,6 +579,10 @@ pub const SUMMARIES: &[(&str, &str)] = &[
         "`{\"doc\", \"paths\": [\"…\"]}` → `{\"files\": [{\"path\", \"name\", \"kind\": gerber | drill, \"function\", \"objects\", \"bounds\", \"layer\"}]}`: what Gerber and Excellon files hold, with a free user layer suggested for each.",
     ),
     (
+        "pcb.addDimension",
+        "`{\"doc\", \"kind\": aligned | horizontal | vertical | radial | diameter | leader, \"start\", \"end\", \"offset\"?, \"layer\"? (user.1), \"text\"?}` (`add-dimension`) → `{\"id\", \"select\"}`: a dimension or leader on the board. `offset` places the dimension line (aligned: to the left of start → end, horizontal: up, vertical: right; radius and diameter: beyond the circle); `text` may contain `{value}` and is the note of a leader.",
+    ),
+    (
         "pcb.addImage",
         "`{\"doc\", \"layer\", \"rows\": [\"#..#\" …], \"pixel\", \"center\": [x, y], \"invert\"?}` (`add-image`) → `{\"select\", \"shapes\", \"group\", \"width\", \"height\"}`: a black-and-white picture (rows from the top, `#`/`1` set, `.`/`0` clear) as filled polygons on a layer, one per region with holes joined by cuts, grouped. The app turns images and logos into rows.",
     ),

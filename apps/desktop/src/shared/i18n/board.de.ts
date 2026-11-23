@@ -25,6 +25,7 @@ export const boardDe: Messages['board'] = {
     outline: 'Platinenumriss',
     text: 'Text',
     highlight: 'Netz hervorheben',
+    dimension: 'Bemaßung',
   },
   tips: {
     select:
@@ -39,6 +40,8 @@ export const boardDe: Messages['board'] = {
     outline: 'Zwei Klicks zeichnen einen rechteckigen Platinenumriss; / wechselt zum Polygon.',
     text: 'Klicke, um einen Text auf den Bestückungsdruck zu setzen.',
     highlight: 'Klicke auf Kupfer, um sein Netz hervorzuheben.',
+    dimension:
+      'Miss einen Abstand, Radius oder Durchmesser, oder zeige mit einer Notiz auf etwas. Die Art wählst du in der Werkzeugleiste.',
   },
   hints: {
     select: 'R dreht, Umschalt+F wechselt die Seite, D zieht eine Leiterbahn, Entf löscht',
@@ -52,6 +55,9 @@ export const boardDe: Messages['board'] = {
     text: 'Klicke, wo der Text hin soll',
     footprint: 'Klick platziert den Footprint · R dreht ihn',
     highlight: 'Klicke auf Kupfer, um sein Netz hervorzuheben',
+    dimension:
+      'Klicke den ersten Punkt, den zweiten Punkt, dann wo die Maßlinie liegt (Radius und Durchmesser: Mittelpunkt, Punkt auf dem Kreis, dann die Beschriftung) · Rücktaste zurück · Esc beendet',
+    leader: 'Klicke die Pfeilspitze, dann wo die Notiz hin soll, und tippe die Notiz',
     pair: 'Klick legt das Paar fest · auf einem Pad des Paars endet es dort · / Ecke zuerst · Rücktaste zurück · Enter, Doppelklick oder Esc beendet',
     noPartner:
       'Hier beginnt kein differenzielles Paar: Starte auf einem Pad eines Netzes wie USB_DP / USB_DN, TX+ / TX- oder CANH / CANL, dessen Partner höchstens 10 mm entfernt ist',
@@ -177,6 +183,29 @@ export const boardDe: Messages['board'] = {
     noText: 'Einen Text eingeben.',
     size: '{size} · {columns} × {rows} Pixel',
     add: 'Auf die Platine bringen',
+  },
+  dimensions: {
+    kind: 'Bemaßung',
+    kindTip: 'Was die nächste Bemaßung misst',
+    kinds: {
+      aligned: 'Ausgerichtet',
+      horizontal: 'Waagerecht',
+      vertical: 'Senkrecht',
+      radial: 'Radius',
+      diameter: 'Durchmesser',
+      leader: 'Hinweislinie mit Notiz',
+    },
+    text: 'Text',
+    note: 'Notiz',
+    textHint: '{value} steht für den gemessenen Wert; leer: nur der Wert.',
+    units: 'Einheit',
+    projectUnits: 'Wie im Projekt',
+    precision: 'Nachkommastellen',
+    precisionAuto: 'Automatisch',
+    hideUnits: 'Ohne Einheit',
+    offset: 'Abstand der Maßlinie',
+    textSize: 'Textgröße',
+    lineWidth: 'Linienbreite',
   },
   groups: {
     group: 'Gruppieren',

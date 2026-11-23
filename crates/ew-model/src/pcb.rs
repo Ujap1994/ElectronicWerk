@@ -5,6 +5,7 @@ use std::collections::BTreeMap;
 use serde::{Deserialize, Serialize};
 
 use crate::collection::Collection;
+use crate::dimension::Dimension;
 use crate::id::Id;
 use crate::layer::{CopperLayer, Layer, LayerSpec, Side};
 use crate::shape::Geometry;
@@ -915,7 +916,8 @@ impl_keyed!(
     BoardText,
     BoardShape,
     MechanicalBody,
-    Group
+    Group,
+    Dimension
 );
 
 /// A board (`.ewpcb`).
@@ -958,6 +960,9 @@ pub struct Pcb {
     /// Groups of objects.
     #[serde(default, skip_serializing_if = "Collection::is_empty")]
     pub groups: Collection<Group>,
+    /// Dimensions and leaders.
+    #[serde(default, skip_serializing_if = "Collection::is_empty")]
+    pub dimensions: Collection<Dimension>,
     /// Design rules check findings marked as accepted (their keys).
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub drc_exclusions: Vec<String>,
@@ -997,6 +1002,7 @@ impl Pcb {
             shapes: Collection::new(),
             mechanical: Collection::new(),
             groups: Collection::new(),
+            dimensions: Collection::new(),
             drc_exclusions: Vec::new(),
         }
     }

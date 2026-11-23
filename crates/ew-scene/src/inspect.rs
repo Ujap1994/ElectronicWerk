@@ -99,7 +99,7 @@ fn rounded(p: P) -> Point {
 #[must_use]
 pub fn describe(project: &Project, target: &ObjectRef) -> Option<ObjectInfo> {
     match project.document(target.doc)? {
-        Document::Pcb(pcb) => board(pcb, target),
+        Document::Pcb(pcb) => board(pcb, project.manifest.settings.units, target),
         Document::Schematic(sheet) => schematic(project, sheet, target),
         _ => None,
     }
@@ -119,7 +119,7 @@ fn footprint_xf(fp: &FootprintInstance) -> Xform {
 }
 
 #[allow(clippy::too_many_lines, reason = "one arm per object type")]
-fn board(pcb: &Pcb, target: &ObjectRef) -> Option<ObjectInfo> {
+fn board(pcb: &Pcb, units: ew_model::project::Units, target: &ObjectRef) -> Option<ObjectInfo> {
     let info = |ty: ObjType, title: String, rows: Vec<Row>| ObjectInfo {
         ty: ty.name(),
         id: target.id,
@@ -308,6 +308,27 @@ fn board(pcb: &Pcb, target: &ObjectRef) -> Option<ObjectInfo> {
                 row("layer", shape.layer.to_string(), "layer"),
                 row("width", shape.width, "length"),
                 row("filled", shape.filled, "bool"),
+            ],
+        ));
+    }
+    if let Some(dim) = pcb.dimensions.get(target.id) {
+        let drawing = ew_model::dimension::draw(dim, units);
+        #[allow(
+            clippy::cast_possible_truncation,
+            reason = "rounded board lengths fit i64"
+        )]
+        let value = drawing.value.round() as i64;
+        return Some(info(
+            ObjType::Dimension,
+            drawing.text.clone(),
+            vec![
+                row("dimensionKind", name_of(&dim.kind), "enum"),
+                row("value", value, "length"),
+                row("text", drawing.text, "text"),
+                row("layer", dim.layer.to_string(), "layer"),
+                point("start", dim.start),
+                point("end", dim.end),
+                row("locked", dim.locked, "bool"),
             ],
         ));
     }

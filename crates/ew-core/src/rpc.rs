@@ -175,6 +175,7 @@ pub const METHODS: &[&str] = &[
     "part.duplicates",
     "part.generate",
     "part.preview",
+    "pcb.addDimension",
     "pcb.addImage",
     "pcb.addQrCode",
     "pcb.addTracks",

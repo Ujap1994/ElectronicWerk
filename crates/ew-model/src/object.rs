@@ -7,6 +7,7 @@
 use serde::{Deserialize, Serialize};
 
 use crate::collection::Keyed;
+use crate::dimension::Dimension;
 use crate::id::Id;
 use crate::library::{ComponentDef, FootprintDef, Library, SymbolDef};
 use crate::pcb::{
@@ -97,6 +98,7 @@ objects! {
     BoardShape(BoardShape) = "boardShape",
     Mechanical(MechanicalBody) = "mechanical",
     Group(Group) = "group",
+    Dimension(Dimension) = "dimension",
     SymbolDef(SymbolDef) = "symbolDef",
     ComponentDef(ComponentDef) = "componentDef",
     FootprintDef(FootprintDef) = "footprintDef",
@@ -194,6 +196,7 @@ object_store!(Pcb {
     shapes => BoardShape,
     mechanical => Mechanical,
     groups => Group,
+    dimensions => Dimension,
 });
 
 object_store!(Library {

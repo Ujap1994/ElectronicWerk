@@ -43,6 +43,8 @@ pub mod labels {
     pub const DXF: &str = "import-dxf";
     /// `pcb.addImage`.
     pub const IMAGE: &str = "add-image";
+    /// `pcb.addDimension`.
+    pub const DIMENSION: &str = "add-dimension";
     /// `pcb.addQrCode`.
     pub const QR_CODE: &str = "add-qr-code";
     /// `pcb.importSession`.
@@ -537,6 +539,22 @@ struct DxfPreviewParams {
     path: String,
     #[serde(default)]
     scale: Option<f64>,
+}
+
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct DimensionParams {
+    doc: Id,
+    kind: ew_model::dimension::DimensionKind,
+    start: ew_model::units::Point,
+    end: ew_model::units::Point,
+    #[serde(default)]
+    offset: ew_model::units::Nm,
+    /// Default: `user.1`.
+    #[serde(default)]
+    layer: Option<ew_model::layer::Layer>,
+    #[serde(default)]
+    text: String,
 }
 
 #[derive(Deserialize)]
@@ -1896,6 +1914,38 @@ pub fn call(
                 &params.path,
                 params.scale,
             )?)?))
+        }
+        "pcb.addDimension" => {
+            let params: DimensionParams = parse(params)?;
+            board(project, params.doc)?;
+            if params.start == params.end {
+                return Err(EngineError::invalid_params(
+                    "start and end are the same point",
+                ));
+            }
+            if params.kind == ew_model::dimension::DimensionKind::Leader
+                && params.text.trim().is_empty()
+            {
+                return Err(EngineError::invalid_params("a leader needs a text"));
+            }
+            let mut dim = ew_model::dimension::new_dimension(
+                Id::random(),
+                params.layer.unwrap_or(ew_model::layer::Layer::User(1)),
+                params.kind,
+                params.start,
+                params.end,
+                params.offset,
+            );
+            dim.text = params.text;
+            let id = dim.id;
+            Ok(Outcome::Commit {
+                label: labels::DIMENSION,
+                requests: vec![Request::Insert {
+                    doc: params.doc,
+                    object: Object::Dimension(dim),
+                }],
+                reply: json!({"select": [id], "id": id}),
+            })
         }
         "pcb.addImage" => {
             let params: ImageParams = parse(params)?;

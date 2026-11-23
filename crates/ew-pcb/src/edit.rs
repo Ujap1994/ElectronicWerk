@@ -8,6 +8,7 @@
 
 use std::collections::{BTreeMap, HashMap, HashSet};
 
+use ew_model::dimension::{Dimension, DimensionKind};
 use ew_model::id::Id;
 use ew_model::layer::{CopperLayer, Layer, LayerSpec, Side};
 use ew_model::object::Object;
@@ -290,6 +291,7 @@ enum Item {
     Zone(Zone),
     Text(BoardText),
     Shape(BoardShape),
+    Dimension(Dimension),
 }
 
 impl Item {
@@ -303,6 +305,7 @@ impl Item {
             .or_else(|| pcb.zones.get(id).cloned().map(Self::Zone))
             .or_else(|| pcb.texts.get(id).cloned().map(Self::Text))
             .or_else(|| pcb.shapes.get(id).cloned().map(Self::Shape))
+            .or_else(|| pcb.dimensions.get(id).cloned().map(Self::Dimension))
     }
 
     fn object(self) -> Object {
@@ -313,6 +316,7 @@ impl Item {
             Self::Zone(o) => Object::Zone(o),
             Self::Text(o) => Object::BoardText(o),
             Self::Shape(o) => Object::BoardShape(o),
+            Self::Dimension(o) => Object::Dimension(o),
         }
     }
 
@@ -321,6 +325,7 @@ impl Item {
             Self::Footprint(o) => o.locked,
             Self::Track(o) => o.locked,
             Self::Via(o) => o.locked,
+            Self::Dimension(o) => o.locked,
             _ => false,
         }
     }
@@ -330,6 +335,7 @@ impl Item {
             Self::Footprint(o) => o.locked = locked,
             Self::Track(o) => o.locked = locked,
             Self::Via(o) => o.locked = locked,
+            Self::Dimension(o) => o.locked = locked,
             _ => {}
         }
     }
@@ -344,6 +350,7 @@ impl Item {
             Self::Zone(o) => o.outline.clone(),
             Self::Text(o) => vec![o.at],
             Self::Shape(o) => o.geometry.points(),
+            Self::Dimension(o) => vec![o.start, o.end],
         }
     }
 
@@ -378,6 +385,7 @@ impl Item {
             }
             Self::Text(o) => o.at = map.point(o.at),
             Self::Shape(o) => o.geometry = map_geometry(&o.geometry, map, keep_rect),
+            Self::Dimension(o) => map_dimension(o, map),
         }
     }
 }
@@ -423,7 +431,60 @@ fn object_id(item: &Item) -> Id {
         Item::Zone(o) => o.id,
         Item::Text(o) => o.id,
         Item::Shape(o) => o.id,
+        Item::Dimension(o) => o.id,
     }
+}
+
+/// Moves, turns or mirrors a dimension. The dimension line stays on the
+/// same side of the measured points; a horizontal dimension turned by 90°
+/// becomes a vertical one, by other angles an aligned one.
+fn map_dimension(dim: &mut Dimension, map: &dyn Map) {
+    let (start, end) = (map.point(dim.start), map.point(dim.end));
+    // Where the dimension line lies, as a vector from the first point.
+    let lift = match dim.kind {
+        DimensionKind::Horizontal => Point::new(0, dim.offset),
+        DimensionKind::Vertical => Point::new(dim.offset, 0),
+        DimensionKind::Aligned => {
+            let d = V::of(dim.end).sub(V::of(dim.start));
+            let n = V::new(-d.y, d.x).unit().scale(dim.offset as f64);
+            n.point()
+        }
+        _ => Point::ORIGIN,
+    };
+    let moved = map.point(dim.start + lift) - start;
+    match dim.kind {
+        DimensionKind::Horizontal | DimensionKind::Vertical => {
+            let (dx, dy) = (moved.x.abs(), moved.y.abs());
+            if dx == 0 || dy == 0 {
+                if dx > dy {
+                    dim.kind = DimensionKind::Vertical;
+                    dim.offset = moved.x;
+                } else {
+                    dim.kind = DimensionKind::Horizontal;
+                    dim.offset = moved.y;
+                }
+            } else {
+                dim.kind = DimensionKind::Aligned;
+                dim.offset = aligned_offset(start, end, moved);
+            }
+        }
+        DimensionKind::Aligned => dim.offset = aligned_offset(start, end, moved),
+        _ => {}
+    }
+    dim.start = start;
+    dim.end = end;
+}
+
+/// The offset of an aligned dimension whose line is moved by `lift`: its
+/// length along the left normal of `start` → `end`.
+#[allow(
+    clippy::cast_possible_truncation,
+    reason = "rounded board lengths fit i64"
+)]
+fn aligned_offset(start: Point, end: Point, lift: Point) -> Nm {
+    let d = V::of(end).sub(V::of(start));
+    let n = V::new(-d.y, d.x).unit();
+    (n.x * lift.x as f64 + n.y * lift.y as f64).round() as Nm
 }
 
 /// The box of a footprint on the board (its pads and graphics).
@@ -578,6 +639,7 @@ pub fn apply(doc: Id, pcb: &Pcb, edit: &BoardEdit) -> Result<Edit, EditError> {
                         text.rotation = negate(text.rotation);
                     }
                     Item::Shape(shape) => shape.layer = shape.layer.flipped(copper_count),
+                    Item::Dimension(dim) => dim.layer = dim.layer.flipped(copper_count),
                 }
             }
             Ok(updates(doc, pcb, items, ids.clone()))
@@ -947,6 +1009,7 @@ fn group(doc: Id, pcb: &Pcb, ids: &[Id], name: &str) -> Edit {
             || pcb.zones.contains(*id)
             || pcb.texts.contains(*id)
             || pcb.shapes.contains(*id)
+            || pcb.dimensions.contains(*id)
     };
     let mut members: Vec<Id> = Vec::new();
     for id in ids {

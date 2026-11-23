@@ -38,6 +38,7 @@ const TYPE_GROUP: Readonly<Record<string, FilterGroup>> = {
   zone: 'zones',
   boardText: 'texts',
   boardShape: 'graphics',
+  dimension: 'graphics',
   symbol: 'symbols',
   pin: 'symbols',
   field: 'symbols',

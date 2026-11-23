@@ -13,11 +13,12 @@ import { CheckInput, LengthInput, NumberInput, SelectInput, TextInput } from '..
 import { useProject } from '../project/ProjectProvider';
 import { errorMessage } from '../project/labels';
 import { useAppState } from '../state';
+import { layerLabel } from '../viewer/labels';
 import { layerName } from './BoardToolbar';
 import { viaTypeOf } from './editor';
 
 /** Object types with editable properties. */
-export const BOARD_EDITABLE = new Set(['footprint', 'track', 'via', 'boardText']);
+export const BOARD_EDITABLE = new Set(['footprint', 'track', 'via', 'boardText', 'dimension']);
 
 type Json = Record<string, unknown>;
 
@@ -29,6 +30,8 @@ function number(value: unknown): number {
   return typeof value === 'number' ? value : 0;
 }
 
+const NO_LAYERS: readonly string[] = [];
+
 /** At most this many objects are edited together. */
 export const MAX_EDITED = 2000;
 
@@ -39,6 +42,7 @@ export function BoardProperties({
   version,
   units,
   layers,
+  drawingLayers = NO_LAYERS,
 }: {
   readonly doc: string;
   /** The selected objects (all of `type`). */
@@ -49,6 +53,8 @@ export function BoardProperties({
   readonly units: Units;
   /** Copper layers of the board. */
   readonly layers: readonly string[];
+  /** Drawing layers of the board (user, mechanical, fabrication, silkscreen). */
+  readonly drawingLayers?: readonly string[];
 }): ReactNode {
   const { t, engine } = useAppState();
   const { notify } = useProject();
@@ -233,6 +239,108 @@ export function BoardProperties({
             {t('board.props.viaType')}:{' '}
             {t(`board.viaTypes.${viaTypeOf(viaFrom, viaTo, object['micro'] === true)}`)}
           </p>
+          {locked}
+        </>
+      )}
+      {type === 'dimension' && (
+        <>
+          <TextInput
+            label={label(
+              object['kind'] === 'leader' ? t('board.dimensions.note') : t('board.dimensions.text'),
+              'text',
+            )}
+            value={text(object['text'])}
+            testId="board-prop-dimension-text"
+            onSave={(value) => {
+              patch({ text: value });
+            }}
+          />
+          {object['kind'] !== 'leader' && (
+            <>
+              <p className="field__hint">{t('board.dimensions.textHint')}</p>
+              <SelectInput
+                label={label(t('board.dimensions.units'), 'units')}
+                value={text(object['units']) || 'project'}
+                testId="board-prop-dimension-units"
+                options={[
+                  ['project', t('board.dimensions.projectUnits')],
+                  ['mm', 'mm'],
+                  ['mil', 'mil'],
+                  ['inch', 'in'],
+                ]}
+                onSave={(value) => {
+                  patch({ units: value === 'project' ? null : value });
+                }}
+              />
+              <SelectInput
+                label={label(t('board.dimensions.precision'), 'precision')}
+                value={
+                  typeof object['precision'] === 'number' ? String(object['precision']) : 'auto'
+                }
+                testId="board-prop-dimension-precision"
+                options={[
+                  ['auto', t('board.dimensions.precisionAuto')],
+                  ...['0', '1', '2', '3', '4'].map((n) => [n, n] as const),
+                ]}
+                onSave={(value) => {
+                  patch({ precision: value === 'auto' ? null : Number(value) });
+                }}
+              />
+              <CheckInput
+                label={label(t('board.dimensions.hideUnits'), 'hideUnits')}
+                checked={object['hideUnits'] === true}
+                testId="board-prop-dimension-hide-units"
+                onSave={(value) => {
+                  patch({ hideUnits: value });
+                }}
+              />
+              {(object['kind'] === 'aligned' ||
+                object['kind'] === 'horizontal' ||
+                object['kind'] === 'vertical') && (
+                <LengthInput
+                  label={label(t('board.dimensions.offset'), 'offset')}
+                  value={number(object['offset'])}
+                  units={units}
+                  testId="board-prop-dimension-offset"
+                  onSave={(value) => {
+                    patch({ offset: value });
+                  }}
+                />
+              )}
+            </>
+          )}
+          <LengthInput
+            label={label(t('board.dimensions.textSize'), 'style')}
+            value={number((object['style'] as Json | undefined)?.['size'])}
+            units={units}
+            min={100_000}
+            testId="board-prop-dimension-size"
+            onSave={(value) => {
+              patch({ style: { ...(object['style'] as Json | undefined), size: value } });
+            }}
+          />
+          <LengthInput
+            label={label(t('board.dimensions.lineWidth'), 'width')}
+            value={number(object['width'])}
+            units={units}
+            min={10_000}
+            testId="board-prop-dimension-width"
+            onSave={(value) => {
+              patch({ width: value });
+            }}
+          />
+          <SelectInput
+            label={label(t('board.props.layer'), 'layer')}
+            value={text(object['layer'])}
+            testId="board-prop-dimension-layer"
+            options={(drawingLayers.includes(text(object['layer']))
+              ? drawingLayers
+              : [text(object['layer']), ...drawingLayers]
+            ).map((layer) => [layer, layerLabel(t, layer)])}
+            onSave={(value) => {
+              patch({ layer: value });
+            }}
+          />
           {locked}
         </>
       )}

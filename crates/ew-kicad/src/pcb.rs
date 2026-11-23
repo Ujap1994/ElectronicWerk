@@ -2,6 +2,7 @@
 
 use std::collections::{BTreeMap, HashMap};
 
+use ew_model::dimension::Dimension;
 use ew_model::id::Id;
 use ew_model::layer::{CopperLayer, Layer, Side};
 use ew_model::library::FootprintDef;
@@ -503,8 +504,17 @@ pub fn board(
                     mirrored,
                 });
             }
-            "dimension" | "gr_text_box" | "target" | "image" | "table" | "generated"
-            | "gr_bbox" => {
+            "dimension" => match dimension(item, frame, ids) {
+                Some(dim) => {
+                    pcb.dimensions.insert(dim);
+                }
+                None => report.info(
+                    "unsupported-item",
+                    Some(file),
+                    "a centre mark or an incomplete dimension was not imported",
+                ),
+            },
+            "gr_text_box" | "target" | "image" | "table" | "generated" | "gr_bbox" => {
                 report.info(
                     "unsupported-item",
                     Some(file),
@@ -539,6 +549,100 @@ pub fn board(
     }
 }
 
+/// A KiCad dimension (`aligned`, `orthogonal`, `radial`, `leader`); centre
+/// marks and incomplete ones give `None`.
+fn dimension(item: &Sexp<'_>, frame: Frame, ids: &mut Ids) -> Option<Dimension> {
+    use ew_model::dimension::DimensionKind;
+    let layer = item.value("layer").and_then(common::layer)?;
+    let points = common::points(item.get("pts"), &|x, y| frame.point(x, y));
+    let (start, end) = (*points.first()?, *points.get(1)?);
+    if start == end {
+        return None;
+    }
+    let kind = match item.get("type").and_then(|t| t.arg(0))? {
+        "aligned" => DimensionKind::Aligned,
+        "orthogonal" => {
+            if item.number("orientation").unwrap_or(0.0) == 0.0 {
+                DimensionKind::Horizontal
+            } else {
+                DimensionKind::Vertical
+            }
+        }
+        "radial" => DimensionKind::Radial,
+        "leader" => DimensionKind::Leader,
+        _ => return None,
+    };
+    let text = item.get("gr_text");
+    let text_at = text.map(|t| frame.at(t.get("at")));
+    // The side of the dimension line: where KiCad put the text.
+    let height = nm(item.number("height").unwrap_or(0.0)).abs();
+    let side = |along: f64| if along < 0.0 { -height } else { height };
+    #[allow(clippy::cast_precision_loss, reason = "board coordinates fit f64")]
+    let offset = match (kind, text_at) {
+        (DimensionKind::Horizontal, Some(at)) => side((at.y - start.y) as f64),
+        (DimensionKind::Vertical, Some(at)) => side((at.x - start.x) as f64),
+        (DimensionKind::Aligned, Some(at)) => {
+            let (dx, dy) = ((end.x - start.x) as f64, (end.y - start.y) as f64);
+            side(-dy * (at.x - start.x) as f64 + dx * (at.y - start.y) as f64)
+        }
+        (DimensionKind::Radial, _) => nm(item.number("leader_length").unwrap_or(0.0)).abs(),
+        _ => height,
+    };
+    let format = item.get("format");
+    let units = match format.and_then(|f| f.number("units")) {
+        Some(0.0) => Some(ew_model::project::Units::Inch),
+        Some(1.0) => Some(ew_model::project::Units::Mil),
+        Some(2.0) => Some(ew_model::project::Units::Mm),
+        _ => None,
+    };
+    #[allow(
+        clippy::cast_possible_truncation,
+        clippy::cast_sign_loss,
+        reason = "KiCad precisions are small"
+    )]
+    let precision = format
+        .and_then(|f| f.number("precision"))
+        .filter(|p| (0.0..=6.0).contains(p))
+        .map(|p| p as u8);
+    let hide_units = format.and_then(|f| f.number("units_format")) == Some(0.0);
+    let template = if kind == DimensionKind::Leader {
+        text.and_then(|t| t.arg(0)).unwrap_or_default().to_owned()
+    } else if let Some(fixed) = format.and_then(|f| f.value("override_value")) {
+        fixed.to_owned()
+    } else {
+        let prefix = format.and_then(|f| f.value("prefix")).unwrap_or_default();
+        let suffix = format.and_then(|f| f.value("suffix")).unwrap_or_default();
+        if prefix.is_empty() && suffix.is_empty() {
+            String::new()
+        } else {
+            format!("{prefix}{{value}}{suffix}")
+        }
+    };
+    let mut style = text.map_or_else(TextStyle::board, |t| common::text_style(t.get("effects")));
+    if style.thickness == 0 {
+        style.thickness = style.size / 8;
+    }
+    let width = item
+        .get("style")
+        .and_then(|s| s.number("thickness"))
+        .map_or(100_000, nm);
+    Some(Dimension {
+        id: ids.of(item, &["dimension"]),
+        layer,
+        kind,
+        start,
+        end,
+        offset,
+        text: template,
+        units,
+        precision,
+        hide_units,
+        style,
+        width,
+        locked: item.flag("locked"),
+    })
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -566,7 +670,15 @@ mod tests {
             (filled_polygon (layer "In1.Cu") (pts (xy 1 1) (xy 99 1) (xy 99 149) (xy 1 149))))
         (gr_rect (start 0 0) (end 100 150) (stroke (width 0.1) (type solid)) (fill no) (layer "Edge.Cuts"))
         (gr_text "Rev A" (at 80 140 0) (layer "F.SilkS") (effects (font (size 1.5 1.5) (thickness 0.3))))
-        (dimension (type aligned) (layer "Dwgs.User")))"#;
+        (dimension (type aligned) (layer "Dwgs.User"))
+        (dimension (type orthogonal) (layer "Dwgs.User") (uuid "33333333-3333-3333-3333-333333333333")
+            (pts (xy 0 0) (xy 100 0)) (height -6) (orientation 0)
+            (gr_text "100.00 mm" (at 50 -6.5 0) (layer "Dwgs.User") (effects (font (size 1 1) (thickness 0.15))))
+            (format (prefix "") (suffix "") (units 2) (units_format 1) (precision 2))
+            (style (thickness 0.12) (arrow_length 1.27) (extension_height 0.58)))
+        (dimension (type leader) (layer "Dwgs.User") (pts (xy 10 10) (xy 20 5))
+            (gr_text "Gold fingers" (at 25 5 0) (layer "Dwgs.User") (effects (font (size 1 1))))
+            (format (units 2) (units_format 1) (precision 2)) (style (thickness 0.1))))"#;
 
     #[test]
     fn imports_a_four_layer_board() {
@@ -609,12 +721,30 @@ mod tests {
             Some("20260206")
         );
         assert_eq!(report.counts.get("tracks"), Some(&2));
+        // The empty dimension is reported, the others imported. KiCad's y
+        // axis points down: a dimension line above the board (y = -6 in
+        // KiCad) lies on the side of positive y.
         assert!(
             report
                 .findings
                 .iter()
                 .any(|f| f.message.contains("dimension"))
         );
+        assert_eq!(pcb.dimensions.len(), 2);
+        let ortho = pcb
+            .dimensions
+            .iter()
+            .find(|d| d.kind == ew_model::dimension::DimensionKind::Horizontal)
+            .unwrap();
+        assert_eq!(ortho.offset, mm(6));
+        assert_eq!(ortho.width, um(120));
+        assert_eq!(ortho.units, Some(ew_model::project::Units::Mm));
+        let leader = pcb
+            .dimensions
+            .iter()
+            .find(|d| d.kind == ew_model::dimension::DimensionKind::Leader)
+            .unwrap();
+        assert_eq!(leader.text, "Gold fingers");
     }
 
     #[test]

@@ -12,6 +12,7 @@ import type { MessageKey } from '@shared/i18n';
 import type { Interaction, ViewerController } from '../viewer/controller';
 import { routingCorners, routingMode, routingVia } from './stores';
 import { commandFor } from '../shortcuts';
+import { offsetOf, type DimensionKind } from './dimension';
 
 export type Point = readonly [number, number];
 
@@ -25,7 +26,8 @@ export type BoardTool =
   | 'outline'
   | 'text'
   | 'footprint'
-  | 'highlight';
+  | 'highlight'
+  | 'dimension';
 
 /** The via type the router places when it changes layers. */
 export type ViaChoice = 'through' | 'blind' | 'micro';
@@ -147,6 +149,8 @@ export interface BoardSnapshot {
   readonly net: string | null;
   readonly hint: MessageKey | null;
   readonly snap: boolean;
+  /** The kind of the next dimension. */
+  readonly dimension: DimensionKind;
 }
 
 /** What the editor needs from its surroundings. */
@@ -220,7 +224,13 @@ const HINTS: Readonly<Record<BoardTool, MessageKey>> = {
   text: 'board.hints.text',
   footprint: 'board.hints.footprint',
   highlight: 'board.hints.highlight',
+  dimension: 'board.hints.dimension',
 };
+
+/** The hint of a tool (a leader asks for other clicks than a dimension). */
+function hintOf(tool: BoardTool, dimension: DimensionKind): MessageKey {
+  return tool === 'dimension' && dimension === 'leader' ? 'board.hints.leader' : HINTS[tool];
+}
 
 /** The silkscreen layer on the side of a copper layer. */
 export function silkOf(layer: string): string {
@@ -309,6 +319,7 @@ const TOOL_COMMANDS: ReadonlyMap<string, BoardTool> = new Map<string, BoardTool>
   ['board.outline', 'outline'],
   ['board.text', 'text'],
   ['board.highlight', 'highlight'],
+  ['board.dimension', 'dimension'],
 ]);
 
 export class BoardEditor implements Interaction {
@@ -329,6 +340,7 @@ export class BoardEditor implements Interaction {
     net: null,
     hint: HINTS.select,
     snap: true,
+    dimension: 'aligned',
   };
   private readonly listeners = new Set<() => void>();
   private pointer: Point | null = null;
@@ -401,7 +413,7 @@ export class BoardEditor implements Interaction {
   setTool(tool: BoardTool): void {
     this.finishRoute();
     this.cancel();
-    this.update({ tool, hint: HINTS[tool], rotation: 0 });
+    this.update({ tool, hint: hintOf(tool, this.state.dimension), rotation: 0 });
     if (tool !== 'select') {
       this.controller.clearSelection();
     }
@@ -438,6 +450,14 @@ export class BoardEditor implements Interaction {
 
   setOutlineShape(shape: 'rect' | 'polygon'): void {
     this.update({ outlineShape: shape, polygon: [] });
+  }
+
+  /** The kind of the next dimension (and the dimension tool). */
+  setDimensionKind(kind: DimensionKind): void {
+    if (this.state.tool !== 'dimension') {
+      this.setTool('dimension');
+    }
+    this.update({ dimension: kind, polygon: [], prompt: null, hint: hintOf('dimension', kind) });
   }
 
   /** Ends what is in progress (move, polygon, prompt) without changes. */
@@ -1159,6 +1179,15 @@ export class BoardEditor implements Interaction {
     const prompt = this.state.prompt;
     this.update({ prompt: null });
     const value = text.trim();
+    if (this.state.tool === 'dimension') {
+      // The note of a leader.
+      const [tip, elbow] = this.state.polygon;
+      this.update({ polygon: [] });
+      if (value !== '' && tip !== undefined && elbow !== undefined) {
+        this.run('pcb.addDimension', { kind: 'leader', start: tip, end: elbow, text: value });
+      }
+      return;
+    }
     if (prompt === null || value === '') {
       return;
     }
@@ -1184,7 +1213,10 @@ export class BoardEditor implements Interaction {
   }
 
   cancelPrompt(): void {
-    this.update({ prompt: null });
+    this.update({
+      prompt: null,
+      polygon: this.state.tool === 'dimension' ? [] : this.state.polygon,
+    });
   }
 
   // --- Interaction ----------------------------------------------------------
@@ -1294,6 +1326,25 @@ export class BoardEditor implements Interaction {
       case 'text':
         this.update({ prompt: { at: p, value: '' } });
         return true;
+      case 'dimension': {
+        const kind = this.state.dimension;
+        const points = [...this.state.polygon, p];
+        const [a, b, c] = points;
+        if (b !== undefined && a?.[0] === b[0] && a[1] === b[1]) {
+          return true;
+        }
+        if (kind === 'leader' && a !== undefined && b !== undefined) {
+          this.update({ polygon: [a, b], prompt: { at: b, value: '' } });
+          return true;
+        }
+        if (a !== undefined && b !== undefined && c !== undefined) {
+          this.update({ polygon: [] });
+          this.run('pcb.addDimension', { kind, start: a, end: b, offset: offsetOf(kind, a, b, c) });
+          return true;
+        }
+        this.update({ polygon: points });
+        return true;
+      }
       case 'footprint':
         if (this.state.footprint !== null) {
           this.run('pcb.place', {
@@ -1374,6 +1425,7 @@ export class BoardEditor implements Interaction {
       case 'text':
       case 'footprint':
       case 'highlight':
+      case 'dimension':
         return;
     }
   }

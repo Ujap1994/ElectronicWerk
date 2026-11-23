@@ -8,6 +8,7 @@ use std::f64::consts::TAU;
 use ew_model::id::Id;
 use ew_model::layer::{CopperLayer, Layer, LayerSpec, Side};
 use ew_model::pcb::{FootprintInstance, FootprintTextKind, Pad, PadKind, Pcb};
+use ew_model::project::Units;
 use ew_model::shape::Geometry;
 use ew_model::text::{HAlign, TextStyle, VAlign};
 use ew_model::units::Point;
@@ -167,6 +168,8 @@ pub struct ArtOptions {
     pub silk_designators: bool,
     /// Plot texts at all (assembly drawings draw their own designators).
     pub texts: bool,
+    /// Units of dimension values without units of their own.
+    pub units: Units,
 }
 
 impl Default for ArtOptions {
@@ -177,6 +180,7 @@ impl Default for ArtOptions {
             silk_values: true,
             silk_designators: true,
             texts: true,
+            units: Units::Mm,
         }
     }
 }
@@ -377,7 +381,40 @@ impl<'a> BoardArt<'a> {
             self.vias(None, &mut out);
         }
         self.texts(layer, &mut out);
+        self.dimensions(layer, &mut out);
         out
+    }
+
+    /// Dimensions and leaders: their lines, arrows and text.
+    fn dimensions(&self, layer: Layer, out: &mut Vec<Feature>) {
+        for dim in self.pcb.dimensions.iter().filter(|d| d.layer == layer) {
+            let drawing = ew_model::dimension::draw(dim, self.options.units);
+            let attributes = Attributes {
+                net: layer.is_copper().then(String::new),
+                ..Attributes::default()
+            };
+            let function = function_for(layer, Function::NonConductor);
+            for (a, b) in &drawing.lines {
+                out.push(Feature::Line {
+                    a: V::of(*a),
+                    b: V::of(*b),
+                    width: dim.width as f64,
+                    function,
+                    attributes: attributes.clone(),
+                });
+            }
+            text_features(
+                &drawing.text,
+                V::of(drawing.at),
+                drawing.rotation,
+                align(&drawing.style),
+                false,
+                &drawing.style,
+                function,
+                &attributes,
+                out,
+            );
+        }
     }
 
     fn zones(&self, copper: CopperLayer, out: &mut Vec<Feature>) {

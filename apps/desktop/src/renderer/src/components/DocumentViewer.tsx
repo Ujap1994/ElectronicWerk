@@ -693,7 +693,7 @@ export function DocumentViewer({
           {editor !== null && <EditorOverlay controller={controller} editor={editor} />}
           {editor !== null && <ToolPalette editor={editor} commands={commands} />}
           {boardEditor !== null && (
-            <BoardOverlay controller={controller} editor={boardEditor} doc={doc} />
+            <BoardOverlay controller={controller} editor={boardEditor} doc={doc} units={units} />
           )}
           {boardEditor !== null && (
             <BoardToolPalette editor={boardEditor} commands={boardUi.commands} />
