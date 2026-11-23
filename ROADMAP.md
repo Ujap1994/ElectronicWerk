@@ -1,7 +1,7 @@
 # ElectronicWerk Roadmap
 
-> **Status:** v0.33 (2026-11-22). M0 to M19 are complete (releases v0.1.0 to
-> v0.20.0; M0, M1 and M3 accepted by the maintainer). Next: M20–M23 further
+> **Status:** v0.34 (2026-11-23). M0 to M20 are complete (releases v0.1.0 to
+> v0.21.0; M0, M1 and M3 accepted by the maintainer). Next: M21–M23 further
 > features chosen by the maintainer, then M24 (v1.0).
 > The GitHub integration (M11) is switched off since v0.14.1 until the
 > maintainer decides to offer it (ADR-0014).
@@ -258,7 +258,7 @@ own work only. Maintainer test cycles and feedback come on top. Status values:
 | M17 | Mechanical assembly and enclosure check               | v0.18.0 | F14               | 6–10 S          | ✅     |
 | M18 | Multi-board design                                    | v0.19.0 | F15               | 8–12 S          | ✅     |
 | M19 | Part catalog                                          | v0.20.0 | F16               | 5–8 S           | ✅     |
-| M20 | Everyday editing                                      | v0.21.0 | F17               | 8–12 S          | ⬜     |
+| M20 | Everyday editing                                      | v0.21.0 | F17               | 8–12 S          | ✅     |
 | M21 | Layout construction                                   | v0.22.0 | F18               | 10–15 S         | ⬜     |
 | M22 | Layout routing                                        | v0.23.0 | F19               | 12–20 S         | ⬜     |
 | M23 | Exchange: ODB++, Gerber to board, version comparison  | v0.24.0 | F20               | 8–12 S          | ⬜     |
@@ -1050,7 +1050,7 @@ library window, the place dialog leading there; exact names first in the
 search; `ewerk library categories|packages`, `--category`, MCP tools
 `list_part_categories` and `part_packages`. See ADR-0020.
 
-### M20 — Everyday editing (v0.21.0, 8–12 S)
+### M20 — Everyday editing (v0.21.0, 8–12 S) ✅
 
 From Altium Designer and KiCad, chosen by the maintainer:
 
@@ -1067,6 +1067,20 @@ From Altium Designer and KiCad, chosen by the maintainer:
   track and via current (IPC-2152), fusing current.
 - **Logo and image import** into silkscreen and copper (bitmap to polygons),
   **QR codes**.
+
+**Done (v0.21.0):** a selection filter for sheets and boards; select similar
+by chosen properties (`document.similar`) and editing many board objects in
+one step; the net inspector below the board (class, length, tracks, vias,
+pads, open connections; sort, filter, highlight, class and colour for
+several nets; `pcb.nets`); net colours as a project setting by net name,
+drawn on copper and on wires and labels (`schematic.netColors`); groups of
+board objects saved in the board (`pcb.edit` `group` / `ungroup`,
+Ctrl+G); custom keys for every editor command in the settings; six
+calculators in the engine (`calc.*`: divider, regulator, E series, track
+and via current after IPC-2152 or IPC-2221, Onderdonk fusing current);
+logos and pictures traced into filled polygons with holes joined by cuts,
+QR codes (`pcb.addImage`, `pcb.addQrCode`, `pcb.qrCode`); drawn copper now
+counts in the DRC, the zone filler and the router. See ADR-0021.
 
 ### M21 — Layout construction (v0.22.0, 10–15 S)
 
@@ -1247,4 +1261,5 @@ From Altium Designer and KiCad, chosen by the maintainer:
 | 2026-11-22 | v0.31      | The maintainer's remarks after M18 fixed in v0.19.1 (maximized windows, Esc hint, mouse wheel zoom, online parts in the own browser, pad and net names, designators instead of placeholders, cut-off fields), plus robustness, stability and performance checks; findings added to M19. A part catalog with complete parts and categories comes next (v0.20.0), as the maintainer asked.                                                                   |
 | 2026-11-22 | v0.32      | New milestones chosen by the maintainer from a comparison with Altium Designer, DipTrace and KiCad: M19 part catalog, M20 everyday editing, M21 layout construction, M22 layout routing, M23 exchange (ODB++, Gerber to board, version comparison); hardening and v1.0 move to M24. The other candidates follow after v1.0.                                                                                                                                |
 | 2026-11-22 | v0.33      | M19 complete: v0.20.0 with the part catalog — categories, complete parts, packages of basic parts, add and place with the package (ADR-0020).                                                                                                                                                                                                                                                                                                              |
+| 2026-11-23 | v0.34      | M20 complete: v0.21.0 with the everyday editing tools — selection filter, select similar and multi-edit, net inspector, net colours, groups, custom shortcuts, calculators, logos and QR codes (ADR-0021).                                                                                                                                                                                                                                                 |
 | 2026-11-16 | v0.27      | M15 complete: v0.16.0 with blind, buried and microvias, push and shove, the impedance calculator with the working modes, differential pairs, length matching, teardrops, stitching vias, channels and assembly variants. Back drilling deferred (ADR-0016).                                                                                                                                                                                                |

@@ -84,6 +84,13 @@ full CLI.
   microcontrollers by vendor, connectors, … — with a choice of the common
   packages for basic parts (0402 … 1206, pin headers, JST, …); place a part
   on the schematic with its package in two clicks
+- **Everyday tools:** a **selection filter**, **select similar** and
+  editing many objects at once, a **net inspector** (class, length, vias,
+  open connections of every net), **net colours** on sheets and boards,
+  **groups**, your own **keyboard shortcuts**, **calculators** (voltage
+  divider, regulator resistors, E series, track and via current after
+  IPC-2152, fusing current) and **logos, pictures and QR codes** on
+  silkscreen, copper or mask
 - **Systems of several boards:** a shield on a carrier, a main board with a
   front panel, boards of other projects or reference designs from KiCad and
   Eagle, joined by mating connectors or **cables**; a **connection check
@@ -189,9 +196,6 @@ B.netclass != 'HV'`)
 
 ## Planned highlights
 
-- **Everyday tools:** net colours, a selection filter, select similar and
-  edit many at once, a net inspector, groups, custom shortcuts, calculators,
-  logos and QR codes
 - **Layout construction and routing:** dimensions and a fabrication drawing,
   design blocks, rooms, a creepage check, padstacks, fan-out, bus routing,
   arc tracks and a built-in autorouter

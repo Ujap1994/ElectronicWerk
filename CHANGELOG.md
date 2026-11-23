@@ -6,6 +6,62 @@ project uses [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.21.0] - 2026-11-23
+
+Everyday editing: the tools of Altium Designer and KiCad that save time
+every day — selecting and editing many objects, nets at a glance, groups,
+your own keys, calculators, and logos and QR codes on the board.
+
+### Added
+
+- **Selection filter** on sheets and boards: switch off kinds of objects
+  (parts, tracks, vias, zones, texts, graphics; symbols, wires, labels …)
+  so that clicks, boxes, lassos and Select all skip them. See
+  [Selecting and editing many objects](docs/guide/selecting-and-editing.md).
+- **Select similar** in the properties panel: select every object of the
+  same kind that shares the ticked properties (layer and width of a track,
+  footprint and value of a part …).
+- **Editing many objects at once:** with several tracks, vias, footprints or
+  texts selected, the properties panel changes all of them in one undo
+  step; fields with different values are marked.
+- **Net inspector** (**Nets** in the layout editor's tool bar): every net
+  with its class, routed length, tracks, vias, pads and open connections;
+  sort, filter, click to highlight, and set the class or colour of ticked
+  nets. See [Net inspector and net colours](docs/guide/nets.md).
+- **Net colours:** a net drawn in its colour on the copper of the board and
+  on the wires and labels of the sheets; set it in the properties panel or
+  the net inspector, switch all off with **Show net colours**. Saved in the
+  project by net name.
+- **Groups** of board objects (<kbd>Ctrl</kbd>/<kbd>⌘</kbd>+<kbd>G</kbd>,
+  **Group** / **Ungroup** in the properties panel): a click selects the
+  whole group, which moves, turns, flips and locks together.
+- **Your own keyboard shortcuts:** every command of the layout and schematic
+  editors can get another key in the settings; keys of the same editor
+  and reserved keys are refused with a message. See
+  [Keyboard shortcuts](docs/guide/keyboard-shortcuts.md#your-own-keys).
+- **Calculators** (View → Calculators, the project bar, the command
+  palette): voltage divider and regulator feedback resistors from an E
+  series, E series values, track width and current after IPC-2152 (a fit of
+  chart 5-2) or IPC-2221, via current, and the fusing current of tracks and
+  vias (Onderdonk). See [Calculators](docs/guide/calculators.md).
+- **Logos, pictures and QR codes** on silkscreen, copper or solder mask
+  (**Logo or QR code** in the layout editor): pictures become black and
+  white pixels with a threshold, invert and three levels of detail, bottom
+  layers are mirrored; QR codes with error correction and a light border
+  for silkscreen. See [Logos and QR codes](docs/guide/logos-and-qr-codes.md).
+- Engine methods `document.similar`, `pcb.nets`, `schematic.netColors`,
+  `calc.eSeries`, `calc.divider`, `calc.regulator`, `calc.track`,
+  `calc.via`, `calc.fusing`, `pcb.addImage`, `pcb.addQrCode`, `pcb.qrCode`,
+  and the `pcb.edit` operations `group` and `ungroup`.
+- [ADR-0021](docs/adr/0021-everyday-editing.md) records the decisions.
+
+### Changed
+
+- Shapes drawn on copper layers count as copper without a net: the design
+  rules check reports them when they come too close to copper of a net,
+  zones keep their clearance around them, and the router avoids them.
+- The tool palettes show the keys in use, including your own.
+
 ## [0.20.0] - 2026-11-22
 
 The part catalog: complete parts in categories, basic parts with a choice
@@ -1546,7 +1602,8 @@ quality gates and the delivery pipeline that every later feature builds on.
   process ([ujap1994.github.io/ElectronicWerk](https://ujap1994.github.io/ElectronicWerk/)).
   **Help → Documentation** opens it.
 
-[Unreleased]: https://github.com/Ujap1994/ElectronicWerk/compare/v0.20.0...HEAD
+[Unreleased]: https://github.com/Ujap1994/ElectronicWerk/compare/v0.21.0...HEAD
+[0.21.0]: https://github.com/Ujap1994/ElectronicWerk/compare/v0.20.0...v0.21.0
 [0.20.0]: https://github.com/Ujap1994/ElectronicWerk/compare/v0.19.1...v0.20.0
 [0.19.1]: https://github.com/Ujap1994/ElectronicWerk/compare/v0.19.0...v0.19.1
 [0.19.0]: https://github.com/Ujap1994/ElectronicWerk/compare/v0.18.0...v0.19.0
